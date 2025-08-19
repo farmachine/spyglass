@@ -69,10 +69,22 @@ export class ToolEngine {
     console.log('-'.repeat(80));
     console.log('');
     
-    // Clean markdown code blocks
-    if (content.startsWith('```python') || content.startsWith('```')) {
-      content = content.replace(/^```(?:python)?\s*/, '').replace(/\s*```$/, '').trim();
-      console.log('🧹 CLEANED CONTENT (removed markdown):');
+    // Clean markdown code blocks for Python code
+    if (tool.toolType === 'CODE') {
+      // Handle markdown-wrapped Python code
+      if (content.includes('```python')) {
+        const pythonMatch = content.match(/```python\s*([\s\S]*?)\s*```/);
+        if (pythonMatch) {
+          content = pythonMatch[1].trim();
+        }
+      } else if (content.includes('```')) {
+        // Handle generic code blocks
+        const codeMatch = content.match(/```\s*([\s\S]*?)\s*```/);
+        if (codeMatch) {
+          content = codeMatch[1].trim();
+        }
+      }
+      console.log('🧹 CLEANED PYTHON CODE (removed markdown):');
       console.log('-'.repeat(80));
       console.log(content);
       console.log('-'.repeat(80));

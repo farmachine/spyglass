@@ -1,0 +1,50 @@
+🚀 ========== CODE TOOL TEST STARTED ==========
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST INPUT PARAMETERS ==========
+2:55:50 PM [browser] 📝 🎯 ========== TEST INPUT PARAMETERS ==========
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Tool: Get Column Names (CODE)
+2:55:50 PM [browser] 📝 Tool: Get Column Names (CODE)
+2:55:50 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+Inputs: {
+  "Excel File": "Ersatz eighth (1).xlsx"
+}
+2:55:50 PM [browser] 📝 Inputs: {
+  "Excel File": "Ersatz eighth (1).xlsx"
+}
+2:55:50 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+🔧 Processing with unified tool engine...
+2:55:50 PM [browser] 📝 🔧 Processing with unified tool engine...
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+✅ Tool execution completed
+2:55:50 PM [browser] 📝 ✅ Tool execution completed
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST RESULTS ==========
+2:55:50 PM [browser] 📝 🎯 ========== TEST RESULTS ==========
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Code execution failed: Python execution failed (code 1):   File \"/tmp/test_function_1755615350279.py\", line 20\n    ```\n    ^\nSyntaxError: invalid syntax\n",
+    "confidenceScore": 0,
+    "documentSource": "CODE_ERROR"
+  }
+]
+2:55:50 PM [browser] 📝 Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Code execution failed: Python execution failed (c...
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:55:50 PM [express] POST /api/excel-functions/test 200 in 79ms :: [JSON response - 325 chars]
+2:55:50 PM [browser] 📝 🧪 Test Results - Raw JSON Response: {
+  "success": true,
+  "results": [
+    {
+      "extractedValue": null,
+      "validationStatus": "invalid",
+ ...
+2:55:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:55:50 PM [browser] 📝 🧪 Test Results - Parsed Response: {"success":true,"results":[{"extractedValue":null,"validationStatus":"invalid","aiReasoning":"Code execution fai...
+2:55:50 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
