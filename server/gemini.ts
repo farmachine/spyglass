@@ -7,7 +7,16 @@ import { GoogleGenAI, Modality } from "@google/genai";
 //   - do not change this unless explicitly requested by the user
 
 // This API key is from Gemini Developer API Key, not vertex AI API Key
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Check both environment variables for flexibility
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is required");
+}
+
+console.log(`Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using ${process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'GOOGLE_API_KEY'}.`);
+
+const ai = new GoogleGenAI({ apiKey });
 
 export async function testAIOnlyTool(
   toolDescription: string,
