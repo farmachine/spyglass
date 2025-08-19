@@ -4814,6 +4814,16 @@ print(json.dumps(results))
       const { generateFunctionCode } = await import("./gemini");
       
       console.log('🧠 Starting AI function code generation...');
+      console.log('🔍 PARAMETERS BEING PASSED TO AI:');
+      console.log('📝 Name:', name);
+      console.log('📝 Description:', description);
+      console.log('📝 InputParameters:', JSON.stringify(inputParameters, null, 2));
+      console.log('📝 ActualFunctionType:', actualFunctionType);
+      console.log('📝 AiAssistanceRequired:', aiAssistanceRequired);
+      console.log('📝 AiAssistancePrompt:', aiAssistancePrompt);
+      console.log('📝 OutputType:', outputType);
+      console.log('='.repeat(80));
+      
       // Generate the function code using AI
       const { functionCode, metadata } = await generateFunctionCode(
         name,
@@ -4824,6 +4834,13 @@ print(json.dumps(results))
         aiAssistancePrompt,
         outputType
       );
+      
+      console.log('🤖 AI GENERATION COMPLETED');
+      console.log('📄 Generated Function Code:');
+      console.log(functionCode);
+      console.log('📊 Generated Metadata:');
+      console.log(JSON.stringify(metadata, null, 2));
+      console.log('='.repeat(80));
 
       // Create the complete function object
       const functionData = {
