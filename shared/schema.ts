@@ -189,7 +189,8 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  functionCode: text("function_code").notNull(), // Python function code or AI prompt depending on functionType
+  functionCode: text("function_code"), // Python function code for CODE tools
+  aiPrompt: text("ai_prompt"), // AI prompt for AI_ONLY tools
   toolType: text("tool_type", { enum: ["AI_ONLY", "CODE"] }).notNull().default("CODE"), // Type of tool
   outputType: text("output_type", { enum: ["single", "multiple"] }).notNull().default("single"), // Whether function creates single value or multiple records
   inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }

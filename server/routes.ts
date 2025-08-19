@@ -4665,17 +4665,37 @@ print(json.dumps(results))
     try {
       console.log('🔧 Creating new Excel function with data:', JSON.stringify(req.body, null, 2));
       
-      const result = insertExcelWizardryFunctionSchema.safeParse(req.body);
-      if (!result.success) {
-        console.error('❌ Schema validation failed for Excel function creation:', result.error.errors);
-        return res.status(400).json({ 
-          message: "Invalid Excel wizardry function data", 
-          errors: result.error.errors 
-        });
+      // Custom validation for AI_ONLY vs CODE tools
+      const { toolType, aiPrompt, functionCode, ...otherData } = req.body;
+      
+      // Validate required fields based on tool type
+      if (toolType === 'AI_ONLY') {
+        if (!aiPrompt) {
+          console.error('❌ AI_ONLY tools require aiPrompt field');
+          return res.status(400).json({ 
+            message: "AI_ONLY tools must have an aiPrompt field", 
+            errors: [{ path: ['aiPrompt'], message: 'Required for AI_ONLY tools' }]
+          });
+        }
+      } else if (toolType === 'CODE') {
+        if (!functionCode) {
+          console.error('❌ CODE tools require functionCode field');
+          return res.status(400).json({ 
+            message: "CODE tools must have a functionCode field", 
+            errors: [{ path: ['functionCode'], message: 'Required for CODE tools' }]
+          });
+        }
       }
+      
+      const toolData = {
+        ...otherData,
+        toolType,
+        aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
+        functionCode: toolType === 'CODE' ? functionCode : null
+      };
 
-      console.log('✅ Schema validation passed, creating function...');
-      const func = await storage.createExcelWizardryFunction(result.data);
+      console.log('✅ Custom validation passed, creating function...');
+      const func = await storage.createExcelWizardryFunction(toolData);
       console.log('🎉 Successfully created Excel function:', JSON.stringify(func, null, 2));
       res.status(201).json(func);
     } catch (error) {
