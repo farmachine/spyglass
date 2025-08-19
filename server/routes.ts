@@ -5429,7 +5429,10 @@ Requirements:
           }
         } else if (param.type === 'document' && param.sampleDocumentIds?.[0]) {
           try {
-            const sampleDoc = await storage.getSampleDocument(param.sampleDocumentIds[0]);
+            // Get all sample documents for the function and find the specific one
+            const allSampleDocs = await storage.getSampleDocuments(func.id);
+            const sampleDoc = allSampleDocs.find(doc => doc.id === param.sampleDocumentIds[0]);
+            
             await logToBrowser(`📄 Sample document found: ID=${param.sampleDocumentIds[0]}, hasContent=${!!sampleDoc?.extractedContent}, contentLength=${sampleDoc?.extractedContent?.length || 0}`);
             
             if (sampleDoc && sampleDoc.extractedContent) {
