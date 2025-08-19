@@ -95,26 +95,12 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         }
       });
 
-      // Use different endpoints based on tool type
-      const endpoint = tool.toolType === 'AI_ONLY' ? '/api/run/wizardry' : '/api/excel-functions/test';
-      const requestBody = tool.toolType === 'AI_ONLY' 
-        ? {
-            // For AI tools, prepare the request for extraction_wizardry.py
-            target_fields: tool.inputParameters.map(param => ({
-              id: param.name,
-              name: param.name,
-              extractionType: 'AI_ONLY',
-              description: param.description || '',
-              prompt: tool.functionCode || ''
-            })),
-            // Use the actual document content from inputs, try different parameter names
-            document_content: inputs.Document || inputs.document || inputs['AI Instructions'] || 'Test document content for AI extraction',
-            identifier_references: []
-          }
-        : {
-            functionId: tool.id,
-            inputs: inputs
-          };
+      // Use the same test endpoint for both AI and CODE tools
+      const endpoint = '/api/excel-functions/test';
+      const requestBody = {
+        functionId: tool.id,
+        inputs: inputs
+      };
 
       const response = await apiRequest(endpoint, {
         method: 'POST',
