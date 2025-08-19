@@ -5408,123 +5408,71 @@ def extract_function(Column_Name, Excel_File):
       try {
         await logToBrowser('🔧 Executing function with corrected code...');
         
-        // Use the extraction_wizardry.py system for consistent execution
-        const { spawn } = require('child_process');
-        
-        const executePythonFunction = (functionCode, payload) => {
-          return new Promise((resolve, reject) => {
-            // Create a test extraction using the unified extraction_wizardry.py system
-            const pythonArgs = [
-              'extraction_wizardry.py',
-              '--document-content', JSON.stringify([{
-                file_name: 'test_document.xlsx',
-                file_content: payload['Excel File'] || '',
-                mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-              }]),
-              '--target-fields', JSON.stringify([{
-                id: 'test-field',
-                name: 'Test Field',
-                description: 'Test field for function execution',
-                functionId: 'test-function',
-                extractionType: 'FUNCTION'
-              }]),
-              '--identifier-references', JSON.stringify([]),
-              '--project-id', 'test-project'
-            ];
-
-            // Create a temporary function file for testing
-            const fs = require('fs');
-            const tempFunctionFile = `/tmp/test_function_${Date.now()}.py`;
-            
-            const testFunctionCode = `
-# Test function wrapper
-${functionCode}
-
-# Export the function for extraction_wizardry.py
-def test_extract_function(columns_data, excel_content):
-    return extract_function(columns_data, excel_content)
-`;
-
-            fs.writeFileSync(tempFunctionFile, testFunctionCode);
-
-            const python = spawn('python3', pythonArgs, { cwd: process.cwd() });
-            let output = '';
-            let errorOutput = '';
-
-            python.stdout.on('data', (data) => {
-              output += data.toString();
-            });
-
-            python.stderr.on('data', (data) => {
-              errorOutput += data.toString();
-            });
-
-            python.on('close', (code) => {
-              // Clean up temp file
-              try {
-                fs.unlinkSync(tempFunctionFile);
-              } catch (err) {
-                console.warn('Failed to clean up temp file:', err.message);
-              }
-
-              if (code !== 0) {
-                reject(new Error(`Python execution failed: ${errorOutput}`));
-              } else {
-                try {
-                  // Directly execute the function for testing
-                  const directResult = this.executeDirectTest(functionCode, payload);
-                  resolve(directResult);
-                } catch (parseError) {
-                  reject(new Error(`Failed to execute test: ${parseError.message}`));
-                }
-              }
-            });
-          });
-        };
-
-        // Direct test execution without extraction_wizardry.py complexity
+        // Direct test execution that properly handles the identifierId format
         const executeDirectTest = (functionCode, payload) => {
           const results = [];
           
-          // Simulate the function execution with the correct data format
+          // Extract columns and Excel content from payload
           const columns = payload.Columns || [];
           const excelContent = payload['Excel File'] || '';
           
+          // Parse Excel content to find worksheets and their headers
+          const parseExcelContent = (content) => {
+            const worksheets = {};
+            const sections = content.split('=== Sheet: ');
+            
+            for (let i = 1; i < sections.length; i++) {
+              const section = sections[i].trim();
+              const lines = section.split('\n');
+              if (lines.length === 0) continue;
+              
+              // Extract worksheet name
+              const worksheetName = lines[0].split(' ===')[0].trim();
+              
+              // Extract headers (second line contains column headers)
+              if (lines.length > 1) {
+                const headers = lines[1].split('\t').map(col => col.trim());
+                worksheets[worksheetName] = headers;
+              }
+            }
+            
+            return worksheets;
+          };
+          
+          const worksheets = parseExcelContent(excelContent);
+          
+          // Process each column using the new identifierId format
           for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const columnName = column.name || '';
             
-            // Simple worksheet detection logic for testing
-            let worksheetName = 'Unknown';
-            let validationStatus = 'NotFound';
-            let confidenceScore = 0.5;
-            let aiReasoning = `Column '${columnName}' processing test result`;
+            // Find which worksheet contains this column
+            let foundWorksheet = null;
+            for (const [worksheetName, headers] of Object.entries(worksheets)) {
+              if (headers.includes(columnName)) {
+                foundWorksheet = worksheetName;
+                break;
+              }
+            }
             
-            // Basic worksheet detection based on content patterns
-            if (excelContent.includes('=== Sheet: Actives ===') && 
-                excelContent.includes(columnName)) {
-              worksheetName = 'Actives';
+            let validationStatus, confidenceScore, extractedValue, aiReasoning;
+            
+            if (foundWorksheet) {
               validationStatus = 'Valid';
               confidenceScore = 1.0;
-              aiReasoning = `Column '${columnName}' found in worksheet 'Actives'`;
-            } else if (excelContent.includes('=== Sheet: Deferreds ===') && 
-                       excelContent.includes(columnName)) {
-              worksheetName = 'Deferreds';
-              validationStatus = 'Valid';
-              confidenceScore = 1.0;
-              aiReasoning = `Column '${columnName}' found in worksheet 'Deferreds'`;
-            } else if (excelContent.includes('=== Sheet: Pensioners ===') && 
-                       excelContent.includes(columnName)) {
-              worksheetName = 'Pensioners';
-              validationStatus = 'Valid';
-              confidenceScore = 1.0;
-              aiReasoning = `Column '${columnName}' found in worksheet 'Pensioners'`;
+              extractedValue = foundWorksheet;
+              aiReasoning = `Column '${columnName}' found in worksheet '${foundWorksheet}'`;
+            } else {
+              validationStatus = 'NotFound';
+              confidenceScore = 0.5;
+              extractedValue = 'Not Found';
+              aiReasoning = `Column '${columnName}' not found in any worksheet`;
             }
             
             results.push({
               id: `test-${Date.now()}-${i}`,
               fieldId: 'test-output',
-              extractedValue: worksheetName,
+              extractedValue: extractedValue,
               validationStatus: validationStatus,
               confidenceScore: confidenceScore,
               aiReasoning: aiReasoning,
