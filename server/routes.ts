@@ -5636,15 +5636,40 @@ def extract_function(Column_Name, Excel_File):
           return { results: results };
         };
         
-        // Prepare the payload using the test data
-        const payload = {
-          "Columns": [
+        // Extract test columns from the stored sample data and prepare payload
+        let testColumns = [];
+        
+        // Get sample data from the function parameters to extract columns
+        for (const param of func.inputParameters || []) {
+          if (param.type === 'data' && param.sampleData?.rows) {
+            // Convert stored columns to array of column names for testing
+            if (param.sampleData.columns && Array.isArray(param.sampleData.columns)) {
+              testColumns = param.sampleData.columns.map((col, index) => {
+                // Handle new object format with identifierId
+                if (typeof col === 'object' && col.name) {
+                  return col.name;
+                }
+                // Handle legacy string format
+                return typeof col === 'string' ? col : '';
+              }).filter(name => name);
+              break; // Use the first data parameter found
+            }
+          }
+        }
+        
+        // Fallback to default test columns if no sample data found
+        if (testColumns.length === 0) {
+          testColumns = [
             "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
             "Date Of Exit From Active Service",
             "Date Of Birth", 
             "Date Pensionable Service Commenced",
             "Code For Previous Status"
-          ],
+          ];
+        }
+        
+        const payload = {
+          "Columns": testColumns,
           "Excel File": sampleInputs['Excel File'] || ''
         };
         

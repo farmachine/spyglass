@@ -30,7 +30,7 @@ interface InputParameter {
   sampleText?: string; // Sample text for text type
   sampleData?: {
     name?: string;
-    columns: string[];
+    columns: (string | { identifierId: number; name: string })[];
     rows: SampleDataRow[];
     identifierColumn?: string;
   }; // Sample data table for data type
@@ -406,9 +406,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId) {
         const currentData = param.sampleData || { columns: [], rows: [], identifierColumn: undefined };
-        if (currentData.columns.includes(columnName.trim())) return param;
+        if (currentData.columns.some(col => typeof col === 'string' ? col === columnName.trim() : col.name === columnName.trim())) return param;
         
-        const newColumns = [...currentData.columns, columnName.trim()];
+        // Generate identifier ID based on current array length
+        const identifierId = currentData.columns.length;
+        
+        // Create column object with identifierId and name
+        const newColumnObject = {
+          identifierId: identifierId,
+          name: columnName.trim()
+        };
+        
+        const newColumns = [...currentData.columns, newColumnObject];
         
         // Set identifier column if this is the first column being created
         const identifierColumn = currentData.columns.length === 0 ? columnName.trim() : currentData.identifierColumn;
@@ -470,7 +479,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const removeSampleColumn = (paramId: string, columnName: string) => {
     setInputParameters(prev => prev.map(param => {
       if (param.id === paramId && param.sampleData) {
-        const newColumns = param.sampleData.columns.filter(col => col !== columnName);
+        const newColumns = param.sampleData.columns.filter(col => 
+          typeof col === 'string' ? col !== columnName : col.name !== columnName
+        );
         const newRows = param.sampleData.rows.map(row => {
           const { [columnName]: removed, ...rest } = row;
           return rest;
@@ -480,7 +491,11 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         let identifierColumn = param.sampleData.identifierColumn;
         if (identifierColumn === columnName) {
           // Set new identifier to first remaining column, or undefined if no columns left
-          identifierColumn = newColumns.length > 0 ? newColumns[0] : undefined;
+          if (newColumns.length > 0) {
+            identifierColumn = typeof newColumns[0] === 'string' ? newColumns[0] : newColumns[0].name;
+          } else {
+            identifierColumn = undefined;
+          }
         }
         
         return {
@@ -505,7 +520,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         
         const newRow: SampleDataRow = {};
         currentData.columns.forEach(col => {
-          newRow[col] = "";
+          const colName = typeof col === 'string' ? col : col.name;
+          newRow[colName] = "";
         });
         
         return {
@@ -1175,27 +1191,30 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     {/* Table Header */}
                                     <div className="bg-gray-50 border-b border-gray-200">
                                       <div className="flex">
-                                        {param.sampleData.columns.map((column, colIndex) => (
-                                          <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
-                                            <div className="flex items-center justify-between p-2">
-                                              <div className="flex items-center gap-1">
-                                                {param.sampleData?.identifierColumn === column && (
-                                                  <Key className="h-3 w-3 text-amber-500" />
-                                                )}
-                                                <span className="text-xs font-medium text-gray-700 truncate">{column}</span>
+                                        {param.sampleData.columns.map((column, colIndex) => {
+                                          const columnName = typeof column === 'string' ? column : column.name;
+                                          return (
+                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                              <div className="flex items-center justify-between p-2">
+                                                <div className="flex items-center gap-1">
+                                                  {param.sampleData?.identifierColumn === columnName && (
+                                                    <Key className="h-3 w-3 text-amber-500" />
+                                                  )}
+                                                  <span className="text-xs font-medium text-gray-700 truncate">{columnName}</span>
+                                                </div>
+                                                <Button
+                                                  type="button"
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  onClick={() => removeSampleColumn(param.id, columnName)}
+                                                  className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 ml-1"
+                                                >
+                                                  <X className="h-3 w-3" />
+                                                </Button>
                                               </div>
-                                              <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => removeSampleColumn(param.id, column)}
-                                                className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 ml-1"
-                                              >
-                                                <X className="h-3 w-3" />
-                                              </Button>
                                             </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                         <div className="w-8"></div> {/* Space for row delete button */}
                                       </div>
                                     </div>
@@ -1204,16 +1223,19 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     <div className="bg-white">
                                       {param.sampleData.rows.map((row, rowIndex) => (
                                         <div key={rowIndex} className="flex border-b border-gray-100 last:border-b-0">
-                                          {param.sampleData!.columns.map((column, colIndex) => (
-                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
-                                              <Input
-                                                value={row[column] || ''}
-                                                onChange={(e) => updateSampleCellValue(param.id, rowIndex, column, e.target.value)}
-                                                placeholder={`${column} value`}
-                                                className="border-0 rounded-none text-xs h-8 focus:ring-0"
-                                              />
-                                            </div>
-                                          ))}
+                                          {param.sampleData!.columns.map((column, colIndex) => {
+                                            const columnName = typeof column === 'string' ? column : column.name;
+                                            return (
+                                              <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                                <Input
+                                                  value={row[columnName] || ''}
+                                                  onChange={(e) => updateSampleCellValue(param.id, rowIndex, columnName, e.target.value)}
+                                                  placeholder={`${columnName} value`}
+                                                  className="border-0 rounded-none text-xs h-8 focus:ring-0"
+                                                />
+                                              </div>
+                                            );
+                                          })}
                                           <div className="w-8 flex items-center justify-center">
                                             <Button
                                               type="button"
