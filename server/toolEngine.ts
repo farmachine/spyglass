@@ -38,18 +38,43 @@ export interface Tool {
 export class ToolEngine {
   
   /**
-   * Fetch document content from URL
+   * Fetch document content from URL using ObjectStorageService
    */
   private async fetchDocumentContent(url: string): Promise<string> {
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch document: ${response.statusText}`);
+      // Parse the URL to get bucket and object name
+      const urlParts = new URL(url);
+      const pathParts = urlParts.pathname.split('/');
+      const bucketName = pathParts[1];
+      const objectName = pathParts.slice(2).join('/');
+      
+      console.log(`📦 Fetching from bucket: ${bucketName}, object: ${objectName}`);
+      
+      // Use ObjectStorageService to fetch the file
+      const { objectStorageClient } = await import("./objectStorage");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const objectFile = bucket.file(objectName);
+      
+      // Check if file exists
+      const [exists] = await objectFile.exists();
+      if (!exists) {
+        throw new Error(`File not found in storage: ${objectName}`);
       }
-      const buffer = await response.arrayBuffer();
-      return Buffer.from(buffer).toString('base64');
+      
+      // Stream the file content to a buffer
+      const chunks: Buffer[] = [];
+      const stream = objectFile.createReadStream();
+      
+      await new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      
+      const fileBuffer = Buffer.concat(chunks);
+      return fileBuffer.toString('base64');
     } catch (error) {
-      console.error('Error fetching document:', error);
+      console.error('Error fetching document from storage:', error);
       throw error;
     }
   }
