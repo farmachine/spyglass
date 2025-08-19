@@ -43,8 +43,15 @@ export async function testAIOnlyTool(
     });
     const text = response.text;
     
-    // Parse JSON response
-    const parsed = JSON.parse(text);
+    // Clean and parse JSON response (remove markdown code blocks if present)
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const parsed = JSON.parse(cleanText);
     return Array.isArray(parsed) ? parsed : [parsed];
 
   } catch (error) {
