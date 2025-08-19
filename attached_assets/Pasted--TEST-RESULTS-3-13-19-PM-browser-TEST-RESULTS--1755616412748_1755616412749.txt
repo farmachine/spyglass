@@ -1,0 +1,12 @@
+🎯 ========== TEST RESULTS ==========
+3:13:19 PM [browser] 📝 🎯 ========== TEST RESULTS ==========
+3:13:19 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+Results: [
+  {
+    "extractedValue": "[\"Member's Reference No\", \"Employer Code\", \"Sex Code\", \"Date Of Birth\", \"Date Became Pensioner\", \"Code For Previous Status\", \"Type Of Retirement\", \"Date Of Exit From Active Service\", \"Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service\", \"Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service\", \"Annual Pre-6.4.1988 GMP Component At Date Of This Valuation\", \"Annual Post-5.4.1988 GMP Component At Date Of This Valuation\", \"Total Pension Payable From Scheme At Last Valuation\", \"Total Pension Payable From Scheme At This Valuation\", \"Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)\", \"Contingent Widow(er)'s Sex Code\", \"Contingent Widow(er)'s Date Of Birth\", \"Contingent Widow(er)'s Pension At This Valuation\", \"Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)\", \"Date Of Exit From Pensioner Status\", \"Code For Exit From Pensioner Status\", \"Old Supplementary Fund Indicator\", \"Married Indicator\", \"Old Supplementary Fund Pension\", \"Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa\", \"Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa\", \"Non-increasing pension\", \"Non-increasing TV-in pension\", \"Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former\\nSection B members)\", \"Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)\", \"Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash\", \"Tax Free Cash taken at Retirement\", \"Pension Commuted At Retirement in Exchange for Tax Free Cash\", \"Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash\", \"Postcode\", \"Status\", \"Section B Indicator\"]",
+    "validationStatus": "valid",
+    "aiReasoning": "Function get_column_names executed successfully",
+    "confidenceScore": 95,
+    "documentSource": "CODE_FUNCTION"
+  }
+]
