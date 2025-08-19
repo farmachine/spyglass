@@ -221,30 +221,39 @@ def parse_excel_text(excel_text):
     return sheets
 
 FUNCTION SIGNATURE REQUIREMENT:
-def extract_function(parameter1_name, parameter2_name):
-    # Extract column names from data structure
-    if isinstance(parameter1_name, dict) and 'rows' in parameter1_name:
-        identifier = parameter1_name.get('identifierColumn', 'Column Name')
-        column_names = [row[identifier] for row in parameter1_name['rows']]
-    elif isinstance(parameter1_name, list):
-        column_names = parameter1_name
-    else:
-        column_names = [str(parameter1_name)]
+def extract_function(Column_Name, Excel_File):
     
-    # Parse Excel text content (NOT a file path!)
-    sheets = parse_excel_text(parameter2_name)
+    # NEW DATA SCHEMA: Column_Name comes as array of objects with identifierId and name
+    # Example: [{"identifierId": 1, "name": "Annual Pre-6.4.1988 GMP Component"}, {"identifierId": 2, "name": "Date Of Birth"}]
     
-    # Process each column and find its sheet
-    results = {}
-    for column_name in column_names:
-        for sheet_name, sheet_data in sheets.items():
-            if column_name in sheet_data['headers']:
-                results[column_name] = sheet_name
-                break
+    # CRITICAL: Always iterate through Column_Name array and extract the 'name' field:
+    results = []
+    
+    for column_item in Column_Name:
+        # Handle new schema format with identifierId and name properties
+        if isinstance(column_item, dict):
+            column_name = column_item.get("name", "")
+            identifier_id = column_item.get("identifierId", 0)
         else:
-            results[column_name] = None
+            # Fallback for legacy string format
+            column_name = str(column_item)
+            identifier_id = 0
+        
+        # Your extraction logic here using column_name
+        # Return result object with reference to original column_item
+        result = {
+            "extractedValue": "your_extracted_value_here",
+            "validationStatus": "valid",
+            "aiReasoning": f"Processing column '{column_name}'",
+            "confidenceScore": 1.0,
+            "documentSource": column_item  # Reference the original input
+        }
+        results.append(result)
     
-    return results
+    # Parse Excel text content (NOT a file path!)  
+    sheets = parse_excel_text(Excel_File)
+    
+    return results  # Return the list of result objects
 
 COMMON MISTAKES TO AVOID:
 ❌ Using pandas.ExcelFile(Excel_File) - will fail because Excel_File is text, not file path
@@ -274,7 +283,26 @@ PARAMETER DETAILS:
 ${inputParameters.map(p => {
   if (p.type === 'data' && (p as any).sampleData?.rows) {
     const sampleRows = (p as any).sampleData.rows;
-    return `Column_Name: Contains data from "${p.name}" - List of ${sampleRows.length} objects, each like ${JSON.stringify(sampleRows[0] || {})}`;
+    
+    // NEW SCHEMA FORMAT TRAINING - Data comes as array with identifierId and name properties
+    const exampleData = sampleRows.map((row, index) => {
+      const firstColumnName = Object.keys(row)[0] || 'Column Name';
+      return {
+        identifierId: index + 1,
+        name: row[firstColumnName] || `Example ${index + 1}`
+      };
+    });
+    
+    return `Column_Name: Contains data from "${p.name}" - NEW SCHEMA FORMAT: Array of objects with identifierId and name properties.
+    Format: ${JSON.stringify(exampleData)}
+    
+    CRITICAL: Column_Name parameter will be provided as array of objects like:
+    [{"identifierId": 1, "name": "Column Name 1"}, {"identifierId": 2, "name": "Column Name 2"}]
+    
+    To process this data:
+    - Use for loop to iterate: for column_item in Column_Name:
+    - Extract name: column_name = column_item.get("name", "")
+    - Use identifierId for tracking: identifier_id = column_item.get("identifierId", 0)`;
   } else if (p.type === 'document') {
     return `Excel_File: Contains document data from "${p.name}" - String with Excel format "=== Sheet: Name ===" followed by data`;
   }
