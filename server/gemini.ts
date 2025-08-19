@@ -37,9 +37,11 @@ export async function testAIOnlyTool(
 
     prompt += `\nRespond with JSON array: [{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "doc"}]`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: prompt
+    });
+    const text = response.text;
     
     // Parse JSON response
     const parsed = JSON.parse(text);
