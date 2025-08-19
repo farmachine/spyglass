@@ -5389,17 +5389,82 @@ Please process this data according to the instructions above and return results 
         }
         
       } else {
-        // For CODE tools, use the existing Python function execution
-        await logToBrowser('🐍 Processing with Python function...');
+        // For CODE tools, call extraction_wizardry.py directly
+        await logToBrowser('🐍 Processing with extraction_wizardry.py...');
         
-        // Existing CODE tool logic would go here
-        testResults = [{
-          extractedValue: "Code tool execution not implemented in this endpoint yet",
-          validationStatus: "invalid",
-          aiReasoning: "This endpoint needs to be extended for CODE tools",
-          confidenceScore: 0,
-          documentSource: "PLACEHOLDER"
-        }];
+        const { spawn } = require('child_process');
+        
+        try {
+          const python = spawn('python3', ['extraction_wizardry.py']);
+          
+          const inputData = {
+            session_id: 'test-session-' + Date.now(),
+            target_fields: [{
+              id: 'test-field',
+              name: 'Test Field',
+              extractionType: 'FUNCTION',
+              functionId: functionId
+            }],
+            document_content: documentContent || '',
+            identifier_references: [],
+            extraction_run: 1
+          };
+          
+          python.stdin.write(JSON.stringify(inputData));
+          python.stdin.end();
+          
+          let pythonOutput = '';
+          let pythonError = '';
+          
+          python.stdout.on('data', (data) => {
+            pythonOutput += data.toString();
+          });
+          
+          python.stderr.on('data', (data) => {
+            pythonError += data.toString();
+          });
+          
+          await new Promise(async (resolve) => {
+            python.on('close', async (code) => {
+              if (code !== 0) {
+                console.error('Python extraction failed:', pythonError);
+                testResults = [{
+                  extractedValue: null,
+                  validationStatus: "invalid",
+                  aiReasoning: `Python execution failed: ${pythonError}`,
+                  confidenceScore: 0,
+                  documentSource: "PYTHON_ERROR"
+                }];
+              } else {
+                try {
+                  const results = JSON.parse(pythonOutput.trim());
+                  await logToBrowser('✅ Python processing completed');
+                  testResults = Array.isArray(results) ? results : [results];
+                } catch (parseError) {
+                  console.error('Failed to parse Python output:', parseError);
+                  testResults = [{
+                    extractedValue: null,
+                    validationStatus: "invalid",
+                    aiReasoning: `Failed to parse extraction results: ${parseError.message}`,
+                    confidenceScore: 0,
+                    documentSource: "PARSE_ERROR"
+                  }];
+                }
+              }
+              resolve();
+            });
+          });
+          
+        } catch (codeError) {
+          await logToBrowser(`❌ CODE processing failed: ${codeError.message}`);
+          testResults = [{
+            extractedValue: null,
+            validationStatus: "invalid",
+            aiReasoning: `CODE processing failed: ${codeError.message}`,
+            confidenceScore: 0,
+            documentSource: "CODE_ERROR"
+          }];
+        }
       }
 
       await logToBrowser('🎯 ========== TEST RESULTS ==========');
@@ -5413,255 +5478,6 @@ Please process this data according to the instructions above and return results 
     } catch (error) {
       console.error("Test execution error:", error);
       res.status(500).json({ message: "Failed to execute test" });
-    }
-  });
-      if (!func) {
-        return res.status(404).json({ message: "Function not found" });
-      }
-
-      await logToBrowser(`📋 Tool Input Parameters: ${JSON.stringify(func.inputParameters, null, 2)}`);
-      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
-      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
-      await logToBrowser('🎯 ========== TEST INPUT PARAMETERS ==========');
-      
-      // Extract sample data from tool parameters
-      const sampleInputs = {};
-      for (const param of func.inputParameters || []) {
-        if (param.type === 'data' && param.sampleData?.rows) {
-          const identifierColumn = param.sampleData.identifierColumn;
-          if (identifierColumn) {
-            // Transform to new identifierId format for consistency
-            sampleInputs[param.name] = param.sampleData.rows.map((row, index) => ({
-              identifierId: index + 1,
-              name: row[identifierColumn]
-            }));
-          }
-        } else if (param.type === 'document') {
-          try {
-            // First try to get by sample document ID if available
-            if (param.sampleDocumentIds?.[0]) {
-              const allSampleDocs = await storage.getSampleDocuments(func.id);
-              const sampleDoc = allSampleDocs.find(doc => doc.id === param.sampleDocumentIds[0]);
-              
-              await logToBrowser(`📄 Sample document found: ID=${param.sampleDocumentIds[0]}, hasContent=${!!sampleDoc?.extractedContent}, contentLength=${sampleDoc?.extractedContent?.length || 0}`);
-              
-              if (sampleDoc && sampleDoc.extractedContent) {
-                sampleInputs[param.name] = sampleDoc.extractedContent;
-              } else {
-                await logToBrowser(`⚠️ Sample document ${param.sampleDocumentIds[0]} has no extracted content`);
-                sampleInputs[param.name] = "";
-              }
-            } 
-            // If no sample document ID but has file URL, try to process it now
-            else if (param.sampleFileURL) {
-              await logToBrowser(`🔄 No sample document ID found, processing file URL: ${param.sampleFileURL}`);
-              try {
-                const extractResponse = await fetch('http://localhost:5000/api/sample-documents/process', {
-                  method: 'POST',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': req.headers.authorization
-                  },
-                  body: JSON.stringify({
-                    functionId: func.id,
-                    parameterName: param.name,
-                    fileName: param.sampleFile,
-                    fileURL: param.sampleFileURL
-                  })
-                });
-                
-                const extractResult = await extractResponse.json();
-                if (extractResult.success && extractResult.sampleDocument?.extractedContent) {
-                  sampleInputs[param.name] = extractResult.sampleDocument.extractedContent;
-                  await logToBrowser(`✅ Successfully extracted ${extractResult.sampleDocument.extractedContent.length} chars for ${param.name}`);
-                } else {
-                  await logToBrowser(`❌ Extraction failed: ${extractResult.message}`);
-                  sampleInputs[param.name] = "";
-                }
-              } catch (extractError) {
-                await logToBrowser(`❌ Extraction error: ${extractError.message}`);
-                sampleInputs[param.name] = "";
-              }
-            } else {
-              await logToBrowser(`⚠️ No sample document or file URL found for parameter ${param.name}`);
-              sampleInputs[param.name] = "";
-            }
-          } catch (error) {
-            await logToBrowser(`❌ Error getting sample document: ${error.message}`);
-            sampleInputs[param.name] = "";
-          }
-        }
-      }
-      
-      await logToBrowser(`📥 SAMPLE INPUTS: ${JSON.stringify(sampleInputs, null, 2)}`);
-      
-      // Execute the actual function code using the working pattern from your example
-      let results;
-      try {
-        await logToBrowser('🔧 Executing function with corrected code...');
-        
-        // Direct test execution that properly handles the identifierId format
-        const executeDirectTest = (functionCode, payload) => {
-          const results = [];
-          
-          // Extract columns and Excel content from payload
-          const columns = payload.Columns || [];
-          const excelContent = payload['Excel File'] || '';
-          
-          // Parse Excel content to find worksheets and their headers
-          const parseExcelContent = (content) => {
-            const worksheets = {};
-            const sections = content.split('=== Sheet: ');
-            
-            for (let i = 1; i < sections.length; i++) {
-              const section = sections[i].trim();
-              const lines = section.split('\n');
-              if (lines.length === 0) continue;
-              
-              // Extract worksheet name
-              const worksheetName = lines[0].split(' ===')[0].trim();
-              
-              // Extract headers (second line contains column headers)
-              if (lines.length > 1) {
-                const headers = lines[1].split('\t').map(col => col.trim());
-                worksheets[worksheetName] = headers;
-              }
-            }
-            
-            return worksheets;
-          };
-          
-          const worksheets = parseExcelContent(excelContent);
-          
-          // Process each column using the new identifierId format
-          for (let i = 0; i < columns.length; i++) {
-            const column = columns[i];
-            const columnName = column.name || '';
-            const identifierId = column.identifierId || (i + 1);
-            
-            // Find which worksheet contains this column
-            let foundWorksheet = null;
-            for (const [worksheetName, headers] of Object.entries(worksheets)) {
-              if (headers.includes(columnName)) {
-                foundWorksheet = worksheetName;
-                break;
-              }
-            }
-            
-            let validationStatus, confidenceScore, extractedValue, aiReasoning;
-            
-            if (foundWorksheet) {
-              validationStatus = 'Valid';
-              confidenceScore = 1.0;
-              extractedValue = foundWorksheet;
-              aiReasoning = `Column '${columnName}' found in worksheet '${foundWorksheet}'`;
-            } else {
-              validationStatus = 'NotFound';
-              confidenceScore = 0.5;
-              extractedValue = 'Not Found';
-              aiReasoning = `Column '${columnName}' not found in any worksheet`;
-            }
-            
-            results.push({
-              id: `test-${Date.now()}-${i}`,
-              fieldId: 'test-output',
-              extractedValue: extractedValue,
-              validationStatus: validationStatus,
-              confidenceScore: confidenceScore,
-              aiReasoning: aiReasoning,
-              documentSource: 'test-document',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              itemIndex: i,
-              identifierId: identifierId  // Include the identifierId in the result
-            });
-          }
-          
-          return { results };
-        };
-        
-        // Extract test columns from the stored sample data and prepare payload
-        let testColumns = [];
-        
-        // Get sample data from the function parameters to extract columns
-        for (const param of func.inputParameters || []) {
-          if (param.type === 'data' && param.sampleData?.rows) {
-            // Convert stored columns to array of column names for testing
-            if (param.sampleData.columns && Array.isArray(param.sampleData.columns)) {
-              testColumns = param.sampleData.columns.map((col, index) => {
-                // Handle new object format with identifierId
-                if (typeof col === 'object' && col.name) {
-                  return col.name;
-                }
-                // Handle legacy string format
-                return typeof col === 'string' ? col : '';
-              }).filter(name => name);
-              break; // Use the first data parameter found
-            }
-          }
-        }
-        
-        // Fallback to default test columns if no sample data found
-        if (testColumns.length === 0) {
-          testColumns = [
-            "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
-            "Date Of Exit From Active Service",
-            "Date Of Birth", 
-            "Date Pensionable Service Commenced",
-            "Code For Previous Status"
-          ];
-        }
-        
-        // Use the actual sample data columns from the function parameters in identifierId format
-        const columnsWithIds = sampleInputs['Columns'] || [];
-        
-        await logToBrowser(`🔍 Processing ${columnsWithIds.length} columns with identifierId format`);
-        
-        // Get the actual Excel content from the sample document
-        let excelContent = sampleInputs['Document'] || sampleInputs['Excel File'] || '';
-        
-        // If no content found, the sample document wasn't processed yet
-        if (!excelContent || excelContent.length === 0) {
-          await logToBrowser('⚠️ No Excel content found - sample document may not have been processed yet');
-          await logToBrowser('💡 Please ensure the sample document was uploaded and processed before testing');
-        }
-        
-        const payload = {
-          "Columns": columnsWithIds,
-          "Excel File": excelContent
-        };
-        
-        await logToBrowser(`📊 Excel content length: ${payload['Excel File'].length} characters`);
-        
-        await logToBrowser(`📋 Calling function with ${payload.Columns.length} column objects (new identifierId format) and Excel data (${payload['Excel File'].length} chars)`);
-        
-        // Use direct test execution for consistent results
-        const functionResult = executeDirectTest(func.functionCode, payload);
-        
-        await logToBrowser(`✅ Function returned ${functionResult.results.length} results`);
-        
-        results = functionResult.results;
-        
-      } catch (execError) {
-        await logToBrowser(`❌ Function execution error: ${execError.message}`);
-        results = [{
-          id: `test-${Date.now()}`,
-          fieldId: 'test-output',
-          extractedValue: `Execution Error: ${execError.message}`,
-          validationStatus: 'invalid',
-          confidenceScore: 0,
-          aiReasoning: `Function execution failed: ${execError.message}`,
-          documentSource: 'test-execution-error',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }];
-      }
-      
-      await logToBrowser('✅ ========== TEST COMPLETED ==========');
-      res.json({ results });
-    } catch (error) {
-      console.error("Error testing Excel wizardry function:", error);
-      res.status(500).json({ message: "Failed to test Excel wizardry function" });
     }
   });
 
