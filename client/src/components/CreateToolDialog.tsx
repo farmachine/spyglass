@@ -1389,8 +1389,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               </CardHeader>
               <CardContent>
                 <Textarea
-                  value={formData.functionCode || ''}
-                  onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
+                  value={toolType === 'AI_ONLY' ? (formData.aiPrompt || '') : (formData.functionCode || '')}
+                  onChange={(e) => {
+                    if (toolType === 'AI_ONLY') {
+                      setFormData({ ...formData, aiPrompt: e.target.value });
+                    } else {
+                      setFormData({ ...formData, functionCode: e.target.value });
+                    }
+                  }}
                   placeholder={toolType === 'AI_ONLY' 
                     ? "Enter your prompt here, or click 'Generate Prompt' to create automatically..."
                     : "Enter your Python code here, or click 'Generate Code' to create automatically..."
