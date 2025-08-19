@@ -217,6 +217,7 @@ Requirements:
 - Handle errors gracefully
 - Return proper field validation format`;
 
+      console.log('*** BEFORE PROMPT LOGGING ***');
       console.log('🤖 FULL AI PROMPT BEING SENT TO GEMINI:');
       console.log('='.repeat(80));
       console.log('SYSTEM PROMPT:');

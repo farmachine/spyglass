@@ -1,0 +1,97 @@
+ Regeneration response: {
+  "id": "78fd792c-a4c8-42f8-a167-9687aa312403",
+  "projectId": "915d87a3-dd55-401e-8f8b-df38132c2215",
+  "name": "Get Worksheet from Column",
+  "description": "The worksheet name for each column in an excel",
+  "functionCode": "import pandas as pd\\ndef extract_function(Column_Name, Excel_File):\\n    \"\"\"\\n    Extracts the worksheet names where specified columns are found in an Excel file.\\n\\n    Args:\\n        Column_Name (list): A list of column names (strings) to search for.\\n        Excel_File (str): The path to the Excel file.\\n\\n    Returns:\\n        list: A list of dictionaries, where each dictionary contains:\\n              - 'column': The name of the column searched.\\n              - 'worksheets_found': A list of worksheet names where the column was found.\\n              - 'status': 'success', 'not found', or 'error'\\n              - 'message': Detailed status message or error description.\\n    \"\"\"\\n    if not isinstance(Column_Name, list):\\n        return [{\"column\": None, \"worksheets_found\": [], \"status\": \"error\", \"message\": \"Column_Name must be a list.\"}]\\n    if not isinstance(Excel_File, str):\\n        return [{\"column\": None, \"worksheets_found\": [], \"status\": \"error\", \"message\": \"Excel_File must be a string (file path).\"}]\\n\\n    results = []\\n    try:\\n        xl = pd.ExcelFile(Excel_File)\\n        sheet_names = xl.sheet_names\\n    except FileNotFoundError:\\n        return [{\"column\": col, \"worksheets_found\": [], \"status\": \"error\", \"message\": f\"Excel file '{Excel_File}' not found.\"} for col in Column_Name]\\n    except ValueError as e:\\n        return [{\"column\": col, \"worksheets_found\": [], \"status\": \"error\", \"message\": f\"Error reading Excel file: {e}\"} for col in Column_Name]\\n    except Exception as e:\\n        return [{\"column\": col, \"worksheets_found\": [], \"status\": \"error\", \"message\": f\"An unexpected error occurred: {e}\"} for col in Column_Name]\\n\\n    for target_column in Column_Name:\\n        found_in_sheets = []\\n        status = \"not found\"\\n        message = f\"Column '{target_column}' not found in any worksheet.\"\\n\\n        for sheet_name in sheet_names:\\n            try:\\n                df = xl.parse(sheet_name)\\n                if target_column in df.columns:\\n                    found_in_sheets.append(sheet_name)\\n            except Exception as e:\\n                pass\\n\\n        if found_in_sheets:\\n            status = \"success\"\\n            message = f\"Column '{target_column}' found in {len(found_in_sheets)} worksheet(s).\"\\n        \\n        results.append({\\n            \"column\": target_column,\\n            \"worksheets_found\": found_in_sheets,\\n            \"status\": status,\\n            \"message\": message\\n        })\\n    \\n    return results",
+  "functionType": "SCRIPT",
+  "outputType": "multiple",
+  "inputParameters": [
+    {
+      "id": "0.m2max00hfr",
+      "name": "Columns",
+      "type": "data",
+      "multiline": false,
+      "sampleData": {
+        "name": "Columns",
+        "rows": [
+          {
+            "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+          },
+          {
+            "Column Name": "Date Of Exit From Active Service"
+          },
+          {
+            "Column Name": "Date Of Birth"
+          },
+          {
+            "Column Name": "Date Pensionable Service Commenced"
+          },
+          {
+            "Column Name": "Code For Previous Status"
+          }
+        ],
+        "columns": [
+          "Column Name"
+        ],
+        "identifierColumn": "Column Name"
+      },
+      "description": "The names of the columns within the worksheet"
+    }
+  ],
+  "aiAssistanceRequired": false,
+  "aiAssistancePrompt": "",
+  "metadata": {
+    "outputFormat": "A list of dictionaries. Each dictionary corresponds to a searched column and contains 'column' (string), 'worksheets_found' (list of strings), 'status' (string: 'success', 'not found', or 'error'), and 'message' (string) providing details about the search result for that column.",
+    "parametersUsed": [
+      "Column_Name",
+      "Excel_File"
+    ]
+  },
+  "inputSchema": {
+    "parameters": [
+      {
+        "id": "0.m2max00hfr",
+        "name": "Columns",
+        "type": "data",
+        "multiline": false,
+        "sampleData": {
+          "name": "Columns",
+          "rows": [
+            {
+              "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+            },
+            {
+              "Column Name": "Date Of Exit From Active Service"
+            },
+            {
+              "Column Name": "Date Of Birth"
+            },
+            {
+              "Column Name": "Date Pensionable Service Commenced"
+            },
+            {
+              "Column Name": "Code For Previous Status"
+            }
+          ],
+          "columns": [
+            "Column Name"
+          ],
+          "identifierColumn": "Column Name"
+        },
+        "description": "The names of the columns within the worksheet"
+      }
+    ]
+  },
+  "outputSchema": {
+    "format": "field_validations_compatible"
+  },
+  "tags": [],
+  "usageCount": 0,
+  "createdAt": "2025-08-19T05:47:05.918Z",
+  "updatedAt": "2025-08-19T06:02:43.140Z"
+}
+main.tsx:17 🎯 Function code from response: import pandas as pd\ndef extract_function(Column_Name, Excel_File):\n    """\n    Extracts the worksheet names where specified columns are found in an Excel file.\n\n    Args:\n        Column_Name (list): A list of column names (strings) to search for.\n        Excel_File (str): The path to the Excel file.\n\n    Returns:\n        list: A list of dictionaries, where each dictionary contains:\n              - 'column': The name of the column searched.\n              - 'worksheets_found': A list of worksheet names where the column was found.\n              - 'status': 'success', 'not found', or 'error'\n              - 'message': Detailed status message or error description.\n    """\n    if not isinstance(Column_Name, list):\n        return [{"column": None, "worksheets_found": [], "status": "error", "message": "Column_Name must be a list."}]\n    if not isinstance(Excel_File, str):\n        return [{"column": None, "worksheets_found": [], "status": "error", "message": "Excel_File must be a string (file path)."}]\n\n    results = []\n    try:\n        xl = pd.ExcelFile(Excel_File)\n        sheet_names = xl.sheet_names\n    except FileNotFoundError:\n        return [{"column": col, "worksheets_found": [], "status": "error", "message": f"Excel file '{Excel_File}' not found."} for col in Column_Name]\n    except ValueError as e:\n        return [{"column": col, "worksheets_found": [], "status": "error", "message": f"Error reading Excel file: {e}"} for col in Column_Name]\n    except Exception as e:\n        return [{"column": col, "worksheets_found": [], "status": "error", "message": f"An unexpected error occurred: {e}"} for col in Column_Name]\n\n    for target_column in Column_Name:\n        found_in_sheets = []\n        status = "not found"\n        message = f"Column '{target_column}' not found in any worksheet."\n\n        for sheet_name in sheet_names:\n            try:\n                df = xl.parse(sheet_name)\n                if target_column in df.columns:\n                    found_in_sheets.append(sheet_name)\n            except Exception as e:\n                pass\n\n        if found_in_sheets:\n            status = "success"\n            message = f"Column '{target_column}' found in {len(found_in_sheets)} worksheet(s)."\n        \n        results.append({\n            "column": target_column,\n            "worksheets_found": found_in_sheets,\n            "status": status,\n            "message": message\n        })\n    \n    return results
+main.tsx:17 ✅ Form data updated with new code: import pandas as pd\ndef extract_function(Column_Name, Excel_File):\n    """\n    Extracts the works...
+main.tsx:17 Tool code regenerated successfully
+main.tsx:17 🔧 Same function - preserving current form state: 78fd792c-a4c8-42f8-a167-9687aa312403
