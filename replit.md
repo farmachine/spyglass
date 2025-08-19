@@ -65,6 +65,8 @@ Preferred communication style: Simple, everyday language.
 - **Comprehensive AI Function Training System**: Enhanced AI training prompts with function generation patterns for array iteration and single object processing, including mandatory structure, parameter validation, and common patterns.
 - **Excel Format Training Integration**: Both main function generation and debug systems now include comprehensive Excel text format training, preventing pandas usage and enforcing proper text parsing with regex and string methods.
 - **Manual Fix System**: Added manual fix endpoints for correcting pandas-based functions when AI generation encounters temporary issues, ensuring system reliability.
+- **Enhanced Sample Data Structure**: Column objects with `identifierId` and `name` properties for improved tracking, backward compatible with legacy string format.
+- **Fixed Excel Function Generation**: Resolved `actualFunctionType` variable definition issue in function generation endpoint.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.
