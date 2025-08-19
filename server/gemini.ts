@@ -151,16 +151,16 @@ Requirements:
 - Parameters: ${inputParameters.map(p => `${p.name} (${p.type}): ${p.description}`).join(', ')}
 ${aiAssistanceRequired ? `- Additional Requirements: ${aiAssistancePrompt}` : ''}
 
-Return a JSON object with:
+You MUST return ONLY a valid JSON object with this EXACT structure (no additional text):
 {
-  "prompt": "The complete AI extraction prompt",
+  "prompt": "Extract data from the provided document using the following parameters:\\n\\nParameters:\\n- @AI Instructions (text): Instructions for the AI to follow for the data extraction.\\n- @Document (document): The document from which to extract the data\\n\\nTool Description: General extraction of data from documents using AI\\nOutput Type: MAIN SCHEMA FIELDS (single values)\\n\\nInstructions:\\n- Use all the provided parameters to guide your extraction\\n- Extract relevant data based on the document content\\n- Return results in valid JSON format\\n- Handle missing data gracefully with appropriate status indicators",
   "metadata": {
     "outputFormat": "field_validations_array",
-    "inputValidation": "Description of input validation",
-    "errorHandling": "Description of error handling",
-    "parametersUsed": ["param1", "param2"],
+    "inputValidation": "AI will validate all input parameters during extraction",
+    "errorHandling": "AI handles missing data gracefully with appropriate status indicators",
+    "parametersUsed": ${JSON.stringify(inputParameters.map(p => p.name))},
     "toolType": "AI_ONLY",
-    "description": "Tool description"
+    "description": "${description}"
   }
 }`;
 
@@ -174,10 +174,23 @@ Return a JSON object with:
         contents: `Generate an AI extraction prompt for: ${name} - ${description}`
       });
 
-      const result = JSON.parse(response.text || '{}');
+      console.log('🔍 Raw AI response:', response.text);
+      
+      let result;
+      try {
+        result = JSON.parse(response.text || '{}');
+      } catch (parseError) {
+        console.error('❌ JSON parsing failed:', parseError);
+        console.log('📄 Raw response that failed to parse:', response.text);
+        throw new Error(`AI response is not valid JSON: ${parseError.message}`);
+      }
+      
+      console.log('📊 Parsed AI result:', JSON.stringify(result, null, 2));
       
       if (!result.prompt || !result.metadata) {
-        throw new Error('AI failed to generate proper prompt structure');
+        console.error('❌ Missing required fields in AI response');
+        console.log('🔍 Available fields:', Object.keys(result));
+        throw new Error(`AI failed to generate proper prompt structure. Got: ${JSON.stringify(result)}`);
       }
 
       console.log('✅ AI-generated prompt created successfully');
