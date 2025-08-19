@@ -1,0 +1,108 @@
+import re
+from datetime import datetime
+
+def find_worksheet_for_columns(payload):
+    """
+    Iterates over columns array to find the worksheet name for each column.
+    
+    Args:
+        payload (dict): Input schema containing 'Columns' array and 'Excel File' content
+        
+    Returns:
+        dict: Results array with worksheet mappings
+    """
+    
+    def parse_excel_content(excel_content):
+        """Parse the Excel file content to extract worksheet headers"""
+        worksheets = {}
+        
+        # Split by worksheet markers
+        sections = excel_content.split('=== Sheet: ')
+        
+        for section in sections[1:]:  # Skip the first empty section
+            lines = section.strip().split('\n')
+            if not lines:
+                continue
+                
+            # Extract worksheet name (first line after the marker)
+            worksheet_name = lines[0].split(' ===')[0].strip()
+            
+            # Extract header row (second line should contain column headers)
+            if len(lines) > 1:
+                headers = [col.strip() for col in lines[1].split('\t')]
+                worksheets[worksheet_name] = headers
+                
+        return worksheets
+    
+    def find_column_worksheet(column_name, worksheets):
+        """Find which worksheet contains the given column"""
+        for worksheet_name, headers in worksheets.items():
+            if column_name in headers:
+                return worksheet_name
+        return None
+    
+    # Extract data from payload
+    columns = payload.get('Columns', [])
+    excel_content = payload.get('Excel File', '')
+    
+    # Parse worksheets and their headers
+    worksheets = parse_excel_content(excel_content)
+    
+    # Generate results
+    results = []
+    
+    for index, column_name in enumerate(columns):
+        worksheet_name = find_column_worksheet(column_name, worksheets)
+        
+        # Determine validation status and confidence
+        if worksheet_name:
+            validation_status = "valid"
+            confidence_score = 95
+            extracted_value = worksheet_name
+            ai_reasoning = f"Column '{column_name}' found in worksheet '{worksheet_name}'"
+        else:
+            validation_status = "invalid"
+            confidence_score = 0
+            extracted_value = "WORKSHEET NOT FOUND"
+            ai_reasoning = f"Column '{column_name}' not found in any worksheet"
+        
+        result = {
+            "id": f"test-{int(datetime.now().timestamp() * 1000)}",
+            "fieldId": "test-output",
+            "extractedValue": extracted_value,
+            "validationStatus": validation_status,
+            "confidenceScore": confidence_score,
+            "aiReasoning": ai_reasoning,
+            "documentSource": "pension-data-analysis",
+            "createdAt": datetime.now().isoformat() + "Z",
+            "updatedAt": datetime.now().isoformat() + "Z",
+            "itemIndex": index
+        }
+        
+        results.append(result)
+    
+    return {"results": results}
+
+# Example usage:
+if __name__ == "__main__":
+    # Sample payload based on your provided data
+    sample_payload = {
+        "Columns": [
+            "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+            "Date Of Exit From Active Service", 
+            "Date Of Birth",
+            "Date Pensionable Service Commenced",
+            "Code For Previous Status"
+        ],
+        "Excel File": """=== Sheet: New_Pensioners ===
+Old Member's Reference No	Member's Reference No	Employer Code	Sex Code	Date of Birth	Date Became Pensioner	Code For Previous Status	Type Of Retirement	Date Of Exit From Active Service	Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service	Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service	Annual Pre-6.4.1988 GMP Component At Date Of This Valuation	Annual Post-5.4.1988 GMP Component At Date Of This Valuation	Total Pension Payable From Scheme At Last Valuation	Total Pension Payable From Scheme At This Valuation	Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)	Contingent Widow(er)'s Sex Code	Contingent Widow(er)'s Date Of Birth	Contingent Widow(er)'s Pension At This Valuation	Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)	Date Of Exit From Pensioner Status	Code For Exit From Pensioner Status	Old Supplementary Fund Indicator	Married Indicator	Old Supplementary Fund Pension	Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa	Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa	Non-increasing pension	Non-increasing TV-in pension	Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)	Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)	Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash	Tax Free Cash taken at Retirement	Pension Commuted At Retirement in Exchange for Tax Free Cash	Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash	Postcode	Status	Section B Indicator
+=== Sheet: Active deferreds ===
+Valuation Record Type	Member's Reference No	Employer Code	Benefits Scale Code	Sex Code	Date Of Birth	Date Pensionable Service Commenced	Date Became Active Deferred Member	Code For Previous Status	Normal Retirement Date	Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member	Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member	Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member	Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member	Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment	Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment	Member's Total Normal Contributions With Interest To The Date Of This Valuation	Date Of Exit From Active Deferred Member Status	Code For Exit From Active Deferred Member Status	Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member	Early Vesting Age	Contingent Spouse's Benefit Marker	Old Supplementary Fund Indicator	Spouse's Date of Birth	Married Indicator	Old Supplementary Fund Pension	New Pension Date	Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment	Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment	Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member	Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member	Postcode	Date Of Buy-Out Of SBO Terms	Deferred Pension For Service To Buy-Out at this valuation date	Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation	Final salary: Final Pensionable Salary At Exit From Active Status"""
+    }
+    
+    # Test the function
+    result = find_worksheet_for_columns(sample_payload)
+    
+    # Print results
+    for item in result['results']:
+        print(f"Column: {sample_payload['Columns'][item['itemIndex']]} -> Worksheet: {item['extractedValue']}")
