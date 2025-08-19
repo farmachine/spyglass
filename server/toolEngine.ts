@@ -93,12 +93,28 @@ export class ToolEngine {
       // If this is a document parameter, check for extracted content first
       if (param.type === 'document' && inputValue) {
         try {
-          // Check if we have pre-extracted content in metadata
-          const extractedContent = tool.metadata?.sampleDocumentContent?.[param.name];
+          // First check sample_documents table for pre-extracted content
+          const { db } = await import('./db');
+          const { sampleDocuments } = await import('@shared/schema');
+          const { eq, and } = await import('drizzle-orm');
           
-          if (extractedContent) {
-            console.log(`📄 Using pre-extracted content for ${param.name} (${extractedContent.length} chars)`);
-            // Pass the extracted text content directly for both AI and CODE tools
+          const [sampleDoc] = await db
+            .select()
+            .from(sampleDocuments)
+            .where(
+              and(
+                eq(sampleDocuments.functionId, tool.id),
+                eq(sampleDocuments.parameterName, param.name)
+              )
+            );
+          
+          if (sampleDoc?.extractedContent) {
+            console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
+            preparedInputs[param.name] = sampleDoc.extractedContent;
+          } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
+            // Fallback to metadata if available
+            const extractedContent = tool.metadata.sampleDocumentContent[param.name];
+            console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
             preparedInputs[param.name] = extractedContent;
           } else if (param.sampleFileURL) {
             // Fallback: fetch and extract content if not already stored
