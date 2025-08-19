@@ -5390,8 +5390,17 @@ Requirements:
 
       console.log('🚀 ========== TOOL TEST STARTED ==========');
       console.log("🧪 Testing tool:", functionId);
-      console.log("📥 Test inputs JSON:");
+      
+      console.log('\n');
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log("📥 RAW TEST INPUTS:");
       console.log(JSON.stringify(inputs, null, 2));
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log('🎯 ========== TEST INPUT PARAMETERS ==========');
+      console.log('\n');
       
       // Log detailed input breakdown
       console.log('🔍 DETAILED INPUT ANALYSIS:');
