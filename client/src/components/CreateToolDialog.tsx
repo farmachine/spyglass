@@ -288,10 +288,20 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         return;
       }
       
-      console.log('✅ AI response validation passed, proceeding with tool creation...');
+      console.log('✅ AI response validation passed, loading content into form...');
       
-      // Use the response to create the tool with generated code
-      createTool.mutate(response);
+      // Load the generated content into the form (don't create tool yet)
+      setFormData(prev => ({
+        ...prev,
+        functionCode: response.functionCode || prev.functionCode,
+        aiPrompt: response.aiPrompt || prev.aiPrompt
+      }));
+      
+      // Reset loading state after populating form
+      setTimeout(() => {
+        setLoadingProgress(0);
+        setLoadingMessage("");
+      }, 1000);
     },
     onError: (error: any) => {
       console.error('Code generation failed:', error);
