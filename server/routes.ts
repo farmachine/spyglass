@@ -4743,13 +4743,13 @@ print(json.dumps(results))
             const extractionData = {
               step: "extract_text_only",
               documents: [{
-                fileName: param.sampleFile,
-                mimeType: mimeType,
-                dataURL: dataURL
+                file_name: param.sampleFile,    // Changed to match extractor format
+                mime_type: mimeType,             // Changed to match extractor format
+                file_content: dataURL            // Changed to match extractor format
               }]
             };
             
-            const { spawn } = require('child_process');
+            const { spawn } = (await import('child_process')).default || await import('child_process');
             const python = spawn('python3', ['document_extractor.py']);
             
             python.stdin.write(JSON.stringify(extractionData));
@@ -4778,7 +4778,8 @@ print(json.dumps(results))
             });
             
             const result = JSON.parse(output);
-            const extractedContent = result.extracted_texts?.[0] || '';
+            const extractedText = result.extracted_texts?.[0];
+            const extractedContent = extractedText?.text_content || '';
             
             // Save to sampleDocuments table
             await storage.createSampleDocument({

@@ -140,7 +140,7 @@ export class ToolEngine {
                 }]
               };
               
-              const { spawn } = require('child_process');
+              const { spawn } = await import('child_process');
               const python = spawn('python3', ['document_extractor.py']);
               
               python.stdin.write(JSON.stringify(extractionData));
