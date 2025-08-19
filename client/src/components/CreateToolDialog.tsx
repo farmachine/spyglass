@@ -1364,7 +1364,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'animate-spin' : ''}`} />
-                    {(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'Generating Code' : 'Generate Code'}
+                    {(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 
+                      (toolType === 'AI_ONLY' ? 'Generating Prompt' : 'Generating Code') : 
+                      (toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code')}
                   </Button>
                 </div>
               </CardHeader>
@@ -1373,14 +1375,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   value={formData.functionCode || ''}
                   onChange={(e) => setFormData({ ...formData, functionCode: e.target.value })}
                   placeholder={toolType === 'AI_ONLY' 
-                    ? "Enter your prompt here, or click 'Generate Code' to create automatically..."
+                    ? "Enter your prompt here, or click 'Generate Prompt' to create automatically..."
                     : "Enter your Python code here, or click 'Generate Code' to create automatically..."
                   }
                   rows={12}
                   className="font-mono text-sm"
                 />
                 <p className="text-sm text-gray-600 mt-2">
-                  You can manually enter {toolType === 'AI_ONLY' ? 'your prompt' : 'Python code'} or use the "Generate Code" button to create it automatically based on your inputs.
+                  You can manually enter {toolType === 'AI_ONLY' ? 'your prompt' : 'Python code'} or use the "{toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code'}" button to create it automatically based on your inputs.
                 </p>
               </CardContent>
             </Card>
@@ -1418,7 +1420,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       <AlertDialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Generate Code</AlertDialogTitle>
+            <AlertDialogTitle>{toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code'}</AlertDialogTitle>
             <AlertDialogDescription>
               This will generate new {toolType === 'AI_ONLY' ? 'prompt' : 'code'} based on current inputs. Any existing {toolType === 'AI_ONLY' ? 'prompt' : 'code'} will be overwritten. Continue?
             </AlertDialogDescription>
@@ -1428,7 +1430,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmRegenerate} className="bg-gray-700 hover:bg-gray-800">
-              Generate Code
+              {toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

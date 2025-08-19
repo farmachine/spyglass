@@ -95,12 +95,29 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         }
       });
 
-      const response = await apiRequest(`/api/excel-functions/test`, {
+      // Use different endpoints based on tool type
+      const endpoint = tool.toolType === 'AI' ? '/api/run/wizardry' : '/api/excel-functions/test';
+      const requestBody = tool.toolType === 'AI' 
+        ? {
+            // For AI tools, prepare the request for extraction_wizardry.py
+            target_fields: tool.inputParameters.map(param => ({
+              id: param.name,
+              name: param.name,
+              extractionType: 'AI',
+              description: param.description || '',
+              prompt: tool.functionCode || ''
+            })),
+            document_content: inputs.Document || '',
+            identifier_references: []
+          }
+        : {
+            functionId: tool.id,
+            inputs: inputs
+          };
+
+      const response = await apiRequest(endpoint, {
         method: 'POST',
-        body: JSON.stringify({
-          functionId: tool.id,
-          inputs: inputs
-        })
+        body: JSON.stringify(requestBody)
       });
 
       // Log the raw JSON response to console for debugging
@@ -141,7 +158,28 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         }
       });
 
-      const response = await apiRequest(`/api/excel-functions/debug`, {
+      // Use different endpoints based on tool type
+      const endpoint = tool.toolType === 'AI' ? '/api/run/wizardry' : '/api/excel-functions/debug';
+      const requestBody = tool.toolType === 'AI' 
+        ? {
+            // For AI tools, prepare the request for extraction_wizardry.py
+            target_fields: tool.inputParameters.map(param => ({
+              id: param.name,
+              name: param.name,
+              extractionType: 'AI',
+              description: param.description || '',
+              prompt: tool.functionCode || ''
+            })),
+            document_content: inputs.Document || '',
+            identifier_references: []
+          }
+        : {
+            functionId: tool.id,
+            inputs: inputs,
+            debugText: debugText.trim()
+          };
+
+      const response = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({
           functionId: tool.id,
