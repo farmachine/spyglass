@@ -5359,7 +5359,9 @@ def extract_function(Column_Name, Excel_File):
           toolType: func.toolType,
           inputParameters: func.inputParameters || [],
           functionCode: func.functionCode,
-          aiPrompt: func.aiPrompt || func.description
+          aiPrompt: func.aiPrompt || func.description,
+          outputType: func.outputType,
+          metadata: func.metadata || {}
         };
         
         testResults = await toolEngine.testTool(tool, inputs);

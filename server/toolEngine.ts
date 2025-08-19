@@ -33,6 +33,8 @@ export interface Tool {
   inputParameters: ToolParameter[];
   functionCode?: string;
   aiPrompt?: string;
+  outputType?: "single" | "multiple";
+  metadata?: Record<string, any>;
 }
 
 export class ToolEngine {
@@ -351,13 +353,53 @@ Create a detailed, specific prompt that:
 
 Return only the prompt text, no explanations.`;
     } else {
+      // Build Excel structure training if we have document parameters with sample files
+      let excelTraining = '';
+      const docParams = tool.inputParameters.filter(p => p.type === 'document' && p.sampleFile);
+      if (docParams.length > 0) {
+        // If we have sample data from a previous test, include it
+        const sampleColumns = tool.metadata?.sampleColumns || [];
+        const columnsExample = sampleColumns.length > 0 
+          ? `\nACTUAL COLUMN NAMES FROM SAMPLE FILE:\n${sampleColumns.slice(0, 10).map((col: any, idx: number) => 
+              `  ${idx + 1}. "${typeof col === 'object' ? col.name : col}"`).join('\n')}${
+              sampleColumns.length > 10 ? `\n  ... and ${sampleColumns.length - 10} more columns` : ''}`
+          : '';
+        
+        excelTraining = `
+EXCEL FILE STRUCTURE TRAINING:
+The Excel files you'll be processing have the following structure:
+- Column headers are typically in the first row
+- Common worksheet names: 'Sheet1', 'Data', or named after the content type
+- Data rows start from row 2 onwards
+- Some files may have multiple worksheets - check all sheets if needed
+- Column names may contain special characters, spaces, or line breaks
+- Empty cells should be handled gracefully
+${columnsExample}
+Example column patterns you might encounter:
+- Date columns: "Date Of Birth", "Date Became Pensioner", etc.
+- Code columns: "Member's Reference No", "Employer Code", "Sex Code"  
+- Numeric columns: "Annual Pension", "Component Amount", percentages
+- Text columns: "Status", "Description", names
+
+Tips for robust extraction:
+- Use openpyxl.load_workbook(filename, data_only=True) to get calculated values
+- Check worksheet.max_row and worksheet.max_column for bounds
+- Use worksheet.iter_rows() or worksheet.iter_cols() for efficient iteration
+- Handle merged cells with worksheet.merged_cells
+- Column letters can be accessed with cell.column_letter
+- Row numbers with cell.row
+- For finding specific columns, use string matching with .strip().lower() to handle variations
+- Consider using fuzzy matching for column names that might have slight variations
+`;
+      }
+
       return `Create a Python function for the following task:
 
 Task: ${tool.name}  
 Description: ${tool.description}
 Input Parameters:
 ${paramList}
-
+${excelTraining}
 Requirements:
 - Use only standard Python libraries (no pandas)
 - Handle Excel files with openpyxl if needed
