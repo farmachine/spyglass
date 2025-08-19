@@ -5430,12 +5430,48 @@ Requirements:
         } else if (param.type === 'document' && param.sampleDocumentIds?.[0]) {
           try {
             const sampleDoc = await storage.getSampleDocument(param.sampleDocumentIds[0]);
+            await logToBrowser(`📄 Sample document found: ID=${param.sampleDocumentIds[0]}, hasContent=${!!sampleDoc?.extractedContent}, contentLength=${sampleDoc?.extractedContent?.length || 0}`);
+            
             if (sampleDoc && sampleDoc.extractedContent) {
               sampleInputs[param.name] = sampleDoc.extractedContent;
             } else {
-              sampleInputs[param.name] = "";
+              // If no extracted content, try to trigger extraction now
+              await logToBrowser(`⚠️ No extracted content found, attempting to extract from fileURL: ${param.sampleFileURL}`);
+              if (param.sampleFileURL) {
+                // Trigger extraction for this document
+                try {
+                  const extractResponse = await fetch('http://localhost:5000/api/sample-documents/process', {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': req.headers.authorization
+                    },
+                    body: JSON.stringify({
+                      functionId: func.id,
+                      parameterName: param.name,
+                      fileName: param.sampleFile,
+                      fileURL: param.sampleFileURL
+                    })
+                  });
+                  
+                  const extractResult = await extractResponse.json();
+                  if (extractResult.success && extractResult.sampleDocument?.extractedContent) {
+                    sampleInputs[param.name] = extractResult.sampleDocument.extractedContent;
+                    await logToBrowser(`✅ Successfully extracted ${extractResult.sampleDocument.extractedContent.length} chars for ${param.name}`);
+                  } else {
+                    await logToBrowser(`❌ Extraction failed: ${extractResult.message}`);
+                    sampleInputs[param.name] = "";
+                  }
+                } catch (extractError) {
+                  await logToBrowser(`❌ Extraction error: ${extractError.message}`);
+                  sampleInputs[param.name] = "";
+                }
+              } else {
+                sampleInputs[param.name] = "";
+              }
             }
           } catch (error) {
+            await logToBrowser(`❌ Error getting sample document: ${error.message}`);
             sampleInputs[param.name] = "";
           }
         }
