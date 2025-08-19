@@ -1,0 +1,41 @@
+12:15:31 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+🤖 Processing with AI using prompt...
+12:15:31 PM [browser] 📝 🤖 Processing with AI using prompt...
+12:15:31 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GEMINI_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+🧠 Calling AI with prompt...
+12:15:31 PM [browser] 📝 🧠 Calling AI with prompt...
+12:15:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+❌ AI processing failed: Cannot read properties of undefined (reading 'models')
+12:15:31 PM [browser] 📝 ❌ AI processing failed: Cannot read properties of undefined (reading 'models')
+12:15:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST RESULTS ==========
+12:15:31 PM [browser] 📝 🎯 ========== TEST RESULTS ==========
+12:15:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "AI processing failed: Cannot read properties of undefined (reading 'models')",
+    "confidenceScore": 0,
+    "documentSource": "AI_ERROR"
+  }
+]
+12:15:31 PM [browser] 📝 Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "AI processing failed: Cannot read properties of u...
+12:15:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+12:15:31 PM [express] POST /api/excel-functions/test 200 in 303ms :: [JSON response - 243 chars]
+12:15:32 PM [browser] 📝 🧪 Test Results - Raw JSON Response: {
+  "success": true,
+  "results": [
+    {
+      "extractedValue": null,
+      "validationStatus": "invalid",
+ ...
+12:15:32 PM [express] POST /api/dev/console 200 in 2ms :: {"success":true}
+12:15:32 PM [browser] 📝 🧪 Test Results - Parsed Response: {"success":true,"results":[{"extractedValue":null,"validationStatus":"invalid","aiReasoning":"AI processing fail...
+12:15:32 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}

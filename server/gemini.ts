@@ -16,7 +16,14 @@ if (!apiKey) {
 
 console.log(`Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using ${process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'GOOGLE_API_KEY'}.`);
 
-const ai = new GoogleGenAI({ apiKey });
+let ai: GoogleGenAI;
+try {
+  ai = new GoogleGenAI({ apiKey });
+  console.log('✅ Gemini AI client initialized successfully');
+} catch (initError) {
+  console.error('❌ Failed to initialize Gemini AI client:', initError);
+  throw new Error(`Gemini AI client initialization failed: ${initError.message}`);
+}
 
 export async function testAIOnlyTool(
   toolDescription: string,
@@ -89,6 +96,11 @@ IMPORTANT: Return ONLY valid JSON array, no additional text.`;
       } else if (param.type === "data") {
         userPrompt += `${param.name} (source data): ${inputValue || "Not provided"}\n`;
       }
+    }
+
+    // Ensure AI client is properly initialized
+    if (!ai || !ai.models) {
+      throw new Error("Gemini AI client not properly initialized. Check API key configuration.");
     }
 
     const response = await ai.models.generateContent({
