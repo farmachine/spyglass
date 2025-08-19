@@ -5449,6 +5449,7 @@ def extract_function(Column_Name, Excel_File):
           for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const columnName = column.name || '';
+            const identifierId = column.identifierId || (i + 1);
             
             // Find which worksheet contains this column
             let foundWorksheet = null;
@@ -5483,7 +5484,8 @@ def extract_function(Column_Name, Excel_File):
               documentSource: 'test-document',
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              itemIndex: i
+              itemIndex: i,
+              identifierId: identifierId  // Include the identifierId in the result
             });
           }
           
