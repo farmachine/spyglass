@@ -5552,34 +5552,14 @@ def extract_function(Column_Name, Excel_File):
       try {
         await logToBrowser('🔧 Executing function with corrected code...');
         
-        // Create execution environment
-        const exec_globals = {
-          're': require('re'),  // This won't work in Node.js - let me fix this
-          'isinstance': (obj, type) => {
-            if (type === Object) return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
-            if (type === Array) return Array.isArray(obj);
-            if (type === String) return typeof obj === 'string';
-            return false;
-          }
-        };
-        
         // Execute the function code to define extract_function
         const vm = require('vm');
         const context = vm.createContext({
-          re: {
-            split: (pattern, string) => string.split(new RegExp(pattern))
-          },
-          isinstance: (obj, type) => {
-            if (type === Object) return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
-            if (type === Array) return Array.isArray(obj);
-            if (type === String) return typeof obj === 'string';
-            return false;
-          }
+          console: console
         });
         
-        // Convert Python function to JavaScript equivalent
-        const jsCode = `
-        function extract_function(Column_Name, Excel_File) {
+        // JavaScript function to replicate the corrected Python logic
+        const extract_function = (Column_Name, Excel_File) => {
           const results = [];
           
           try {
@@ -5607,7 +5587,7 @@ def extract_function(Column_Name, Excel_File):
             }
             
             // Parse Excel text using sheet delimiters
-            const sheets_data = Excel_File.split(/===\\s*Sheet:\\s*(.*?)\\s*===/);
+            const sheets_data = Excel_File.split(/===\s*Sheet:\s*(.*?)\s*===/);
             
             if (sheets_data.length < 2) {
               return [{
@@ -5633,11 +5613,11 @@ def extract_function(Column_Name, Excel_File):
               if (!sheet_content) continue;
               
               // Get header row (first line of sheet content)
-              const lines = sheet_content.split('\\n');
+              const lines = sheet_content.split('\n');
               if (lines.length === 0) continue;
               
               const header_line = lines[0];
-              const header_columns = header_line.split('\\t').map(h => h.trim());
+              const header_columns = header_line.split('\t').map(h => h.trim());
               
               // Check which requested columns are in this sheet's headers (case-insensitive)
               const header_columns_lower = header_columns.map(col => col.toLowerCase());
@@ -5658,7 +5638,7 @@ def extract_function(Column_Name, Excel_File):
                 results.push({
                   "extractedValue": worksheet,
                   "validationStatus": "valid",
-                  "aiReasoning": \`Found column '\${col_name}' in worksheet '\${worksheet}'\`,
+                  "aiReasoning": `Found column '${col_name}' in worksheet '${worksheet}'`,
                   "confidenceScore": 95,
                   "documentSource": "test-function"
                 });
@@ -5666,7 +5646,7 @@ def extract_function(Column_Name, Excel_File):
                 results.push({
                   "extractedValue": "Not Found",
                   "validationStatus": "invalid",
-                  "aiReasoning": \`Column '\${col_name}' not found in any worksheet\`,
+                  "aiReasoning": `Column '${col_name}' not found in any worksheet`,
                   "confidenceScore": 0,
                   "documentSource": "test-function"
                 });
@@ -5677,19 +5657,14 @@ def extract_function(Column_Name, Excel_File):
             
           } catch (e) {
             return [{
-              "extractedValue": \`Error: \${e.message}\`,
+              "extractedValue": `Error: ${e.message}`,
               "validationStatus": "invalid",
-              "aiReasoning": \`Function execution failed: \${e.message}\`,
+              "aiReasoning": `Function execution failed: ${e.message}`,
               "confidenceScore": 0,
               "documentSource": "test-function"
             }];
           }
-        }
-        
-        // Call the function
-        extract_function;`;
-        
-        vm.runInContext(jsCode, context);
+        };
         
         // Call the function with test parameters
         const columnInput = { 
@@ -5707,7 +5682,7 @@ def extract_function(Column_Name, Excel_File):
         
         await logToBrowser(`📋 Calling function with columns and Excel data (${excelInput.length} chars)`);
         
-        const functionResults = context.extract_function(columnInput, excelInput);
+        const functionResults = extract_function(columnInput, excelInput);
         
         await logToBrowser(`✅ Function returned ${functionResults.length} results`);
         
