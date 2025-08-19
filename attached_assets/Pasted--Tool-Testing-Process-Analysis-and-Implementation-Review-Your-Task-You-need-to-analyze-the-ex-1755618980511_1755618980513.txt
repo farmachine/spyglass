@@ -1,0 +1,108 @@
+# Tool Testing Process Analysis and Implementation Review
+
+## Your Task
+You need to **analyze the existing codebase** and identify gaps in the current implementation compared to the required process below. **Do not create new features or rewrite existing code**. Instead, provide a detailed analysis of what's missing and suggest specific implementation approaches.
+
+## Required Process Flow
+
+### Tool Creation Phase
+1. User completes form (AI/Code type, inputs: Documents/Data/Text)
+2. User provides samples (except for Text inputs)
+3. User generates prompt/code
+4. User clicks "Create Tool"
+5. **Upon creation:**
+   - Sample Document → processed via existing extraction → content + metadata saved to `test_documents`
+   - Sample Data → saved to tool metadata as array: `[{"IdentifierId": "Index", "Column1Name": "Value1", "Column2Name": "Value2"...}]`
+   - Tool saved to database
+
+### Tool Editing Phase
+- User can replace sample document/data
+- **Upon update:**
+   - New documents processed and saved to `test_documents`
+   - New sample data array updated in tool metadata
+
+### Tool Testing Phase
+1. **Test screen loads with:**
+   - Sample document preview (from `test_documents` database)
+   - Sample data displayed in table format
+   - Manual text input fields (if applicable)
+
+2. **User runs test:**
+   - Tool executes with provided inputs
+   - Results analyzed for correctness
+
+3. **Debug workflow (if results unsatisfactory):**
+   - AI debugging prompt triggered
+   - Sends: test results + input values + "what went wrong" analysis
+   - AI suggests changes
+   - User implements changes
+   - AI regenerates/fixes existing code/prompt
+   - User retests or debugs again
+
+### Output Requirements
+- **Single record mode:** One object matching `field_validations` schema
+- **Multiple records mode:** Array of objects, same schema
+  - If sample data provided: iterate over each sample record
+
+## Your Analysis Requirements
+
+### 1. Data Flow Analysis
+- Trace how sample documents currently flow from creation → `test_documents` → test preview
+- Trace how sample data flows from creation → tool metadata → test display
+- Identify any breaks or missing connections in these flows
+
+### 2. Database Schema Review
+- Verify `test_documents` structure supports the required document storage
+- Check tool metadata structure for sample data array storage
+- Identify schema gaps or inconsistencies
+
+### 3. UI/UX Flow Analysis
+- Map current form creation flow against required process
+- Analyze test screen implementation vs. requirements
+- Check debug workflow implementation completeness
+
+### 4. Processing Logic Review
+- Document extraction processes: are they properly integrated?
+- Single vs. multiple record handling: is the logic complete?
+- Sample data iteration: is it properly implemented for multiple records?
+
+### 5. Integration Points
+- AI debugging prompt integration
+- Code/prompt regeneration workflow
+- Update mechanisms for edited tools
+
+## Output Format
+
+For each area analyzed, provide:
+
+### Current State
+- What exists now
+- How it currently works
+
+### Gaps Identified  
+- What's missing compared to requirements
+- Specific technical gaps
+
+### Implementation Options
+- 2-3 approaches to bridge each gap
+- Pros/cons of each approach
+- Recommended approach with reasoning
+
+### Dependencies
+- What needs to be implemented first
+- Integration requirements between components
+
+## Key Constraints
+- **Do not propose new features** - only identify gaps in existing requirements
+- **Do not rewrite existing working code** - suggest modifications/additions only
+- **Focus on process completeness** - ensure end-to-end workflow functions as specified
+- **Maintain existing architecture** - work within current system design
+
+## Priority Focus Areas
+1. Sample document processing and retrieval chain
+2. Sample data storage and display mechanism  
+3. Debug workflow completeness
+4. Single vs. multiple record output handling
+5. Tool editing update processes
+
+Analyze the current implementation systematically and provide a clear roadmap for completing the required functionality without disrupting what already works.
