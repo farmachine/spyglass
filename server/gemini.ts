@@ -687,7 +687,59 @@ Instructions:
       
       const systemPrompt = `You are an expert Python developer fixing a data extraction function based on debug recommendations.
 
-CRITICAL: The output MUST be exactly compatible with the field_validations database schema format.
+CRITICAL EXCEL DOCUMENT FORMAT TRAINING:
+
+EXCEL FILE FORMAT IN THIS SYSTEM:
+Excel files are NOT provided as file paths or pandas-compatible files. Instead, they are provided as TEXT STRINGS with this exact format:
+
+=== Sheet: SheetName1 ===
+Column1 Column2 Column3 Column4
+value1  value2  value3  value4
+value5  value6  value7  value8
+
+=== Sheet: SheetName2 ===  
+HeaderA HeaderB HeaderC
+dataA1  dataB1  dataC1
+dataA2  dataB2  dataC2
+
+MANDATORY EXCEL PARSING RULES:
+1. NEVER use pandas.ExcelFile() or pd.read_excel() - the input is a TEXT STRING, not a file path
+2. Parse sheets using the delimiter pattern: === Sheet: SheetName ===
+3. Split sheet content by newlines to get rows
+4. Split each row by tab character \\t to get columns
+5. First row after sheet delimiter is the header row with column names
+6. Use regular expressions or string splitting for parsing
+
+CORRECT EXCEL PARSING EXAMPLE:
+import re
+
+def parse_excel_text(excel_text):
+    # Split by sheet delimiter, keeping sheet names
+    sheets_data = re.split(r'===\\s*Sheet:\\s*(.*?)\\s*===', excel_text)
+    sheets = {}
+    
+    # Process pairs of sheet_name, sheet_content
+    for i in range(1, len(sheets_data), 2):
+        sheet_name = sheets_data[i].strip()
+        sheet_content = sheets_data[i+1].strip()
+        
+        if sheet_content:
+            # Split into rows and get headers
+            rows = sheet_content.split('\\n')
+            headers = [h.strip() for h in rows[0].split('\\t')] if rows else []
+            sheets[sheet_name] = {
+                'headers': headers,
+                'rows': rows[1:] if len(rows) > 1 else []
+            }
+    
+    return sheets
+
+COMMON MISTAKES TO AVOID:
+❌ Using pandas.ExcelFile(Excel_File) - will fail because Excel_File is text, not file path
+❌ Trying to read Excel_File as a file - it's a string with sheet delimiters
+❌ Expecting .xlsx/.xls file format - it's already converted to text with === delimiters
+❌ Not handling the specific === Sheet: Name === delimiter format
+❌ Not splitting by tab characters for column separation
 
 Current Function Code:
 \`\`\`python
@@ -704,11 +756,12 @@ Current Test Results That Need Improvement:
 ${JSON.stringify(testResults, null, 2)}
 
 IMPROVEMENT REQUIREMENTS:
-1. Fix the issues identified in the debug recommendations
+1. Fix the issues identified in the debug recommendations (especially pandas usage)
 2. Maintain compatibility with field_validations schema format
 3. Use the exact parameter names: ${inputParameters.map(p => p.name).join(', ')}
 4. Improve error handling and validation based on the debug feedback
 5. Ensure the function returns accurate results for the test inputs provided
+6. MUST use text parsing instead of pandas for Excel data
 
 Field Validations Output Schema (EXACT format required):
 [
@@ -721,7 +774,7 @@ Field Validations Output Schema (EXACT format required):
   }
 ]
 
-Generate an improved Python function that addresses all the issues mentioned in the debug recommendations.`;
+Generate an improved Python function that addresses all the issues mentioned in the debug recommendations, especially replacing pandas usage with proper text parsing.`;
 
       const userPrompt = `Please generate an improved version of the function that fixes the issues identified:
 
@@ -734,6 +787,7 @@ Apply the debug recommendations to create a better, more accurate function.`;
       const response = await ai.models.generateContent({
         model: "gemini-2.5-pro",
         config: {
+          systemInstruction: systemPrompt,
           responseMimeType: "application/json",
           responseSchema: {
             type: "object",
@@ -753,10 +807,7 @@ Apply the debug recommendations to create a better, more accurate function.`;
             required: ["functionCode", "metadata"]
           }
         },
-        contents: [
-          { role: "user", parts: [{ text: systemPrompt }] },
-          { role: "user", parts: [{ text: userPrompt }] }
-        ]
+        contents: userPrompt
       });
 
       console.log('✅ Improved Python function generation completed');
