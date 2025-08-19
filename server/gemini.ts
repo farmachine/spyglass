@@ -117,6 +117,7 @@ export async function generateFunctionCode(
   outputType?: "single" | "multiple"
 ): Promise<{ functionCode: string; metadata: any }> {
   try {
+    console.log('🚀 ========== GENERATE FUNCTION CODE CALLED ==========');
     console.log('🧠 Starting AI function generation process...');
     console.log('📋 Function generation parameters:', {
       name,
@@ -127,6 +128,7 @@ export async function generateFunctionCode(
       inputParametersCount: inputParameters.length,
       inputParameters: inputParameters.map(p => ({ name: p.name, type: p.type }))
     });
+    console.log('🔍 Raw inputParameters:', JSON.stringify(inputParameters, null, 2));
 
     if (functionType === "AI_ONLY") {
       console.log('🤖 Creating AI-only tool (no Python code generation)...');
