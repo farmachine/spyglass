@@ -223,21 +223,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     onSuccess: (response) => {
       console.log('✅ Clean code generation completed:', JSON.stringify(response, null, 2));
       
-      // Update the form state with generated code
+      // Update the form state with generated content (code or prompt)
       if (editingFunction) {
         // For editing mode, update the form data
         setFormData(prev => ({
           ...prev,
-          functionCode: response.functionCode
+          functionCode: response.functionCode,
+          aiPrompt: response.aiPrompt
         }));
-        console.log('🔧 Updated editing function code in form');
+        console.log('🔧 Updated editing function content in form');
       } else {
-        // For creation mode, store the generated code
+        // For creation mode, store the generated content
         setFormData(prev => ({
           ...prev,
-          functionCode: response.functionCode
+          functionCode: response.functionCode,
+          aiPrompt: response.aiPrompt
         }));
-        console.log('🎉 Generated code ready for new tool creation');
+        console.log('🎉 Generated content ready for new tool creation');
       }
     },
     onError: (error: any) => {
@@ -268,14 +270,19 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       
       console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
       
-      // Ensure the response has the required fields from the AI generation
-      if (!response.functionCode || !response.metadata) {
+      // Validate response based on tool type
+      const isValidResponse = toolType === 'AI_ONLY' 
+        ? !!response.aiPrompt  // AI tools need aiPrompt
+        : !!response.functionCode; // CODE tools need functionCode
+        
+      if (!isValidResponse) {
         console.error('❌ Missing required fields in AI response:', {
+          toolType: toolType,
+          hasAiPrompt: !!response.aiPrompt,
           hasFunctionCode: !!response.functionCode,
-          hasMetadata: !!response.metadata,
           response: response
         });
-        console.error(`AI generation incomplete - missing ${!response.functionCode ? 'functionCode' : 'metadata'}`);
+        console.error(`❌ AI generation incomplete - missing ${toolType === 'AI_ONLY' ? 'aiPrompt' : 'functionCode'}`);
         setLoadingProgress(0);
         setLoadingMessage("");
         return;
