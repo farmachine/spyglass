@@ -5523,9 +5523,34 @@ def extract_function(Column_Name, Excel_File):
         
         await logToBrowser(`🔍 Processing ${columnsWithIds.length} columns with identifierId format`);
         
+        // Create sample Excel content if no document is loaded
+        let excelContent = sampleInputs['Document'] || sampleInputs['Excel File'] || '';
+        
+        if (!excelContent || excelContent.length === 0) {
+          await logToBrowser('📝 No Excel content found, creating sample Excel data for testing...');
+          
+          // Create sample Excel content that includes the test columns
+          excelContent = `=== Sheet: Actives ===
+Member Number   Date Of Birth   Date Pensionable Service Commenced      Date Of Exit From Active Service        Sex     Annual Pension At Normal Retirement Date        Status
+001     1/1/1970        1/1/2000        1/1/2020        M       25000   Active
+002     2/2/1975        2/2/2005        2/2/2025        F       30000   Active
+
+=== Sheet: Deferreds ===
+Member Number   Annual Pre-6.4.1988 GMP Component At Date Of This Valuation     Code For Previous Status        Date Of Birth   Date Pensionable Service Commenced
+101     1500    DEF     1/1/1965        1/1/1990
+102     2000    DEF     2/2/1970        2/2/1995
+
+=== Sheet: Pensioners ===
+Member Number   Date Of Birth   Annual Pension In Payment       Pension Start Date      Status
+201     1/1/1950        15000   1/1/2015        Pensioner
+202     2/2/1955        18000   2/2/2020        Pensioner`;
+          
+          await logToBrowser('✅ Created sample Excel data with Actives, Deferreds, and Pensioners worksheets');
+        }
+        
         const payload = {
           "Columns": columnsWithIds,
-          "Excel File": sampleInputs['Document'] || sampleInputs['Excel File'] || ''
+          "Excel File": excelContent
         };
         
         await logToBrowser(`📊 Excel content length: ${payload['Excel File'].length} characters`);
