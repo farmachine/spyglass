@@ -5391,9 +5391,23 @@ Requirements:
         return res.status(400).json({ message: "Function ID and inputs are required" });
       }
 
+      console.log('🚀 ========== TOOL TEST STARTED ==========');
       console.log("🧪 Testing tool:", functionId);
       console.log("📥 Test inputs JSON:");
       console.log(JSON.stringify(inputs, null, 2));
+      
+      // Log detailed input breakdown
+      console.log('🔍 DETAILED INPUT ANALYSIS:');
+      for (const [key, value] of Object.entries(inputs)) {
+        console.log(`📝 Input "${key}":`, typeof value, Array.isArray(value) ? `Array with ${value.length} items` : 'Single value');
+        if (Array.isArray(value) && value.length > 0) {
+          console.log(`   First item structure:`, JSON.stringify(value[0], null, 2));
+        } else if (typeof value === 'object' && value !== null) {
+          console.log(`   Object structure:`, JSON.stringify(value, null, 2));
+        } else {
+          console.log(`   Value:`, value);
+        }
+      }
 
       // Get the function
       const func = await storage.getExcelWizardryFunction(functionId);
@@ -5401,7 +5415,18 @@ Requirements:
         return res.status(404).json({ message: "Function not found" });
       }
 
-      console.log("🔧 Tool type:", func.functionType);
+      console.log('🔧 FUNCTION DETAILS:');
+      console.log('📋 Name:', func.name);
+      console.log('📋 Description:', func.description);
+      console.log('📋 Type:', func.functionType);
+      console.log('📋 Output Type:', func.outputType);
+      console.log('📋 Input Parameters:', JSON.stringify(func.inputParameters, null, 2));
+      console.log('📋 Function Code Length:', func.functionCode?.length || 0);
+      
+      if (func.functionCode) {
+        console.log('📋 Function Code Preview (first 200 chars):');
+        console.log(func.functionCode.substring(0, 200) + '...');
+      }
 
       // Handle AI ONLY tools differently
       if (func.functionType === 'AI_ONLY') {
@@ -5454,7 +5479,23 @@ Requirements:
           func.outputType || 'single'
         );
 
-        console.log("🎯 AI test results:", aiResults);
+        console.log('🎯 ========== AI TEST RESULTS ==========');
+        console.log("📊 AI test results count:", aiResults.length);
+        console.log("📊 Full AI test results:", JSON.stringify(aiResults, null, 2));
+        
+        // Log each result individually for clarity
+        aiResults.forEach((result, index) => {
+          console.log(`🎯 Result ${index + 1}:`, {
+            id: result.id,
+            fieldId: result.fieldId,
+            extractedValue: result.extractedValue,
+            validationStatus: result.validationStatus,
+            confidenceScore: result.confidenceScore,
+            aiReasoning: result.aiReasoning?.substring(0, 100) + '...'
+          });
+        });
+        console.log('✅ ========== AI TEST COMPLETED ==========');
+        
         return res.json({ results: aiResults });
       }
 
@@ -5839,6 +5880,13 @@ except Exception as e:
             }
           };
 
+          console.log('🐍 ========== PYTHON EXECUTION STARTED ==========');
+          console.log('🐍 Function Code being executed:');
+          console.log(func.functionCode?.substring(0, 500) + '...');
+          console.log('🐍 Input Data being sent to Python:');
+          console.log(JSON.stringify(inputData, null, 2));
+          console.log('🐍 Function Metadata:', JSON.stringify(func.inputParameters, null, 2));
+
           pythonProcess.stdin.write(JSON.stringify(inputData));
           pythonProcess.stdin.end();
 
@@ -5951,6 +5999,23 @@ except Exception as e:
           });
         }
       }
+
+      console.log('🎯 ========== CODE FUNCTION TEST RESULTS ==========');
+      console.log("📊 Code test results count:", testResults.length);
+      console.log("📊 Full code test results:", JSON.stringify(testResults, null, 2));
+      
+      // Log each result individually for clarity
+      testResults.forEach((result, index) => {
+        console.log(`🎯 Code Result ${index + 1}:`, {
+          id: result.id,
+          fieldId: result.fieldId,
+          extractedValue: result.extractedValue?.substring?.(0, 200) + '...' || result.extractedValue,
+          validationStatus: result.validationStatus,
+          confidenceScore: result.confidenceScore,
+          aiReasoning: result.aiReasoning?.substring?.(0, 100) + '...' || result.aiReasoning
+        });
+      });
+      console.log('✅ ========== CODE TEST COMPLETED ==========');
 
       res.json({ results: testResults });
     } catch (error) {
