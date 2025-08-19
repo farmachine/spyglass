@@ -4691,7 +4691,8 @@ print(json.dumps(results))
         ...otherData,
         toolType,
         aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
-        functionCode: toolType === 'CODE' ? functionCode : null
+        functionCode: toolType === 'CODE' ? functionCode : null,
+        metadata: otherData.metadata || {} // Provide default empty metadata if not present
       };
 
       console.log('✅ Custom validation passed, creating function...');
