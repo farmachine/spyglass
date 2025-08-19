@@ -5523,29 +5523,56 @@ def extract_function(Column_Name, Excel_File):
         
         await logToBrowser(`🔍 Processing ${columnsWithIds.length} columns with identifierId format`);
         
-        // Create sample Excel content if no document is loaded
+        // Get the actual Excel content from the sample document
         let excelContent = sampleInputs['Document'] || sampleInputs['Excel File'] || '';
         
+        // If still no content, force extraction now
         if (!excelContent || excelContent.length === 0) {
-          await logToBrowser('📝 No Excel content found, creating sample Excel data for testing...');
+          await logToBrowser('📝 No Excel content found, forcing extraction from sample document...');
           
-          // Create sample Excel content that includes the test columns
-          excelContent = `=== Sheet: Actives ===
-Member Number\tDate Of Birth\tDate Pensionable Service Commenced\tDate Of Exit From Active Service\tSex\tAnnual Pension At Normal Retirement Date\tStatus
-001\t1/1/1970\t1/1/2000\t1/1/2020\tM\t25000\tActive
-002\t2/2/1975\t2/2/2005\t2/2/2025\tF\t30000\tActive
-
-=== Sheet: Deferreds ===
-Member Number\tAnnual Pre-6.4.1988 GMP Component At Date Of This Valuation\tCode For Previous Status\tDate Of Birth\tDate Pensionable Service Commenced
-101\t1500\tDEF\t1/1/1965\t1/1/1990
-102\t2000\tDEF\t2/2/1970\t2/2/1995
-
-=== Sheet: Pensioners ===
-Member Number\tDate Of Birth\tAnnual Pension In Payment\tPension Start Date\tStatus
-201\t1/1/1950\t15000\t1/1/2015\tPensioner
-202\t2/2/1955\t18000\t2/2/2020\tPensioner`;
-          
-          await logToBrowser('✅ Created sample Excel data with Actives, Deferreds, and Pensioners worksheets');
+          // Find the Document parameter and force extraction
+          const docParam = func.inputParameters.find(p => p.type === 'document');
+          if (docParam && docParam.sampleFileURL) {
+            await logToBrowser(`🔄 Extracting from URL: ${docParam.sampleFileURL}`);
+            
+            try {
+              // Call the extraction service directly
+              const { spawn } = require('child_process');
+              const extractionProcess = spawn('python3', [
+                'document_extractor.py',
+                '--file-url', docParam.sampleFileURL,
+                '--output-format', 'text'
+              ]);
+              
+              let extractedContent = '';
+              let errorOutput = '';
+              
+              extractionProcess.stdout.on('data', (data) => {
+                extractedContent += data.toString();
+              });
+              
+              extractionProcess.stderr.on('data', (data) => {
+                errorOutput += data.toString();
+              });
+              
+              await new Promise((resolve, reject) => {
+                extractionProcess.on('close', (code) => {
+                  if (code === 0 && extractedContent.trim()) {
+                    excelContent = extractedContent.trim();
+                    resolve(excelContent);
+                  } else {
+                    reject(new Error(`Extraction failed: ${errorOutput}`));
+                  }
+                });
+              });
+              
+              await logToBrowser(`✅ Successfully extracted ${excelContent.length} characters from document`);
+              
+            } catch (error) {
+              await logToBrowser(`❌ Direct extraction failed: ${error.message}`);
+              excelContent = '';
+            }
+          }
         }
         
         const payload = {
