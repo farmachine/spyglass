@@ -132,34 +132,58 @@ export async function generateFunctionCode(
     console.log('🔍 Raw inputParameters:', JSON.stringify(inputParameters, null, 2));
 
     if (functionType === "AI_ONLY") {
-      console.log('🤖 Creating AI-only tool (no Python code generation)...');
+      console.log('🤖 Generating AI prompt using AI assistance...');
       
-      // For AI_ONLY tools, create a descriptive prompt instead of Python code
-      const aiPrompt = `Extract data from the provided document using the following parameters:
+      // For AI_ONLY tools, use AI to generate a better prompt
+      const systemPrompt = `You are an expert at creating AI extraction prompts. Create a comprehensive, detailed prompt for AI-powered document data extraction.
 
-Parameters:
-${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
+The prompt should:
+1. Be clear and specific about what to extract
+2. Include proper instructions for handling the provided parameters
+3. Specify the expected output format
+4. Include error handling guidelines
+5. Be optimized for accurate AI extraction
 
-Tool Description: ${description}
-Output Type: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+Requirements:
+- Tool Name: ${name}
+- Description: ${description}
+- Output Type: ${outputType === "single" ? "single field extraction" : "multiple record extraction"}
+- Parameters: ${inputParameters.map(p => `${p.name} (${p.type}): ${p.description}`).join(', ')}
+${aiAssistanceRequired ? `- Additional Requirements: ${aiAssistancePrompt}` : ''}
 
-Instructions:
-- Use all the provided parameters to guide your extraction
-- Extract relevant data based on the document content
-- Return results in valid JSON format
-- Handle missing data gracefully with appropriate status indicators
-${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` : ''}`;
+Return a JSON object with:
+{
+  "prompt": "The complete AI extraction prompt",
+  "metadata": {
+    "outputFormat": "field_validations_array",
+    "inputValidation": "Description of input validation",
+    "errorHandling": "Description of error handling",
+    "parametersUsed": ["param1", "param2"],
+    "toolType": "AI_ONLY",
+    "description": "Tool description"
+  }
+}`;
 
+      console.log('🧠 Calling AI to generate extraction prompt...');
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json"
+        },
+        contents: `Generate an AI extraction prompt for: ${name} - ${description}`
+      });
+
+      const result = JSON.parse(response.text || '{}');
+      
+      if (!result.prompt || !result.metadata) {
+        throw new Error('AI failed to generate proper prompt structure');
+      }
+
+      console.log('✅ AI-generated prompt created successfully');
       return {
-        functionCode: aiPrompt,
-        metadata: {
-          outputFormat: "field_validations_array",
-          inputValidation: "AI will validate all input parameters during extraction",
-          errorHandling: "AI handles missing data gracefully with appropriate status indicators",
-          parametersUsed: inputParameters.map(p => p.name),
-          toolType: "AI_ONLY",
-          description: description
-        }
+        functionCode: result.prompt,
+        metadata: result.metadata
       };
     } else {
       console.log('🐍 Generating Python code function...');

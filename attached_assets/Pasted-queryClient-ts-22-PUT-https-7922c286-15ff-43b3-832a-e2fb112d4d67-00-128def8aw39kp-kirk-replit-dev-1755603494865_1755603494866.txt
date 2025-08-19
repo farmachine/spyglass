@@ -1,0 +1,52 @@
+queryClient.ts:22  PUT https://7922c286-15ff-43b3-832a-e2fb112d4d67-00-128def8aw39kp.kirk.replit.dev/api/excel-functions/d21acf9c-7b0b-4e5c-87e5-78132fbbd123 400 (Bad Request)
+apiRequest @ queryClient.ts:22
+mutationFn @ CreateToolDialog.tsx:137
+fn @ @tanstack_react-query.js?v=dc97c54c:1189
+run @ @tanstack_react-query.js?v=dc97c54c:494
+start @ @tanstack_react-query.js?v=dc97c54c:536
+execute @ @tanstack_react-query.js?v=dc97c54c:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=dc97c54c:2630
+(anonymous) @ @tanstack_react-query.js?v=dc97c54c:3295
+handleSubmit @ CreateToolDialog.tsx:828
+callCallback2 @ chunk-RPCDYKBN.js?v=dc97c54c:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=dc97c54c:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=dc97c54c:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=dc97c54c:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=dc97c54c:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=dc97c54c:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=dc97c54c:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=dc97c54c:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=dc97c54c:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=dc97c54c:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=dc97c54c:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=dc97c54c:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=dc97c54c:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5449Understand this error
+main.tsx:17 Failed to update tool: Error: 400: {"message":"Invalid Excel wizardry function data","errors":[{"received":"AI","code":"invalid_enum_value","options":["AI_ONLY","CODE"],"path":["toolType"],"message":"Invalid enum value. Expected 'AI_ONLY' | 'CODE', received 'AI'"}]}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:40:5)
+forwardToServer @ main.tsx:17
+console.error @ main.tsx:36
+onError @ CreateToolDialog.tsx:157
+execute @ @tanstack_react-query.js?v=dc97c54c:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=dc97c54c:2630
+(anonymous) @ @tanstack_react-query.js?v=dc97c54c:3295
+handleSubmit @ CreateToolDialog.tsx:828
+callCallback2 @ chunk-RPCDYKBN.js?v=dc97c54c:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=dc97c54c:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=dc97c54c:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=dc97c54c:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=dc97c54c:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=dc97c54c:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=dc97c54c:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=dc97c54c:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=dc97c54c:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=dc97c54c:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=dc97c54c:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=dc97c54c:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=dc97c54c:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5449Understand this error
