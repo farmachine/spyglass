@@ -53,7 +53,14 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     extractionRuleIds: (property as any).extractionRuleIds || [],
     referencedMainFieldIds: (property as any).referencedMainFieldIds || [],
     referencedCollectionIds: (property as any).referencedCollectionIds || [],
-    functionParameters: (property as any).functionParameters || {},
+    functionParameters: (() => {
+      const params = (property as any).functionParameters || {};
+      // Initialize documents parameter with knowledge document IDs if they exist
+      if ((property as any).knowledgeDocumentIds?.length > 0) {
+        params['0.p2x7v5n1qw'] = (property as any).knowledgeDocumentIds.map((id: string) => `knowledge_${id}`);
+      }
+      return params;
+    })(),
   });
 
   // State for selected tool
@@ -384,74 +391,108 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                       </div>
                     )}
                   </>
+                ) : param.type === "documents" ? (
+                  <>
+                    <Select 
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !(formData.functionParameters[param.id] || []).includes(value)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            functionParameters: {
+                              ...prev.functionParameters,
+                              [param.id]: [...(prev.functionParameters[param.id] || []), value]
+                            }
+                          }));
+                          // Also update knowledgeDocumentIds for backward compatibility
+                          if (value.startsWith('knowledge_')) {
+                            const docId = value.replace('knowledge_', '');
+                            setFormData(prev => ({
+                              ...prev,
+                              knowledgeDocumentIds: [...(prev.knowledgeDocumentIds as string[]), docId]
+                            }));
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select documents (user uploaded or knowledge documents)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user_documents" disabled>
+                          <div className="font-semibold text-gray-600">User Uploaded Documents</div>
+                        </SelectItem>
+                        <SelectItem value="user_docs_placeholder">
+                          Session documents will appear here
+                        </SelectItem>
+                        
+                        {knowledgeDocuments && knowledgeDocuments.length > 0 && (
+                          <>
+                            <SelectItem value="knowledge_header" disabled>
+                              <div className="font-semibold text-gray-600 mt-2">Knowledge Documents</div>
+                            </SelectItem>
+                            {knowledgeDocuments.map((doc: any) => (
+                              <SelectItem key={`knowledge_${doc.id}`} value={`knowledge_${doc.id}`}>
+                                {doc.displayName || doc.name || doc.fileName || 'Unnamed Document'}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Selected Documents Display */}
+                    {(formData.functionParameters[param.id] || []).length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-gray-600">Selected documents:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.functionParameters[param.id] || []).map((docRef: string) => {
+                            const isKnowledge = docRef.startsWith('knowledge_');
+                            const docId = isKnowledge ? docRef.replace('knowledge_', '') : docRef;
+                            const doc = isKnowledge ? knowledgeDocuments.find((d: any) => d.id === docId) : null;
+                            const displayName = doc ? (doc.displayName || doc.name || doc.fileName) : docRef;
+                            
+                            return (
+                              <div key={docRef} className="flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
+                                <span>{displayName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      functionParameters: {
+                                        ...prev.functionParameters,
+                                        [param.id]: (prev.functionParameters[param.id] || []).filter((r: string) => r !== docRef)
+                                      }
+                                    }));
+                                    // Also update knowledgeDocumentIds
+                                    if (isKnowledge) {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        knowledgeDocumentIds: (prev.knowledgeDocumentIds as string[]).filter((id: string) => id !== docId)
+                                      }));
+                                    }
+                                  }}
+                                  className="text-green-600 hover:text-green-800 ml-1"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : null}
               </div>
             ))}
-
-          <div>
-            <Label className="text-sm font-medium">Knowledge Documents (Optional)</Label>
-            <Select 
-              value=""
-              onValueChange={(value) => {
-                if (value && !formData.knowledgeDocumentIds.includes(value)) {
-                  setFormData(prev => ({
-                    ...prev, 
-                    knowledgeDocumentIds: [...(prev.knowledgeDocumentIds as string[]), value]
-                  }));
-                }
-              }}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select knowledge documents to include (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {knowledgeDocuments && knowledgeDocuments.length > 0 ? (
-                  knowledgeDocuments.map((doc: any) => (
-                    <SelectItem key={doc.id} value={doc.id}>
-                      {doc.displayName || doc.name || doc.fileName || 'Unnamed Document'}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-docs" disabled>
-                    No knowledge documents available
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-
-            {/* Selected Knowledge Documents Display */}
-            {(formData.knowledgeDocumentIds as string[]).length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-600">Selected knowledge documents:</p>
-                <div className="flex flex-wrap gap-2">
-                  {(formData.knowledgeDocumentIds as string[]).map((docId: string) => {
-                    const doc = knowledgeDocuments.find((d: any) => d.id === docId);
-                    return doc ? (
-                      <div key={docId} className="flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm">
-                        <span>{doc.displayName || doc.name || doc.fileName}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({
-                            ...prev,
-                            knowledgeDocumentIds: (prev.knowledgeDocumentIds as string[]).filter((id: string) => id !== docId)
-                          }))}
-                          className="text-green-600 hover:text-green-800 ml-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
           </div>
         </div>
       )}
 
-      {/* Default AI extraction parameters when no tool selected */}
-      {!selectedToolId && (
+      {/* Default AI extraction parameters when AI_ONLY is selected */}
+      {selectedToolId === 'ai_only' && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
