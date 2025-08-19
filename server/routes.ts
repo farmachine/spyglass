@@ -4911,85 +4911,7 @@ print(json.dumps(results))
     }
   });
 
-  // NEW CLEAN CODE GENERATION PATHWAY
-  app.post("/api/excel-functions/generate-code", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      console.log('🚀 NEW CODE GENERATION PATHWAY STARTED');
-      const { name, description, inputParameters, toolType, outputType, aiAssistanceRequired, aiAssistancePrompt } = req.body;
-      
-      console.log('📋 FORM DATA RECEIVED:');
-      console.log('Name:', name);
-      console.log('Description:', description);
-      console.log('Tool Type:', toolType);
-      console.log('Output Type:', outputType);
-      console.log('Input Parameters:', JSON.stringify(inputParameters, null, 2));
-      
-      if (!name || !description || !inputParameters) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
 
-      // BUILD PROMPT FROM FORM DATA
-      console.log('🔨 BUILDING AI PROMPT FROM FORM DATA');
-      
-      let systemPrompt, userPrompt;
-      
-      if (toolType === 'AI_ONLY') {
-        console.log('🤖 Building AI-only tool prompt');
-        const aiPrompt = `Extract data from the provided document using the following parameters:
-
-Parameters:
-${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
-
-Tool Description: ${description}
-Output Type: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
-
-Instructions:
-- Use all the provided parameters to guide your extraction
-- Extract relevant data based on the document content
-- Return results in valid JSON format
-- Handle missing data gracefully with appropriate status indicators
-${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` : ''}`;
-
-        const response = {
-          functionCode: aiPrompt,
-          metadata: {
-            outputFormat: "field_validations_array",
-            inputValidation: "AI will validate all input parameters during extraction",
-            errorHandling: "AI handles missing data gracefully with appropriate status indicators",
-            parametersUsed: inputParameters.map(p => p.name),
-            toolType: "AI_ONLY",
-            description: description
-          }
-        };
-        
-        console.log('✅ AI-only tool created, no Python generation needed');
-        return res.json(response);
-        
-      } else {
-        console.log('🐍 Using updated generateFunctionCode from gemini.ts');
-        
-        // Import and use the updated generateFunctionCode function
-        const { generateFunctionCode } = await import("./gemini");
-        
-        const result = await generateFunctionCode(
-          name,
-          description,
-          inputParameters,
-          'SCRIPT', // toolType for Python functions
-          aiAssistanceRequired || false,
-          aiAssistancePrompt,
-          outputType
-        );
-        
-        console.log('🎯 Generated function using updated prompts:', result.metadata);
-        res.json(result);
-      }
-      
-    } catch (error) {
-      console.error("❌ NEW CODE GENERATION FAILED:", error);
-      res.status(500).json({ message: "Code generation failed: " + error.message });
-    }
-  });
 
   // Get impact analysis for Excel function
   app.get("/api/excel-functions/:id/impact", authenticateToken, async (req: AuthRequest, res) => {
@@ -5486,88 +5408,89 @@ def extract_function(Column_Name, Excel_File):
       try {
         await logToBrowser('🔧 Executing function with corrected code...');
         
-        // JavaScript function based on the working Python pattern you provided
-        const findWorksheetForColumns = (payload) => {
-          
-          const parseExcelContent = (excelContent) => {
-            const worksheets = {};
-            
-            // Split by worksheet markers
-            const sections = excelContent.split('=== Sheet: ');
-            
-            for (let i = 1; i < sections.length; i++) { // Skip the first empty section
-              const section = sections[i].trim();
-              const lines = section.split('\n');
-              if (lines.length === 0) continue;
-              
-              // Extract worksheet name (first line after the marker)
-              const worksheetName = lines[0].split(' ===')[0].trim();
-              
-              // Extract header row (second line should contain column headers)
-              if (lines.length > 1) {
-                const headers = lines[1].split('\t').map(col => col.trim());
-                worksheets[worksheetName] = headers;
+        // Use the actual AI-generated function code with Python execution
+        const { spawn } = require('child_process');
+        
+        const executePythonFunction = (functionCode, payload) => {
+          return new Promise((resolve, reject) => {
+            // Create a Python script that imports the function and executes it
+            const pythonScript = `
+import json
+import sys
+import time
+
+# The AI-generated function code
+${functionCode}
+
+# Input payload from Node.js
+payload = json.loads('${JSON.stringify(payload).replace(/'/g, "\\'")}')
+
+# Execute the function
+try:
+    result = extract_function(payload.get('Columns', []), payload.get('Excel File', ''))
+    
+    # Format the result as field_validations array
+    formatted_results = []
+    if isinstance(result, list):
+        for i, item in enumerate(result):
+            if isinstance(item, dict):
+                formatted_result = {
+                    "id": f"test-{int(time.time() * 1000)}-{i}",
+                    "fieldId": "test-output",
+                    "extractedValue": item.get("extractedValue", ""),
+                    "validationStatus": item.get("validationStatus", "pending"),
+                    "confidenceScore": item.get("confidenceScore", 0),
+                    "aiReasoning": item.get("aiReasoning", ""),
+                    "documentSource": "test-document",
+                    "createdAt": "${new Date().toISOString()}",
+                    "updatedAt": "${new Date().toISOString()}",
+                    "itemIndex": i
+                }
+                formatted_results.append(formatted_result)
+    
+    print(json.dumps({"results": formatted_results}))
+    
+except Exception as e:
+    error_result = {
+        "id": f"test-{int(time.time() * 1000)}-0",
+        "fieldId": "test-output", 
+        "extractedValue": f"ERROR: {str(e)}",
+        "validationStatus": "invalid",
+        "confidenceScore": 0,
+        "aiReasoning": f"Function execution error: {str(e)}",
+        "documentSource": "test-document",
+        "createdAt": "${new Date().toISOString()}",
+        "updatedAt": "${new Date().toISOString()}",
+        "itemIndex": 0
+    }
+    print(json.dumps({"results": [error_result]}))
+`;
+
+            const python = spawn('python3', ['-c', pythonScript]);
+            let output = '';
+            let errorOutput = '';
+
+            python.stdout.on('data', (data) => {
+              output += data.toString();
+            });
+
+            python.stderr.on('data', (data) => {
+              errorOutput += data.toString();
+            });
+
+            python.on('close', (code) => {
+              if (code !== 0) {
+                reject(new Error(`Python execution failed: ${errorOutput}`));
+              } else {
+                try {
+                  const result = JSON.parse(output.trim());
+                  resolve(result);
+                } catch (parseError) {
+                  reject(new Error(`Failed to parse Python output: ${parseError.message}`));
+                }
               }
-            }
-            
-            return worksheets;
-          };
-          
-          const findColumnWorksheet = (columnName, worksheets) => {
-            for (const [worksheetName, headers] of Object.entries(worksheets)) {
-              if (headers.includes(columnName)) {
-                return worksheetName;
-              }
-            }
-            return null;
-          };
-          
-          // Extract data from payload
-          const columns = payload.Columns || [];
-          const excelContent = payload['Excel File'] || '';
-          
-          // Parse worksheets and their headers
-          const worksheets = parseExcelContent(excelContent);
-          
-          // Generate results
-          const results = [];
-          
-          for (let index = 0; index < columns.length; index++) {
-            const columnName = columns[index];
-            const worksheetName = findColumnWorksheet(columnName, worksheets);
-            
-            // Determine validation status and confidence
-            let validationStatus, confidenceScore, extractedValue, aiReasoning;
-            
-            if (worksheetName) {
-              validationStatus = "valid";
-              confidenceScore = 95;
-              extractedValue = worksheetName;
-              aiReasoning = `Column '${columnName}' found in worksheet '${worksheetName}'`;
-            } else {
-              validationStatus = "invalid";
-              confidenceScore = 0;
-              extractedValue = "WORKSHEET NOT FOUND";
-              aiReasoning = `Column '${columnName}' not found in any worksheet`;
-            }
-            
-            const result = {
-              id: `test-${Date.now()}-${index}`,
-              fieldId: "test-output",
-              extractedValue: extractedValue,
-              validationStatus: validationStatus,
-              confidenceScore: confidenceScore,
-              aiReasoning: aiReasoning,
-              documentSource: "pension-data-analysis",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              itemIndex: index
-            };
-            
-            results.push(result);
-          }
-          
-          return { results: results };
+            });
+          });
         };
         
         // Extract test columns from the stored sample data and prepare payload
@@ -5615,7 +5538,7 @@ def extract_function(Column_Name, Excel_File):
         
         await logToBrowser(`📋 Calling function with ${payload.Columns.length} column objects (new identifierId format) and Excel data (${payload['Excel File'].length} chars)`);
         
-        const functionResult = findWorksheetForColumns(payload);
+        const functionResult = await executePythonFunction(func.functionCode, payload);
         
         await logToBrowser(`✅ Function returned ${functionResult.results.length} results`);
         
