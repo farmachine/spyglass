@@ -167,13 +167,14 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       // Removed manual override - using AI generation for all functions
       
       // MANDATORY FUNCTION SIGNATURE ENFORCEMENT
+      // The execution system always expects this exact signature regardless of input parameter names
       const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
 
-def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}):
+def extract_function(Column_Name, Excel_File):
 
 CRITICAL REQUIREMENTS:
 1. Function name MUST be "extract_function"  
-2. Parameters MUST match exactly: ${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')}
+2. Parameters MUST be exactly: Column_Name, Excel_File
 3. OUTPUT TYPE = "${outputType.toUpperCase()}"
 
 ${outputType === 'multiple' ? `
@@ -190,12 +191,13 @@ SINGLE OUTPUT - NO ITERATION:
 
 PARAMETER DETAILS:
 ${inputParameters.map(p => {
-  if (p.type === 'data' && p.sampleData?.rows) {
-    return `${p.name.replace(/\s+/g, '_')}: List of ${p.sampleData.rows.length} objects, each like ${JSON.stringify(p.sampleData.rows[0] || {})}`;
+  if (p.type === 'data' && (p as any).sampleData?.rows) {
+    const sampleRows = (p as any).sampleData.rows;
+    return `Column_Name: Contains data from "${p.name}" - List of ${sampleRows.length} objects, each like ${JSON.stringify(sampleRows[0] || {})}`;
   } else if (p.type === 'document') {
-    return `${p.name.replace(/\s+/g, '_')}: String with Excel format "=== Sheet: Name ===" followed by data`;
+    return `Excel_File: Contains document data from "${p.name}" - String with Excel format "=== Sheet: Name ===" followed by data`;
   }
-  return `${p.name.replace(/\s+/g, '_')}: ${p.type} parameter`;
+  return `Column_Name/Excel_File: Contains ${p.type} data from "${p.name}"`;
 }).join('\n')}
 
 RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
@@ -206,8 +208,8 @@ Return JSON: {"functionCode": "complete_function_code", "metadata": {"parameters
 Description: ${description}
 
 Requirements:
-- Function signature: def extract_function(${inputParameters.map(p => p.name.replace(/\s+/g, '_')).join(', ')})
-- ${outputType === 'multiple' ? 'Iterate through array parameter to generate multiple results' : 'Process input to generate single result'}
+- Function signature: def extract_function(Column_Name, Excel_File)
+- ${outputType === 'multiple' ? 'Iterate through Column_Name array parameter to generate multiple results' : 'Process Column_Name input to generate single result'}
 - Use Python syntax: None (not null), True/False (not true/false)
 - Handle errors gracefully
 - Return proper field validation format`;
