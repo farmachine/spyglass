@@ -57,7 +57,9 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
   });
 
   // State for selected tool
-  const [selectedToolId, setSelectedToolId] = useState<string>(property.functionId || '');
+  const [selectedToolId, setSelectedToolId] = useState<string>(
+    property.functionId || (property.extractionType === 'AI_ONLY' ? 'ai_only' : '')
+  );
   const [inputParameters, setInputParameters] = useState<any[]>([]);
 
   // Find the selected tool
@@ -75,7 +77,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
         console.error("Error parsing input parameters:", error);
         setInputParameters([]);
       }
-    } else if (selectedToolId === "" || !selectedTool) {
+    } else if (selectedToolId === "ai_only" || selectedToolId === "" || !selectedTool) {
       // Default AI extraction parameters
       setInputParameters([
         {
@@ -255,18 +257,26 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
             value={selectedToolId} 
             onValueChange={(value) => {
               setSelectedToolId(value);
-              setFormData(prev => ({
-                ...prev, 
-                functionId: value || null,
-                extractionType: value ? 'FUNCTION' : 'AI_ONLY'
-              }));
+              if (value === 'ai_only') {
+                setFormData(prev => ({
+                  ...prev, 
+                  functionId: null,
+                  extractionType: 'AI_ONLY'
+                }));
+              } else {
+                setFormData(prev => ({
+                  ...prev, 
+                  functionId: value,
+                  extractionType: 'FUNCTION'
+                }));
+              }
             }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select an extraction method" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">AI Extraction</SelectItem>
+              <SelectItem value="ai_only">AI Extraction</SelectItem>
               {excelFunctions.map((func: any) => (
                 <SelectItem key={func.id} value={func.id}>
                   {func.name} ({func.toolType === 'AI_ONLY' ? 'AI' : 'CODE'})
@@ -277,8 +287,8 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
         </div>
       </div>
 
-      {/* Data Sources Section - Only show when tool is selected */}
-      {selectedToolId && inputParameters.length > 0 && (
+      {/* Data Sources Section - Show when tool is selected or AI extraction is chosen */}
+      {(selectedToolId || formData.extractionType === 'AI_ONLY') && inputParameters.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
