@@ -225,126 +225,135 @@ function InlinePropertyEditor({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg">
-      {/* Tool Selection */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Extraction Method</label>
-        <Select
-          value={selectedToolId}
-          onValueChange={(value) => {
-            setSelectedToolId(value);
-            setFormData({ ...formData, functionId: value });
-          }}
-        >
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select extraction method..." />
-          </SelectTrigger>
-          <SelectContent>
-            {excelFunctions.length === 0 ? (
-              <SelectItem value="none" disabled>No tools available</SelectItem>
-            ) : (
-              excelFunctions.map((tool) => (
-                <SelectItem key={tool.id} value={tool.id}>
-                  <div className="flex items-center gap-2">
-                    {tool.toolType === "AI_ONLY" ? (
-                      <Brain className="h-3 w-3 text-blue-500" />
-                    ) : (
-                      <Settings className="h-3 w-3 text-gray-500" />
-                    )}
-                    <span className="text-sm">{tool.name}</span>
-                  </div>
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Tool Parameters */}
-      {selectedToolId && inputParameters.length > 0 && (
-        <div className="space-y-3 p-3 bg-white rounded border">
-          <div className="text-xs font-medium text-gray-600">Configuration</div>
-          {inputParameters.map((param) => (
-            <div key={param.id}>
-              {renderParameterInput(param)}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Property Settings */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Property Name</label>
-          <Input
-            value={formData.propertyName}
-            onChange={(e) => setFormData({ ...formData, propertyName: e.target.value })}
-            placeholder="e.g., Column Name"
-            className="h-8"
-          />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Step 1: Extraction Method */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-xs font-semibold text-white">1</div>
+          <h5 className="font-medium">Extraction Method</h5>
         </div>
         
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Type</label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Select Extraction Tool</label>
           <Select
-            value={formData.propertyType}
-            onValueChange={(value) => setFormData({ ...formData, propertyType: value as any })}
+            value={selectedToolId}
+            onValueChange={(value) => {
+              setSelectedToolId(value);
+              setFormData({ ...formData, functionId: value });
+            }}
           >
-            <SelectTrigger className="h-8">
-              <SelectValue />
+            <SelectTrigger>
+              <SelectValue placeholder="Choose an extraction method..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="TEXT">Text</SelectItem>
-              <SelectItem value="NUMBER">Number</SelectItem>
-              <SelectItem value="DATE">Date</SelectItem>
-              <SelectItem value="CHOICE">Choice</SelectItem>
+              {excelFunctions.length === 0 ? (
+                <SelectItem value="none" disabled>No tools available</SelectItem>
+              ) : (
+                excelFunctions.map((tool) => (
+                  <SelectItem key={tool.id} value={tool.id}>
+                    <div className="flex items-center gap-2">
+                      {tool.toolType === "AI_ONLY" ? (
+                        <Brain className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <Settings className="h-4 w-4 text-gray-500" />
+                      )}
+                      <span>{tool.name}</span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
+        
+        {selectedTool && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-gray-700">{selectedTool.description}</p>
+          </div>
+        )}
+      </div>
 
-        <div className="col-span-2 space-y-1">
-          <label className="text-sm font-medium">Description</label>
-          <Textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Describe this property..."
-            rows={2}
-            className="text-sm"
-          />
+      {/* Step 2: Tool Parameters */}
+      {selectedToolId && inputParameters.length > 0 && (
+        <div className="space-y-4 p-4 border rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-semibold text-white">2</div>
+            <h5 className="font-medium">Data Sources & Configuration</h5>
+          </div>
+          
+          <div className="space-y-4">
+            {inputParameters.map((param) => (
+              <div key={param.id}>
+                {renderParameterInput(param)}
+              </div>
+            ))}
+          </div>
         </div>
+      )}
 
-        <div className="col-span-2 space-y-1">
-          <label className="text-sm font-medium">Auto-Verification Confidence (%)</label>
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            value={formData.autoVerificationConfidence}
-            onChange={(e) => setFormData({ ...formData, autoVerificationConfidence: parseInt(e.target.value) })}
-            className="h-8"
-          />
+      {/* Step 3: Output Settings */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center text-xs font-semibold text-white">3</div>
+          <h5 className="font-medium">Output Settings</h5>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Property Name</label>
+            <Input
+              value={formData.propertyName}
+              onChange={(e) => setFormData({ ...formData, propertyName: e.target.value })}
+              placeholder="e.g., Column Name"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Property Type</label>
+            <Select
+              value={formData.propertyType}
+              onValueChange={(value) => setFormData({ ...formData, propertyType: value as any })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TEXT">Text</SelectItem>
+                <SelectItem value="NUMBER">Number</SelectItem>
+                <SelectItem value="DATE">Date</SelectItem>
+                <SelectItem value="CHOICE">Choice</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="col-span-2 space-y-2">
+            <label className="text-sm font-medium">Auto-Verification Confidence (%)</label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={formData.autoVerificationConfidence}
+              onChange={(e) => setFormData({ ...formData, autoVerificationConfidence: parseInt(e.target.value) })}
+            />
+          </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-2">
         <Button 
           type="button" 
           variant="outline" 
-          size="sm" 
           onClick={onCancel}
           disabled={isLoading}
         >
-          <X className="h-3 w-3 mr-1" />
           Cancel
         </Button>
         <Button 
-          type="submit" 
-          size="sm"
+          type="submit"
           disabled={isLoading || !selectedToolId}
         >
-          <Check className="h-3 w-3 mr-1" />
-          {isLoading ? "Saving..." : "Save"}
+          {isLoading ? "Saving..." : "Save Property"}
         </Button>
       </div>
     </form>
@@ -406,7 +415,7 @@ export function CollectionCard({
     }
   };
 
-  const newProperty: CollectionProperty = {
+  const newProperty: any = {
     id: 'new',
     collectionId: collection.id,
     propertyName: '',
@@ -468,7 +477,7 @@ export function CollectionCard({
                 projectId={projectId}
               />
             ) : (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div className="flex items-center justify-between p-3 bg-white border rounded-lg hover:border-gray-300 transition-colors">
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="font-medium text-sm">{property.propertyName}</div>

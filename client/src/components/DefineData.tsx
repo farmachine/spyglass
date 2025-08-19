@@ -145,6 +145,19 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Property mutations
   const updateProperty = useUpdateProperty();
   const deleteProperty = useDeleteProperty();
+  
+  // Create property mutation
+  const createProperty = useMutation({
+    mutationFn: (data: any) => 
+      apiRequest(`/api/collections/${data.collectionId}/properties`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id, "collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+  });
 
   // Project mutations
   const updateProject = useUpdateProject();
@@ -794,35 +807,28 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
                 <CardContent>
                   <CollectionCard
                     collection={collection}
-                    fieldTypeColors={fieldTypeColors}
-                    knowledgeDocuments={knowledgeDocuments || []}
-                    extractionRules={extractionRules || []}
-                    onEditCollection={(collection) => setCollectionDialog({ open: true, collection })}
-                    onDeleteCollection={(id, name) => setDeleteDialog({ 
+                    onDeleteCollection={(id) => setDeleteDialog({ 
                       open: true, 
                       type: "collection", 
                       id, 
-                      name 
+                      name: collection.collectionName 
                     })}
-                    onAddProperty={(collectionId, collectionName) => setPropertyDialog({ 
-                      open: true, 
-                      property: null, 
-                      collectionId,
-                      collectionName 
-                    })}
-                    onEditProperty={(property) => setPropertyDialog({ 
-                      open: true, 
-                      property, 
-                      collectionId: property.collectionId,
-                      collectionName: collection.collectionName
-                    })}
-                    onDeleteProperty={(id, name) => setDeleteDialog({ 
+                    onEditCollection={(id, data) => updateCollection.mutate({ id, ...data })}
+                    onAddProperty={async (data) => {
+                      await createProperty.mutateAsync(data);
+                    }}
+                    onEditProperty={async (propertyId, data) => {
+                      await updateProperty.mutateAsync({ id: propertyId, ...data });
+                    }}
+                    onDeleteProperty={(propertyId) => setDeleteDialog({ 
                       open: true, 
                       type: "property", 
-                      id, 
-                      name 
+                      id: propertyId, 
+                      name: "this property" 
                     })}
-                    hideHeader={true}
+                    excelFunctions={wizardryFunctions || []}
+                    knowledgeDocuments={knowledgeDocuments || []}
+                    projectId={project.id}
                   />
                 </CardContent>
               </Card>
