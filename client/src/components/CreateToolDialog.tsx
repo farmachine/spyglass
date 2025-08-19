@@ -862,6 +862,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       // Include the actual content based on tool type
       aiPrompt: toolType === 'AI_ONLY' ? formData.aiPrompt : null,
       functionCode: toolType === 'CODE' ? formData.functionCode : null,
+      // Add required schema fields
+      inputSchema: {
+        parameters: inputParameters
+      },
+      outputSchema: {
+        format: "field_validations_compatible"
+      },
       tags: [] // Default to empty tags array since we removed the tags field
     };
 
