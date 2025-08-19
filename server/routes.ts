@@ -5348,51 +5348,55 @@ def extract_function(Column_Name, Excel_File):
               name: row[identifierColumn]
             }));
           }
-        } else if (param.type === 'document' && param.sampleDocumentIds?.[0]) {
+        } else if (param.type === 'document') {
           try {
-            // Get all sample documents for the function and find the specific one
-            const allSampleDocs = await storage.getSampleDocuments(func.id);
-            const sampleDoc = allSampleDocs.find(doc => doc.id === param.sampleDocumentIds[0]);
-            
-            await logToBrowser(`📄 Sample document found: ID=${param.sampleDocumentIds[0]}, hasContent=${!!sampleDoc?.extractedContent}, contentLength=${sampleDoc?.extractedContent?.length || 0}`);
-            
-            if (sampleDoc && sampleDoc.extractedContent) {
-              sampleInputs[param.name] = sampleDoc.extractedContent;
-            } else {
-              // If no extracted content, try to trigger extraction now
-              await logToBrowser(`⚠️ No extracted content found, attempting to extract from fileURL: ${param.sampleFileURL}`);
-              if (param.sampleFileURL) {
-                // Trigger extraction for this document
-                try {
-                  const extractResponse = await fetch('http://localhost:5000/api/sample-documents/process', {
-                    method: 'POST',
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Authorization': req.headers.authorization
-                    },
-                    body: JSON.stringify({
-                      functionId: func.id,
-                      parameterName: param.name,
-                      fileName: param.sampleFile,
-                      fileURL: param.sampleFileURL
-                    })
-                  });
-                  
-                  const extractResult = await extractResponse.json();
-                  if (extractResult.success && extractResult.sampleDocument?.extractedContent) {
-                    sampleInputs[param.name] = extractResult.sampleDocument.extractedContent;
-                    await logToBrowser(`✅ Successfully extracted ${extractResult.sampleDocument.extractedContent.length} chars for ${param.name}`);
-                  } else {
-                    await logToBrowser(`❌ Extraction failed: ${extractResult.message}`);
-                    sampleInputs[param.name] = "";
-                  }
-                } catch (extractError) {
-                  await logToBrowser(`❌ Extraction error: ${extractError.message}`);
-                  sampleInputs[param.name] = "";
-                }
+            // First try to get by sample document ID if available
+            if (param.sampleDocumentIds?.[0]) {
+              const allSampleDocs = await storage.getSampleDocuments(func.id);
+              const sampleDoc = allSampleDocs.find(doc => doc.id === param.sampleDocumentIds[0]);
+              
+              await logToBrowser(`📄 Sample document found: ID=${param.sampleDocumentIds[0]}, hasContent=${!!sampleDoc?.extractedContent}, contentLength=${sampleDoc?.extractedContent?.length || 0}`);
+              
+              if (sampleDoc && sampleDoc.extractedContent) {
+                sampleInputs[param.name] = sampleDoc.extractedContent;
               } else {
+                await logToBrowser(`⚠️ Sample document ${param.sampleDocumentIds[0]} has no extracted content`);
                 sampleInputs[param.name] = "";
               }
+            } 
+            // If no sample document ID but has file URL, try to process it now
+            else if (param.sampleFileURL) {
+              await logToBrowser(`🔄 No sample document ID found, processing file URL: ${param.sampleFileURL}`);
+              try {
+                const extractResponse = await fetch('http://localhost:5000/api/sample-documents/process', {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': req.headers.authorization
+                  },
+                  body: JSON.stringify({
+                    functionId: func.id,
+                    parameterName: param.name,
+                    fileName: param.sampleFile,
+                    fileURL: param.sampleFileURL
+                  })
+                });
+                
+                const extractResult = await extractResponse.json();
+                if (extractResult.success && extractResult.sampleDocument?.extractedContent) {
+                  sampleInputs[param.name] = extractResult.sampleDocument.extractedContent;
+                  await logToBrowser(`✅ Successfully extracted ${extractResult.sampleDocument.extractedContent.length} chars for ${param.name}`);
+                } else {
+                  await logToBrowser(`❌ Extraction failed: ${extractResult.message}`);
+                  sampleInputs[param.name] = "";
+                }
+              } catch (extractError) {
+                await logToBrowser(`❌ Extraction error: ${extractError.message}`);
+                sampleInputs[param.name] = "";
+              }
+            } else {
+              await logToBrowser(`⚠️ No sample document or file URL found for parameter ${param.name}`);
+              sampleInputs[param.name] = "";
             }
           } catch (error) {
             await logToBrowser(`❌ Error getting sample document: ${error.message}`);
@@ -5526,53 +5530,10 @@ def extract_function(Column_Name, Excel_File):
         // Get the actual Excel content from the sample document
         let excelContent = sampleInputs['Document'] || sampleInputs['Excel File'] || '';
         
-        // If still no content, force extraction now
+        // If no content found, the sample document wasn't processed yet
         if (!excelContent || excelContent.length === 0) {
-          await logToBrowser('📝 No Excel content found, forcing extraction from sample document...');
-          
-          // Find the Document parameter and force extraction
-          const docParam = func.inputParameters.find(p => p.type === 'document');
-          if (docParam && docParam.sampleFileURL) {
-            await logToBrowser(`🔄 Extracting from URL: ${docParam.sampleFileURL}`);
-            
-            try {
-              // Call the extraction service directly
-              const { spawn } = require('child_process');
-              const extractionProcess = spawn('python3', [
-                'document_extractor.py',
-                '--file-url', docParam.sampleFileURL,
-                '--output-format', 'text'
-              ]);
-              
-              let extractedContent = '';
-              let errorOutput = '';
-              
-              extractionProcess.stdout.on('data', (data) => {
-                extractedContent += data.toString();
-              });
-              
-              extractionProcess.stderr.on('data', (data) => {
-                errorOutput += data.toString();
-              });
-              
-              await new Promise((resolve, reject) => {
-                extractionProcess.on('close', (code) => {
-                  if (code === 0 && extractedContent.trim()) {
-                    excelContent = extractedContent.trim();
-                    resolve(excelContent);
-                  } else {
-                    reject(new Error(`Extraction failed: ${errorOutput}`));
-                  }
-                });
-              });
-              
-              await logToBrowser(`✅ Successfully extracted ${excelContent.length} characters from document`);
-              
-            } catch (error) {
-              await logToBrowser(`❌ Direct extraction failed: ${error.message}`);
-              excelContent = '';
-            }
-          }
+          await logToBrowser('⚠️ No Excel content found - sample document may not have been processed yet');
+          await logToBrowser('💡 Please ensure the sample document was uploaded and processed before testing');
         }
         
         const payload = {
