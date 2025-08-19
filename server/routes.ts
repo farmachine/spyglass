@@ -5382,7 +5382,7 @@ def extract_function(Column_Name, Excel_File):
         // For CODE tools, call extraction_wizardry.py directly
         await logToBrowser('🐍 Processing with extraction_wizardry.py...');
         
-        const { spawn } = require('child_process');
+        const { spawn } = await import('child_process');
         
         try {
           const python = spawn('python3', ['extraction_wizardry.py']);
