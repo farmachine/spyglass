@@ -41,7 +41,7 @@ export async function testAIOnlyTool(
       model: "gemini-1.5-flash",
       contents: prompt
     });
-    const text = response.text;
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     
     // Clean and parse JSON response (remove markdown code blocks if present)
     let cleanText = text.trim();
@@ -96,7 +96,7 @@ Return only the Python function code, no explanations.`;
     });
     
     console.log("🔍 Raw response:", JSON.stringify(response, null, 2));
-    let code = response.text;
+    let code = response.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!code) {
       throw new Error("No code generated from AI response");
