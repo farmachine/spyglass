@@ -43,6 +43,19 @@ export class ToolEngine {
   async generateToolContent(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'>): Promise<{ content: string }> {
     const prompt = this.buildGenerationPrompt(tool);
     
+    console.log('🤖 GEMINI AI PROMPT FOR TOOL GENERATION');
+    console.log('='.repeat(80));
+    console.log('📝 Tool Type:', tool.toolType);
+    console.log('📝 Tool Name:', tool.name);
+    console.log('📝 Tool Description:', tool.description);
+    console.log('📝 Input Parameters:', tool.inputParameters.map(p => `${p.name} (${p.type})`).join(', '));
+    console.log('');
+    console.log('🎯 FULL PROMPT SENT TO GEMINI:');
+    console.log('-'.repeat(80));
+    console.log(prompt);
+    console.log('-'.repeat(80));
+    console.log('');
+    
     const response = await genAI.models.generateContent({
       model: "gemini-1.5-flash",
       contents: prompt
@@ -50,9 +63,19 @@ export class ToolEngine {
     
     let content = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
     
+    console.log('🎉 GEMINI RESPONSE:');
+    console.log('-'.repeat(80));
+    console.log(content);
+    console.log('-'.repeat(80));
+    console.log('');
+    
     // Clean markdown code blocks
     if (content.startsWith('```python') || content.startsWith('```')) {
       content = content.replace(/^```(?:python)?\s*/, '').replace(/\s*```$/, '').trim();
+      console.log('🧹 CLEANED CONTENT (removed markdown):');
+      console.log('-'.repeat(80));
+      console.log(content);
+      console.log('-'.repeat(80));
     }
     
     return { content };
@@ -76,6 +99,18 @@ export class ToolEngine {
     try {
       const prompt = this.buildTestPrompt(tool, inputs);
       
+      console.log('🧪 GEMINI AI PROMPT FOR TOOL TESTING');
+      console.log('='.repeat(80));
+      console.log('📝 Tool Name:', tool.name);
+      console.log('📝 Tool AI Prompt:', tool.aiPrompt);
+      console.log('📝 Test Inputs:', JSON.stringify(inputs, null, 2));
+      console.log('');
+      console.log('🎯 FULL TEST PROMPT SENT TO GEMINI:');
+      console.log('-'.repeat(80));
+      console.log(prompt);
+      console.log('-'.repeat(80));
+      console.log('');
+      
       const response = await genAI.models.generateContent({
         model: "gemini-1.5-flash",
         contents: prompt
@@ -83,9 +118,19 @@ export class ToolEngine {
       
       let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
+      console.log('🎉 GEMINI TEST RESPONSE:');
+      console.log('-'.repeat(80));
+      console.log(result);
+      console.log('-'.repeat(80));
+      console.log('');
+      
       // Clean markdown if present
       if (result.startsWith('```json')) {
         result = result.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+        console.log('🧹 CLEANED TEST RESULT (removed markdown):');
+        console.log('-'.repeat(80));
+        console.log(result);
+        console.log('-'.repeat(80));
       }
       
       const parsed = JSON.parse(result);
