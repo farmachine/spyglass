@@ -4825,7 +4825,7 @@ print(json.dumps(results))
       console.log('='.repeat(80));
       
       // Generate the function code using AI
-      const { functionCode, metadata } = await generateFunctionCode(
+      const functionCode = await generateFunctionCode(
         name,
         description, 
         inputParameters,
@@ -4834,6 +4834,12 @@ print(json.dumps(results))
         aiAssistancePrompt,
         outputType
       );
+      
+      const metadata = {
+        generatedAt: new Date().toISOString(),
+        model: "gemini-1.5-flash",
+        functionType: actualFunctionType
+      };
       
       console.log('🤖 AI GENERATION COMPLETED');
       console.log('📄 Generated Function Code:');
