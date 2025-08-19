@@ -63,6 +63,8 @@ Preferred communication style: Simple, everyday language.
 - **Sequential Function Extraction Workflow**: Implemented identifier reference chaining between function extractions, enabling complex multi-step workflows.
 - **Unified Tool-First Configuration System**: Redesigned field configuration interfaces with consistent tool-first approach, dynamic form generation, and @-key referencing.
 - **Comprehensive AI Function Training System**: Enhanced AI training prompts with function generation patterns for array iteration and single object processing, including mandatory structure, parameter validation, and common patterns.
+- **Excel Format Training Integration**: Both main function generation and debug systems now include comprehensive Excel text format training, preventing pandas usage and enforcing proper text parsing with regex and string methods.
+- **Manual Fix System**: Added manual fix endpoints for correcting pandas-based functions when AI generation encounters temporary issues, ensuring system reliability.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

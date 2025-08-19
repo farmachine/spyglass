@@ -1,0 +1,26 @@
+7:48:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🔧 Debugging tool: 78fd792c-a4c8-42f8-a167-9687aa312403
+🐛 Debug instructions: this function should iterate over each of the column names and identify the worksheet for each one.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+🔧 Debugging tool with AI assistance...
+Debug tool error: ApiError: {"error":{"code":500,"message":"An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting","status":"INTERNAL"}}
+    at throwErrorIfNotOK (/home/runner/workspace/node_modules/@google/genai/src/_api_client.ts:760:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/@google/genai/src/_api_client.ts:490:9)
+    at async Models.Models.generateContent (/home/runner/workspace/node_modules/@google/genai/src/models.ts:76:14)
+    at async debugTool (/home/runner/workspace/server/gemini.ts:622:22)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:5323:29) {
+  status: 500
+}
+Debug execution error: ApiError: {"error":{"code":500,"message":"An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting","status":"INTERNAL"}}
+    at throwErrorIfNotOK (/home/runner/workspace/node_modules/@google/genai/src/_api_client.ts:760:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/node_modules/@google/genai/src/_api_client.ts:490:9)
+    at async Models.Models.generateContent (/home/runner/workspace/node_modules/@google/genai/src/models.ts:76:14)
+    at async debugTool (/home/runner/workspace/server/gemini.ts:622:22)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:5323:29) {
+  status: 500
+}
+7:50:15 AM [express] POST /api/excel-functions/debug 500 in 10013ms :: {"message":"Failed to debug function"}
+7:50:15 AM [browser] ❌ Debug execution error: {}
+7:50:15 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}

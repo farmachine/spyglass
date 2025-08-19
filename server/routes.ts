@@ -5194,80 +5194,140 @@ Requirements:
     }
   });
 
-  // Quick fix for column-to-worksheet function
-  app.post("/api/excel-functions/:id/fix-array-iteration", async (req, res) => {
+  // Manual fix for pandas-based column-to-worksheet function
+  app.post("/api/excel-functions/:id/fix-pandas-issue", async (req, res) => {
     try {
       const id = req.params.id;
       
-      const fixedFunctionCode = `def extract_function(Column_Name, Excel_File):
+      // Get the existing function
+      const existingFunc = await storage.getExcelWizardryFunction(id);
+      if (!existingFunc) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      // Create the corrected function code that properly parses Excel text format
+      const fixedFunctionCode = `import re
+
+def extract_function(Column_Name, Excel_File):
+    """
+    Find which worksheet each column name appears in.
+    Column_Name: List of column names to search for
+    Excel_File: Text string with Excel format using '=== Sheet: Name ===' delimiters
+    """
     results = []
     
     try:
-        # DEBUG: Check parameter types
-        print(f"DEBUG: Column_Name type: {type(Column_Name)}")
-        print(f"DEBUG: Column_Name content: {Column_Name}")
-        
-        # Column_Name is an array of objects like [{"Column Name": "Employer Code"}, ...]
-        if isinstance(Column_Name, list):
-            for record in Column_Name:
-                if isinstance(record, dict) and "Column Name" in record:
-                    column_name = record["Column Name"]
-                    
-                    # Find worksheet containing this column
-                    found_worksheet = None
-                    current_sheet = None
-                    
-                    for line in Excel_File.splitlines():
-                        line = line.strip()
-                        if "=== Sheet:" in line:
-                            current_sheet = line.split("=== Sheet:")[1].split("===")[0].strip()
-                            continue
-                            
-                        # Check if this line contains the column name (header row)
-                        if current_sheet and column_name in line:
-                            found_worksheet = current_sheet
-                            break
-                    
-                    # Add result for this column
-                    results.append({
-                        "extractedValue": found_worksheet if found_worksheet else "Not Found",
-                        "validationStatus": "valid" if found_worksheet else "not_found",
-                        "aiReasoning": f"Searched for column '{column_name}' in Excel worksheets",
-                        "confidenceScore": 90,
-                        "documentSource": "input"
-                    })
+        # Handle single column name or list of column names
+        if isinstance(Column_Name, dict) and 'rows' in Column_Name:
+            # Extract column names from data structure
+            identifier = Column_Name.get('identifierColumn', 'Column Name')
+            column_names_to_find = [row.get(identifier, '') for row in Column_Name['rows'] if row.get(identifier)]
+        elif isinstance(Column_Name, list):
+            column_names_to_find = Column_Name
         else:
-            # Handle unexpected parameter format
-            results.append({
-                "extractedValue": f"Invalid input format: {type(Column_Name)}",
-                "validationStatus": "invalid", 
-                "aiReasoning": f"Expected array of objects, got {type(Column_Name)}",
-                "confidenceScore": 0,
-                "documentSource": "input"
-            })
+            column_names_to_find = [str(Column_Name)]
             
+        if not column_names_to_find:
+            return [{
+                "extractedValue": "No column names provided",
+                "validationStatus": "invalid",
+                "aiReasoning": "Empty column names input",
+                "confidenceScore": 0,
+                "documentSource": "manual-fix"
+            }]
+        
+        # Initialize results dictionary for each column
+        worksheet_mapping = {col_name: None for col_name in column_names_to_find}
+        
+        # Parse Excel text using sheet delimiters
+        sheets_data = re.split(r'===\\s*Sheet:\\s*(.*?)\\s*===', Excel_File)
+        
+        if len(sheets_data) < 2:
+            return [{
+                "extractedValue": "Could not find sheet delimiters in Excel data",
+                "validationStatus": "invalid", 
+                "aiReasoning": "No '=== Sheet: Name ===' delimiters found in Excel text",
+                "confidenceScore": 0,
+                "documentSource": "manual-fix"
+            }]
+        
+        # Process each sheet (pairs of sheet_name, sheet_content)
+        for i in range(1, len(sheets_data), 2):
+            sheet_name = sheets_data[i].strip()
+            sheet_content = sheets_data[i+1].strip() if i+1 < len(sheets_data) else ""
+            
+            if not sheet_content:
+                continue
+                
+            # Get header row (first line of sheet content)
+            header_line = sheet_content.split('\\n', 1)[0]
+            header_columns = [h.strip() for h in header_line.split('\\t')]
+            
+            # Check which requested columns are in this sheet's headers (case-insensitive)
+            header_columns_lower = [col.lower() for col in header_columns]
+            
+            for col_name in column_names_to_find:
+                if col_name and worksheet_mapping[col_name] is None:  # Only if not already found
+                    if col_name.lower() in header_columns_lower:
+                        worksheet_mapping[col_name] = sheet_name
+        
+        # Convert results to field validation format
+        for col_name in column_names_to_find:
+            worksheet = worksheet_mapping.get(col_name)
+            if worksheet:
+                results.append({
+                    "extractedValue": worksheet,
+                    "validationStatus": "valid",
+                    "aiReasoning": f"Found column '{col_name}' in worksheet '{worksheet}'",
+                    "confidenceScore": 95,
+                    "documentSource": "manual-fix"
+                })
+            else:
+                results.append({
+                    "extractedValue": None,
+                    "validationStatus": "invalid",
+                    "aiReasoning": f"Column '{col_name}' not found in any worksheet",
+                    "confidenceScore": 0,
+                    "documentSource": "manual-fix"
+                })
+        
+        return results
+        
     except Exception as e:
-        results.append({
+        return [{
             "extractedValue": f"Error: {str(e)}",
-            "validationStatus": "invalid", 
-            "aiReasoning": f"Function execution error: {str(e)}",
+            "validationStatus": "invalid",
+            "aiReasoning": f"Function execution failed: {str(e)}",
             "confidenceScore": 0,
-            "documentSource": "input"
-        })
-    
-    return results`;
+            "documentSource": "manual-fix"
+        }]`
 
+      // Update the function in database
       const updatedFunction = await storage.updateExcelWizardryFunction(id, {
         functionCode: fixedFunctionCode,
+        metadata: {
+          outputFormat: "field_validations_array",
+          parametersUsed: existingFunc.inputParameters?.map(p => p.name) || [],
+          fixApplied: "Manual fix for pandas issue - replaced with proper Excel text parsing",
+          fixDate: new Date().toISOString()
+        },
         updatedAt: new Date()
       });
       
-      res.json(updatedFunction);
+      console.log('✅ Manual pandas fix applied successfully');
+      res.json({
+        success: true,
+        message: "Manual fix applied - replaced pandas usage with proper Excel text parsing",
+        updatedFunction
+      });
+      
     } catch (error) {
-      console.error("Error applying array fix:", error);
-      res.status(500).json({ message: "Failed to apply array iteration fix" });
+      console.error("Error applying manual fix:", error);
+      res.status(500).json({ message: "Failed to apply manual fix" });
     }
   });
+
+
 
   // Direct update Excel function code
   app.post("/api/excel-functions/:id/direct-update", async (req, res) => {
