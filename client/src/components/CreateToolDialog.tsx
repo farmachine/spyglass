@@ -728,6 +728,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const confirmRegenerate = () => {
+    if (!editingFunction?.id) {
+      console.error('No function selected for regeneration');
+      return;
+    }
     regenerateToolCode.mutate(editingFunction.id);
     setShowRegenerateDialog(false);
   };
@@ -1270,16 +1274,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <CardTitle className="text-lg text-gray-800">
                     {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
                   </CardTitle>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRegenerateCode}
-                    disabled={regenerateToolCode.isPending}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
-                    {regenerateToolCode.isPending ? 'Generating Code' : 'Generate Code'}
-                  </Button>
+                  {editingFunction && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRegenerateCode}
+                      disabled={regenerateToolCode.isPending}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${regenerateToolCode.isPending ? 'animate-spin' : ''}`} />
+                      {regenerateToolCode.isPending ? 'Generating Code' : 'Generate Code'}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>

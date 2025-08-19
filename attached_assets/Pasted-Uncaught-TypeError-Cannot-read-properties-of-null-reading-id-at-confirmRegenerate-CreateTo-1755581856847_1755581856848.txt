@@ -1,0 +1,39 @@
+Uncaught TypeError: Cannot read properties of null (reading 'id')
+    at confirmRegenerate (CreateToolDialog.tsx:731:47)
+    at handleEvent (chunk-5Q5YC75F.js?v=dc97c54c:4:45)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=dc97c54c:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=dc97c54c:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=dc97c54c:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-RPCDYKBN.js?v=dc97c54c:3736:33)
+    at executeDispatch (chunk-RPCDYKBN.js?v=dc97c54c:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-RPCDYKBN.js?v=dc97c54c:7034:15)
+    at processDispatchQueue (chunk-RPCDYKBN.js?v=dc97c54c:7043:13)
+    at dispatchEventsForPlugins (chunk-RPCDYKBN.js?v=dc97c54c:7051:11)
+confirmRegenerate @ CreateToolDialog.tsx:731
+handleEvent @ chunk-5Q5YC75F.js?v=dc97c54c:4
+callCallback2 @ chunk-RPCDYKBN.js?v=dc97c54c:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=dc97c54c:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=dc97c54c:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=dc97c54c:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=dc97c54c:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=dc97c54c:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=dc97c54c:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=dc97c54c:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=dc97c54c:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=dc97c54c:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=dc97c54c:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=dc97c54c:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=dc97c54c:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=dc97c54c:5449Understand this error
+chunk-RPCDYKBN.js?v=dc97c54c:3750 Uncaught TypeError: Cannot read properties of null (reading 'id')
+    at confirmRegenerate (CreateToolDialog.tsx:731:47)
+    at handleEvent (chunk-5Q5YC75F.js?v=dc97c54c:4:45)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=dc97c54c:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=dc97c54c:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=dc97c54c:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-RPCDYKBN.js?v=dc97c54c:3736:33)
+    at executeDispatch (chunk-RPCDYKBN.js?v=dc97c54c:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-RPCDYKBN.js?v=dc97c54c:7034:15)
+    at processDispatchQueue (chunk-RPCDYKBN.js?v=dc97c54c:7043:13)
+    at dispatchEventsForPlugins (chunk-RPCDYKBN.js?v=dc97c54c:7051:11)
