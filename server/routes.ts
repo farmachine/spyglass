@@ -4918,9 +4918,9 @@ print(json.dumps(results))
               const extractionData = {
                 step: "extract_text_only",
                 documents: [{
-                  fileName: param.sampleFile,
-                  mimeType: mimeType,
-                  dataURL: dataURL
+                  file_name: param.sampleFile,  // Changed from fileName to file_name
+                  mime_type: mimeType,           // Changed from mimeType to mime_type
+                  file_content: dataURL          // Changed from dataURL to file_content
                 }]
               };
               

@@ -98,37 +98,86 @@ export class ToolEngine {
           
           if (extractedContent) {
             console.log(`📄 Using pre-extracted content for ${param.name} (${extractedContent.length} chars)`);
-            // For CODE tools, pass the extracted text content directly
+            // Pass the extracted text content directly for both AI and CODE tools
             preparedInputs[param.name] = extractedContent;
           } else if (param.sampleFileURL) {
             // Fallback: fetch and extract content if not already stored
-            console.log(`📄 Fetching document content for ${param.name} from ${param.sampleFileURL}`);
-            const content = await this.fetchDocumentContent(param.sampleFileURL);
+            console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
             
-            if (forAI) {
-              // For AI tools, extract text content from the document
-              const fileName = param.sampleFile || 'document';
+            try {
+              // Extract content using document_extractor.py
+              const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+              const urlParts = new URL(param.sampleFileURL);
+              const pathParts = urlParts.pathname.split('/');
+              const bucketName = pathParts[1];
+              const objectName = pathParts.slice(2).join('/');
               
-              // For Excel files, we'd need to parse them properly
-              if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-                // For now, just pass the filename with a note
-                preparedInputs[param.name] = `[Excel file: ${fileName} - content needs proper parsing]`;
-              } else {
-                // For other files, try to decode as text
-                try {
-                  const textContent = Buffer.from(content, 'base64').toString('utf-8');
-                  preparedInputs[param.name] = textContent;
-                } catch {
-                  preparedInputs[param.name] = `[Binary file: ${fileName}]`;
-                }
-              }
-            } else {
-              // For CODE tools, save to temp file for Python code to access
-              const tempFile = `/tmp/test_doc_${Date.now()}_${param.sampleFile || 'document'}`;
-              await fs.writeFile(tempFile, Buffer.from(content, 'base64'));
+              const bucket = objectStorageClient.bucket(bucketName);
+              const objectFile = bucket.file(objectName);
               
-              preparedInputs[param.name] = tempFile; // Pass file path to Python function
-              console.log(`✅ Document saved to ${tempFile}`);
+              const chunks: Buffer[] = [];
+              const stream = objectFile.createReadStream();
+              
+              await new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(chunk));
+                stream.on('end', resolve);
+                stream.on('error', reject);
+              });
+              
+              const fileBuffer = Buffer.concat(chunks);
+              const [fileMetadata] = await objectFile.getMetadata();
+              const mimeType = fileMetadata.contentType || 'application/octet-stream';
+              const base64Content = fileBuffer.toString('base64');
+              const dataURL = `data:${mimeType};base64,${base64Content}`;
+              
+              // Extract text content using document_extractor.py
+              const extractionData = {
+                step: "extract_text_only",
+                documents: [{
+                  fileName: param.sampleFile || 'document',
+                  mimeType: mimeType,
+                  dataURL: dataURL
+                }]
+              };
+              
+              const { spawn } = require('child_process');
+              const python = spawn('python3', ['document_extractor.py']);
+              
+              python.stdin.write(JSON.stringify(extractionData));
+              python.stdin.end();
+              
+              let output = '';
+              let error = '';
+              
+              await new Promise((resolve, reject) => {
+                python.stdout.on('data', (data: any) => {
+                  output += data.toString();
+                });
+                
+                python.stderr.on('data', (data: any) => {
+                  error += data.toString();
+                });
+                
+                python.on('close', (code: any) => {
+                  if (code !== 0) {
+                    console.error('Document extraction error:', error);
+                    reject(new Error(error));
+                  } else {
+                    resolve(undefined);
+                  }
+                });
+              });
+              
+              const result = JSON.parse(output);
+              const extractedText = result.extracted_texts?.[0] || '';
+              
+              console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
+              preparedInputs[param.name] = extractedText;
+              
+            } catch (extractError) {
+              console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
+              // Last resort fallback
+              preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
             }
           } else {
             preparedInputs[param.name] = inputValue;
