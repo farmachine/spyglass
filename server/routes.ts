@@ -5340,41 +5340,25 @@ def extract_function(Column_Name, Excel_File):
       let testResults;
 
       if (func.toolType === 'AI_ONLY') {
-        // For AI tools, use the prompt to process inputs with AI
+        // For AI tools, use the simplified Gemini function
         await logToBrowser('🤖 Processing with AI using prompt...');
         
-        // Import Gemini AI for processing
-        const { ai } = await import("./gemini");
-        
         try {
-          // Create a comprehensive prompt using the tool's prompt and inputs
-          const aiPrompt = `${func.functionCode || func.description}
-
-Input Data:
-${Object.entries(inputs).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n')}
-
-Please process this data according to the instructions above and return results in JSON format with the following structure:
-{
-  "extractedValue": "the extracted/processed value",
-  "validationStatus": "valid" or "invalid",
-  "aiReasoning": "explanation of how the result was determined",
-  "confidenceScore": number between 0-100,
-  "documentSource": "source of the data"
-}`;
-
+          const { testAIOnlyTool } = await import("./gemini");
+          
+          // Get sample documents for the function
+          const sampleDocuments = await storage.getSampleDocuments(func.id);
+          
           await logToBrowser('🧠 Calling AI with prompt...');
           
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
-            config: {
-              responseMimeType: "application/json"
-            },
-            contents: aiPrompt
-          });
-
-          const aiResult = JSON.parse(response.text || '{}');
-          testResults = [aiResult]; // Wrap in array for consistency
+          const aiResults = await testAIOnlyTool(
+            func.description,
+            func.inputParameters || [],
+            inputs,
+            sampleDocuments
+          );
           
+          testResults = aiResults;
           await logToBrowser('✅ AI processing completed');
           
         } catch (aiError) {
