@@ -203,14 +203,29 @@ export class ToolEngine {
 
 Task: ${tool.name}
 Description: ${tool.description}
-Output Type: ${tool.outputType} (${resultDescription})
+Output Type: ${tool.outputType === "single" ? "SINGLE RESULT" : "MULTIPLE RESULTS"}
 Input Parameters:
 ${paramList}
 
-Create a clear, specific prompt that will instruct an AI to extract the required information and return results in this JSON format:
-${jsonFormat}
+CRITICAL REQUIREMENT:
+${tool.outputType === "single" 
+  ? "The prompt MUST instruct to return a SINGLE JSON OBJECT (not an array). Example format:\n" + jsonFormat
+  : "The prompt MUST instruct to return a JSON ARRAY of objects. Example format:\n" + jsonFormat}
 
-The prompt should specify whether to return a single object or array based on the output type.
+Create a detailed, specific prompt that:
+1. References input parameters using backticks like \`${tool.inputParameters.map(p => p.name).join('\`, \`')}\`
+2. ${tool.outputType === "single" 
+     ? "Clearly states to return ONE JSON OBJECT with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"
+     : "Clearly states to return a JSON ARRAY of objects, each with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"}
+3. Explains what each field means:
+   - extractedValue: The actual extracted data
+   - validationStatus: "valid" or "invalid" based on confidence
+   - aiReasoning: Explanation of extraction logic
+   - confidenceScore: 0-100 confidence level
+   - documentSource: Source document/page reference
+4. ${tool.outputType === "single"
+     ? "Emphasizes returning ONLY ONE OBJECT, not an array"
+     : "Specifies to return multiple items as an array"}
 
 Return only the prompt text, no explanations.`;
     } else {
@@ -239,12 +254,12 @@ Return only the Python function code, no explanations.`;
     const aiPrompt = tool.aiPrompt || tool.description;
     const inputsText = Object.entries(inputs).map(([key, value]) => `${key}: ${value}`).join('\n');
     
+    // Use the AI prompt as-is since it should already contain the correct format instructions
+    // Just provide the input data
     return `${aiPrompt}
 
 Input Data:
-${inputsText}
-
-Respond with JSON array: [{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "doc"}]`;
+${inputsText}`;
   }
   
   /**
