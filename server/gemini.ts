@@ -169,9 +169,6 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
       
       // Removed manual override - using AI generation for all functions
       
-      // Import enhanced Excel format training from all_prompts.py
-      const { spawn } = await import('child_process');
-      
       // Get the enhanced Excel function generator prompt with full training
       const systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
 def extract_function(Column_Name, Excel_File):
@@ -311,6 +308,7 @@ Requirements:
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         config: {
+          systemInstruction: systemPrompt,
           responseMimeType: "application/json",
           responseSchema: {
             type: "object",
