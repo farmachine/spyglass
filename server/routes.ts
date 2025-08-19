@@ -5422,18 +5422,33 @@ Requirements:
       // Extract sample data from tool parameters
       const sampleInputs = {};
       for (const param of func.inputParameters || []) {
+        await logToBrowser(`🔍 Processing parameter: ${param.name} (type: ${param.type})`);
+        
         if (param.type === 'data' && param.sampleData?.rows) {
           const identifierColumn = param.sampleData.identifierColumn;
           if (identifierColumn) {
             sampleInputs[param.name] = param.sampleData.rows.map(row => row[identifierColumn]);
+            await logToBrowser(`✅ Extracted ${sampleInputs[param.name].length} values for ${param.name}`);
           }
         } else if (param.type === 'document' && param.sampleDocumentIds?.[0]) {
           try {
+            await logToBrowser(`📄 Getting sample document ID: ${param.sampleDocumentIds[0]}`);
             const sampleDoc = await storage.getSampleDocument(param.sampleDocumentIds[0]);
-            sampleInputs[param.name] = sampleDoc?.extractedContent || "";
+            if (sampleDoc && sampleDoc.extractedContent) {
+              sampleInputs[param.name] = sampleDoc.extractedContent;
+              await logToBrowser(`✅ Found extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
+              await logToBrowser(`📝 Content preview: ${sampleDoc.extractedContent.substring(0, 200)}...`);
+            } else {
+              await logToBrowser(`⚠️ Sample document found but no extracted content for ${param.name}`);
+              sampleInputs[param.name] = "";
+            }
           } catch (error) {
+            await logToBrowser(`❌ Error getting sample document for ${param.name}: ${error.message}`);
             sampleInputs[param.name] = "";
           }
+        } else {
+          await logToBrowser(`⚠️ No sample data available for ${param.name}`);
+          sampleInputs[param.name] = "";
         }
       }
       
