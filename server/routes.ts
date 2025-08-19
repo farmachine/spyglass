@@ -5514,7 +5514,11 @@ def extract_function(Column_Name, Excel_File):
         if (param.type === 'data' && param.sampleData?.rows) {
           const identifierColumn = param.sampleData.identifierColumn;
           if (identifierColumn) {
-            sampleInputs[param.name] = param.sampleData.rows.map(row => row[identifierColumn]);
+            // Transform to new identifierId format for consistency
+            sampleInputs[param.name] = param.sampleData.rows.map((row, index) => ({
+              identifierId: index + 1,
+              name: row[identifierColumn]
+            }));
           }
         } else if (param.type === 'document' && param.sampleDocumentIds?.[0]) {
           try {
@@ -5692,12 +5696,18 @@ def extract_function(Column_Name, Excel_File):
           ];
         }
         
+        // Transform testColumns to new identifierId format
+        const columnsWithIds = testColumns.map((columnName, index) => ({
+          identifierId: index + 1,
+          name: columnName
+        }));
+        
         const payload = {
-          "Columns": testColumns,
+          "Columns": columnsWithIds,
           "Excel File": sampleInputs['Excel File'] || ''
         };
         
-        await logToBrowser(`📋 Calling function with ${payload.Columns.length} columns and Excel data (${payload['Excel File'].length} chars)`);
+        await logToBrowser(`📋 Calling function with ${payload.Columns.length} column objects (new identifierId format) and Excel data (${payload['Excel File'].length} chars)`);
         
         const functionResult = findWorksheetForColumns(payload);
         
