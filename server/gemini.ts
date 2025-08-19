@@ -177,9 +177,9 @@ def extract_function(Column_Name, Excel_File):
 CRITICAL REQUIREMENTS:
 1. Function name MUST be "extract_function"  
 2. Parameters MUST be exactly: Column_Name, Excel_File
-3. OUTPUT TYPE = "${outputType.toUpperCase()}"
+3. OUTPUT TYPE = "${(outputType || 'single').toUpperCase()}"
 
-${outputType === 'multiple' ? `
+${(outputType || 'single') === 'multiple' ? `
 MULTIPLE OUTPUTS - MUST ITERATE:
 - Use for loop to process array parameter
 - Generate multiple results (one per array item)
@@ -211,7 +211,7 @@ Description: ${description}
 
 Requirements:
 - Function signature: def extract_function(Column_Name, Excel_File)
-- ${outputType === 'multiple' ? 'Iterate through Column_Name array parameter to generate multiple results' : 'Process Column_Name input to generate single result'}
+- ${(outputType || 'single') === 'multiple' ? 'Iterate through Column_Name array parameter to generate multiple results' : 'Process Column_Name input to generate single result'}
 - Use Python syntax: None (not null), True/False (not true/false)
 - Handle errors gracefully
 - Return proper field validation format`;
