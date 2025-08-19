@@ -353,57 +353,56 @@ Create a detailed, specific prompt that:
 
 Return only the prompt text, no explanations.`;
     } else {
-      // Build Excel structure training - ALWAYS use standard format
+      // Build Excel structure training - using standard extracted content format
       let excelTraining = '';
       const docParams = tool.inputParameters.filter(p => p.type === 'document');
       if (docParams.length > 0) {
-        // Standard Excel format based on our sample files
+        // Standard extracted content format for all Excel files
         excelTraining = `
-EXCEL FILE STRUCTURE TRAINING (STANDARD FORMAT):
-All Excel files in this system follow this consistent structure:
-- Column headers are ALWAYS in the first row (row 1)
-- Data rows start from row 2 onwards
-- Files typically have one main worksheet with all data
-- Column names may contain special characters, spaces, or line breaks
+EXCEL FILE PROCESSING INFORMATION:
+All Excel files are pre-processed and extracted into a standard text format:
+- The extraction preserves the table structure with headers and rows
+- Column headers are in the first line, separated by delimiters
+- Data rows follow, with values aligned to their respective columns
+- Empty cells are preserved as empty positions
+- All worksheets are extracted and labeled
 
-ACTUAL COLUMN NAMES FROM STANDARD EXCEL FORMAT (37 columns):
-  1. "Member's Reference No"
-  2. "Employer Code"
-  3. "Sex Code"
-  4. "Date Of Birth"
-  5. "Date Became Pensioner"
-  6. "Code For Previous Status"
-  7. "Type Of Retirement"
-  8. "Date Of Exit From Active Service"
-  9. "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service"
-  10. "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service"
-  11. "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
-  12. "Annual Post-5.4.1988 GMP Component At Date Of This Valuation"
-  13. "Total Pension Payable From Scheme At Last Valuation"
-  14. "Total Pension Payable From Scheme At This Valuation"
-  15. "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)"
-  ... and more pension-related columns
+STANDARD EXTRACTED CONTENT FORMAT:
+The Excel content is provided as structured text like this:
+"""
+Worksheet: Sheet1
+Row 1: Column1 | Column2 | Column3 | Column4 ...
+Row 2: Value1  | Value2  | Value3  | Value4 ...
+Row 3: Value1  | Value2  | Value3  | Value4 ...
+...
+"""
 
-Column patterns in our standard format:
-- Reference/ID columns: "Member's Reference No", "Employer Code"
-- Date columns: "Date Of Birth", "Date Became Pensioner", "Date Of Exit From Active Service"
-- Code columns: "Sex Code", "Code For Previous Status", "Type Of Retirement"
-- Numeric/Amount columns: Annual pension amounts, components, tax-free cash
-- Status columns: "Status", "Married Indicator", "Section B Indicator"
-- Address columns: "Postcode"
+WORKING WITH EXCEL FILES:
+When processing Excel files with openpyxl:
+1. Use openpyxl.load_workbook(filename, data_only=True) to get calculated values
+2. Access the active sheet with workbook.active or iterate through workbook.worksheets
+3. Get headers from the first row: sheet[1] or sheet.iter_rows(min_row=1, max_row=1)
+4. Iterate data rows starting from row 2: sheet.iter_rows(min_row=2)
+5. Access cells by: cell.value (for the data), cell.row, cell.column, cell.column_letter
+6. Handle None/empty cells gracefully - they are common
 
-IMPORTANT EXTRACTION RULES:
-- Always use openpyxl.load_workbook(filename, data_only=True) to get calculated values
-- Column headers are in sheet[1] or sheet.iter_rows(min_row=1, max_row=1)
-- To find a specific column, iterate through the headers and match the name
-- Use exact string matching first, then try .strip().lower() for variations
-- Handle None/empty cells gracefully
-- Return field validation format: each extracted value must be an object with:
-  * extractedValue: The actual data value
-  * validationStatus: "valid" or "invalid"
-  * aiReasoning: Brief explanation of the extraction
-  * confidenceScore: 0-100 confidence level  
-  * documentSource: e.g., "Row X, Column Y" or worksheet/cell reference
+FINDING SPECIFIC DATA:
+- To find a column: iterate headers and match by name (exact or normalized)
+- To find a row: iterate rows and check key column values
+- Use string normalization: str(value).strip().lower() for matching
+- Check for partial matches if exact match fails
+
+RETURN FORMAT REQUIREMENTS:
+Every extracted item MUST be returned as a field validation object:
+{
+  "extractedValue": <the actual data value>,
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": <brief explanation of extraction>,
+  "confidenceScore": <0-100 confidence level>,
+  "documentSource": <reference like "Sheet1, Row X, Column Y">
+}
+
+Return an array of these objects: [object1, object2, ...]
 `;
       }
 
