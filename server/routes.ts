@@ -5531,19 +5531,19 @@ def extract_function(Column_Name, Excel_File):
           
           // Create sample Excel content that includes the test columns
           excelContent = `=== Sheet: Actives ===
-Member Number   Date Of Birth   Date Pensionable Service Commenced      Date Of Exit From Active Service        Sex     Annual Pension At Normal Retirement Date        Status
-001     1/1/1970        1/1/2000        1/1/2020        M       25000   Active
-002     2/2/1975        2/2/2005        2/2/2025        F       30000   Active
+Member Number\tDate Of Birth\tDate Pensionable Service Commenced\tDate Of Exit From Active Service\tSex\tAnnual Pension At Normal Retirement Date\tStatus
+001\t1/1/1970\t1/1/2000\t1/1/2020\tM\t25000\tActive
+002\t2/2/1975\t2/2/2005\t2/2/2025\tF\t30000\tActive
 
 === Sheet: Deferreds ===
-Member Number   Annual Pre-6.4.1988 GMP Component At Date Of This Valuation     Code For Previous Status        Date Of Birth   Date Pensionable Service Commenced
-101     1500    DEF     1/1/1965        1/1/1990
-102     2000    DEF     2/2/1970        2/2/1995
+Member Number\tAnnual Pre-6.4.1988 GMP Component At Date Of This Valuation\tCode For Previous Status\tDate Of Birth\tDate Pensionable Service Commenced
+101\t1500\tDEF\t1/1/1965\t1/1/1990
+102\t2000\tDEF\t2/2/1970\t2/2/1995
 
 === Sheet: Pensioners ===
-Member Number   Date Of Birth   Annual Pension In Payment       Pension Start Date      Status
-201     1/1/1950        15000   1/1/2015        Pensioner
-202     2/2/1955        18000   2/2/2020        Pensioner`;
+Member Number\tDate Of Birth\tAnnual Pension In Payment\tPension Start Date\tStatus
+201\t1/1/1950\t15000\t1/1/2015\tPensioner
+202\t2/2/1955\t18000\t2/2/2020\tPensioner`;
           
           await logToBrowser('✅ Created sample Excel data with Actives, Deferreds, and Pensioners worksheets');
         }
