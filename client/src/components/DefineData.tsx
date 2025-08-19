@@ -38,7 +38,7 @@ import { SchemaFieldDialogNew } from "@/components/SchemaFieldDialogNew";
 import CollectionDialog from "@/components/CollectionDialog";
 import { PropertyDialogNew } from "@/components/PropertyDialogNew";
 import DeleteDialog from "@/components/DeleteDialog";
-import CollectionCard from "@/components/CollectionCard";
+import { CollectionCard } from "@/components/CollectionCard";
 import type {
   ProjectWithDetails,
   ProjectSchemaField,
