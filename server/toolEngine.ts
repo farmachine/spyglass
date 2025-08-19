@@ -125,13 +125,24 @@ export class ToolEngine {
       console.log('');
       
       // Clean markdown if present
-      if (result.startsWith('```json')) {
-        result = result.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-        console.log('🧹 CLEANED TEST RESULT (removed markdown):');
-        console.log('-'.repeat(80));
-        console.log(result);
-        console.log('-'.repeat(80));
+      if (result.includes('```json')) {
+        // Extract JSON content between markdown blocks
+        const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          result = jsonMatch[1].trim();
+        }
+      } else if (result.includes('```')) {
+        // Handle generic code blocks
+        const codeMatch = result.match(/```\s*([\s\S]*?)\s*```/);
+        if (codeMatch) {
+          result = codeMatch[1].trim();
+        }
       }
+      
+      console.log('🧹 CLEANED TEST RESULT:');
+      console.log('-'.repeat(80));
+      console.log(result);
+      console.log('-'.repeat(80));
       
       const parsed = JSON.parse(result);
       return Array.isArray(parsed) ? parsed : [parsed];
