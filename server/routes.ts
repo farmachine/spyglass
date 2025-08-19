@@ -5518,16 +5518,17 @@ def extract_function(Column_Name, Excel_File):
           ];
         }
         
-        // Transform testColumns to new identifierId format
-        const columnsWithIds = testColumns.map((columnName, index) => ({
-          identifierId: index + 1,
-          name: columnName
-        }));
+        // Use the actual sample data columns from the function parameters in identifierId format
+        const columnsWithIds = sampleInputs['Columns'] || [];
+        
+        await logToBrowser(`🔍 Processing ${columnsWithIds.length} columns with identifierId format`);
         
         const payload = {
           "Columns": columnsWithIds,
-          "Excel File": sampleInputs['Excel File'] || ''
+          "Excel File": sampleInputs['Document'] || sampleInputs['Excel File'] || ''
         };
+        
+        await logToBrowser(`📊 Excel content length: ${payload['Excel File'].length} characters`);
         
         await logToBrowser(`📋 Calling function with ${payload.Columns.length} column objects (new identifierId format) and Excel data (${payload['Excel File'].length} chars)`);
         
