@@ -4890,6 +4890,175 @@ print(json.dumps(results))
     }
   });
 
+  // NEW CLEAN CODE GENERATION PATHWAY
+  app.post("/api/excel-functions/generate-code", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      console.log('🚀 NEW CODE GENERATION PATHWAY STARTED');
+      const { name, description, inputParameters, toolType, outputType, aiAssistanceRequired, aiAssistancePrompt } = req.body;
+      
+      console.log('📋 FORM DATA RECEIVED:');
+      console.log('Name:', name);
+      console.log('Description:', description);
+      console.log('Tool Type:', toolType);
+      console.log('Output Type:', outputType);
+      console.log('Input Parameters:', JSON.stringify(inputParameters, null, 2));
+      
+      if (!name || !description || !inputParameters) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // BUILD PROMPT FROM FORM DATA
+      console.log('🔨 BUILDING AI PROMPT FROM FORM DATA');
+      
+      let systemPrompt, userPrompt;
+      
+      if (toolType === 'AI_ONLY') {
+        console.log('🤖 Building AI-only tool prompt');
+        const aiPrompt = `Extract data from the provided document using the following parameters:
+
+Parameters:
+${inputParameters.map(p => `- @${p.name} (${p.type}): ${p.description}`).join('\n')}
+
+Tool Description: ${description}
+Output Type: ${outputType === "single" ? "MAIN SCHEMA FIELDS (single values)" : "COLLECTION PROPERTIES (multiple records)"}
+
+Instructions:
+- Use all the provided parameters to guide your extraction
+- Extract relevant data based on the document content
+- Return results in valid JSON format
+- Handle missing data gracefully with appropriate status indicators
+${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` : ''}`;
+
+        const response = {
+          functionCode: aiPrompt,
+          metadata: {
+            outputFormat: "field_validations_array",
+            inputValidation: "AI will validate all input parameters during extraction",
+            errorHandling: "AI handles missing data gracefully with appropriate status indicators",
+            parametersUsed: inputParameters.map(p => p.name),
+            toolType: "AI_ONLY",
+            description: description
+          }
+        };
+        
+        console.log('✅ AI-only tool created, no Python generation needed');
+        return res.json(response);
+        
+      } else {
+        console.log('🐍 Building Python code generation prompt');
+        
+        systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
+
+def extract_function(Column_Name, Excel_File):
+
+CRITICAL REQUIREMENTS:
+1. Function name MUST be "extract_function"  
+2. Parameters MUST be exactly: Column_Name, Excel_File
+3. OUTPUT TYPE = "${(outputType || 'single').toUpperCase()}"
+
+${(outputType || 'single') === 'multiple' ? `
+MULTIPLE OUTPUTS - MUST ITERATE:
+- Use for loop to process array parameter
+- Generate multiple results (one per array item)
+- Return list of result objects
+` : `
+SINGLE OUTPUT - NO ITERATION:
+- Process parameters as whole
+- Generate one result only
+- Return single result in array
+`}
+
+PARAMETER DETAILS:
+${inputParameters.map(p => {
+  if (p.type === 'data' && p.sampleData?.rows) {
+    const sampleRows = p.sampleData.rows;
+    return `Column_Name: Contains data from "${p.name}" - List of ${sampleRows.length} objects, each like ${JSON.stringify(sampleRows[0] || {})}`;
+  } else if (p.type === 'document') {
+    return `Excel_File: Contains document data from "${p.name}" - String with Excel format "=== Sheet: Name ===" followed by data`;
+  }
+  return `Column_Name/Excel_File: Contains ${p.type} data from "${p.name}"`;
+}).join('\n')}
+
+RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
+
+Return JSON: {"functionCode": "complete_function_code", "metadata": {"parametersUsed": ["Column_Name", "Excel_File"]}}`;
+
+        userPrompt = `Generate function: ${name}
+Description: ${description}
+
+Requirements:
+- Function signature: def extract_function(Column_Name, Excel_File)
+- ${(outputType || 'single') === 'multiple' ? 'Iterate through Column_Name array parameter to generate multiple results' : 'Process Column_Name input to generate single result'}
+- Use Python syntax: None (not null), True/False (not true/false)
+- Handle errors gracefully
+- Return proper field validation format`;
+      }
+
+      console.log('📤 SENDING PROMPT TO AI:');
+      console.log('='.repeat(80));
+      console.log('SYSTEM PROMPT:');
+      console.log(systemPrompt);
+      console.log('='.repeat(80));
+      console.log('USER PROMPT:');
+      console.log(userPrompt);
+      console.log('='.repeat(80));
+
+      // CALL GEMINI AI
+      const ai = new (await import("@google/genai")).GoogleGenAI({ 
+        apiKey: process.env.GEMINI_API_KEY || "" 
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              functionCode: { type: "string" },
+              metadata: { 
+                type: "object",
+                properties: {
+                  outputFormat: { type: "string" },
+                  parametersUsed: { 
+                    type: "array",
+                    items: { type: "string" }
+                  }
+                }
+              }
+            },
+            required: ["functionCode", "metadata"]
+          }
+        },
+        contents: userPrompt
+      });
+
+      console.log('📥 AI RESPONSE RECEIVED:');
+      console.log('Raw response text:', response.text);
+      console.log('Full response object:', JSON.stringify(response, null, 2));
+      
+      if (!response.text) {
+        throw new Error('Empty response from AI');
+      }
+      
+      const result = JSON.parse(response.text);
+      
+      if (!result.functionCode || !result.metadata) {
+        throw new Error('AI response missing required fields');
+      }
+
+      console.log('✅ CODE GENERATION COMPLETED');
+      console.log('Generated Function Code:', result.functionCode);
+      console.log('Generated Metadata:', JSON.stringify(result.metadata, null, 2));
+
+      res.json(result);
+      
+    } catch (error) {
+      console.error("❌ NEW CODE GENERATION FAILED:", error);
+      res.status(500).json({ message: "Code generation failed: " + error.message });
+    }
+  });
+
   // Get impact analysis for Excel function
   app.get("/api/excel-functions/:id/impact", authenticateToken, async (req: AuthRequest, res) => {
     try {

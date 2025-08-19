@@ -195,6 +195,55 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     }
   });
 
+  // NEW CLEAN CODE GENERATION
+  const generateCodeClean = useMutation({
+    mutationFn: async () => {
+      console.log('🚀 NEW CLEAN CODE GENERATION - Using current form data');
+      
+      const formDataToSend = {
+        name: formData.name,
+        description: formData.description,
+        inputParameters: inputParameters,
+        toolType: toolType,
+        outputType: outputType,
+        aiAssistanceRequired: formData.aiAssistanceRequired,
+        aiAssistancePrompt: formData.aiAssistancePrompt
+      };
+      
+      console.log('📋 Sending form data to new endpoint:', JSON.stringify(formDataToSend, null, 2));
+      
+      const response = await apiRequest("/api/excel-functions/generate-code", {
+        method: "POST",
+        body: JSON.stringify(formDataToSend)
+      });
+      
+      return response;
+    },
+    onSuccess: (response) => {
+      console.log('✅ Clean code generation completed:', JSON.stringify(response, null, 2));
+      
+      // Update the form state with generated code
+      if (editingFunction) {
+        // For editing mode, update the form data
+        setFormData(prev => ({
+          ...prev,
+          functionCode: response.functionCode
+        }));
+        console.log('🔧 Updated editing function code in form');
+      } else {
+        // For creation mode, store the generated code
+        setFormData(prev => ({
+          ...prev,
+          functionCode: response.functionCode
+        }));
+        console.log('🎉 Generated code ready for new tool creation');
+      }
+    },
+    onError: (error: any) => {
+      console.error('❌ Clean code generation failed:', error);
+    }
+  });
+
   const generateToolCode = useMutation({
     mutationFn: async (data: any) => {
       setLoadingProgress(25);
@@ -728,11 +777,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   };
 
   const confirmRegenerate = () => {
-    if (!editingFunction?.id) {
-      console.error('No function selected for regeneration');
-      return;
-    }
-    regenerateToolCode.mutate(editingFunction.id);
+    console.log('🎯 Using NEW CLEAN CODE GENERATION pathway');
+    generateCodeClean.mutate();
     setShowRegenerateDialog(false);
   };
 
@@ -1291,11 +1337,11 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                       };
                       generateToolCode.mutate(toolData);
                     }}
-                    disabled={regenerateToolCode.isPending || generateToolCode.isPending || !formData.name || !formData.description || inputParameters.length === 0}
+                    disabled={regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending || !formData.name || !formData.description || inputParameters.length === 0}
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending) ? 'animate-spin' : ''}`} />
-                    {(regenerateToolCode.isPending || generateToolCode.isPending) ? 'Generating Code' : 'Generate Code'}
+                    <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'animate-spin' : ''}`} />
+                    {(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'Generating Code' : 'Generate Code'}
                   </Button>
                 </div>
               </CardHeader>
