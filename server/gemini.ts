@@ -95,7 +95,14 @@ Return only the Python function code, no explanations.`;
       contents: prompt
     });
     
-    let code = response.text.trim();
+    console.log("🔍 Raw response:", JSON.stringify(response, null, 2));
+    let code = response.text;
+    
+    if (!code) {
+      throw new Error("No code generated from AI response");
+    }
+    
+    code = code.trim();
     
     // Clean code blocks if present
     if (code.startsWith('```python')) {
