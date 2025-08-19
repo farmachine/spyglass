@@ -1,0 +1,50 @@
+🚀 ========== CODE TOOL TEST STARTED ==========
+2:58:52 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST INPUT PARAMETERS ==========
+2:58:52 PM [browser] 📝 🎯 ========== TEST INPUT PARAMETERS ==========
+2:58:52 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Tool: Get Column Names (CODE)
+2:58:52 PM [browser] 📝 Tool: Get Column Names (CODE)
+2:58:52 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Inputs: {
+  "Excel File": "Ersatz eighth (1).xlsx"
+}
+2:58:52 PM [browser] 📝 Inputs: {
+  "Excel File": "Ersatz eighth (1).xlsx"
+}
+2:58:52 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🔧 Processing with unified tool engine...
+2:58:52 PM [browser] 📝 🔧 Processing with unified tool engine...
+2:58:52 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+✅ Tool execution completed
+2:58:55 PM [browser] 📝 ✅ Tool execution completed
+2:58:55 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST RESULTS ==========
+2:58:55 PM [browser] 📝 🎯 ========== TEST RESULTS ==========
+2:58:55 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Function execution error: name 'false' is not defined",
+    "confidenceScore": 0,
+    "documentSource": "CODE_ERROR"
+  }
+]
+2:58:55 PM [browser] 📝 Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Function execution error: name 'false' is not def...
+2:58:55 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+2:58:55 PM [express] POST /api/excel-functions/test 200 in 2732ms :: [JSON response - 219 chars]
+2:58:55 PM [browser] 📝 🧪 Test Results - Raw JSON Response: {
+  "success": true,
+  "results": [
+    {
+      "extractedValue": null,
+      "validationStatus": "invalid",
+ ...
+2:58:55 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:58:55 PM [browser] 📝 🧪 Test Results - Parsed Response: {"success":true,"results":[{"extractedValue":null,"validationStatus":"invalid","aiReasoning":"Function execution...
+2:58:55 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}

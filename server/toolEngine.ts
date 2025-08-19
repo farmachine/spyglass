@@ -289,8 +289,17 @@ ${inputsText}`;
    * Build Python test script for CODE tools
    */
   private buildCodeTestScript(tool: Tool, inputs: Record<string, any>): string {
-    const inputsJson = JSON.stringify(inputs);
-    const parametersJson = JSON.stringify(tool.inputParameters);
+    // Convert JSON to Python-compatible format (false -> False, true -> True, null -> None)
+    const toPythonLiteral = (obj: any): string => {
+      const json = JSON.stringify(obj);
+      return json
+        .replace(/\bfalse\b/g, 'False')
+        .replace(/\btrue\b/g, 'True')
+        .replace(/\bnull\b/g, 'None');
+    };
+    
+    const inputsPython = toPythonLiteral(inputs);
+    const parametersPython = toPythonLiteral(tool.inputParameters);
     
     const functionCode = tool.functionCode || "";
     return `import json
@@ -314,8 +323,8 @@ try:
         raise Exception("Could not find function definition")
     
     # Get inputs and parameters
-    inputs = ${inputsJson}
-    parameters = ${parametersJson}
+    inputs = ${inputsPython}
+    parameters = ${parametersPython}
     
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
