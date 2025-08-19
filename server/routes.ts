@@ -4842,6 +4842,27 @@ print(json.dumps(results))
       console.log(JSON.stringify(metadata, null, 2));
       console.log('='.repeat(80));
 
+      // Transform input parameters for the schema, converting sample data structure
+      const transformedParameters = inputParameters.map(param => {
+        if (param.type === 'data' && param.sampleData?.rows && param.sampleData?.rows.length > 0) {
+          // Extract the identifier column name
+          const identifierColumn = param.sampleData.identifierColumn;
+          if (identifierColumn) {
+            // Transform rows to array of objects with identifierId and name
+            const transformedSampleData = param.sampleData.rows.map((row, index) => ({
+              identifierId: index + 1, // Start from 1
+              name: row[identifierColumn] || ''
+            }));
+            
+            return {
+              ...param,
+              sampleData: transformedSampleData
+            };
+          }
+        }
+        return param;
+      });
+
       // Create the complete function object
       const functionData = {
         projectId,
@@ -4854,7 +4875,7 @@ print(json.dumps(results))
         aiAssistanceRequired: aiAssistanceRequired || false,
         aiAssistancePrompt: aiAssistancePrompt || null,
         metadata,
-        inputSchema: { parameters: inputParameters }, // Basic input schema
+        inputSchema: { parameters: transformedParameters }, // Transform sample data for schema
         outputSchema: { format: "field_validations_compatible" }, // Basic output schema
         tags: tags || []
       };
