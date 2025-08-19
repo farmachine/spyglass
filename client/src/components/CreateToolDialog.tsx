@@ -160,6 +160,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const createTool = useMutation({
     mutationFn: async (data: any) => {
+      console.log('🚀 CREATING TOOL - Sending data to API:', JSON.stringify(data, null, 2));
+      
       // Log data input parameters with their JSON arrays
       const dataInputs = data.inputParameters?.filter((p: any) => p.type === 'data' && p.sampleData);
       if (dataInputs && dataInputs.length > 0) {
@@ -176,12 +178,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         body: JSON.stringify(data)
       });
       
+      console.log('✅ CREATE TOOL API RESPONSE:', JSON.stringify(response, null, 2));
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      console.log('🎉 CREATE TOOL SUCCESS CALLBACK TRIGGERED');
+      console.log('📄 Response from successful creation:', JSON.stringify(response, null, 2));
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
-      console.log('Tool created successfully');
+      console.log('✅ Tool created successfully, closing modal in 1.5s...');
       setTimeout(() => {
+        console.log('🔄 CLOSING MODAL AND RESETTING FORM');
         setOpen(false);
         resetForm();
         setLoadingProgress(0);
@@ -189,6 +195,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       }, 1500); // Give time to see completion
     },
     onError: (error: any) => {
+      console.error('❌ CREATE TOOL ERROR CALLBACK TRIGGERED');
+      console.error('💥 Full error object:', error);
+      console.error('💥 Error message:', error?.message);
+      console.error('💥 Error response:', error?.response);
       console.error('Failed to create tool:', error);
       setLoadingProgress(0);
       setLoadingMessage("");
@@ -829,6 +839,17 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       return;
     }
 
+    // Add validation for required content based on tool type
+    if (toolType === 'AI_ONLY' && !formData.aiPrompt) {
+      console.error("Validation Error: AI_ONLY tools require an AI prompt. Please generate or enter a prompt.");
+      return;
+    }
+    
+    if (toolType === 'CODE' && !formData.functionCode) {
+      console.error("Validation Error: CODE tools require function code. Please generate or enter code.");
+      return;
+    }
+
     const toolData = {
       projectId,
       name: formData.name,
@@ -838,13 +859,19 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
+      // Include the actual content based on tool type
+      aiPrompt: toolType === 'AI_ONLY' ? formData.aiPrompt : null,
+      functionCode: toolType === 'CODE' ? formData.functionCode : null,
       tags: [] // Default to empty tags array since we removed the tags field
     };
+
+    console.log('🚀 SUBMITTING TOOL DATA:', JSON.stringify(toolData, null, 2));
 
     if (editingFunction) {
       updateTool.mutate(toolData);
     } else {
-      generateToolCode.mutate(toolData);
+      // FIX: Use createTool instead of generateToolCode for new tools
+      createTool.mutate(toolData);
     }
   };
 
