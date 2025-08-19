@@ -4666,7 +4666,7 @@ print(json.dumps(results))
       console.log('🔧 Creating new Excel function with data:', JSON.stringify(req.body, null, 2));
       
       // Custom validation for AI_ONLY vs CODE tools
-      const { toolType, aiPrompt, functionCode, ...otherData } = req.body;
+      const { toolType, aiPrompt, functionCode, inputParameters, ...otherData } = req.body;
       
       // Validate required fields based on tool type
       if (toolType === 'AI_ONLY') {
@@ -4687,12 +4687,108 @@ print(json.dumps(results))
         }
       }
       
+      // Process input parameters and extract document content if needed
+      const processedParams = [];
+      const metadata = otherData.metadata || {};
+      
+      for (const param of inputParameters || []) {
+        const processedParam = { ...param };
+        
+        // If this is a document parameter with a sample file, extract its content
+        if (param.type === 'document' && param.sampleFileURL) {
+          try {
+            console.log(`📄 Extracting content from sample file: ${param.sampleFile}`);
+            
+            // Extract the content using document_extractor.py
+            const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+            const urlParts = new URL(param.sampleFileURL);
+            const pathParts = urlParts.pathname.split('/');
+            const bucketName = pathParts[1];
+            const objectName = pathParts.slice(2).join('/');
+            
+            const bucket = objectStorageClient.bucket(bucketName);
+            const objectFile = bucket.file(objectName);
+            
+            // Stream the file content to a buffer
+            const chunks: Buffer[] = [];
+            const stream = objectFile.createReadStream();
+            
+            await new Promise((resolve, reject) => {
+              stream.on('data', (chunk) => chunks.push(chunk));
+              stream.on('end', resolve);
+              stream.on('error', reject);
+            });
+            
+            const fileBuffer = Buffer.concat(chunks);
+            const [fileMetadata] = await objectFile.getMetadata();
+            const mimeType = fileMetadata.contentType || 'application/octet-stream';
+            const base64Content = fileBuffer.toString('base64');
+            const dataURL = `data:${mimeType};base64,${base64Content}`;
+            
+            // Extract text content using document_extractor.py
+            const extractionData = {
+              step: "extract_text_only",
+              documents: [{
+                fileName: param.sampleFile,
+                mimeType: mimeType,
+                dataURL: dataURL
+              }]
+            };
+            
+            const { spawn } = require('child_process');
+            const python = spawn('python3', ['document_extractor.py']);
+            
+            python.stdin.write(JSON.stringify(extractionData));
+            python.stdin.end();
+            
+            let output = '';
+            let error = '';
+            
+            await new Promise((resolve, reject) => {
+              python.stdout.on('data', (data: any) => {
+                output += data.toString();
+              });
+              
+              python.stderr.on('data', (data: any) => {
+                error += data.toString();
+              });
+              
+              python.on('close', (code: any) => {
+                if (code !== 0) {
+                  console.error('Document extraction error:', error);
+                  reject(new Error(error));
+                } else {
+                  resolve(undefined);
+                }
+              });
+            });
+            
+            const result = JSON.parse(output);
+            const extractedContent = result.extracted_texts?.[0] || '';
+            
+            // Store the extracted content in metadata
+            if (!metadata.sampleDocumentContent) {
+              metadata.sampleDocumentContent = {};
+            }
+            metadata.sampleDocumentContent[param.name] = extractedContent;
+            
+            console.log(`✅ Extracted ${extractedContent.length} characters from ${param.sampleFile}`);
+            
+          } catch (error) {
+            console.error(`Failed to extract content from sample file:`, error);
+          }
+        }
+        
+        processedParams.push(processedParam);
+      }
+      
       const toolData = {
         ...otherData,
+        inputParameters: processedParams,
         toolType,
         aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
         functionCode: toolType === 'CODE' ? functionCode : null,
-        metadata: otherData.metadata || {} // Provide default empty metadata if not present
+        metadata
       };
 
       console.log('✅ Custom validation passed, creating function...');

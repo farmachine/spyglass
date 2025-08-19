@@ -90,40 +90,51 @@ export class ToolEngine {
     for (const param of tool.inputParameters) {
       const inputValue = rawInputs[param.name];
       
-      // If this is a document parameter and we have a sample file URL, fetch the content
-      if (param.type === 'document' && param.sampleFileURL && inputValue) {
+      // If this is a document parameter, check for extracted content first
+      if (param.type === 'document' && inputValue) {
         try {
-          console.log(`📄 Fetching document content for ${param.name} from ${param.sampleFileURL}`);
-          const content = await this.fetchDocumentContent(param.sampleFileURL);
+          // Check if we have pre-extracted content in metadata
+          const extractedContent = tool.metadata?.sampleDocumentContent?.[param.name];
           
-          if (forAI) {
-            // For AI tools, extract text content from the document
-            // This is a simplified version - in production you'd need proper document parsing
-            const fileName = param.sampleFile || 'document';
+          if (extractedContent) {
+            console.log(`📄 Using pre-extracted content for ${param.name} (${extractedContent.length} chars)`);
+            // For CODE tools, pass the extracted text content directly
+            preparedInputs[param.name] = extractedContent;
+          } else if (param.sampleFileURL) {
+            // Fallback: fetch and extract content if not already stored
+            console.log(`📄 Fetching document content for ${param.name} from ${param.sampleFileURL}`);
+            const content = await this.fetchDocumentContent(param.sampleFileURL);
             
-            // For Excel files, we'd need to parse them properly
-            if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-              // For now, just pass the filename with a note
-              preparedInputs[param.name] = `[Excel file: ${fileName} - content needs proper parsing]`;
-            } else {
-              // For other files, try to decode as text
-              try {
-                const textContent = Buffer.from(content, 'base64').toString('utf-8');
-                preparedInputs[param.name] = textContent;
-              } catch {
-                preparedInputs[param.name] = `[Binary file: ${fileName}]`;
+            if (forAI) {
+              // For AI tools, extract text content from the document
+              const fileName = param.sampleFile || 'document';
+              
+              // For Excel files, we'd need to parse them properly
+              if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                // For now, just pass the filename with a note
+                preparedInputs[param.name] = `[Excel file: ${fileName} - content needs proper parsing]`;
+              } else {
+                // For other files, try to decode as text
+                try {
+                  const textContent = Buffer.from(content, 'base64').toString('utf-8');
+                  preparedInputs[param.name] = textContent;
+                } catch {
+                  preparedInputs[param.name] = `[Binary file: ${fileName}]`;
+                }
               }
+            } else {
+              // For CODE tools, save to temp file for Python code to access
+              const tempFile = `/tmp/test_doc_${Date.now()}_${param.sampleFile || 'document'}`;
+              await fs.writeFile(tempFile, Buffer.from(content, 'base64'));
+              
+              preparedInputs[param.name] = tempFile; // Pass file path to Python function
+              console.log(`✅ Document saved to ${tempFile}`);
             }
           } else {
-            // For CODE tools, save to temp file for Python code to access
-            const tempFile = `/tmp/test_doc_${Date.now()}_${param.sampleFile || 'document'}`;
-            await fs.writeFile(tempFile, Buffer.from(content, 'base64'));
-            
-            preparedInputs[param.name] = tempFile; // Pass file path to Python function
-            console.log(`✅ Document saved to ${tempFile}`);
+            preparedInputs[param.name] = inputValue;
           }
         } catch (error) {
-          console.error(`Failed to fetch document for ${param.name}:`, error);
+          console.error(`Failed to prepare document for ${param.name}:`, error);
           preparedInputs[param.name] = inputValue; // Fall back to original value
         }
       } else {
