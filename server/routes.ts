@@ -4966,118 +4966,24 @@ ${aiAssistanceRequired ? `\nAdditional AI Instructions: ${aiAssistancePrompt}` :
         return res.json(response);
         
       } else {
-        console.log('🐍 Building Python code generation prompt');
+        console.log('🐍 Using updated generateFunctionCode from gemini.ts');
         
-        systemPrompt = `You are an expert Python developer. You MUST create a function with this EXACT signature:
-
-def extract_function(Column_Name, Excel_File):
-
-CRITICAL REQUIREMENTS:
-1. Function name MUST be "extract_function"  
-2. Parameters MUST be exactly: Column_Name, Excel_File
-3. OUTPUT TYPE = "${(outputType || 'single').toUpperCase()}"
-
-${(outputType || 'single') === 'multiple' ? `
-MULTIPLE OUTPUTS - MUST ITERATE:
-- Use for loop to process array parameter
-- Generate multiple results (one per array item)
-- Return list of result objects
-` : `
-SINGLE OUTPUT - NO ITERATION:
-- Process parameters as whole
-- Generate one result only
-- Return single result in array
-`}
-
-PARAMETER DETAILS:
-${inputParameters.map(p => {
-  if (p.type === 'data' && p.sampleData?.rows) {
-    const sampleRows = p.sampleData.rows;
-    return `Column_Name: Contains data from "${p.name}" - List of ${sampleRows.length} objects, each like ${JSON.stringify(sampleRows[0] || {})}`;
-  } else if (p.type === 'document') {
-    return `Excel_File: Contains document data from "${p.name}" - String with Excel format "=== Sheet: Name ===" followed by data`;
-  }
-  return `Column_Name/Excel_File: Contains ${p.type} data from "${p.name}"`;
-}).join('\n')}
-
-RETURN FORMAT: List of objects with keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
-
-Return JSON: {"functionCode": "complete_function_code", "metadata": {"parametersUsed": ["Column_Name", "Excel_File"]}}`;
-
-        userPrompt = `Generate function: ${name}
-Description: ${description}
-
-Requirements:
-- Function signature: def extract_function(Column_Name, Excel_File)
-- ${(outputType || 'single') === 'multiple' ? 'Iterate through Column_Name array parameter to generate multiple results' : 'Process Column_Name input to generate single result'}
-- Use Python syntax: None (not null), True/False (not true/false)
-- Handle errors gracefully
-- Return proper field validation format`;
+        // Import and use the updated generateFunctionCode function
+        const { generateFunctionCode } = await import("./gemini");
+        
+        const result = await generateFunctionCode(
+          name,
+          description,
+          inputParameters,
+          'SCRIPT', // toolType for Python functions
+          aiAssistanceRequired || false,
+          aiAssistancePrompt,
+          outputType
+        );
+        
+        console.log('🎯 Generated function using updated prompts:', result.metadata);
+        res.json(result);
       }
-
-      console.log('📤 SENDING PROMPT TO AI:');
-      console.log('='.repeat(80));
-      console.log('SYSTEM PROMPT:');
-      console.log(systemPrompt);
-      console.log('='.repeat(80));
-      console.log('USER PROMPT:');
-      console.log(userPrompt);
-      console.log('='.repeat(80));
-
-      // CALL GEMINI AI
-      const ai = new (await import("@google/genai")).GoogleGenAI({ 
-        apiKey: process.env.GEMINI_API_KEY || "" 
-      });
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "object",
-            properties: {
-              functionCode: { type: "string" },
-              metadata: { 
-                type: "object",
-                properties: {
-                  outputFormat: { type: "string" },
-                  parametersUsed: { 
-                    type: "array",
-                    items: { type: "string" }
-                  }
-                }
-              }
-            },
-            required: ["functionCode", "metadata"]
-          }
-        },
-        contents: userPrompt
-      });
-
-      console.log('📥 AI RESPONSE RECEIVED:');
-      console.log('Raw response text:', response.text);
-      console.log('Full response object:', JSON.stringify(response, null, 2));
-      
-      if (!response.text) {
-        throw new Error('Empty response from AI');
-      }
-      
-      const result = JSON.parse(response.text);
-      
-      if (!result.functionCode || !result.metadata) {
-        throw new Error('AI response missing required fields');
-      }
-
-      console.log('✅ CODE GENERATION COMPLETED');
-      console.log('Generated Function Code:', result.functionCode);
-      console.log('Generated Metadata:', JSON.stringify(result.metadata, null, 2));
-
-      // Format the function code properly by converting escaped newlines to actual newlines
-      if (result.functionCode && typeof result.functionCode === 'string') {
-        result.functionCode = result.functionCode.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-      }
-
-      res.json(result);
       
     } catch (error) {
       console.error("❌ NEW CODE GENERATION FAILED:", error);
