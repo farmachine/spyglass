@@ -161,30 +161,65 @@ FUNCTION SIGNATURE REQUIREMENT:
 Your generated function must use this exact signature and handle the Excel text format:
 ```python
 def extract_function(parameter1_name, parameter2_name):
-    # parameter1_name might be: Columns (array of column names)
+    # parameter1_name might be: Columns (array of objects with identifierId and name)
     # parameter2_name might be: Excel_File (text string with sheet delimiters)
     
-    # Extract column names from data structure
+    results = []
+    
+    # Extract columns from data structure - CRITICAL: Handle identifierId format
+    columns = []
     if isinstance(parameter1_name, dict) and 'rows' in parameter1_name:
         identifier = parameter1_name.get('identifierColumn', 'Column Name')
-        column_names = [row[identifier] for row in parameter1_name['rows']]
+        for idx, row in enumerate(parameter1_name['rows']):
+            columns.append({
+                'identifierId': idx + 1,
+                'name': row[identifier]
+            })
     elif isinstance(parameter1_name, list):
-        column_names = parameter1_name
+        # Already in identifierId format: [{"identifierId": 1, "name": "Column Name"}]
+        columns = parameter1_name
     else:
-        column_names = [str(parameter1_name)]
+        columns = [{'identifierId': 1, 'name': str(parameter1_name)}]
     
-    # Parse Excel text content (NOT a file path!)
-    sheets = parse_excel_text(parameter2_name)
+    # Parse Excel content to find worksheets and their headers
+    worksheets = {}
+    sections = parameter2_name.split('=== Sheet: ')
     
-    # Process each column and find its sheet
-    results = {}
-    for column_name in column_names:
-        for sheet_name, sheet_data in sheets.items():
-            if column_name in sheet_data['headers']:
-                results[column_name] = sheet_name
+    for i in range(1, len(sections)):
+        section = sections[i].strip()
+        lines = section.split('\n')
+        if not lines:
+            continue
+        
+        # Extract worksheet name
+        worksheet_name = lines[0].split(' ===')[0].strip()
+        
+        # Extract headers (second line contains column headers)
+        if len(lines) > 1:
+            headers = [col.strip() for col in lines[1].split('\t')]
+            worksheets[worksheet_name] = headers
+    
+    # Process each column using the identifierId format
+    for i, column in enumerate(columns):
+        column_name = column.get('name', '')
+        identifier_id = column.get('identifierId', i + 1)
+        
+        # Find which worksheet contains this column
+        found_worksheet = None
+        for worksheet_name, headers in worksheets.items():
+            if column_name in headers:
+                found_worksheet = worksheet_name
                 break
-        else:
-            results[column_name] = None
+        
+        # Return results with identifierId preserved
+        results.append({
+            'validation_type': 'collection_property',
+            'extracted_value': found_worksheet or 'Not Found',
+            'identifierId': identifier_id,
+            'record_index': i,
+            'confidence_score': 1.0 if found_worksheet else 0.5,
+            'ai_reasoning': f"Column '{column_name}' {'found in worksheet ' + found_worksheet if found_worksheet else 'not found in any worksheet'}"
+        })
     
     return results
 ```
@@ -196,57 +231,83 @@ COMMON MISTAKES TO AVOID:
 ❌ Not handling the specific `=== Sheet: Name ===` delimiter format
 ❌ Not splitting by tab characters for column separation
 
-CRITICAL ARRAY ITERATION TRAINING:
-When you receive data input parameters, check if they contain arrays of objects that need individual processing:
+CRITICAL ARRAY ITERATION TRAINING WITH IDENTIFIERID FORMAT:
+When you receive data input parameters, they will be in identifierId format that needs individual processing:
 
 SINGLE VALUE PROCESSING:
-- If input is single object/string: process once, return one result
-- Example: column_name = "Employee ID" → find this one column
+- If input is single object/string: process once, return one result with identifierId
+- Example: {"identifierId": 1, "name": "Employee ID"} → find this one column, return result with identifierId: 1
 
-ARRAY ITERATION PROCESSING:
-- If input is array of objects: iterate through each item, return array of results
-- Example: column_names = [{"Column Name": "Employee ID"}, {"Column Name": "Salary"}] 
-- MUST iterate: for each item in column_names, extract item["Column Name"] individually
-- MUST return: separate result for "Employee ID" and separate result for "Salary"
+ARRAY ITERATION PROCESSING (MOST COMMON):
+- Input is array of objects with identifierId and name: [{"identifierId": 1, "name": "Employee ID"}, {"identifierId": 2, "name": "Salary"}]
+- MUST iterate: for each item in array, extract item.name individually and preserve item.identifierId
+- MUST return: separate result for "Employee ID" with identifierId: 1, separate result for "Salary" with identifierId: 2
 
 ARRAY DETECTION PATTERNS:
-- Input parameter is list/array: [{"Column Name": "X"}, {"Column Name": "Y"}]
-- Multiple objects with same structure indicates iteration needed
-- Function should loop through array items, not treat entire array as single value
+- Input parameter is list/array: [{"identifierId": 1, "name": "X"}, {"identifierId": 2, "name": "Y"}]
+- Multiple objects with identifierId and name indicates iteration needed
+- Function should loop through array items, process each name, preserve each identifierId
 
-COMMON MISTAKE TO AVOID:
-❌ WRONG: Trying to find entire array '[{"Column Name": "X"}, {"Column Name": "Y"}]' as single column name
-✅ CORRECT: Loop through array, process "X" first, then "Y" separately
+CRITICAL REQUIREMENT - IDENTIFIERID PRESERVATION:
+✅ CORRECT: Each result MUST include the original identifierId from input
+✅ CORRECT: For column {"identifierId": 5, "name": "Date Of Birth"} → result must have "identifierId": 5
+❌ WRONG: Losing or changing the identifierId in results
+❌ WRONG: Using array index instead of original identifierId
 
-REQUIRED CODE PATTERN FOR ARRAY PROCESSING:
+REQUIRED CODE PATTERN FOR IDENTIFIERID ARRAY PROCESSING:
 ```python
-def extract_excel_data(extracted_content, target_fields_data, identifier_references=None):
+def extract_excel_data(columns_parameter, excel_content_parameter, identifier_references=None):
     results = []
     
-    # Get input parameters
-    column_data = target_fields_data.get('Column Headings', [])  # This might be an array
-    
-    # Check if it's an array and iterate
-    if isinstance(column_data, list):
-        for idx, item in enumerate(column_data):
-            column_name = item.get('Column Name', '')  # Extract individual column name
-            # Process this single column_name
-            worksheet_name = find_worksheet_containing_column(extracted_content, column_name)
-            results.append({
-                "validation_type": "collection_property",
-                "extracted_value": worksheet_name,
-                "record_index": idx
-                # ... other required fields
+    # Extract columns from identifierId format - this is the new standard format
+    columns = []
+    if isinstance(columns_parameter, list):
+        # Already in identifierId format: [{"identifierId": 1, "name": "Column Name"}]
+        columns = columns_parameter
+    elif isinstance(columns_parameter, dict) and 'rows' in columns_parameter:
+        # Convert from old rows format to identifierId format
+        identifier = columns_parameter.get('identifierColumn', 'Column Name')
+        for idx, row in enumerate(columns_parameter['rows']):
+            columns.append({
+                'identifierId': idx + 1,
+                'name': row[identifier]
             })
     else:
-        # Handle single value case
-        column_name = column_data.get('Column Name', '') if isinstance(column_data, dict) else str(column_data)
-        worksheet_name = find_worksheet_containing_column(extracted_content, column_name)
+        columns = [{'identifierId': 1, 'name': str(columns_parameter)}]
+    
+    # Parse Excel content to find worksheets and headers
+    worksheets = {}
+    sections = excel_content_parameter.split('=== Sheet: ')
+    for i in range(1, len(sections)):
+        section = sections[i].strip()
+        lines = section.split('\n')
+        if not lines:
+            continue
+        worksheet_name = lines[0].split(' ===')[0].strip()
+        if len(lines) > 1:
+            headers = [col.strip() for col in lines[1].split('\t')]
+            worksheets[worksheet_name] = headers
+    
+    # Process each column - CRITICAL: preserve identifierId in results
+    for i, column in enumerate(columns):
+        column_name = column.get('name', '')
+        identifier_id = column.get('identifierId', i + 1)
+        
+        # Find which worksheet contains this column
+        found_worksheet = None
+        for worksheet_name, headers in worksheets.items():
+            if column_name in headers:
+                found_worksheet = worksheet_name
+                break
+        
+        # CRITICAL: Include identifierId in every result
         results.append({
-            "validation_type": "collection_property", 
-            "extracted_value": worksheet_name,
-            "record_index": 0
-            # ... other required fields
+            "validation_type": "collection_property",
+            "extracted_value": found_worksheet or 'Not Found',
+            "identifierId": identifier_id,  # MUST preserve original identifierId
+            "record_index": i,
+            "confidence_score": 1.0 if found_worksheet else 0.5,
+            "ai_reasoning": f"Column '{column_name}' {'found in worksheet ' + found_worksheet if found_worksheet else 'not found in any worksheet'}"
         })
     
     return results
