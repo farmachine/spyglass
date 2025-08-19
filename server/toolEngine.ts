@@ -190,15 +190,27 @@ export class ToolEngine {
     const paramList = tool.inputParameters.map(p => `- ${p.name} (${p.type}): ${p.description}`).join('\n');
     
     if (tool.toolType === "AI_ONLY") {
+      // Generate appropriate JSON format based on outputType
+      const jsonFormat = tool.outputType === "single" 
+        ? `{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "source"}`
+        : `[{"extractedValue": "result1", "validationStatus": "valid", "aiReasoning": "explanation1", "confidenceScore": 95, "documentSource": "source1"}, {"extractedValue": "result2", "validationStatus": "valid", "aiReasoning": "explanation2", "confidenceScore": 90, "documentSource": "source2"}]`;
+      
+      const resultDescription = tool.outputType === "single"
+        ? "Return the result as a single JSON object"
+        : "Return results as a JSON array of objects";
+      
       return `Create an AI prompt for the following task:
 
 Task: ${tool.name}
 Description: ${tool.description}
+Output Type: ${tool.outputType} (${resultDescription})
 Input Parameters:
 ${paramList}
 
 Create a clear, specific prompt that will instruct an AI to extract the required information and return results in this JSON format:
-[{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "source"}]
+${jsonFormat}
+
+The prompt should specify whether to return a single object or array based on the output type.
 
 Return only the prompt text, no explanations.`;
     } else {
