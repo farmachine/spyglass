@@ -445,24 +445,30 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-300">
-                                  {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                    <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
-                                      {param.sampleData.identifierColumn === col && (
-                                        <span className="text-yellow-600 mr-1">🔑</span>
-                                      )}
-                                      {col}
-                                    </th>
-                                  ))}
+                                  {param.sampleData.columns?.map((col: any, colIndex: number) => {
+                                    const columnName = typeof col === 'string' ? col : col.name;
+                                    return (
+                                      <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-r border-gray-200 last:border-r-0">
+                                        {param.sampleData.identifierColumn === columnName && (
+                                          <span className="text-yellow-600 mr-1">🔑</span>
+                                        )}
+                                        {columnName}
+                                      </th>
+                                    );
+                                  })}
                                 </tr>
                               </thead>
                               <tbody>
                                 {param.sampleData.rows?.map((row: any, rowIndex: number) => (
                                   <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
-                                    {param.sampleData.columns?.map((col: string, colIndex: number) => (
-                                      <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
-                                        {row[col] || '-'}
-                                      </td>
-                                    ))}
+                                    {param.sampleData.columns?.map((col: any, colIndex: number) => {
+                                      const columnName = typeof col === 'string' ? col : col.name;
+                                      return (
+                                        <td key={colIndex} className="p-3 text-gray-600 border-r border-gray-200 last:border-r-0">
+                                          {row[columnName] || '-'}
+                                        </td>
+                                      );
+                                    })}
                                   </tr>
                                 ))}
                               </tbody>
@@ -511,11 +517,14 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-300">
                                   <th className="text-left p-3 font-medium text-gray-700">#</th>
-                                  {sampleColumns.map((column: string) => (
-                                    <th key={column} className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">
-                                      {column}
-                                    </th>
-                                  ))}
+                                  {sampleColumns.map((column: any, colIndex: number) => {
+                                    const columnName = typeof column === 'string' ? column : column.name;
+                                    return (
+                                      <th key={colIndex} className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">
+                                        {columnName}
+                                      </th>
+                                    );
+                                  })}
                                   <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Extracted Value</th>
                                   <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Status</th>
                                   <th className="text-left p-3 font-medium text-gray-700 border-l border-gray-200">Confidence</th>
@@ -528,11 +537,14 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                                   return (
                                     <tr key={rowIndex} className="border-b border-gray-200 last:border-b-0">
                                       <td className="p-3 text-gray-600 font-medium">{rowIndex + 1}</td>
-                                      {sampleColumns.map((column: string) => (
-                                        <td key={column} className="p-3 text-gray-600 border-l border-gray-200">
-                                          {sampleRow[column] || '-'}
-                                        </td>
-                                      ))}
+                                      {sampleColumns.map((column: any, colIndex: number) => {
+                                        const columnName = typeof column === 'string' ? column : column.name;
+                                        return (
+                                          <td key={colIndex} className="p-3 text-gray-600 border-l border-gray-200">
+                                            {sampleRow[columnName] || '-'}
+                                          </td>
+                                        );
+                                      })}
                                       <td className="p-3 text-gray-600 border-l border-gray-200">
                                         {result.extractedValue || '-'}
                                       </td>
