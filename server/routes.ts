@@ -5275,24 +5275,104 @@ def extract_function(Column_Name, Excel_File):
       
       const { functionCode, metadata } = await generateFunctionCodeFromDebug(
         func.name,
-        func.description,
+        func.description || '',
         func.inputParameters || [],
-        func.toolType,
-        debugRecommendations,
         inputs || {},
         testResults || [],
+        debugRecommendations,
+        func.toolType,
         func.functionCode
       );
-
-      // Update the function with the new code
-      await storage.updateExcelWizardryFunctionCode(functionId, functionCode);
-
-      console.log("✅ Debug fixes applied successfully to tool:", functionId);
-      return res.json({ success: true, message: "Debug fixes applied successfully" });
-
+      
+      // Update the function with the improved code
+      const updatedFunction = await storage.updateExcelWizardryFunction(functionId, {
+        functionCode,
+        metadata,
+        updatedAt: new Date()
+      });
+      
+      console.log("✅ Debug fixes applied successfully");
+      return res.json({ success: true, updatedFunction });
+      
     } catch (error) {
       console.error("Apply debug fixes error:", error);
       res.status(500).json({ message: "Failed to apply debug fixes" });
+    }
+  });
+
+  // AI Wizardry Test Endpoint - For AI_ONLY tools
+  app.post("/api/run/wizardry", async (req, res) => {
+    try {
+      const { target_fields, document_content, identifier_references } = req.body;
+      
+      console.log('🎯 Wizardry test called with:', {
+        target_fields: target_fields?.length || 0,
+        document_content: document_content?.length || 0,
+        identifier_references: identifier_references?.length || 0
+      });
+      
+      if (!target_fields || target_fields.length === 0) {
+        return res.status(400).json({ 
+          error: "No target fields provided for AI extraction" 
+        });
+      }
+      
+      // For testing AI tools, we'll call the extraction wizardry directly
+      const python = spawn('python3', ['extraction_wizardry.py']);
+      
+      const inputData = {
+        target_fields,
+        document_content: document_content || '',
+        identifier_references: identifier_references || []
+      };
+      
+      python.stdin.write(JSON.stringify(inputData));
+      python.stdin.end();
+      
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      python.stdout.on('data', (data) => {
+        pythonOutput += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        pythonError += data.toString();
+      });
+      
+      python.on('close', (code) => {
+        if (code !== 0) {
+          console.error('Python extraction wizardry failed:', pythonError);
+          return res.status(500).json({ 
+            error: 'AI extraction failed',
+            details: pythonError 
+          });
+        }
+        
+        try {
+          const results = JSON.parse(pythonOutput.trim());
+          console.log('🎯 Wizardry results:', results);
+          
+          res.json({ 
+            success: true,
+            results: results
+          });
+        } catch (parseError) {
+          console.error('Failed to parse Python output:', parseError);
+          console.log('Raw Python output:', pythonOutput);
+          res.status(500).json({ 
+            error: 'Failed to parse extraction results',
+            details: pythonOutput 
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Wizardry test error:", error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        details: error.message 
+      });
     }
   });
 
