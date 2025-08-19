@@ -42,7 +42,7 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     propertyName: property.propertyName,
     propertyType: property.propertyType,
     description: property.description || '',
-    extractionType: property.extractionType || 'AI',
+    extractionType: property.extractionType || 'AI_ONLY',
     requiredDocumentType: property.requiredDocumentType || 'Any',
     functionId: property.functionId || null,
     autoVerificationConfidence: property.autoVerificationConfidence || 80,
@@ -53,7 +53,54 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     extractionRuleIds: (property as any).extractionRuleIds || [],
     referencedMainFieldIds: (property as any).referencedMainFieldIds || [],
     referencedCollectionIds: (property as any).referencedCollectionIds || [],
+    functionParameters: (property as any).functionParameters || {},
   });
+
+  // State for selected tool
+  const [selectedToolId, setSelectedToolId] = useState<string>(property.functionId || '');
+  const [inputParameters, setInputParameters] = useState<any[]>([]);
+
+  // Find the selected tool
+  const selectedTool = excelFunctions.find((f: any) => f.id === selectedToolId);
+
+  // Load input parameters when tool changes
+  useEffect(() => {
+    if (selectedTool?.inputParameters) {
+      try {
+        const params = typeof selectedTool.inputParameters === 'string' 
+          ? JSON.parse(selectedTool.inputParameters)
+          : selectedTool.inputParameters;
+        setInputParameters(Array.isArray(params) ? params : []);
+      } catch (error) {
+        console.error("Error parsing input parameters:", error);
+        setInputParameters([]);
+      }
+    } else if (selectedToolId === "" || !selectedTool) {
+      // Default AI extraction parameters
+      setInputParameters([
+        {
+          id: "0.tg3n906d9i",
+          name: "Reference Data",
+          type: "data",
+          description: "Previously collected data to use as reference."
+        },
+        {
+          id: "0.kj4m9d6f8l",
+          name: "AI Instructions", 
+          type: "textarea",
+          description: "Specific instructions for AI extraction process."
+        },
+        {
+          id: "0.p2x7v5n1qw",
+          name: "Reference Documents",
+          type: "documents",
+          description: "Knowledge documents to reference during extraction."
+        }
+      ]);
+    } else {
+      setInputParameters([]);
+    }
+  }, [selectedToolId, selectedTool]);
 
   // Get previous step properties for reference selection
   const [selectedReferences, setSelectedReferences] = useState<string[]>(() => {
@@ -130,9 +177,9 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
     });
 
     // Process @-key references in AI instructions
-    let processedDescription = formData.extractionType === 'AI' ? formData.aiInstructions : formData.description;
+    let processedDescription = formData.extractionType === 'AI_ONLY' ? formData.aiInstructions : formData.description;
     
-    if (formData.extractionType === 'AI' && formData.aiInstructions) {
+    if (formData.extractionType === 'AI_ONLY' && formData.aiInstructions) {
       // Build reference context for prompt processing
       const referenceContext = {
         knowledgeDocuments: knowledgeDocuments?.filter(doc => 
@@ -197,80 +244,139 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Inputs Section */}
+      {/* Method Selection */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#374151'}}>1</div>
-          <h5 className="text-sm font-semibold text-gray-900">Inputs</h5>
+          <h5 className="text-sm font-semibold text-gray-900">Method</h5>
         </div>
         <div className="space-y-3 pl-8">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="documentsRequired"
-              checked={formData.documentsRequired}
-              onChange={(e) => setFormData(prev => ({...prev, documentsRequired: e.target.checked}))}
-              className="rounded border-gray-300"
-            />
-            <Label htmlFor="documentsRequired" className="text-sm font-medium">
-              User must provide at least one document
-            </Label>
-          </div>
+          <Select 
+            value={selectedToolId} 
+            onValueChange={(value) => {
+              setSelectedToolId(value);
+              setFormData(prev => ({
+                ...prev, 
+                functionId: value || null,
+                extractionType: value ? 'FUNCTION' : 'AI_ONLY'
+              }));
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select an extraction method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">AI Extraction</SelectItem>
+              {excelFunctions.map((func: any) => (
+                <SelectItem key={func.id} value={func.id}>
+                  {func.name} ({func.toolType === 'AI_ONLY' ? 'AI' : 'CODE'})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          <div>
-            <Label className="text-sm font-medium">References from Previous Steps (Optional)</Label>
-            <Select 
-              value=""
-              onValueChange={(value) => {
-                if (value && !selectedReferences.includes(value)) {
-                  setSelectedReferences(prev => [...prev, value]);
-                }
-              }}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select data sources from previous steps (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {previousStepOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{option.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {option.category}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-gray-500">{option.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Selected References Display */}
-            {selectedReferences.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-600">Selected references:</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedReferences.map((refId) => {
-                    const ref = previousStepOptions.find(opt => opt.id === refId);
-                    return ref ? (
-                      <div key={refId} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
-                        <span>{ref.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedReferences(prev => prev.filter(id => id !== refId))}
-                          className="text-blue-600 hover:text-blue-800 ml-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-            )}
+      {/* Data Sources Section - Only show when tool is selected */}
+      {selectedToolId && inputParameters.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
+            <h5 className="text-sm font-semibold text-gray-900">Data Sources</h5>
           </div>
+          <div className="space-y-3 pl-8">
+            {/* Dynamic rendering of input parameters based on tool configuration */}
+            {inputParameters.map((param: any) => (
+              <div key={param.id} className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {param.name}
+                  <span className="text-xs text-gray-500 ml-2">({param.type})</span>
+                </Label>
+                <p className="text-xs text-gray-600">{param.description}</p>
+                
+                {/* Render different input types based on parameter type */}
+                {param.type === "text" || param.type === "string" ? (
+                  <Input
+                    placeholder={`Enter ${param.name.toLowerCase()}...`}
+                    value={formData.functionParameters[param.id] || ""}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      functionParameters: {
+                        ...prev.functionParameters,
+                        [param.id]: e.target.value
+                      }
+                    }))}
+                  />
+                ) : param.type === "textarea" ? (
+                  <Textarea
+                    placeholder={`Enter ${param.name.toLowerCase()}...`}
+                    value={formData.functionParameters[param.id] || ""}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      functionParameters: {
+                        ...prev.functionParameters,
+                        [param.id]: e.target.value
+                      }
+                    }))}
+                    rows={4}
+                  />
+                ) : param.type === "data" ? (
+                  <>
+                    <Select 
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !selectedReferences.includes(value)) {
+                          setSelectedReferences(prev => [...prev, value]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select data sources from previous steps (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {previousStepOptions.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{option.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {option.category}
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-gray-500">{option.description}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Selected References Display */}
+                    {selectedReferences.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs text-gray-600">Selected references:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedReferences.map((refId) => {
+                            const ref = previousStepOptions.find(opt => opt.id === refId);
+                            return ref ? (
+                              <div key={refId} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm">
+                                <span>{ref.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedReferences(prev => prev.filter(id => id !== refId))}
+                                  className="text-blue-600 hover:text-blue-800 ml-1"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            ))}
 
           <div>
             <Label className="text-sm font-medium">Knowledge Documents (Optional)</Label>
@@ -330,34 +436,21 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Extraction Type Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
-          <h5 className="text-sm font-semibold text-gray-900">Extraction Type</h5>
-        </div>
-        <div className="space-y-3 pl-8">
-          <div>
-            <Label className="text-sm font-medium">Method</Label>
-            <Select value={formData.extractionType} onValueChange={(value) => setFormData(prev => ({...prev, extractionType: value as 'AI' | 'FUNCTION'}))}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AI">AI-based Extraction</SelectItem>
-                <SelectItem value="FUNCTION">Function-based Extraction</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+        </div>
+      )}
 
-          {formData.extractionType === 'AI' && (
-            <>
-              <div>
-                <Label className="text-sm font-medium">AI Instructions</Label>
-                <PromptTextarea
+      {/* Default AI extraction parameters when no tool selected */}
+      {!selectedToolId && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white" style={{backgroundColor: '#6b7280'}}>2</div>
+            <h5 className="text-sm font-semibold text-gray-900">Configuration</h5>
+          </div>
+          <div className="space-y-3 pl-8">
+            <div>
+              <Label className="text-sm font-medium">AI Instructions</Label>
+              <PromptTextarea
                   value={formData.aiInstructions}
                   onChange={(value) => setFormData(prev => ({...prev, aiInstructions: value}))}
                   placeholder="Enter specific instructions for the AI extraction process. Use @-key referencing to reference available resources."
@@ -472,53 +565,10 @@ function InlinePropertyEditor({ property, excelFunctions, knowledgeDocuments, ex
                     </div>
                   </div>
                 )}
-              </div>
-            </>
-          )}
-
-          {formData.extractionType === 'FUNCTION' && (
-            <>
-              <div>
-                <Label htmlFor="documentType" className="text-sm font-medium">Required Document Type</Label>
-                <Select value={formData.requiredDocumentType} onValueChange={(value) => setFormData(prev => ({...prev, requiredDocumentType: value}))}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Any">Any</SelectItem>
-                    <SelectItem value="Excel">Excel (.xlsx, .xls)</SelectItem>
-                    <SelectItem value="Word">Word (.docx, .doc)</SelectItem>
-                    <SelectItem value="PDF">PDF (.pdf)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="function" className="text-sm font-medium">Function</Label>
-                <Select value={formData.functionId || ''} onValueChange={(value) => setFormData(prev => ({...prev, functionId: value}))}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a pre-built function" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {excelFunctions.map((func: any) => (
-                      <SelectItem key={func.id} value={func.id}>
-                        {func.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.functionId && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-gray-700">
-                      {excelFunctions.find((f: any) => f.id === formData.functionId)?.description || 'No description available'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
 
 
