@@ -4798,10 +4798,7 @@ print(json.dumps(results))
     try {
       console.log('🤖 Generating Excel function code with input:', JSON.stringify(req.body, null, 2));
       
-      const { projectId, name, description, toolType, functionType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
-      
-      // Map toolType to functionType for backward compatibility
-      const actualFunctionType = toolType || functionType;
+      const { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
         console.error('❌ Missing required fields for function generation');
@@ -4848,7 +4845,7 @@ print(json.dumps(results))
         name,
         description,
         functionCode,
-        functionType: actualFunctionType || "CODE",
+        toolType: toolType || "CODE",
         outputType: outputType || "single",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
@@ -5139,7 +5136,7 @@ Requirements:
       
       console.log('📋 Final regeneration parameters:', {
         name: updatedName,
-        functionType: updatedFunctionType,
+        toolType: updatedFunctionType,
         outputType: updatedOutputType,
         inputParameters: updatedInputParameters?.map(p => ({ name: p.name, type: p.type })),
         aiAssistanceRequired: updatedAiAssistanceRequired
@@ -5176,7 +5173,7 @@ Requirements:
         description: updatedDescription,
         inputParameters: updatedInputParameters,
         outputType: updatedOutputType,
-        functionType: updatedFunctionType,
+        toolType: updatedFunctionType,
         aiAssistanceRequired: updatedAiAssistanceRequired,
         aiAssistancePrompt: updatedAiAssistancePrompt,
         functionCode,
@@ -5325,7 +5322,7 @@ Requirements:
         inputs || {},
         testResults || [],
         debugInstructions,
-        func.functionType,
+        func.toolType,
         func.functionCode,
         func.metadata || {}
       );
@@ -5363,7 +5360,7 @@ Requirements:
         func.name,
         func.description,
         func.inputParameters || [],
-        func.functionType,
+        func.toolType,
         debugRecommendations,
         inputs || {},
         testResults || [],
@@ -5418,7 +5415,7 @@ Requirements:
       console.log('🔧 FUNCTION DETAILS:');
       console.log('📋 Name:', func.name);
       console.log('📋 Description:', func.description);
-      console.log('📋 Type:', func.functionType);
+      console.log('📋 Type:', func.toolType);
       console.log('📋 Output Type:', func.outputType);
       console.log('📋 Input Parameters:', JSON.stringify(func.inputParameters, null, 2));
       console.log('📋 Function Code Length:', func.functionCode?.length || 0);
@@ -5429,7 +5426,7 @@ Requirements:
       }
 
       // Handle AI ONLY tools differently
-      if (func.functionType === 'AI_ONLY') {
+      if (func.toolType === 'AI') {
         console.log("🤖 Processing AI ONLY tool with Gemini...");
         
         // Get sample documents for this function
@@ -5503,7 +5500,7 @@ Requirements:
       const testResults = [];
 
       // If it's a script function, execute it with real sample document content
-      if ((func.functionType === 'SCRIPT' || func.functionType === 'CODE') && func.functionCode) {
+      if (func.toolType === 'CODE' && func.functionCode) {
         try {
           // Get sample documents for this function
           let sampleDocuments = [];

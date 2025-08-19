@@ -16,7 +16,7 @@ interface ExcelTool {
   id: string;
   name: string;
   description: string;
-  functionType: 'AI_ONLY' | 'SCRIPT';
+  toolType: 'AI' | 'CODE';
   functionCode?: string;
   inputParameters: any[];
   outputType: 'single' | 'multiple';
@@ -279,7 +279,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    {tool.functionType === 'AI_ONLY' ? (
+                    {tool.toolType === 'AI' ? (
                       <Brain className="h-5 w-5 text-gray-600" />
                     ) : (
                       <Code className="h-5 w-5 text-gray-600" />
@@ -301,7 +301,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       <span>Used {tool.usageCount} times</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {tool.functionType === 'AI_ONLY' ? 'AI' : 'Code'}
+                      {tool.toolType === 'AI' ? 'AI' : 'Code'}
                     </Badge>
                   </div>
                   

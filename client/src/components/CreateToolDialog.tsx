@@ -100,13 +100,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           aiAssistancePrompt: editingFunction.aiAssistancePrompt || "",
           functionCode: editingFunction.functionCode || ""
         });
-        setToolType(editingFunction.functionType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
+        setToolType(editingFunction.toolType === 'AI' ? 'AI' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
         setInputParameters(editingFunction.inputParameters || []);
         setIsEditMode(true);
         setCurrentEditingFunctionId(functionId);
         setOpen(true);
-        console.log('🔧 Form loaded for editing function:', functionId, 'Type:', editingFunction.functionType);
+        console.log('🔧 Form loaded for editing function:', functionId, 'Type:', editingFunction.toolType);
       } else {
         console.log('🔧 Same function - preserving current form state:', functionId);
       }
@@ -128,7 +128,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         id: editingFunction.id,
         name: data.name,
         description: data.description,
-        functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+        toolType: data.toolType === 'AI' ? 'AI' : 'CODE',
         outputType: data.outputType,
         inputParameters: data.inputParameters,
         tags: data.tags || []
@@ -140,7 +140,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           name: data.name,
           description: data.description,
           functionCode: editingFunction.functionCode, // Use current code (may be regenerated)
-          functionType: data.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT',
+          toolType: data.toolType === 'AI' ? 'AI' : 'CODE',
           outputType: data.outputType,
           inputParameters: data.inputParameters,
           tags: data.tags || []
