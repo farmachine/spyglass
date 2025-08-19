@@ -1,0 +1,96 @@
+🎯 Regeneration response: {
+  "id": "78fd792c-a4c8-42f8-a167-9687aa312403",
+  "projectId": "915d87a3-dd55-401e-8f8b-df38132c2215",
+  "name": "Get Worksheet from Column",
+  "description": "The worksheet name for each column in an excel",
+  "functionCode": "def extract_function(Columns):results=[];for col_input in Columns:worksheet_name=None;error_message=None;if not isinstance(col_input, str):error_message=\"Input element is not a string\";else:parts=col_input.split('!', 1);if len(parts)>1:worksheet_name=parts[0];results.append({\"column_input\": col_input, \"worksheet_name\": worksheet_name, \"error\": error_message});return results",
+  "functionType": "SCRIPT",
+  "outputType": "multiple",
+  "inputParameters": [
+    {
+      "id": "0.m2max00hfr",
+      "name": "Columns",
+      "type": "data",
+      "multiline": false,
+      "sampleData": {
+        "name": "Columns",
+        "rows": [
+          {
+            "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+          },
+          {
+            "Column Name": "Date Of Exit From Active Service"
+          },
+          {
+            "Column Name": "Date Of Birth"
+          },
+          {
+            "Column Name": "Date Pensionable Service Commenced"
+          },
+          {
+            "Column Name": "Code For Previous Status"
+          }
+        ],
+        "columns": [
+          "Column Name"
+        ],
+        "identifierColumn": "Column Name"
+      },
+      "description": "The names of the columns within the worksheet"
+    }
+  ],
+  "aiAssistanceRequired": false,
+  "aiAssistancePrompt": "",
+  "metadata": {
+    "outputFormat": "array of objects",
+    "parametersUsed": [
+      "Columns"
+    ]
+  },
+  "inputSchema": {
+    "parameters": [
+      {
+        "id": "0.m2max00hfr",
+        "name": "Columns",
+        "type": "data",
+        "multiline": false,
+        "sampleData": {
+          "name": "Columns",
+          "rows": [
+            {
+              "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"
+            },
+            {
+              "Column Name": "Date Of Exit From Active Service"
+            },
+            {
+              "Column Name": "Date Of Birth"
+            },
+            {
+              "Column Name": "Date Pensionable Service Commenced"
+            },
+            {
+              "Column Name": "Code For Previous Status"
+            }
+          ],
+          "columns": [
+            "Column Name"
+          ],
+          "identifierColumn": "Column Name"
+        },
+        "description": "The names of the columns within the worksheet"
+      }
+    ]
+  },
+  "outputSchema": {
+    "format": "field_validations_compatible"
+  },
+  "tags": [],
+  "usageCount": 0,
+  "createdAt": "2025-08-19T05:47:05.918Z",
+  "updatedAt": "2025-08-19T05:50:07.108Z"
+}
+main.tsx:17 🎯 Function code from response: def extract_function(Columns):results=[];for col_input in Columns:worksheet_name=None;error_message=None;if not isinstance(col_input, str):error_message="Input element is not a string";else:parts=col_input.split('!', 1);if len(parts)>1:worksheet_name=parts[0];results.append({"column_input": col_input, "worksheet_name": worksheet_name, "error": error_message});return results
+main.tsx:17 ✅ Form data updated with new code: def extract_function(Columns):results=[];for col_input in Columns:worksheet_name=None;error_message=...
+main.tsx:17 Tool code regenerated successfully
+main.tsx:17 🔧 Same function - preserving current form state: 78fd792c-a4c8-42f8-a167-9687aa312403

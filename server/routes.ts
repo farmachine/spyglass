@@ -4977,6 +4977,16 @@ print(json.dumps(results))
       });
       
       // Regenerate the function code using current form values
+      console.log('🤖 CALLING generateFunctionCode WITH:');
+      console.log('📝 Name:', updatedName);
+      console.log('📝 Description:', updatedDescription);
+      console.log('📝 InputParameters:', JSON.stringify(updatedInputParameters, null, 2));
+      console.log('📝 FunctionType:', updatedFunctionType);
+      console.log('📝 AiAssistanceRequired:', updatedAiAssistanceRequired);
+      console.log('📝 AiAssistancePrompt:', updatedAiAssistancePrompt);
+      console.log('📝 OutputType:', updatedOutputType);
+      console.log('='.repeat(80));
+      
       const { functionCode, metadata } = await generateFunctionCode(
         updatedName,
         updatedDescription,
@@ -4986,6 +4996,10 @@ print(json.dumps(results))
         updatedAiAssistancePrompt,
         updatedOutputType
       );
+      
+      console.log('🎯 Generated Python function code:');
+      console.log(functionCode);
+      console.log('🎯 Generated Python function metadata:', JSON.stringify(metadata, null, 2));
       
       // Save the updated function to database using current form values
       const updatedFunction = await storage.updateExcelWizardryFunction(id, {
