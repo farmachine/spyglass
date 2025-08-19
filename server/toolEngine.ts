@@ -38,6 +38,76 @@ export interface Tool {
 export class ToolEngine {
   
   /**
+   * Fetch document content from URL
+   */
+  private async fetchDocumentContent(url: string): Promise<string> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch document: ${response.statusText}`);
+      }
+      const buffer = await response.arrayBuffer();
+      return Buffer.from(buffer).toString('base64');
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Prepare inputs by fetching document content for document-type parameters
+   */
+  private async prepareInputs(tool: Tool, rawInputs: Record<string, any>, forAI: boolean = false): Promise<Record<string, any>> {
+    const preparedInputs: Record<string, any> = {};
+    
+    for (const param of tool.inputParameters) {
+      const inputValue = rawInputs[param.name];
+      
+      // If this is a document parameter and we have a sample file URL, fetch the content
+      if (param.type === 'document' && param.sampleFileURL && inputValue) {
+        try {
+          console.log(`📄 Fetching document content for ${param.name} from ${param.sampleFileURL}`);
+          const content = await this.fetchDocumentContent(param.sampleFileURL);
+          
+          if (forAI) {
+            // For AI tools, extract text content from the document
+            // This is a simplified version - in production you'd need proper document parsing
+            const fileName = param.sampleFile || 'document';
+            
+            // For Excel files, we'd need to parse them properly
+            if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+              // For now, just pass the filename with a note
+              preparedInputs[param.name] = `[Excel file: ${fileName} - content needs proper parsing]`;
+            } else {
+              // For other files, try to decode as text
+              try {
+                const textContent = Buffer.from(content, 'base64').toString('utf-8');
+                preparedInputs[param.name] = textContent;
+              } catch {
+                preparedInputs[param.name] = `[Binary file: ${fileName}]`;
+              }
+            }
+          } else {
+            // For CODE tools, save to temp file for Python code to access
+            const tempFile = `/tmp/test_doc_${Date.now()}_${param.sampleFile || 'document'}`;
+            await fs.writeFile(tempFile, Buffer.from(content, 'base64'));
+            
+            preparedInputs[param.name] = tempFile; // Pass file path to Python function
+            console.log(`✅ Document saved to ${tempFile}`);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch document for ${param.name}:`, error);
+          preparedInputs[param.name] = inputValue; // Fall back to original value
+        }
+      } else {
+        preparedInputs[param.name] = inputValue;
+      }
+    }
+    
+    return preparedInputs;
+  }
+  
+  /**
    * Generate tool content (AI prompt or Python code)
    */
   async generateToolContent(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'>): Promise<{ content: string }> {
@@ -97,10 +167,14 @@ export class ToolEngine {
    * Test tool with given inputs
    */
   async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+    // Prepare inputs by fetching document content if needed
+    const forAI = tool.toolType === "AI_ONLY";
+    const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
+    
     if (tool.toolType === "AI_ONLY") {
-      return this.testAITool(tool, inputs);
+      return this.testAITool(tool, preparedInputs);
     } else {
-      return this.testCodeTool(tool, inputs);
+      return this.testCodeTool(tool, preparedInputs);
     }
   }
   
