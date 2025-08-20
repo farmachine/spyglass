@@ -399,7 +399,7 @@ export function WorkflowBuilder({
                 )}
 
                 {/* Description Section with dot format */}
-                <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg group relative">
+                <div className="mt-6 p-4 bg-white rounded-lg group relative">
                   <div className="flex flex-col items-center">
                     {editingDescription === step.id ? (
                       <Textarea
