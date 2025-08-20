@@ -25,7 +25,10 @@ import {
   Brain,
   MoreVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Hash,
+  Calendar,
+  ToggleLeft
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -510,20 +513,32 @@ function ValueEditor({
     }
   }, [value.toolId]);
 
+  // Get data type icon
+  const getDataTypeIcon = (dataType: WorkflowValue['dataType']) => {
+    switch (dataType) {
+      case 'TEXT':
+        return <FileText className="h-4 w-4 text-gray-500" />;
+      case 'NUMBER':
+        return <Hash className="h-4 w-4 text-gray-500" />;
+      case 'DATE':
+        return <Calendar className="h-4 w-4 text-gray-500" />;
+      case 'BOOLEAN':
+        return <ToggleLeft className="h-4 w-4 text-gray-500" />;
+      case 'CHOICE':
+        return <List className="h-4 w-4 text-gray-500" />;
+      default:
+        return <FileText className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
   return (
     <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-200 rounded"
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
+          {/* Data type icon */}
+          <div className="flex-shrink-0">
+            {getDataTypeIcon(value.dataType)}
+          </div>
           
           <div className="flex-1">
             {isExpanded ? (
@@ -534,7 +549,7 @@ function ValueEditor({
                 className="font-medium"
               />
             ) : (
-              <div className="font-medium text-gray-900 px-2 py-1">
+              <div className="font-medium text-gray-900">
                 {value.name || "Untitled Value"}
               </div>
             )}
@@ -550,6 +565,18 @@ function ValueEditor({
               <span className="text-gray-700">{selectedTool.name}</span>
             </div>
           )}
+
+          {/* Chevron button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1 hover:bg-gray-200 rounded"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
 
           <Button
             variant="ghost"
