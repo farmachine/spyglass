@@ -251,7 +251,7 @@ export function WorkflowBuilder({
       <div className="flex flex-col items-center">
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-gray-50 border-gray-300 shadow-sm hover:shadow-md transition-shadow">
+            <Card className="relative w-full bg-white border-gray-300 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
@@ -399,7 +399,7 @@ export function WorkflowBuilder({
                 )}
 
                 {/* Description Section with dot format */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg group relative">
+                <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg group relative">
                   <div className="flex flex-col items-center">
                     {editingDescription === step.id ? (
                       <Textarea
@@ -553,7 +553,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 bg-white">
+    <div className="border border-gray-300 rounded-lg p-4 space-y-3 bg-white">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
           {/* Data type icon */}

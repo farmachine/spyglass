@@ -365,3 +365,8 @@ body.column-resizing * {
     background-color: hsl(199, 89%, 42%) !important;
   }
 }
+
+/* Remove left padding from dropdown options for icon alignment */
+[role="option"] > div {
+  margin-left: -4px;
+}
