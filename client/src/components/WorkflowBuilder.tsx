@@ -497,6 +497,7 @@ function ValueEditor({
   onDelete
 }: ValueEditorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
   
   // Filter tools based on step type
   const filteredTools = excelFunctions.filter(tool => {
@@ -614,16 +615,6 @@ function ValueEditor({
 
       {isExpanded && (
         <div className="space-y-3 pl-8">
-          <div>
-            <Label>Description</Label>
-            <Input
-              value={value.description}
-              onChange={(e) => onUpdate({ description: e.target.value })}
-              placeholder="Describe this value..."
-              className="mt-1"
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Data Type</Label>
@@ -719,7 +710,7 @@ function ValueEditor({
                               ? 'User uploaded document'
                               : knowledgeDocuments.find(d => d.id === docId)?.name || 'Unknown document';
                             return (
-                              <Badge key={docId} variant="secondary" className="flex items-center gap-1">
+                              <Badge key={docId} className="flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300">
                                 {docName}
                                 <X 
                                   className="h-3 w-3 cursor-pointer hover:text-red-500"
@@ -795,7 +786,7 @@ function ValueEditor({
             </div>
           )}
 
-          {/* Output Description (Read-only) - white background */}
+          {/* Tool Output Description (Read-only) */}
           {value.outputDescription && (
             <div className="p-4 bg-white rounded-lg mt-4">
               <div className="flex flex-col items-center text-center">
@@ -805,6 +796,34 @@ function ValueEditor({
           )}
         </div>
       )}
+      
+      {/* Value Description Section - editable with dot format */}
+      <div className="mt-6 p-4 bg-white rounded-lg group relative">
+        <div className="flex flex-col items-center">
+          {editingDescription ? (
+            <Textarea
+              value={value.description}
+              onChange={(e) => onUpdate({ description: e.target.value })}
+              onBlur={() => setEditingDescription(false)}
+              placeholder="Describe this value..."
+              className="text-sm text-center resize-none w-full"
+              rows={2}
+              autoFocus
+            />
+          ) : (
+            <>
+              <p className="text-sm text-gray-700 text-center">
+                {value.description || "A list of all columns in the excel provided by the pension scheme provider"}
+              </p>
+              <div className="mt-3 w-2 h-2 bg-gray-400 rounded-full"></div>
+              <Edit2 
+                className="absolute top-2 right-2 h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-gray-600"
+                onClick={() => setEditingDescription(true)}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
