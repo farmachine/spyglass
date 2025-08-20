@@ -317,7 +317,7 @@ export function WorkflowBuilder({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => deleteStep(step.id)}
-                      className="text-red-600 focus:text-red-600"
+                      className="text-gray-700 focus:text-gray-900"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
