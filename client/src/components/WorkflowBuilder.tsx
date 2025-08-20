@@ -401,20 +401,19 @@ export function WorkflowBuilder({
                 {/* Description Section with dot format */}
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg group relative">
                   <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
                     {editingDescription === step.id ? (
                       <Textarea
                         value={step.description}
                         onChange={(e) => updateStep(step.id, { description: e.target.value })}
                         onBlur={() => setEditingDescription(null)}
                         placeholder="Describe what this extracts..."
-                        className="text-sm text-gray-800 text-center resize-none w-full"
+                        className="text-sm text-gray-800 text-center resize-none w-full mb-3"
                         rows={2}
                         autoFocus
                       />
                     ) : (
                       <>
-                        <p className="text-sm text-gray-800 text-center w-full">
+                        <p className="text-sm text-gray-800 text-center w-full mb-3">
                           {step.description || "Click to add description..."}
                         </p>
                         <button
@@ -425,6 +424,7 @@ export function WorkflowBuilder({
                         </button>
                       </>
                     )}
+                    <div className="w-3 h-3 rounded-full bg-gray-600"></div>
                   </div>
                 </div>
               </CardContent>
