@@ -22,8 +22,18 @@ import {
   Trash2,
   GripVertical,
   Settings,
-  Brain
+  Brain,
+  MoreVertical,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { 
   ProjectSchemaField, 
@@ -283,12 +293,37 @@ export function WorkflowBuilder({
                   )}
                 </div>
 
-                <button
-                  onClick={() => deleteStep(step.id)}
-                  className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 hover:bg-gray-100 rounded">
+                      <MoreVertical className="h-4 w-4 text-gray-500" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => moveStep(stepIndex, 'up')}
+                      disabled={stepIndex === 0}
+                    >
+                      <ArrowUp className="h-4 w-4 mr-2" />
+                      Move Up
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => moveStep(stepIndex, 'down')}
+                      disabled={stepIndex === steps.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4 mr-2" />
+                      Move Down
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => deleteStep(step.id)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {step.isExpanded && (
@@ -340,26 +375,6 @@ export function WorkflowBuilder({
                 </div>
               )}
             </CardHeader>
-
-            {/* Move arrows centered below header */}
-            <div className="flex justify-center gap-2 pb-2">
-              <button
-                onClick={() => moveStep(stepIndex, 'up')}
-                disabled={stepIndex === 0}
-                className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 transition-opacity"
-                title="Move up"
-              >
-                <ChevronUp className="h-4 w-4 text-gray-500" />
-              </button>
-              <button
-                onClick={() => moveStep(stepIndex, 'down')}
-                disabled={stepIndex === steps.length - 1}
-                className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 transition-opacity"
-                title="Move down"
-              >
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              </button>
-            </div>
 
             {step.isExpanded && (
               <CardContent className="space-y-3">
