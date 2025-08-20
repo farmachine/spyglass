@@ -40,6 +40,11 @@
   --sidebar-ring: hsl(225, 35%, 48%); /* Primary blue */
 }
 
+/* Hide checkmark in Select dropdowns for workflow builder */
+[data-radix-collection-item] > span:first-child {
+  display: none;
+}
+
 .dark {
   --background: hsl(240, 10%, 3.9%);
   --foreground: hsl(0, 0%, 98%);
