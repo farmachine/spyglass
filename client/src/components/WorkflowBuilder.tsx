@@ -530,12 +530,7 @@ function ValueEditor({
     }
   }, [selectedTool]);
 
-  // Update output description when tool changes
-  useEffect(() => {
-    if (selectedTool) {
-      onUpdate({ outputDescription: selectedTool.description });
-    }
-  }, [value.toolId]);
+
 
   // Get data type icon
   const getDataTypeIcon = (dataType: WorkflowValue['dataType']) => {
@@ -790,15 +785,6 @@ function ValueEditor({
                   )}
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Tool Output Description (Read-only) */}
-          {value.outputDescription && (
-            <div className="p-4 bg-white rounded-lg mt-4">
-              <div className="flex flex-col items-center text-center">
-                <p className="text-sm text-gray-800">{value.outputDescription}</p>
-              </div>
             </div>
           )}
         </div>
