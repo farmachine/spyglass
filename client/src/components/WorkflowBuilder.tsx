@@ -380,20 +380,34 @@ export function WorkflowBuilder({
                 </div>
 
                 {step.values.map((value, valueIndex) => (
-                  <ValueEditor
-                    key={value.id}
-                    step={step}
-                    value={value}
-                    excelFunctions={excelFunctions}
-                    knowledgeDocuments={knowledgeDocuments}
-                    onUpdate={(updates) => updateValue(step.id, value.id, updates)}
-                    onDelete={() => deleteValue(step.id, value.id)}
-                  />
+                  <div key={value.id}>
+                    <ValueEditor
+                      step={step}
+                      value={value}
+                      excelFunctions={excelFunctions}
+                      knowledgeDocuments={knowledgeDocuments}
+                      onUpdate={(updates) => updateValue(step.id, value.id, updates)}
+                      onDelete={() => deleteValue(step.id, value.id)}
+                    />
+                    {/* Grey line between values */}
+                    {valueIndex < step.values.length - 1 && (
+                      <div className="flex justify-center py-2">
+                        <div className="w-0.5 h-6 bg-gray-300"></div>
+                      </div>
+                    )}
+                  </div>
                 ))}
 
                 {step.values.length === 0 && (
                   <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
                     No values defined. Click "Add Value" to create one.
+                  </div>
+                )}
+
+                {/* Dotted line to Add Value button */}
+                {step.values.length > 0 && (
+                  <div className="flex justify-center py-2">
+                    <div className="w-0.5 h-6 border-l-2 border-dashed border-gray-300"></div>
                   </div>
                 )}
 
