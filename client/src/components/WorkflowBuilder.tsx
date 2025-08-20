@@ -790,32 +790,61 @@ function ValueEditor({
                   {param.type === 'data' ? (
                     <div className="mt-1 space-y-2">
                       {/* Selected value badges */}
-                      {value.inputValues[param.id]?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {value.inputValues[param.id].map((valueRef: string) => {
-                            // Split the reference to display with dot separator
-                            const parts = valueRef.replace('@', '').split('.');
-                            return (
-                              <Badge key={valueRef} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
-                                <span>{parts[0]}</span>
-                                <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                                <span>{parts[1]}</span>
-                                <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
-                                  onClick={() => {
-                                    const updatedValues = value.inputValues[param.id].filter((v: string) => v !== valueRef);
-                                    onUpdate({
-                                      inputValues: { ...value.inputValues, [param.id]: updatedValues }
-                                    });
-                                  }}
-                                />
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {(() => {
+                        // Get available data table steps and their identifiers
+                        const dataTableSteps = allSteps.filter(s => s.type === 'list' && s.id !== step.id);
+                        const identifierRefs = dataTableSteps.map(s => {
+                          const firstValue = s.values[0];
+                          return firstValue ? `@${s.name}.${firstValue.name}` : null;
+                        }).filter(Boolean);
+                        
+                        // Ensure identifier refs are always included
+                        const currentValues = value.inputValues[param.id] || [];
+                        const allValues = [...new Set([...identifierRefs, ...currentValues])];
+                        
+                        if (allValues.length > 0) {
+                          return (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {allValues.map((valueRef: string, index: number) => {
+                                // Split the reference to display with dot separator
+                                const parts = valueRef.replace('@', '').split('.');
+                                const isIdentifier = identifierRefs.includes(valueRef);
+                                
+                                return (
+                                  <Badge 
+                                    key={valueRef} 
+                                    className={`flex items-center gap-1.5 ${
+                                      isIdentifier 
+                                        ? 'bg-gray-700 text-white border-gray-700' 
+                                        : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <span>{parts[0]}</span>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${
+                                      isIdentifier ? 'bg-gray-400' : 'bg-slate-500'
+                                    }`} />
+                                    <span>{parts[1]}</span>
+                                    {!isIdentifier && (
+                                      <X 
+                                        className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
+                                        onClick={() => {
+                                          const updatedValues = currentValues.filter((v: string) => v !== valueRef);
+                                          onUpdate({
+                                            inputValues: { ...value.inputValues, [param.id]: updatedValues }
+                                          });
+                                        }}
+                                      />
+                                    )}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       
-                      {/* Value reference dropdown */}
+                      {/* Value reference dropdown - only show non-identifier values */}
                       <Select
                         value=""
                         onValueChange={(valueRef) => {
@@ -829,23 +858,41 @@ function ValueEditor({
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select values to reference..." />
+                          <SelectValue placeholder="Add additional values to reference..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {getAvailableValues().map((availableValue) => (
-                            <SelectItem key={availableValue.id} value={availableValue.id} className="focus:bg-gray-100">
-                              <div className="flex items-center gap-1.5">
-                                <span>{availableValue.stepName}</span>
-                                <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                                <span>{availableValue.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                          {getAvailableValues().length === 0 && (
-                            <div className="px-2 py-1.5 text-sm text-gray-500">
-                              No values available to reference
-                            </div>
-                          )}
+                          {(() => {
+                            // Get available values and filter out identifiers and already selected values
+                            const dataTableSteps = allSteps.filter(s => s.type === 'list' && s.id !== step.id);
+                            const identifierRefs = dataTableSteps.map(s => {
+                              const firstValue = s.values[0];
+                              return firstValue ? `@${s.name}.${firstValue.name}` : null;
+                            }).filter(Boolean);
+                            
+                            const currentValues = value.inputValues[param.id] || [];
+                            const availableValues = getAvailableValues().filter(av => 
+                              !identifierRefs.includes(av.id) && 
+                              !currentValues.includes(av.id)
+                            );
+                            
+                            if (availableValues.length === 0) {
+                              return (
+                                <div className="px-2 py-1.5 text-sm text-gray-500">
+                                  No additional values available
+                                </div>
+                              );
+                            }
+                            
+                            return availableValues.map((availableValue) => (
+                              <SelectItem key={availableValue.id} value={availableValue.id} className="focus:bg-gray-100">
+                                <div className="flex items-center gap-1.5">
+                                  <span>{availableValue.stepName}</span>
+                                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
+                                  <span>{availableValue.name}</span>
+                                </div>
+                              </SelectItem>
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
