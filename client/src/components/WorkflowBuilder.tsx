@@ -690,10 +690,6 @@ function ValueEditor({
           {value.outputDescription && (
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex flex-col items-center text-center">
-                <svg width="16" height="24" viewBox="0 0 16 24" className="text-gray-600 mb-1">
-                  <path d="M 8 0 L 8 16" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path d="M 4 12 L 8 16 L 12 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
                 <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
                 <p className="text-sm font-bold text-gray-800">{value.outputDescription}</p>
               </div>
