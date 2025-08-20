@@ -116,7 +116,7 @@ export default function DefineData({
   });
 
   const { data: wizardryFunctions = [] } = useQuery<ExcelWizardryFunction[]>({
-    queryKey: [`/api/wizardry-functions`],
+    queryKey: [`/api/projects/${project.id}/excel-functions`],
   });
 
   // Create mutations
