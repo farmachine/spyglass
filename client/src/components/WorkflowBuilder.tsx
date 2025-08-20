@@ -391,8 +391,8 @@ export function WorkflowBuilder({
                     />
                     {/* Grey line between values */}
                     {valueIndex < step.values.length - 1 && (
-                      <div className="flex justify-center py-2">
-                        <div className="w-0.5 h-6 bg-gray-300"></div>
+                      <div className="flex justify-center py-1">
+                        <div className="w-0.5 h-4 bg-gray-300"></div>
                       </div>
                     )}
                   </div>
@@ -406,13 +406,13 @@ export function WorkflowBuilder({
 
                 {/* Dotted line to Add Value button */}
                 {step.values.length > 0 && (
-                  <div className="flex justify-center py-2">
-                    <div className="w-0.5 h-6 border-l-2 border-dashed border-gray-300"></div>
+                  <div className="flex justify-center py-1">
+                    <div className="w-0.5 h-4 border-l-2 border-dashed border-gray-300"></div>
                   </div>
                 )}
 
                 {/* Add Value button below value cards */}
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-1">
                   <Button
                     variant="outline"
                     size="sm"
