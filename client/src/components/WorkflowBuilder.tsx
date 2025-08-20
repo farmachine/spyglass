@@ -29,8 +29,7 @@ import {
   Hash,
   Calendar,
   ToggleLeft,
-  Edit2,
-  Circle
+  Edit2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -539,9 +538,9 @@ function ValueEditor({
 
 
 
-  // Generic value icon
+  // Generic value icon - simple dot
   const getValueIcon = () => {
-    return <Circle className="h-4 w-4 text-gray-500" />;
+    return <div className="w-2 h-2 bg-gray-500 rounded-full" />;
   };
 
   return (
