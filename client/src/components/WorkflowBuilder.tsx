@@ -553,7 +553,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
+    <div className="border rounded-lg p-4 space-y-3 bg-white">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
           {/* Data type icon */}
