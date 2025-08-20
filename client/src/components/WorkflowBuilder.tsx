@@ -295,22 +295,6 @@ export function WorkflowBuilder({
 
                 {/* Controls - Top right corner */}
                 <div className="absolute top-4 right-4 flex items-center gap-2">
-                  {/* Type dropdown selector */}
-                  <Select
-                    value={step.type}
-                    onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
-                  >
-                    <SelectTrigger className="w-[130px] h-8 text-sm">
-                      <SelectValue>
-                        {step.type === 'list' ? 'Data Table' : 'Info Page'}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="list">Data Table</SelectItem>
-                      <SelectItem value="page">Info Page</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
                     className="p-1 hover:bg-gray-200 rounded"
@@ -360,14 +344,33 @@ export function WorkflowBuilder({
 
               {step.isExpanded && (
                 <div className="mt-6 space-y-4">
-                  <div>
-                    <Label>Name</Label>
-                    <Input
-                      value={step.name}
-                      onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                      placeholder="Enter name..."
-                      className="mt-2"
-                    />
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label>Name</Label>
+                      <Input
+                        value={step.name}
+                        onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                        placeholder="Enter name..."
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Type</Label>
+                      <Select
+                        value={step.type}
+                        onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
+                      >
+                        <SelectTrigger className="w-[130px] mt-2">
+                          <SelectValue>
+                            {step.type === 'list' ? 'Data Table' : 'Info Page'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="list">Data Table</SelectItem>
+                          <SelectItem value="page">Info Page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               )}
