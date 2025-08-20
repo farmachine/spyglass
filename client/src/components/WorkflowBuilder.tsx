@@ -794,7 +794,7 @@ function ValueEditor({
                             return (
                               <Badge key={valueRef} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
                                 <span>{parts[0]}</span>
-                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                                <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                                 <span>{parts[1]}</span>
                                 <X 
                                   className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
@@ -832,7 +832,7 @@ function ValueEditor({
                             <SelectItem key={availableValue.id} value={availableValue.id}>
                               <div className="flex items-center gap-1.5">
                                 <span>{availableValue.stepName}</span>
-                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                                <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                                 <span>{availableValue.name}</span>
                               </div>
                             </SelectItem>
