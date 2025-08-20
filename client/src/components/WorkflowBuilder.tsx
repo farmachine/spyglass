@@ -791,14 +791,14 @@ function ValueEditor({
                         <SelectContent>
                           <SelectItem value="user_document">
                             <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-gray-500" />
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
                               <span>User uploaded document</span>
                             </div>
                           </SelectItem>
                           {knowledgeDocuments.map((doc, index) => (
                             <SelectItem key={doc.id} value={doc.id}>
                               <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-blue-500" />
+                                <FileText className="h-4 w-4 text-gray-600" />
                                 <span>{doc.displayName || `Knowledge document ${index + 1}`}</span>
                               </div>
                             </SelectItem>
