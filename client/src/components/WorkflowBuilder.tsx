@@ -242,23 +242,17 @@ export function WorkflowBuilder({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end mb-6">
-        <Button onClick={addStep} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Step
-        </Button>
-      </div>
 
       <div className="flex flex-col items-center">
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full">
+            <Card className="relative w-full bg-gray-50 border-gray-300 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-200 rounded"
                   >
                     {step.isExpanded ? (
                       <ChevronUp className="h-4 w-4" />
@@ -269,9 +263,9 @@ export function WorkflowBuilder({
                   
                   <div className="flex items-center gap-2">
                     {step.type === 'list' ? (
-                      <List className="h-5 w-5 text-gray-600" />
+                      <List className="h-5 w-5 text-gray-700" />
                     ) : (
-                      <FileText className="h-5 w-5 text-gray-500" />
+                      <FileText className="h-5 w-5 text-gray-700" />
                     )}
                   </div>
 
@@ -285,7 +279,7 @@ export function WorkflowBuilder({
                     />
                   ) : (
                     <CardTitle 
-                      className="text-lg cursor-pointer hover:text-blue-600"
+                      className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
                       onClick={() => setEditingStepId(step.id)}
                     >
                       {step.name || 'Unnamed Step'}
@@ -295,14 +289,15 @@ export function WorkflowBuilder({
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreVertical className="h-4 w-4 text-gray-500" />
+                    <button className="p-1 hover:bg-gray-200 rounded">
+                      <MoreVertical className="h-4 w-4 text-gray-600" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem 
                       onClick={() => moveStep(stepIndex, 'up')}
                       disabled={stepIndex === 0}
+                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
                     >
                       <ArrowUp className="h-4 w-4 mr-2" />
                       Move Up
@@ -310,14 +305,15 @@ export function WorkflowBuilder({
                     <DropdownMenuItem 
                       onClick={() => moveStep(stepIndex, 'down')}
                       disabled={stepIndex === steps.length - 1}
+                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
                     >
                       <ArrowDown className="h-4 w-4 mr-2" />
                       Move Down
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="bg-gray-200" />
                     <DropdownMenuItem 
                       onClick={() => deleteStep(step.id)}
-                      className="text-gray-700 focus:text-gray-900"
+                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -422,18 +418,35 @@ export function WorkflowBuilder({
           </div>
         ))}
 
-        {steps.length === 0 && (
-          <Card className="p-12 w-3/4">
+        {steps.length === 0 ? (
+          <Card className="p-12 w-3/4 bg-gray-50 border-gray-300">
             <div className="text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No workflow steps yet</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
               <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
-              <Button onClick={addStep} className="gap-2">
+              <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
                 <Plus className="h-4 w-4" />
                 Add First Step
               </Button>
             </div>
           </Card>
+        ) : (
+          <>
+            {/* Dotted line from last card */}
+            <div className="flex flex-col items-center py-2">
+              <div className="w-0.5 h-8 border-l-2 border-dashed border-gray-400"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+            </div>
+            
+            {/* Add Step button */}
+            <Button 
+              onClick={addStep} 
+              className="gap-2 bg-gray-700 hover:bg-gray-800"
+            >
+              <Plus className="h-4 w-4" />
+              Add Step
+            </Button>
+          </>
         )}
       </div>
     </div>
