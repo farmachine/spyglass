@@ -248,6 +248,29 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   const handleSaveChanges = () => {
+    // Log the workflow data as JSON
+    const workflowData = {
+      steps: steps.map(step => ({
+        id: step.id,
+        name: step.name,
+        type: step.type,
+        description: step.description,
+        orderIndex: step.orderIndex,
+        values: step.values.map(value => ({
+          id: value.id,
+          name: value.name,
+          dataType: value.dataType,
+          description: value.description,
+          toolId: value.toolId,
+          inputValues: value.inputValues
+        }))
+      }))
+    };
+    
+    console.log('===== UPDATE FLOW - WORKFLOW DATA =====');
+    console.log(JSON.stringify(workflowData, null, 2));
+    console.log('========================================');
+    
     // Collapse all steps
     const collapsedSteps = steps.map(step => ({
       ...step,
