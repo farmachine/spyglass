@@ -262,7 +262,7 @@ export function WorkflowBuilder({
                     <Input
                       value={step.name}
                       onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                      placeholder="Step name..."
+                      placeholder="Name..."
                       className="max-w-xs"
                       autoFocus
                     />
@@ -272,7 +272,7 @@ export function WorkflowBuilder({
                         className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
                         onClick={() => setEditingStepId(step.id)}
                       >
-                        {step.name || 'Unnamed Step'}
+                        {step.name || 'Unnamed'}
                       </CardTitle>
                       {!step.isExpanded && step.description && (
                         <p className="text-sm text-gray-600 mt-1">{step.description}</p>
@@ -281,7 +281,21 @@ export function WorkflowBuilder({
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  {/* Type dropdown selector */}
+                  <Select
+                    value={step.type}
+                    onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
+                  >
+                    <SelectTrigger className="w-[110px] h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="list">List</SelectItem>
+                      <SelectItem value="page">Data Page</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
                     className="p-1 hover:bg-gray-200 rounded"
@@ -331,46 +345,22 @@ export function WorkflowBuilder({
 
               {step.isExpanded && (
                 <div className="mt-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Step Type</Label>
-                      <RadioGroup
-                        value={step.type}
-                        onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
-                        className="flex gap-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="list" id={`${step.id}-list`} />
-                          <Label htmlFor={`${step.id}-list`} className="cursor-pointer">
-                            List
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="page" id={`${step.id}-page`} />
-                          <Label htmlFor={`${step.id}-page`} className="cursor-pointer">
-                            Data Page
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    
-                    <div>
-                      <Label>Step Name</Label>
-                      <Input
-                        value={step.name}
-                        onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                        placeholder="Enter step name..."
-                        className="mt-2"
-                      />
-                    </div>
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={step.name}
+                      onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                      placeholder="Enter name..."
+                      className="mt-2"
+                    />
                   </div>
 
                   <div>
-                    <Label>Step Description</Label>
+                    <Label>Description</Label>
                     <Textarea
                       value={step.description}
                       onChange={(e) => updateStep(step.id, { description: e.target.value })}
-                      placeholder="Describe what this step extracts..."
+                      placeholder="Describe what this extracts..."
                       className="mt-2"
                       rows={2}
                     />
