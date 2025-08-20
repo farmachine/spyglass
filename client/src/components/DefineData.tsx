@@ -76,6 +76,7 @@ export default function DefineData({
 }: DefineDataProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const workflowRef = useRef<any>(null);
   
   // State
   const [schemaFieldDialog, setSchemaFieldDialog] = useState<{ 
@@ -311,11 +312,23 @@ export default function DefineData({
               Design your data extraction workflow
             </p>
           </div>
+          <Button 
+            onClick={() => {
+              // Trigger workflow save/collapse
+              if (workflowRef.current) {
+                workflowRef.current.collapseAll();
+              }
+            }}
+            className="bg-gray-700 hover:bg-gray-800 text-white"
+          >
+            Update Flow
+          </Button>
         </div>
       </div>
 
       {/* Workflow Builder View */}
       <WorkflowBuilder
+        ref={workflowRef}
         projectId={project.id}
         schemaFields={safeSchemaFields}
         collections={collectionsWithProps}

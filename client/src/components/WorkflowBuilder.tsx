@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,14 +84,14 @@ interface WorkflowBuilderProps {
   onSave: (steps: WorkflowStep[]) => Promise<void>;
 }
 
-export function WorkflowBuilder({
+export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   projectId,
   schemaFields,
   collections,
   excelFunctions,
   knowledgeDocuments,
   onSave
-}: WorkflowBuilderProps) {
+}, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
@@ -256,18 +256,13 @@ export function WorkflowBuilder({
     setSteps(collapsedSteps);
   };
 
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    collapseAll: handleSaveChanges
+  }));
+
   return (
     <div className="space-y-6 relative">
-      {/* Save Changes button - top right */}
-      <div className="absolute top-0 right-0 z-10">
-        <Button 
-          onClick={handleSaveChanges}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          Save Changes
-        </Button>
-      </div>
-
       <div className="flex flex-col items-center">
         {/* Start dot and arrow */}
         {steps.length > 0 && (
@@ -541,7 +536,7 @@ export function WorkflowBuilder({
       </div>
     </div>
   );
-}
+});
 
 // Value Editor Component
 interface ValueEditorProps {
