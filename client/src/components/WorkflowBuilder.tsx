@@ -791,9 +791,13 @@ function ValueEditor({
                     <div className="mt-1 space-y-2">
                       {/* Selected value badges */}
                       {(() => {
-                        // Get available data table steps and their identifiers
-                        const dataTableSteps = allSteps.filter(s => s.type === 'list' && s.id !== step.id);
-                        const identifierRefs = dataTableSteps.map(s => {
+                        // Get previous data table steps and their identifiers (steps before current step)
+                        const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
+                        const previousDataTableSteps = allSteps
+                          .slice(0, currentStepIndex)
+                          .filter(s => s.type === 'list');
+                        
+                        const identifierRefs = previousDataTableSteps.map(s => {
                           const firstValue = s.values[0];
                           return firstValue ? `@${s.name}.${firstValue.name}` : null;
                         }).filter(Boolean);
@@ -862,9 +866,13 @@ function ValueEditor({
                         </SelectTrigger>
                         <SelectContent>
                           {(() => {
-                            // Get available values and filter out identifiers and already selected values
-                            const dataTableSteps = allSteps.filter(s => s.type === 'list' && s.id !== step.id);
-                            const identifierRefs = dataTableSteps.map(s => {
+                            // Get previous data table steps and their identifiers
+                            const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
+                            const previousDataTableSteps = allSteps
+                              .slice(0, currentStepIndex)
+                              .filter(s => s.type === 'list');
+                            
+                            const identifierRefs = previousDataTableSteps.map(s => {
                               const firstValue = s.values[0];
                               return firstValue ? `@${s.name}.${firstValue.name}` : null;
                             }).filter(Boolean);
