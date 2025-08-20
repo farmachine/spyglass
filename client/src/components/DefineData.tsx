@@ -112,7 +112,7 @@ export default function DefineData({
   });
 
   const { data: knowledgeDocuments = [] } = useQuery<KnowledgeDocument[]>({
-    queryKey: [`/api/projects/${project.id}/knowledge-documents`],
+    queryKey: [`/api/projects/${project.id}/knowledge`],
   });
 
   const { data: wizardryFunctions = [] } = useQuery<ExcelWizardryFunction[]>({
