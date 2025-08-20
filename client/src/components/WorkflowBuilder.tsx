@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { 
   ProjectSchemaField, 
   ObjectCollection, 
@@ -46,6 +47,7 @@ import type {
   ExcelWizardryFunction,
   KnowledgeDocument 
 } from "@shared/schema";
+import { useKnowledgeDocuments } from "@/hooks/useKnowledge";
 
 interface WorkflowStep {
   id: string;
@@ -707,7 +709,59 @@ function ValueEditor({
               {inputParameters.map((param) => (
                 <div key={param.id}>
                   <Label className="text-xs">{param.name}</Label>
-                  {param.type === 'textarea' ? (
+                  {param.type === 'document' ? (
+                    <div className="mt-1 space-y-2 border border-gray-200 rounded-md p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`${param.id}-user-doc`}
+                            checked={value.inputValues[param.id]?.includes('user_document') || false}
+                            onCheckedChange={(checked) => {
+                              const currentDocs = value.inputValues[param.id] || [];
+                              const updatedDocs = checked 
+                                ? [...currentDocs.filter((d: string) => d !== 'user_document'), 'user_document']
+                                : currentDocs.filter((d: string) => d !== 'user_document');
+                              onUpdate({
+                                inputValues: { ...value.inputValues, [param.id]: updatedDocs }
+                              });
+                            }}
+                          />
+                          <label 
+                            htmlFor={`${param.id}-user-doc`}
+                            className="text-sm cursor-pointer"
+                          >
+                            User uploaded document
+                          </label>
+                        </div>
+                        {knowledgeDocuments.map((doc, index) => (
+                          <div key={doc.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`${param.id}-${doc.id}`}
+                              checked={value.inputValues[param.id]?.includes(doc.id) || false}
+                              onCheckedChange={(checked) => {
+                                const currentDocs = value.inputValues[param.id] || [];
+                                const updatedDocs = checked 
+                                  ? [...currentDocs.filter((d: string) => d !== doc.id), doc.id]
+                                  : currentDocs.filter((d: string) => d !== doc.id);
+                                onUpdate({
+                                  inputValues: { ...value.inputValues, [param.id]: updatedDocs }
+                                });
+                              }}
+                            />
+                            <label 
+                              htmlFor={`${param.id}-${doc.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {doc.name || `Knowledge document ${index + 1}`}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      {(!knowledgeDocuments || knowledgeDocuments.length === 0) && (
+                        <p className="text-xs text-gray-500 italic">No knowledge documents available</p>
+                      )}
+                    </div>
+                  ) : param.type === 'textarea' ? (
                     <Textarea
                       value={value.inputValues[param.id] || ''}
                       onChange={(e) => onUpdate({
