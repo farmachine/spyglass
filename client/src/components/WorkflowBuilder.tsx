@@ -278,12 +278,17 @@ export function WorkflowBuilder({
                       autoFocus
                     />
                   ) : (
-                    <CardTitle 
-                      className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
-                      onClick={() => setEditingStepId(step.id)}
-                    >
-                      {step.name || 'Unnamed Step'}
-                    </CardTitle>
+                    <div className="flex flex-col">
+                      <CardTitle 
+                        className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
+                        onClick={() => setEditingStepId(step.id)}
+                      >
+                        {step.name || 'Unnamed Step'}
+                      </CardTitle>
+                      {step.description && (
+                        <p className="text-sm text-gray-600 mt-1">{step.description}</p>
+                      )}
+                    </div>
                   )}
                 </div>
 
