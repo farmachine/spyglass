@@ -254,41 +254,47 @@ export function WorkflowBuilder({
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
             <Card className="relative w-full bg-white border-gray-300 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {step.type === 'list' ? (
-                      <List className="h-5 w-5 text-gray-700" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-gray-700" />
-                    )}
-                  </div>
-
+            <CardHeader className="pb-4 relative">
+              <div className="flex flex-col items-center">
+                {/* Icon and Title - Centered */}
+                <div className="flex items-center gap-2 mb-2">
+                  {step.type === 'list' ? (
+                    <List className="h-5 w-5 text-gray-700" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-gray-700" />
+                  )}
+                  
                   {editingStepId === step.id ? (
                     <Input
                       value={step.name}
                       onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                      onBlur={() => setEditingStepId(null)}
                       placeholder="Name..."
-                      className="max-w-xs"
+                      className="max-w-xs text-center"
                       autoFocus
                     />
                   ) : (
-                    <div className="flex flex-col">
-                      <CardTitle 
-                        className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
-                        onClick={() => setEditingStepId(step.id)}
-                      >
-                        {step.name || 'Unnamed'}
-                      </CardTitle>
-                      {!step.isExpanded && step.description && (
-                        <p className="text-sm text-gray-600 mt-1">{step.description}</p>
-                      )}
-                    </div>
+                    <CardTitle 
+                      className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
+                      onClick={() => setEditingStepId(step.id)}
+                    >
+                      {step.name || 'Unnamed'}
+                    </CardTitle>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+
+
+                {/* Description and Dot - Centered (collapsed only) */}
+                {!step.isExpanded && step.description && (
+                  <div className="flex flex-col items-center">
+                    <p className="text-sm text-gray-600 text-center">{step.description}</p>
+                    <div className="mt-2 w-2 h-2 bg-gray-400 rounded-full"></div>
+                  </div>
+                )}
+
+                {/* Controls - Top right corner */}
+                <div className="absolute top-4 right-4 flex items-center gap-2">
                   {/* Type dropdown selector */}
                   <Select
                     value={step.type}
@@ -551,48 +557,47 @@ function ValueEditor({
   };
 
   return (
-    <div className="border border-gray-300 rounded-lg p-4 space-y-3 bg-white">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
+    <div className="border border-gray-300 rounded-lg p-4 space-y-3 bg-white relative">
+      <div className="flex flex-col items-center">
+        {/* Icon and Name - Centered */}
+        <div className="flex items-center gap-2 mb-1">
           {/* Data type icon */}
-          <div className="flex-shrink-0">
-            {getDataTypeIcon(value.dataType)}
-          </div>
+          {getDataTypeIcon(value.dataType)}
           
-          <div className="flex-1">
-            {isExpanded ? (
-              <Input
-                value={value.name}
-                onChange={(e) => onUpdate({ name: e.target.value })}
-                placeholder="Value name..."
-                className="font-medium"
-              />
-            ) : (
-              <div className="flex flex-col">
-                <div className="font-medium text-gray-900">
-                  {value.name || "Untitled Value"}
-                </div>
-                {value.description && (
-                  <div className="text-sm text-gray-600 mt-0.5">
-                    {value.description}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {!isExpanded && selectedTool && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded text-sm">
-              {selectedTool.toolType === "AI_ONLY" ? (
-                <Brain className="h-4 w-4 text-blue-500" />
-              ) : (
-                <Code className="h-4 w-4 text-gray-500" />
-              )}
-              <span className="text-gray-700">{selectedTool.name}</span>
+          {/* Name */}
+          {isExpanded ? (
+            <Input
+              value={value.name}
+              onChange={(e) => onUpdate({ name: e.target.value })}
+              placeholder="Value name..."
+              className="font-medium text-center w-48"
+            />
+          ) : (
+            <div className="font-medium text-gray-900">
+              {value.name || "Untitled Value"}
             </div>
           )}
+        </div>
 
-          {/* Chevron button */}
+        {/* Description - Centered when collapsed (no dot for values) */}
+        {!isExpanded && value.description && (
+          <p className="text-sm text-gray-600 text-center">{value.description}</p>
+        )}
+
+        {/* Tool badge when collapsed */}
+        {!isExpanded && selectedTool && (
+          <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded text-sm mt-2">
+            {selectedTool.toolType === "AI_ONLY" ? (
+              <Brain className="h-4 w-4 text-blue-500" />
+            ) : (
+              <Code className="h-4 w-4 text-gray-500" />
+            )}
+            <span className="text-gray-700">{selectedTool.name}</span>
+          </div>
+        )}
+
+        {/* Controls - Top right corner */}
+        <div className="absolute top-4 right-4 flex items-center gap-1">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1 hover:bg-gray-200 rounded"
@@ -616,15 +621,16 @@ function ValueEditor({
       </div>
 
       {isExpanded && (
-        <div className="space-y-3 pl-8">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Data Type</Label>
+        <div className="space-y-3">
+          {/* Data Type - Below Name */}
+          <div className="flex justify-center">
+            <div className="w-48">
+              <Label className="text-xs text-gray-500 mb-1 block text-center">Data Type</Label>
               <Select
                 value={value.dataType}
                 onValueChange={(val) => onUpdate({ dataType: val as WorkflowValue['dataType'] })}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -661,7 +667,10 @@ function ValueEditor({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          {/* Tool and Input Values */}
+          <div className="space-y-3">
             <div>
               <Label>Tool</Label>
               <Select
