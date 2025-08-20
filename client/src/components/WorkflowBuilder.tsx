@@ -245,8 +245,8 @@ export function WorkflowBuilder({
 
       <div className="flex flex-col items-center">
         {steps.map((step, stepIndex) => (
-          <div key={step.id} className="flex flex-col items-center">
-            <Card className="relative w-full max-w-2xl">
+          <div key={step.id} className="flex flex-col items-center w-3/4">
+            <Card className="relative w-full">
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
@@ -411,7 +411,7 @@ export function WorkflowBuilder({
         ))}
 
         {steps.length === 0 && (
-          <Card className="p-12">
+          <Card className="p-12 w-3/4">
             <div className="text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No workflow steps yet</h3>
