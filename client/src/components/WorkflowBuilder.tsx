@@ -579,18 +579,6 @@ function ValueEditor({
           <p className="text-sm text-gray-600 text-center">{value.description}</p>
         )}
 
-        {/* Tool badge when collapsed */}
-        {!isExpanded && selectedTool && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded text-sm mt-2">
-            {selectedTool.toolType === "AI_ONLY" ? (
-              <Brain className="h-4 w-4 text-blue-500" />
-            ) : (
-              <Code className="h-4 w-4 text-gray-500" />
-            )}
-            <span className="text-gray-700">{selectedTool.name}</span>
-          </div>
-        )}
-
         {/* Controls - Top right corner */}
         <div className="absolute top-4 right-4 flex items-center gap-1">
           <button
