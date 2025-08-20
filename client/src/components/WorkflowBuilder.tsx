@@ -471,7 +471,19 @@ function ValueEditor({
   onDelete
 }: ValueEditorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const selectedTool = excelFunctions.find(f => f.id === value.toolId);
+  
+  // Filter tools based on step type
+  const filteredTools = excelFunctions.filter(tool => {
+    if (step.type === 'list') {
+      // Data Table - show tools with multiple output
+      return tool.outputType === 'multiple';
+    } else {
+      // Info Page - show tools with single output
+      return tool.outputType === 'single';
+    }
+  });
+  
+  const selectedTool = filteredTools.find(f => f.id === value.toolId);
   const [inputParameters, setInputParameters] = useState<any[]>([]);
 
   // Parse tool input parameters
@@ -586,18 +598,24 @@ function ValueEditor({
                   <SelectValue placeholder="Select tool..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {excelFunctions.map((tool) => (
-                    <SelectItem key={tool.id} value={tool.id}>
-                      <div className="flex items-center gap-2">
-                        {tool.toolType === "AI_ONLY" ? (
-                          <Brain className="h-4 w-4 text-blue-500" />
-                        ) : (
-                          <Settings className="h-4 w-4 text-gray-500" />
-                        )}
-                        <span>{tool.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {filteredTools.length === 0 ? (
+                    <div className="p-2 text-sm text-gray-500">
+                      No {step.type === 'list' ? 'multiple output' : 'single output'} tools available
+                    </div>
+                  ) : (
+                    filteredTools.map((tool) => (
+                      <SelectItem key={tool.id} value={tool.id}>
+                        <div className="flex items-center gap-2">
+                          {tool.toolType === "AI_ONLY" ? (
+                            <Brain className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <Settings className="h-4 w-4 text-gray-500" />
+                          )}
+                          <span>{tool.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
