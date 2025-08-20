@@ -535,14 +535,14 @@ function ValueEditor({
           </div>
 
           {selectedTool && (
-            <Badge variant="secondary" className="text-xs">
+            <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded text-sm">
               {selectedTool.toolType === "AI_ONLY" ? (
-                <Brain className="h-3 w-3 mr-1" />
+                <Brain className="h-4 w-4 text-blue-500" />
               ) : (
-                <Settings className="h-3 w-3 mr-1" />
+                <Settings className="h-4 w-4 text-gray-500" />
               )}
-              {selectedTool.name}
-            </Badge>
+              <span className="text-gray-700">{selectedTool.name}</span>
+            </div>
           )}
 
           <Button
