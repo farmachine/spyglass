@@ -829,7 +829,7 @@ function ValueEditor({
                         </SelectTrigger>
                         <SelectContent>
                           {getAvailableValues().map((availableValue) => (
-                            <SelectItem key={availableValue.id} value={availableValue.id}>
+                            <SelectItem key={availableValue.id} value={availableValue.id} className="focus:bg-gray-100">
                               <div className="flex items-center gap-1.5">
                                 <span>{availableValue.stepName}</span>
                                 <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
@@ -889,14 +889,14 @@ function ValueEditor({
                           <SelectValue placeholder="Select documents..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user_document">
+                          <SelectItem value="user_document" className="focus:bg-gray-100">
                             <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                              <div className="w-2 h-2 bg-slate-500 rounded-full" />
                               <span>User uploaded document</span>
                             </div>
                           </SelectItem>
                           {knowledgeDocuments.map((doc, index) => (
-                            <SelectItem key={doc.id} value={doc.id}>
+                            <SelectItem key={doc.id} value={doc.id} className="focus:bg-gray-100">
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-gray-600" />
                                 <span>{doc.displayName || `Knowledge document ${index + 1}`}</span>
