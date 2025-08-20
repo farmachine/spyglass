@@ -581,7 +581,7 @@ function ValueEditor({
               {selectedTool.toolType === "AI_ONLY" ? (
                 <Brain className="h-4 w-4 text-blue-500" />
               ) : (
-                <Settings className="h-4 w-4 text-gray-500" />
+                <Code className="h-4 w-4 text-gray-500" />
               )}
               <span className="text-gray-700">{selectedTool.name}</span>
             </div>
