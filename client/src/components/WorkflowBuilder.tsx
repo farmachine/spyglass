@@ -250,17 +250,6 @@ export function WorkflowBuilder({
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <button
-                    onClick={() => toggleStepExpanded(step.id)}
-                    className="p-1 hover:bg-gray-200 rounded"
-                  >
-                    {step.isExpanded ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </button>
-                  
                   <div className="flex items-center gap-2">
                     {step.type === 'list' ? (
                       <List className="h-5 w-5 text-gray-700" />
@@ -285,50 +274,63 @@ export function WorkflowBuilder({
                       >
                         {step.name || 'Unnamed Step'}
                       </CardTitle>
-                      {step.description && (
+                      {!step.isExpanded && step.description && (
                         <p className="text-sm text-gray-600 mt-1">{step.description}</p>
                       )}
                     </div>
                   )}
                 </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="p-1 hover:bg-gray-200 rounded">
-                      <MoreVertical className="h-4 w-4 text-gray-600" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white">
-                    <DropdownMenuItem 
-                      onClick={() => moveStep(stepIndex, 'up')}
-                      disabled={stepIndex === 0}
-                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
-                    >
-                      <ArrowUp className="h-4 w-4 mr-2" />
-                      Move Up
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => moveStep(stepIndex, 'down')}
-                      disabled={stepIndex === steps.length - 1}
-                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
-                    >
-                      <ArrowDown className="h-4 w-4 mr-2" />
-                      Move Down
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-200" />
-                    <DropdownMenuItem 
-                      onClick={() => deleteStep(step.id)}
-                      className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => toggleStepExpanded(step.id)}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    {step.isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-gray-600" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                    )}
+                  </button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 hover:bg-gray-200 rounded">
+                        <MoreVertical className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-white">
+                      <DropdownMenuItem 
+                        onClick={() => moveStep(stepIndex, 'up')}
+                        disabled={stepIndex === 0}
+                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                      >
+                        <ArrowUp className="h-4 w-4 mr-2" />
+                        Move Up
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => moveStep(stepIndex, 'down')}
+                        disabled={stepIndex === steps.length - 1}
+                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                      >
+                        <ArrowDown className="h-4 w-4 mr-2" />
+                        Move Down
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-gray-200" />
+                      <DropdownMenuItem 
+                        onClick={() => deleteStep(step.id)}
+                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {step.isExpanded && (
-                <div className="mt-4 space-y-4">
+                <div className="mt-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Step Type</Label>
