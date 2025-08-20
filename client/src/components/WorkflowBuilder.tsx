@@ -247,8 +247,26 @@ export function WorkflowBuilder({
     }
   };
 
+  const handleSaveChanges = () => {
+    // Collapse all steps
+    const collapsedSteps = steps.map(step => ({
+      ...step,
+      isExpanded: false
+    }));
+    setSteps(collapsedSteps);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Save Changes button - top right */}
+      <div className="absolute top-0 right-0 z-10">
+        <Button 
+          onClick={handleSaveChanges}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          Save Changes
+        </Button>
+      </div>
 
       <div className="flex flex-col items-center">
         {/* Start dot and arrow */}
