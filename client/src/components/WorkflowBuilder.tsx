@@ -675,9 +675,9 @@ function ValueEditor({
             </div>
           </div>
 
-          {/* Dynamic Input Parameters */}
+          {/* Dynamic Input Parameters - integrated without container */}
           {inputParameters.length > 0 && (
-            <div className="space-y-3 p-3 bg-white rounded border">
+            <div className="space-y-3 mt-4">
               <Label className="text-sm font-medium">Input Values</Label>
               {inputParameters.map((param) => (
                 <div key={param.id}>
@@ -707,9 +707,9 @@ function ValueEditor({
             </div>
           )}
 
-          {/* Output Description (Read-only) */}
+          {/* Output Description (Read-only) - white background */}
           {value.outputDescription && (
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 bg-white rounded-lg mt-4">
               <div className="flex flex-col items-center text-center">
                 <p className="text-sm text-gray-800">{value.outputDescription}</p>
               </div>
