@@ -711,7 +711,6 @@ function ValueEditor({
           {value.outputDescription && (
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex flex-col items-center text-center">
-                <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
                 <p className="text-sm text-gray-800">{value.outputDescription}</p>
               </div>
             </div>
