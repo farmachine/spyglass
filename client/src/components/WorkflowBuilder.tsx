@@ -789,11 +789,15 @@ function ValueEditor({
                       {value.inputValues[param.id]?.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {value.inputValues[param.id].map((valueRef: string) => {
+                            // Split the reference to display with dot separator
+                            const parts = valueRef.replace('@', '').split('.');
                             return (
-                              <Badge key={valueRef} className="flex items-center gap-1 bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                {valueRef}
+                              <Badge key={valueRef} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
+                                <span>{parts[0]}</span>
+                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                                <span>{parts[1]}</span>
                                 <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                  className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
                                   onClick={() => {
                                     const updatedValues = value.inputValues[param.id].filter((v: string) => v !== valueRef);
                                     onUpdate({
@@ -826,10 +830,10 @@ function ValueEditor({
                         <SelectContent>
                           {getAvailableValues().map((availableValue) => (
                             <SelectItem key={availableValue.id} value={availableValue.id}>
-                              <div className="flex items-center gap-2">
-                                <Hash className="h-4 w-4 text-gray-500" />
-                                <span>{availableValue.id}</span>
-                                <span className="text-gray-500">({availableValue.stepName})</span>
+                              <div className="flex items-center gap-1.5">
+                                <span>{availableValue.stepName}</span>
+                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                                <span>{availableValue.name}</span>
                               </div>
                             </SelectItem>
                           ))}
