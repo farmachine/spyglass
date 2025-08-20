@@ -791,20 +791,17 @@ function ValueEditor({
                     <div className="mt-1 space-y-2">
                       {/* Selected value badges */}
                       {(() => {
-                        // Get previous data table steps and their identifiers (steps before current step)
-                        const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
-                        const previousDataTableSteps = allSteps
-                          .slice(0, currentStepIndex)
-                          .filter(s => s.type === 'list');
+                        // For Data Table steps, the first value is the identifier
+                        let identifierRef = null;
+                        if (step.type === 'list' && step.values[0]) {
+                          identifierRef = `@${step.name}.${step.values[0].name}`;
+                        }
                         
-                        const identifierRefs = previousDataTableSteps.map(s => {
-                          const firstValue = s.values[0];
-                          return firstValue ? `@${s.name}.${firstValue.name}` : null;
-                        }).filter(Boolean);
-                        
-                        // Ensure identifier refs are always included
+                        // Ensure identifier ref is always included if it exists
                         const currentValues = value.inputValues[param.id] || [];
-                        const allValues = [...new Set([...identifierRefs, ...currentValues])];
+                        const allValues = identifierRef 
+                          ? [...new Set([identifierRef, ...currentValues])]
+                          : currentValues;
                         
                         if (allValues.length > 0) {
                           return (
@@ -812,7 +809,7 @@ function ValueEditor({
                               {allValues.map((valueRef: string, index: number) => {
                                 // Split the reference to display with dot separator
                                 const parts = valueRef.replace('@', '').split('.');
-                                const isIdentifier = identifierRefs.includes(valueRef);
+                                const isIdentifier = valueRef === identifierRef;
                                 
                                 return (
                                   <Badge 
@@ -866,21 +863,16 @@ function ValueEditor({
                         </SelectTrigger>
                         <SelectContent>
                           {(() => {
-                            // Get previous data table steps and their identifiers
-                            const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
-                            const previousDataTableSteps = allSteps
-                              .slice(0, currentStepIndex)
-                              .filter(s => s.type === 'list');
-                            
-                            const identifierRefs = previousDataTableSteps.map(s => {
-                              const firstValue = s.values[0];
-                              return firstValue ? `@${s.name}.${firstValue.name}` : null;
-                            }).filter(Boolean);
+                            // Filter out the identifier value if this is a Data Table step
+                            let identifierRef = null;
+                            if (step.type === 'list' && step.values[0]) {
+                              identifierRef = `@${step.name}.${step.values[0].name}`;
+                            }
                             
                             const currentValues = value.inputValues[param.id] || [];
                             const availableValues = getAvailableValues().filter(av => 
-                              !identifierRefs.includes(av.id) && 
-                              !currentValues.includes(av.id)
+                              av.id !== identifierRef && // Exclude identifier (it's always included)
+                              !currentValues.includes(av.id) // Exclude already selected values
                             );
                             
                             if (availableValues.length === 0) {
