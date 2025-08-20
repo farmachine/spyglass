@@ -554,27 +554,18 @@ function ValueEditor({
   return (
     <div className="border border-gray-300 rounded-lg p-4 space-y-3 bg-white relative">
       <div className="flex flex-col items-center">
-        {/* Icon and Name - Centered */}
+        {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
-          {/* Generic value icon */}
+          {/* Value icon */}
           {getValueIcon()}
           
-          {/* Name */}
-          {isExpanded ? (
-            <Input
-              value={value.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              placeholder="Value name..."
-              className="font-medium text-center w-48"
-            />
-          ) : (
-            <div className="font-medium text-gray-900">
-              {value.name || "Untitled Value"}
-            </div>
-          )}
+          {/* Name Display Only */}
+          <div className="font-medium text-gray-900">
+            {value.name || "Untitled Value"}
+          </div>
         </div>
 
-        {/* Description - Centered when collapsed (no dot for values) */}
+        {/* Description - Centered when collapsed */}
         {!isExpanded && value.description && (
           <p className="text-sm text-gray-600 text-center">{value.description}</p>
         )}
@@ -605,10 +596,18 @@ function ValueEditor({
 
       {isExpanded && (
         <div className="space-y-3">
-          {/* Data Type - Below Name */}
-          <div className="flex justify-center">
-            <div className="w-48">
-              <Label className="text-xs text-gray-500 mb-1 block text-center">Data Type</Label>
+          {/* Name and Data Type on same row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Name</Label>
+              <Input
+                value={value.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                placeholder="Value name..."
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500 mb-1">Data Type</Label>
               <Select
                 value={value.dataType}
                 onValueChange={(val) => onUpdate({ dataType: val as WorkflowValue['dataType'] })}
@@ -652,39 +651,37 @@ function ValueEditor({
             </div>
           </div>
 
-          {/* Tool and Input Values */}
-          <div className="space-y-3">
-            <div>
-              <Label>Tool</Label>
-              <Select
-                value={value.toolId}
-                onValueChange={(val) => onUpdate({ toolId: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select tool..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredTools.length === 0 ? (
-                    <div className="p-2 text-sm text-gray-500">
-                      No {step.type === 'list' ? 'multiple output' : 'single output'} tools available
-                    </div>
-                  ) : (
-                    filteredTools.map((tool) => (
-                      <SelectItem key={tool.id} value={tool.id}>
-                        <div className="flex items-center gap-2 -ml-2">
-                          {tool.toolType === "AI_ONLY" ? (
-                            <Brain className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <Code className="h-4 w-4 text-gray-500" />
-                          )}
-                          <span>{tool.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Tool */}
+          <div>
+            <Label>Tool</Label>
+            <Select
+              value={value.toolId}
+              onValueChange={(val) => onUpdate({ toolId: val })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select tool..." />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredTools.length === 0 ? (
+                  <div className="p-2 text-sm text-gray-500">
+                    No {step.type === 'list' ? 'multiple output' : 'single output'} tools available
+                  </div>
+                ) : (
+                  filteredTools.map((tool) => (
+                    <SelectItem key={tool.id} value={tool.id}>
+                      <div className="flex items-center gap-2 -ml-2">
+                        {tool.toolType === "AI_ONLY" ? (
+                          <Brain className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <Code className="h-4 w-4 text-gray-500" />
+                        )}
+                        <span>{tool.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Dynamic Input Parameters - integrated without container */}
@@ -702,7 +699,7 @@ function ValueEditor({
                           {value.inputValues[param.id].map((docId: string) => {
                             const docName = docId === 'user_document' 
                               ? 'User uploaded document'
-                              : knowledgeDocuments.find(d => d.id === docId)?.name || 'Unknown document';
+                              : knowledgeDocuments.find(d => d.id === docId)?.displayName || 'Unknown document';
                             return (
                               <Badge key={docId} className="flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300">
                                 {docName}
@@ -748,7 +745,7 @@ function ValueEditor({
                             <SelectItem key={doc.id} value={doc.id}>
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-blue-500" />
-                                <span>{doc.name || `Knowledge document ${index + 1}`}</span>
+                                <span>{doc.displayName || `Knowledge document ${index + 1}`}</span>
                               </div>
                             </SelectItem>
                           ))}
@@ -779,34 +776,17 @@ function ValueEditor({
               ))}
             </div>
           )}
-        </div>
-      )}
-      
-      {/* Value Description Section - editable without dot */}
-      {isExpanded && (
-        <div className="mt-6 p-4 bg-white rounded-lg group relative">
-          <div className="flex flex-col items-center">
-            {editingDescription ? (
-              <Textarea
-                value={value.description}
-                onChange={(e) => onUpdate({ description: e.target.value })}
-                onBlur={() => setEditingDescription(false)}
-                placeholder="Describe this value..."
-                className="text-sm text-center resize-none w-full"
-                rows={2}
-                autoFocus
-              />
-            ) : (
-              <>
-                <p className="text-sm text-gray-700 text-center">
-                  {value.description || "A list of all columns in the excel provided by the pension scheme provider"}
-                </p>
-                <Edit2 
-                  className="absolute top-2 right-2 h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-gray-600"
-                  onClick={() => setEditingDescription(true)}
-                />
-              </>
-            )}
+
+          {/* Value Description - Editable */}
+          <div className="mt-4">
+            <Label className="text-xs text-gray-500 mb-1">Description</Label>
+            <Textarea
+              value={value.description || ''}
+              onChange={(e) => onUpdate({ description: e.target.value })}
+              placeholder="Describe this value..."
+              className="w-full resize-none"
+              rows={2}
+            />
           </div>
         </div>
       )}
