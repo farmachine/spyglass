@@ -400,7 +400,7 @@ export function WorkflowBuilder({
 
                 {/* Description Section with dot format */}
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg group relative">
-                  <div className="flex flex-col items-center text-center">
+                  <div className="flex flex-col items-center">
                     <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
                     {editingDescription === step.id ? (
                       <Textarea
@@ -414,7 +414,7 @@ export function WorkflowBuilder({
                       />
                     ) : (
                       <>
-                        <p className="text-sm text-gray-800">
+                        <p className="text-sm text-gray-800 text-center w-full">
                           {step.description || "Click to add description..."}
                         </p>
                         <button
