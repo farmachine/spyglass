@@ -37,6 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Responsiveness**: Responsive design using Tailwind CSS.
 - **Navigation**: Consolidated Project Admin interface and streamlined session view navigation with integrated left sidebar. Removed redundant "Schema Information" section from Project Admin sidebar (January 2025).
 - **Terminology**: "Extraction Sessions" renamed to "Overview" for clarity. "Data" tab renamed to "Flow" in Project Admin interface (January 2025).
+- **Flow Interface Updates** (January 2025): Simplified workflow builder with type selector as top-right dropdown (Data Table/Info Page), removed "Step" prefix from labels, non-editable value names when collapsed, data type icons (T for text, # for number, etc.), tool filtering by outputType, minimal output display with centered dot and description.
 - **Dynamic Page Titles**: Comprehensive system using `usePageTitle` hook for contextual titles.
 
 ### Technical Implementations
