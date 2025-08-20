@@ -413,6 +413,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       value={value}
                       excelFunctions={excelFunctions}
                       knowledgeDocuments={knowledgeDocuments}
+                      allSteps={steps}
+                      currentValueIndex={valueIndex}
                       onUpdate={(updates) => updateValue(step.id, value.id, updates)}
                       onDelete={() => deleteValue(step.id, value.id)}
                     />
@@ -544,6 +546,8 @@ interface ValueEditorProps {
   value: WorkflowValue;
   excelFunctions: ExcelWizardryFunction[];
   knowledgeDocuments: KnowledgeDocument[];
+  allSteps: WorkflowStep[];
+  currentValueIndex: number;
   onUpdate: (updates: Partial<WorkflowValue>) => void;
   onDelete: () => void;
 }
@@ -553,11 +557,45 @@ function ValueEditor({
   value,
   excelFunctions,
   knowledgeDocuments,
+  allSteps,
+  currentValueIndex,
   onUpdate,
   onDelete
 }: ValueEditorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  
+  // Get available values for referencing
+  const getAvailableValues = () => {
+    const availableValues: Array<{id: string; name: string; stepName: string}> = [];
+    
+    // Get current step index
+    const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
+    
+    // Add all values from previous steps
+    for (let i = 0; i < currentStepIndex; i++) {
+      const prevStep = allSteps[i];
+      prevStep.values.forEach(v => {
+        availableValues.push({
+          id: `@${prevStep.name}.${v.name}`,
+          name: v.name,
+          stepName: prevStep.name
+        });
+      });
+    }
+    
+    // Add previous values from current step
+    for (let i = 0; i < currentValueIndex; i++) {
+      const prevValue = step.values[i];
+      availableValues.push({
+        id: `@${step.name}.${prevValue.name}`,
+        name: prevValue.name,
+        stepName: step.name
+      });
+    }
+    
+    return availableValues;
+  };
   
   // Filter tools based on step type
   const filteredTools = excelFunctions.filter(tool => {
@@ -745,7 +783,65 @@ function ValueEditor({
               {inputParameters.map((param) => (
                 <div key={param.id}>
                   <Label className="text-xs">{param.name}</Label>
-                  {param.type === 'document' ? (
+                  {param.type === 'data' ? (
+                    <div className="mt-1 space-y-2">
+                      {/* Selected value badges */}
+                      {value.inputValues[param.id]?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {value.inputValues[param.id].map((valueRef: string) => {
+                            return (
+                              <Badge key={valueRef} className="flex items-center gap-1 bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                {valueRef}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                  onClick={() => {
+                                    const updatedValues = value.inputValues[param.id].filter((v: string) => v !== valueRef);
+                                    onUpdate({
+                                      inputValues: { ...value.inputValues, [param.id]: updatedValues }
+                                    });
+                                  }}
+                                />
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Value reference dropdown */}
+                      <Select
+                        value=""
+                        onValueChange={(valueRef) => {
+                          const currentValues = value.inputValues[param.id] || [];
+                          if (!currentValues.includes(valueRef)) {
+                            const updatedValues = [...currentValues, valueRef];
+                            onUpdate({
+                              inputValues: { ...value.inputValues, [param.id]: updatedValues }
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select values to reference..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableValues().map((availableValue) => (
+                            <SelectItem key={availableValue.id} value={availableValue.id}>
+                              <div className="flex items-center gap-2">
+                                <Hash className="h-4 w-4 text-gray-500" />
+                                <span>{availableValue.id}</span>
+                                <span className="text-gray-500">({availableValue.stepName})</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          {getAvailableValues().length === 0 && (
+                            <div className="px-2 py-1.5 text-sm text-gray-500">
+                              No values available to reference
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : param.type === 'document' ? (
                     <div className="mt-1 space-y-2">
                       {/* Selected badges */}
                       {value.inputValues[param.id]?.length > 0 && (
