@@ -371,10 +371,14 @@ export function SchemaFieldDialogNew({
                           <SelectItem value="none" disabled>No tools available</SelectItem>
                         ) : (
                           wizardryFunctions.map((tool) => (
-                            <SelectItem key={tool.id} value={tool.id}>
+                            <SelectItem 
+                              key={tool.id} 
+                              value={tool.id}
+                              className={tool.toolType === "AI_ONLY" ? "focus:bg-gray-100" : ""}
+                            >
                               <div className="flex items-center gap-2">
                                 {tool.toolType === "AI_ONLY" ? (
-                                  <Brain className="h-4 w-4 text-blue-500" />
+                                  <Brain className="h-4 w-4 text-gray-600" />
                                 ) : (
                                   <Settings className="h-4 w-4 text-gray-500" />
                                 )}
