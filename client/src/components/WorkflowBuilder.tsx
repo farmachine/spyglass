@@ -277,7 +277,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white border-gray-400 shadow-sm hover:shadow-md transition-shadow">
+            <Card className="relative w-full bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
             <CardHeader className="pb-4 relative">
               <div className="flex flex-col items-center">
                 {/* Icon and Title - Centered */}
@@ -503,7 +503,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
             </div>
             
-            <Card className="p-12 w-3/4 bg-gray-50 border-gray-400">
+            <Card className="p-12 w-3/4 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
               <div className="text-center">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
@@ -606,7 +606,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border border-gray-400 rounded-lg p-4 space-y-3 bg-white relative">
+    <div className="border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
