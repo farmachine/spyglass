@@ -29,7 +29,8 @@ import {
   Hash,
   Calendar,
   ToggleLeft,
-  Edit2
+  Edit2,
+  Circle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -538,22 +539,9 @@ function ValueEditor({
 
 
 
-  // Get data type icon
-  const getDataTypeIcon = (dataType: WorkflowValue['dataType']) => {
-    switch (dataType) {
-      case 'TEXT':
-        return <span className="h-4 w-4 text-gray-500 font-bold flex items-center justify-center">T</span>;
-      case 'NUMBER':
-        return <Hash className="h-4 w-4 text-gray-500" />;
-      case 'DATE':
-        return <Calendar className="h-4 w-4 text-gray-500" />;
-      case 'BOOLEAN':
-        return <ToggleLeft className="h-4 w-4 text-gray-500" />;
-      case 'CHOICE':
-        return <List className="h-4 w-4 text-gray-500" />;
-      default:
-        return <span className="h-4 w-4 text-gray-500 font-bold flex items-center justify-center">T</span>;
-    }
+  // Generic value icon
+  const getValueIcon = () => {
+    return <Circle className="h-4 w-4 text-gray-500" />;
   };
 
   return (
@@ -561,8 +549,8 @@ function ValueEditor({
       <div className="flex flex-col items-center">
         {/* Icon and Name - Centered */}
         <div className="flex items-center gap-2 mb-1">
-          {/* Data type icon */}
-          {getDataTypeIcon(value.dataType)}
+          {/* Generic value icon */}
+          {getValueIcon()}
           
           {/* Name */}
           {isExpanded ? (
