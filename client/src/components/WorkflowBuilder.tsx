@@ -28,7 +28,8 @@ import {
   ArrowDown,
   Hash,
   Calendar,
-  ToggleLeft
+  ToggleLeft,
+  Edit2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -90,6 +91,7 @@ export function WorkflowBuilder({
   onSave
 }: WorkflowBuilderProps) {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
 
   // Convert existing data to workflow steps on mount
@@ -359,17 +361,6 @@ export function WorkflowBuilder({
                       className="mt-2"
                     />
                   </div>
-
-                  <div>
-                    <Label>Description</Label>
-                    <Textarea
-                      value={step.description}
-                      onChange={(e) => updateStep(step.id, { description: e.target.value })}
-                      placeholder="Describe what this extracts..."
-                      className="mt-2"
-                      rows={2}
-                    />
-                  </div>
                 </div>
               )}
             </CardHeader>
@@ -406,6 +397,36 @@ export function WorkflowBuilder({
                     No values defined. Click "Add Value" to create one.
                   </div>
                 )}
+
+                {/* Description Section with dot format */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg group relative">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
+                    {editingDescription === step.id ? (
+                      <Textarea
+                        value={step.description}
+                        onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                        onBlur={() => setEditingDescription(null)}
+                        placeholder="Describe what this extracts..."
+                        className="text-sm text-gray-800 text-center resize-none w-full"
+                        rows={2}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-800">
+                          {step.description || "Click to add description..."}
+                        </p>
+                        <button
+                          onClick={() => setEditingDescription(step.id)}
+                          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200"
+                        >
+                          <Edit2 className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             )}
           </Card>
