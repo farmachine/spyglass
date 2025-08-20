@@ -855,10 +855,10 @@ function ValueEditor({
                               ? 'User uploaded document'
                               : knowledgeDocuments.find(d => d.id === docId)?.displayName || 'Unknown document';
                             return (
-                              <Badge key={docId} className="flex items-center gap-1 bg-gray-200 text-gray-700 hover:bg-gray-300">
+                              <Badge key={docId} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
                                 {docName}
                                 <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                  className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
                                   onClick={() => {
                                     const updatedDocs = value.inputValues[param.id].filter((d: string) => d !== docId);
                                     onUpdate({
