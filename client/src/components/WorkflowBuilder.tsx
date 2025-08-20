@@ -283,28 +283,12 @@ export function WorkflowBuilder({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => moveStep(stepIndex, 'up')}
-                    disabled={stepIndex === 0}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => moveStep(stepIndex, 'down')}
-                    disabled={stepIndex === steps.length - 1}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => deleteStep(step.id)}
-                    className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => deleteStep(step.id)}
+                  className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
 
               {step.isExpanded && (
@@ -356,6 +340,26 @@ export function WorkflowBuilder({
                 </div>
               )}
             </CardHeader>
+
+            {/* Move arrows centered below header */}
+            <div className="flex justify-center gap-2 pb-2">
+              <button
+                onClick={() => moveStep(stepIndex, 'up')}
+                disabled={stepIndex === 0}
+                className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 transition-opacity"
+                title="Move up"
+              >
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              </button>
+              <button
+                onClick={() => moveStep(stepIndex, 'down')}
+                disabled={stepIndex === steps.length - 1}
+                className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 transition-opacity"
+                title="Move down"
+              >
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
 
             {step.isExpanded && (
               <CardContent className="space-y-3">
