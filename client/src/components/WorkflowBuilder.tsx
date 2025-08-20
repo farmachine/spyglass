@@ -251,6 +251,17 @@ export function WorkflowBuilder({
     <div className="space-y-6">
 
       <div className="flex flex-col items-center">
+        {/* Start dot and arrow */}
+        {steps.length > 0 && (
+          <>
+            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+            <div className="flex flex-col items-center">
+              <div className="w-0.5 h-8 bg-gray-300"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+            </div>
+          </>
+        )}
+        
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
             <Card className="relative w-full bg-white border-gray-300 shadow-sm hover:shadow-md transition-shadow">
@@ -471,17 +482,26 @@ export function WorkflowBuilder({
         ))}
 
         {steps.length === 0 ? (
-          <Card className="p-12 w-3/4 bg-gray-50 border-gray-300">
-            <div className="text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
-              <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
-              <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
-                <Plus className="h-4 w-4" />
-                Add First Step
-              </Button>
+          <>
+            {/* Start dot for empty state */}
+            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+            <div className="flex flex-col items-center">
+              <div className="w-0.5 h-8 bg-gray-300"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
             </div>
-          </Card>
+            
+            <Card className="p-12 w-3/4 bg-gray-50 border-gray-300">
+              <div className="text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
+                <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
+                <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
+                  <Plus className="h-4 w-4" />
+                  Add First Step
+                </Button>
+              </div>
+            </Card>
+          </>
         ) : (
           <>
             {/* Dotted line from last card */}
