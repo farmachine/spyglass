@@ -872,7 +872,7 @@ function ValueEditor({
                         </div>
                       )}
                       
-                      {/* Dropdown */}
+                      {/* Dropdown - Filter by document type if specified */}
                       <Select
                         value=""
                         onValueChange={(docId) => {
@@ -889,20 +889,44 @@ function ValueEditor({
                           <SelectValue placeholder="Select documents..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user_document" className="focus:bg-gray-100">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-slate-500 rounded-full" />
-                              <span>User uploaded document</span>
-                            </div>
-                          </SelectItem>
-                          {knowledgeDocuments.map((doc, index) => (
-                            <SelectItem key={doc.id} value={doc.id} className="focus:bg-gray-100">
+                          {/* Show user uploaded document if documentType allows it */}
+                          {(!param.documentType || param.documentType === 'all' || param.documentType === 'excel') && (
+                            <SelectItem value="user_document" className="focus:bg-gray-100">
                               <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-gray-600" />
-                                <span>{doc.displayName || `Knowledge document ${index + 1}`}</span>
+                                <div className="w-2 h-2 bg-slate-500 rounded-full" />
+                                <span>User uploaded document</span>
                               </div>
                             </SelectItem>
-                          ))}
+                          )}
+                          {/* Filter knowledge documents by type */}
+                          {knowledgeDocuments
+                            .filter((doc) => {
+                              // If no filter or 'all', show all documents
+                              if (!param.documentType || param.documentType === 'all') return true;
+                              
+                              // Filter based on file extension
+                              const fileName = doc.fileName || doc.displayName || '';
+                              const extension = fileName.split('.').pop()?.toLowerCase();
+                              
+                              switch (param.documentType) {
+                                case 'excel':
+                                  return extension === 'xlsx' || extension === 'xls';
+                                case 'word':
+                                  return extension === 'docx' || extension === 'doc';
+                                case 'pdf':
+                                  return extension === 'pdf';
+                                default:
+                                  return true;
+                              }
+                            })
+                            .map((doc, index) => (
+                              <SelectItem key={doc.id} value={doc.id} className="focus:bg-gray-100">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-gray-600" />
+                                  <span>{doc.displayName || `Knowledge document ${index + 1}`}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </div>

@@ -25,6 +25,7 @@ interface InputParameter {
   type: "text" | "data" | "document";
   description: string;
   multiline?: boolean; // Only applies to text type
+  documentType?: "all" | "excel" | "word" | "pdf"; // Document type filter for document inputs
   sampleFile?: string; // Sample file name for documents/data
   sampleFileURL?: string; // Sample file URL for documents/data
   sampleText?: string; // Sample text for text type
@@ -392,6 +393,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           // Reset multiline to false when type changes away from "text"
           if (field === "type" && value !== "text") {
             updatedParam.multiline = false;
+          }
+          // Initialize documentType when changing to document type
+          if (field === "type" && value === "document" && !updatedParam.documentType) {
+            updatedParam.documentType = "all";
           }
           // If changing to data type, initialize empty sample data
           if (field === "type" && value === "data" && !updatedParam.sampleData) {
@@ -1124,6 +1129,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                             )}
                             {param.type === "document" && (
                               <div className="space-y-3">
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-700">Document Type</Label>
+                                  <Select 
+                                    value={param.documentType || "all"} 
+                                    onValueChange={(value: "all" | "excel" | "word" | "pdf") => updateInputParameter(param.id, "documentType", value)}
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="all">All Document Types</SelectItem>
+                                      <SelectItem value="excel">Excel Files</SelectItem>
+                                      <SelectItem value="word">Word Documents</SelectItem>
+                                      <SelectItem value="pdf">PDF Files</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                 <div className="space-y-2">
                                   <Label className="text-sm font-medium text-gray-700">
                                     Upload a sample document to test this tool.
