@@ -538,8 +538,16 @@ function ValueEditor({
 
 
 
-  // Generic value icon - simple dot
+  // Value icon - matches the tool type
   const getValueIcon = () => {
+    if (selectedTool) {
+      if (selectedTool.toolType === "AI_ONLY") {
+        return <Brain className="h-4 w-4 text-blue-500" />;
+      } else {
+        return <Code className="h-4 w-4 text-gray-500" />;
+      }
+    }
+    // Default dot when no tool selected
     return <div className="w-2 h-2 bg-gray-500 rounded-full" />;
   };
 
