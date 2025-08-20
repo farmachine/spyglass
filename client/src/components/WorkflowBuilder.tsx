@@ -710,56 +710,65 @@ function ValueEditor({
                 <div key={param.id}>
                   <Label className="text-xs">{param.name}</Label>
                   {param.type === 'document' ? (
-                    <div className="mt-1 space-y-2 border border-gray-200 rounded-md p-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`${param.id}-user-doc`}
-                            checked={value.inputValues[param.id]?.includes('user_document') || false}
-                            onCheckedChange={(checked) => {
-                              const currentDocs = value.inputValues[param.id] || [];
-                              const updatedDocs = checked 
-                                ? [...currentDocs.filter((d: string) => d !== 'user_document'), 'user_document']
-                                : currentDocs.filter((d: string) => d !== 'user_document');
-                              onUpdate({
-                                inputValues: { ...value.inputValues, [param.id]: updatedDocs }
-                              });
-                            }}
-                          />
-                          <label 
-                            htmlFor={`${param.id}-user-doc`}
-                            className="text-sm cursor-pointer"
-                          >
-                            User uploaded document
-                          </label>
+                    <div className="mt-1 space-y-2">
+                      {/* Selected badges */}
+                      {value.inputValues[param.id]?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {value.inputValues[param.id].map((docId: string) => {
+                            const docName = docId === 'user_document' 
+                              ? 'User uploaded document'
+                              : knowledgeDocuments.find(d => d.id === docId)?.name || 'Unknown document';
+                            return (
+                              <Badge key={docId} variant="secondary" className="flex items-center gap-1">
+                                {docName}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                  onClick={() => {
+                                    const updatedDocs = value.inputValues[param.id].filter((d: string) => d !== docId);
+                                    onUpdate({
+                                      inputValues: { ...value.inputValues, [param.id]: updatedDocs }
+                                    });
+                                  }}
+                                />
+                              </Badge>
+                            );
+                          })}
                         </div>
-                        {knowledgeDocuments.map((doc, index) => (
-                          <div key={doc.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`${param.id}-${doc.id}`}
-                              checked={value.inputValues[param.id]?.includes(doc.id) || false}
-                              onCheckedChange={(checked) => {
-                                const currentDocs = value.inputValues[param.id] || [];
-                                const updatedDocs = checked 
-                                  ? [...currentDocs.filter((d: string) => d !== doc.id), doc.id]
-                                  : currentDocs.filter((d: string) => d !== doc.id);
-                                onUpdate({
-                                  inputValues: { ...value.inputValues, [param.id]: updatedDocs }
-                                });
-                              }}
-                            />
-                            <label 
-                              htmlFor={`${param.id}-${doc.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {doc.name || `Knowledge document ${index + 1}`}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                      {(!knowledgeDocuments || knowledgeDocuments.length === 0) && (
-                        <p className="text-xs text-gray-500 italic">No knowledge documents available</p>
                       )}
+                      
+                      {/* Dropdown */}
+                      <Select
+                        value=""
+                        onValueChange={(docId) => {
+                          const currentDocs = value.inputValues[param.id] || [];
+                          if (!currentDocs.includes(docId)) {
+                            const updatedDocs = [...currentDocs, docId];
+                            onUpdate({
+                              inputValues: { ...value.inputValues, [param.id]: updatedDocs }
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select documents..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user_document">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <span>User uploaded document</span>
+                            </div>
+                          </SelectItem>
+                          {knowledgeDocuments.map((doc, index) => (
+                            <SelectItem key={doc.id} value={doc.id}>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-500" />
+                                <span>{doc.name || `Knowledge document ${index + 1}`}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   ) : param.type === 'textarea' ? (
                     <Textarea
