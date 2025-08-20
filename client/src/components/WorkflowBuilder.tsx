@@ -287,7 +287,7 @@ export function WorkflowBuilder({
                     value={step.type}
                     onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
                   >
-                    <SelectTrigger className="w-[110px] h-8 text-sm">
+                    <SelectTrigger className="w-[130px] h-8 text-sm">
                       <SelectValue>
                         {step.type === 'list' ? 'Data Table' : 'Info Page'}
                       </SelectValue>
