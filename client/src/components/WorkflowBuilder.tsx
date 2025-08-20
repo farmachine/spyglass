@@ -573,8 +573,15 @@ function ValueEditor({
                 className="font-medium"
               />
             ) : (
-              <div className="font-medium text-gray-900">
-                {value.name || "Untitled Value"}
+              <div className="flex flex-col">
+                <div className="font-medium text-gray-900">
+                  {value.name || "Untitled Value"}
+                </div>
+                {value.description && (
+                  <div className="text-sm text-gray-600 mt-0.5">
+                    {value.description}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -797,33 +804,34 @@ function ValueEditor({
         </div>
       )}
       
-      {/* Value Description Section - editable with dot format */}
-      <div className="mt-6 p-4 bg-white rounded-lg group relative">
-        <div className="flex flex-col items-center">
-          {editingDescription ? (
-            <Textarea
-              value={value.description}
-              onChange={(e) => onUpdate({ description: e.target.value })}
-              onBlur={() => setEditingDescription(false)}
-              placeholder="Describe this value..."
-              className="text-sm text-center resize-none w-full"
-              rows={2}
-              autoFocus
-            />
-          ) : (
-            <>
-              <p className="text-sm text-gray-700 text-center">
-                {value.description || "A list of all columns in the excel provided by the pension scheme provider"}
-              </p>
-              <div className="mt-3 w-2 h-2 bg-gray-400 rounded-full"></div>
-              <Edit2 
-                className="absolute top-2 right-2 h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-gray-600"
-                onClick={() => setEditingDescription(true)}
+      {/* Value Description Section - editable without dot */}
+      {isExpanded && (
+        <div className="mt-6 p-4 bg-white rounded-lg group relative">
+          <div className="flex flex-col items-center">
+            {editingDescription ? (
+              <Textarea
+                value={value.description}
+                onChange={(e) => onUpdate({ description: e.target.value })}
+                onBlur={() => setEditingDescription(false)}
+                placeholder="Describe this value..."
+                className="text-sm text-center resize-none w-full"
+                rows={2}
+                autoFocus
               />
-            </>
-          )}
+            ) : (
+              <>
+                <p className="text-sm text-gray-700 text-center">
+                  {value.description || "A list of all columns in the excel provided by the pension scheme provider"}
+                </p>
+                <Edit2 
+                  className="absolute top-2 right-2 h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-gray-600"
+                  onClick={() => setEditingDescription(true)}
+                />
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
