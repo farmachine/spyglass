@@ -633,11 +633,36 @@ function ValueEditor({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TEXT">Text</SelectItem>
-                  <SelectItem value="NUMBER">Number</SelectItem>
-                  <SelectItem value="DATE">Date</SelectItem>
-                  <SelectItem value="BOOLEAN">Checkbox</SelectItem>
-                  <SelectItem value="CHOICE">Choice</SelectItem>
+                  <SelectItem value="TEXT">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">T</span>
+                      <span>Text</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="NUMBER">
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4" />
+                      <span>Number</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="DATE">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Date</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="BOOLEAN">
+                    <div className="flex items-center gap-2">
+                      <ToggleLeft className="h-4 w-4" />
+                      <span>Checkbox</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="CHOICE">
+                    <div className="flex items-center gap-2">
+                      <List className="h-4 w-4" />
+                      <span>Choice</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
