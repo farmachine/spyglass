@@ -243,9 +243,10 @@ export function WorkflowBuilder({
         </Button>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col items-center">
         {steps.map((step, stepIndex) => (
-          <Card key={step.id} className="relative">
+          <div key={step.id} className="flex flex-col items-center">
+            <Card className="relative w-full max-w-2xl">
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3 flex-1">
@@ -398,6 +399,15 @@ export function WorkflowBuilder({
               </CardContent>
             )}
           </Card>
+          
+          {/* Arrow between steps */}
+          {stepIndex < steps.length - 1 && (
+            <div className="flex flex-col items-center py-2">
+              <div className="w-0.5 h-8 bg-gray-300"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+            </div>
+          )}
+          </div>
         ))}
 
         {steps.length === 0 && (
