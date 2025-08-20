@@ -377,15 +377,6 @@ export function WorkflowBuilder({
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-sm text-gray-700">Values</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addValue(step.id)}
-                    className="gap-2"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Value
-                  </Button>
                 </div>
 
                 {step.values.map((value, valueIndex) => (
@@ -405,6 +396,19 @@ export function WorkflowBuilder({
                     No values defined. Click "Add Value" to create one.
                   </div>
                 )}
+
+                {/* Add Value button below value cards */}
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addValue(step.id)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Value
+                  </Button>
+                </div>
 
                 {/* Description Section with dot format */}
                 <div className="mt-6 p-4 bg-white rounded-lg group relative">
