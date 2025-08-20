@@ -688,9 +688,22 @@ function ValueEditor({
 
           {/* Output Description (Read-only) */}
           {value.outputDescription && (
-            <div className="p-3 bg-blue-50 rounded border border-blue-200">
-              <Label className="text-sm font-medium text-blue-900">Output</Label>
-              <p className="text-sm text-blue-700 mt-1">{value.outputDescription}</p>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Output</Label>
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center mt-1">
+                    <svg width="24" height="16" viewBox="0 0 24 16" className="text-gray-600">
+                      <path d="M 0 8 L 16 8" stroke="currentColor" strokeWidth="2" fill="none"/>
+                      <path d="M 12 4 L 16 8 L 12 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div className="w-3 h-3 rounded-full bg-gray-600 ml-1"></div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800">{value.outputDescription}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
