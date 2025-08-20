@@ -444,10 +444,12 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">
-              extrapl <span style={{ color: '#4F63A4' }}>•</span> Data
+              extrapl <span style={{ color: '#4F63A4' }}>•</span> {viewMode === 'workflow' ? 'Flow' : 'Data'}
             </h1>
             <p className="text-gray-600 mt-1">
-              Define your data structure and extraction schema
+              {viewMode === 'workflow' 
+                ? 'Design your data extraction workflow' 
+                : 'Define your data structure and extraction schema'}
             </p>
           </div>
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
@@ -457,7 +459,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
               onClick={() => setViewMode('workflow')}
               className={viewMode === 'workflow' ? 'bg-white shadow-sm' : ''}
             >
-              Workflow Builder
+              Flow
             </Button>
             <Button
               variant={viewMode === 'classic' ? 'default' : 'ghost'}

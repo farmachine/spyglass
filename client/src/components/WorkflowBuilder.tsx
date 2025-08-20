@@ -232,11 +232,7 @@ export function WorkflowBuilder({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Workflow Builder</h2>
-          <p className="text-gray-600 mt-1">Define your data extraction workflow with steps and values</p>
-        </div>
+      <div className="flex justify-end mb-6">
         <Button onClick={addStep} className="gap-2">
           <Plus className="h-4 w-4" />
           Add Step
