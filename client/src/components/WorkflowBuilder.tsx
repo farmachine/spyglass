@@ -517,7 +517,7 @@ function ValueEditor({
   const getDataTypeIcon = (dataType: WorkflowValue['dataType']) => {
     switch (dataType) {
       case 'TEXT':
-        return <FileText className="h-4 w-4 text-gray-500" />;
+        return <span className="h-4 w-4 text-gray-500 font-bold flex items-center justify-center">T</span>;
       case 'NUMBER':
         return <Hash className="h-4 w-4 text-gray-500" />;
       case 'DATE':
@@ -527,7 +527,7 @@ function ValueEditor({
       case 'CHOICE':
         return <List className="h-4 w-4 text-gray-500" />;
       default:
-        return <FileText className="h-4 w-4 text-gray-500" />;
+        return <span className="h-4 w-4 text-gray-500 font-bold flex items-center justify-center">T</span>;
     }
   };
 
@@ -615,7 +615,7 @@ function ValueEditor({
                   <SelectItem value="TEXT">Text</SelectItem>
                   <SelectItem value="NUMBER">Number</SelectItem>
                   <SelectItem value="DATE">Date</SelectItem>
-                  <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                  <SelectItem value="BOOLEAN">Checkbox</SelectItem>
                   <SelectItem value="CHOICE">Choice</SelectItem>
                 </SelectContent>
               </Select>
