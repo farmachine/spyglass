@@ -512,14 +512,28 @@ Return only the Python function code, no explanations.`;
    */
   private buildTestPrompt(tool: Tool, inputs: Record<string, any>): string {
     const aiPrompt = tool.aiPrompt || tool.description;
-    const inputsText = Object.entries(inputs).map(([key, value]) => `${key}: ${value}`).join('\n');
+    
+    // Format inputs properly, handling data arrays specially
+    const formattedInputs = Object.entries(inputs).map(([key, value]) => {
+      // Find the parameter definition to check its type
+      const param = tool.inputParameters.find(p => p.name === key);
+      
+      if (param?.type === 'data' && param.sampleData?.rows) {
+        // For data parameters, format the rows properly
+        return `${key}: ${JSON.stringify(param.sampleData.rows, null, 2)}`;
+      } else if (typeof value === 'object') {
+        return `${key}: ${JSON.stringify(value, null, 2)}`;
+      } else {
+        return `${key}: ${value}`;
+      }
+    }).join('\n');
     
     // Use the AI prompt as-is since it should already contain the correct format instructions
     // Just provide the input data
     return `${aiPrompt}
 
 Input Data:
-${inputsText}`;
+${formattedInputs}`;
   }
   
   /**
