@@ -688,21 +688,14 @@ function ValueEditor({
 
           {/* Output Description (Read-only) */}
           {value.outputDescription && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Output</Label>
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center mt-1">
-                    <svg width="24" height="16" viewBox="0 0 24 16" className="text-gray-600">
-                      <path d="M 0 8 L 16 8" stroke="currentColor" strokeWidth="2" fill="none"/>
-                      <path d="M 12 4 L 16 8 L 12 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <div className="w-3 h-3 rounded-full bg-gray-600 ml-1"></div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-800">{value.outputDescription}</p>
-                  </div>
-                </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex flex-col items-center text-center">
+                <svg width="16" height="24" viewBox="0 0 16 24" className="text-gray-600 mb-1">
+                  <path d="M 8 0 L 8 16" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  <path d="M 4 12 L 8 16 L 12 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div className="w-3 h-3 rounded-full bg-gray-600 mb-3"></div>
+                <p className="text-sm font-bold text-gray-800">{value.outputDescription}</p>
               </div>
             </div>
           )}
