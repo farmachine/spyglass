@@ -520,73 +520,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               })}
             </nav>
 
-            {/* Schema Navigation - Only show when Define Data tab is active */}
-            {activeTab === 'define' && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                <div className="px-3 mb-2">
-                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    SCHEMA INFORMATION
-                  </h3>
-                </div>
-                <nav className="space-y-0.5">
-                  {/* Main Data Section */}
-                  <button
-                    onClick={() => {
 
-                      setSchemaActiveTab('main-data');
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                      schemaActiveTab === 'main-data'
-                        ? "bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                    }`}
-                  >
-                    <User className="h-4 w-4" />
-                    General Information
-                  </button>
-
-                  {/* Collection Sections */}
-                  {project.collections?.map((collection) => (
-                    <button
-                      key={collection.id}
-                      onClick={() => {
-
-                        setSchemaActiveTab(collection.collectionName);
-                      }}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        schemaActiveTab === collection.collectionName
-                          ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
-                      }`}
-                    >
-                      <List className="h-4 w-4" />
-                      {collection.collectionName}
-                    </button>
-                  ))}
-
-                  {/* Add List Button - Always visible */}
-                  <button
-                    onClick={() => {
-
-                      if (addCollectionCallbackRef.current) {
-                        addCollectionCallbackRef.current();
-                      } else {
-                        console.warn('Add List callback not available - DefineData may not have set it up');
-                      }
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-all duration-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add List
-                  </button>
-                </nav>
-                
-                {/* Debug info */}
-                <div className="mt-2 px-3 text-xs text-gray-400">
-                  Debug: activeTab={activeTab}, schemaActiveTab={schemaActiveTab}, collections={project.collections?.length || 0}
-                </div>
-              </div>
-            )}
 
             {/* Settings Button - Always at the bottom */}
             {canAccessConfigTabs && (
