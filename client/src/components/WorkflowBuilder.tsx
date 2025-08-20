@@ -254,8 +254,8 @@ export function WorkflowBuilder({
             <Card className="relative w-full bg-white border-gray-300 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-4">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="flex-shrink-0 mt-0.5">
                     {step.type === 'list' ? (
                       <List className="h-5 w-5 text-gray-700" />
                     ) : (
