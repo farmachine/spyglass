@@ -526,15 +526,21 @@ function ValueEditor({
           </button>
           
           <div className="flex-1">
-            <Input
-              value={value.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              placeholder="Value name..."
-              className="font-medium"
-            />
+            {isExpanded ? (
+              <Input
+                value={value.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                placeholder="Value name..."
+                className="font-medium"
+              />
+            ) : (
+              <div className="font-medium text-gray-900 px-2 py-1">
+                {value.name || "Untitled Value"}
+              </div>
+            )}
           </div>
 
-          {selectedTool && (
+          {!isExpanded && selectedTool && (
             <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded text-sm">
               {selectedTool.toolType === "AI_ONLY" ? (
                 <Brain className="h-4 w-4 text-blue-500" />
