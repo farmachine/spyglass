@@ -1,0 +1,49 @@
+  STEP 1                            [×]  │
+│  ┌─ Step Type: ● List ○ Data Page       │
+│  ┌─ Step Name: [___________________]    │
+│  ┌─ Step Description: [____________]    │
+│  │   [_________________________]       │
+│  │                                     │
+│  ── Substeps ──                        │
+│  ┌─ Substep 1                     [×]  │
+│  │  • Substep Name: [____________]      │
+│  │  • Description: [_____________]      │
+│  │  • Data Type: [Dropdown▼]           │
+│  │  • Tool: [Dropdown▼]                │
+│  │  • Input Values: [____________]      │
+│  │  • Output: Auto-mapped columns      │
+│  │    (read-only based on tool)        │
+│  └─────────────────────────────────────┘│
+│  ┌─ Substep 2                     [×]  │
+│  │  • Substep Name: [____________]      │
+│  │  • Description: [_____________]      │
+│  │  • Data Type: [Dropdown▼]           │
+│  │  • Tool: [Dropdown▼]                │
+│  │  • Input Values: [____________]      │
+│  │  • Output: Similarity scores        │
+│  │    (read-only based on tool)        │
+│  └─────────────────────────────────────┘│
+│  [+ Add Substep]                       │
+└─────────────────────────────────────────┘
+          ↓
+┌─────────────────────────────────────────┐
+│  STEP 2                            [×]  │
+│  ┌─ Step Type: ● Data Page ○ List       │
+│  ┌─ Step Name: [___________________]    │
+│  ┌─ Step Description: [____________]    │
+│  │   [_________________________]       │
+│  │                                     │
+│  ── Substeps ──                        │
+│  ┌─ Substep 1                     [×]  │
+│  │  • Substep Name: [____________]      │
+│  │  • Description: [_____________]      │
+│  │  • Data Type: [Dropdown▼]           │
+│  │  • Tool: [Dropdown▼]                │
+│  │  • Input Values: [____________]      │
+│  │  • Output: Validation results       │
+│  │    (read-only based on tool)        │
+│  └─────────────────────────────────────┘│
+│  [+ Add Substep]                       │
+└─────────────────────────────────────────┘
+          ↓
+[+ Add Step]

@@ -78,6 +78,32 @@ export function useObjectCollections(projectId: string) {
   });
 }
 
+// Get collections with properties included
+export function useCollectionsWithProperties(projectId: string) {
+  return useQuery({
+    queryKey: ["/api/projects", projectId, "collections-with-properties"],
+    queryFn: async () => {
+      const collections = await apiRequest(`/api/projects/${projectId}/collections`);
+      
+      // Fetch properties for each collection
+      const collectionsWithProps = await Promise.all(
+        collections.map(async (collection: any) => {
+          try {
+            const properties = await apiRequest(`/api/collections/${collection.id}/properties`);
+            return { ...collection, properties };
+          } catch (error) {
+            console.warn(`Failed to fetch properties for collection ${collection.id}:`, error);
+            return { ...collection, properties: [] };
+          }
+        })
+      );
+      
+      return collectionsWithProps;
+    },
+    enabled: !!projectId,
+  });
+}
+
 export function useCreateCollection(projectId: string) {
   const queryClient = useQueryClient();
   

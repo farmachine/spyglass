@@ -22,6 +22,7 @@ import {
 import {
   useProjectSchemaFields,
   useObjectCollections,
+  useCollectionsWithProperties,
   useCreateSchemaField,
   useUpdateSchemaField,
   useDeleteSchemaField,
@@ -39,6 +40,7 @@ import CollectionDialog from "@/components/CollectionDialog";
 import { PropertyDialogNew } from "@/components/PropertyDialogNew";
 import DeleteDialog from "@/components/DeleteDialog";
 import { CollectionCard } from "@/components/CollectionCard";
+import { WorkflowBuilder } from "@/components/WorkflowBuilder";
 import type {
   ProjectWithDetails,
   ProjectSchemaField,
@@ -62,6 +64,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   const [mainObjectDescription, setMainObjectDescription] = useState(project.mainObjectDescription || "");
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [isEditingMainObjectDescription, setIsEditingMainObjectDescription] = useState(false);
+  const [viewMode, setViewMode] = useState<'classic' | 'workflow'>('workflow');
 
   
   // Update local state when project prop changes (needed for database updates)
@@ -91,6 +94,7 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
   // Query for live data instead of using static props
   const { data: schemaFields = [], isLoading: schemaFieldsLoading } = useProjectSchemaFields(project.id);
   const { data: collections = [], isLoading: collectionsLoading } = useObjectCollections(project.id);
+  const { data: collectionsWithProps = [], isLoading: collectionsWithPropsLoading } = useCollectionsWithProperties(project.id);
   const { data: knowledgeDocuments = [] } = useKnowledgeDocuments(project.id);
   const { data: extractionRules = [] } = useExtractionRules(project.id);
   
@@ -427,17 +431,59 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
     onTabChange(data.collectionName);
   };
 
+  // Handler for saving workflow steps
+  const handleSaveWorkflow = async (steps: any[]) => {
+    // Convert workflow steps back to schema fields and collections
+    console.log('Saving workflow steps:', steps);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Page Heading */}
+      {/* Page Heading with View Mode Toggle */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          extrapl <span style={{ color: '#4F63A4' }}>•</span> Data
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Define your data structure and extraction schema
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              extrapl <span style={{ color: '#4F63A4' }}>•</span> Data
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Define your data structure and extraction schema
+            </p>
+          </div>
+          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+            <Button
+              variant={viewMode === 'workflow' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('workflow')}
+              className={viewMode === 'workflow' ? 'bg-white shadow-sm' : ''}
+            >
+              Workflow Builder
+            </Button>
+            <Button
+              variant={viewMode === 'classic' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('classic')}
+              className={viewMode === 'classic' ? 'bg-white shadow-sm' : ''}
+            >
+              Classic View
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {/* Workflow Builder View */}
+      {viewMode === 'workflow' ? (
+        <WorkflowBuilder
+          projectId={project.id}
+          schemaFields={safeSchemaFields}
+          collections={collectionsWithProps}
+          excelFunctions={wizardryFunctions}
+          knowledgeDocuments={knowledgeDocuments}
+          onSave={handleSaveWorkflow}
+        />
+      ) : (
+        /* Classic View - Original Content */
+        <div>
       {/* Welcome Banner - Show only when no data items exist */}
       {allDataItems.length === 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
@@ -835,6 +881,8 @@ export default function DefineData({ project, activeTab, onTabChange, onSetAddCo
             </div>
           ))}
         </div>
+      )}
+      </div>
       )}
 
       {/* Dialogs */}
