@@ -306,7 +306,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify(stepData)
       });
@@ -375,7 +375,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify(workflowData)
       });
