@@ -3174,6 +3174,14 @@ Thank you for your assistance.`;
               {workflowSteps.map(step => {
                 if (activeTab !== step.id) return null;
                 
+                console.log(`🔍 Rendering step:`, {
+                  id: step.id,
+                  name: step.stepName,
+                  type: step.stepType,
+                  values: step.values,
+                  activeTab
+                });
+                
                 // Render Info Page steps (single values as individual fields)  
                 if (step.stepType === 'INFO_PAGE') {
                   return (
