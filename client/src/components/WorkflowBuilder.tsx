@@ -18,7 +18,7 @@ import {
   ChevronDown, 
   ChevronUp,
   List,
-  FileText,
+  Info,
   Trash2,
   GripVertical,
   Code,
@@ -430,7 +430,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   {step.type === 'list' ? (
                     <List className="h-5 w-5 text-gray-700" />
                   ) : (
-                    <FileText className="h-5 w-5 text-gray-700" />
+                    <Info className="h-5 w-5 text-gray-700" />
                   )}
                   
                   {editingStepId === step.id ? (
