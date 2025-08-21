@@ -3229,29 +3229,47 @@ Thank you for your assistance.`;
                 
                 // Render Data Table (values as columns)
                 if (isDataTable) {
+                  console.log(`📊 Rendering Data Table with ${step.values?.length} columns`);
+                  
+                  if (!step.values || step.values.length === 0) {
+                    return (
+                      <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
+                        <CardHeader>
+                          <CardTitle>{step.stepName}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-gray-500">No values defined for this data table</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  
                   return (
                     <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
                         <CardTitle>{step.stepName}</CardTitle>
                         <p className="text-sm text-gray-600">
-                          {step.description || `Data table`}
+                          {step.description || `Data table with ${step.values.length} columns`}
                         </p>
                       </CardHeader>
                       <CardContent>
                         <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b bg-gray-50">
-                                {step.values?.map((value) => (
-                                  <th key={value.id} className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    <div className="flex items-center gap-1">
-                                      <span>{value.valueName}</span>
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {step.values.map((value: any, index: number) => (
+                                  <th 
+                                    key={value.id || index} 
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span>{value.valueName || `Column ${index + 1}`}</span>
                                       {value.toolId && (
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => console.log(`Run tool ${value.toolId}`)}
-                                          className="h-5 w-5 p-0"
+                                          onClick={() => console.log(`Run tool ${value.toolId} for ${value.valueName}`)}
+                                          className="h-4 w-4 p-0"
                                         >
                                           <Wand2 className="h-3 w-3 text-[#4F63A4]" />
                                         </Button>
@@ -3261,13 +3279,23 @@ Thank you for your assistance.`;
                                 ))}
                               </tr>
                             </thead>
-                            <tbody>
-                              <tr className="hover:bg-gray-50">
-                                {step.values?.map((value) => (
-                                  <td key={value.id} className="px-4 py-3 text-sm">
-                                    <span className="text-gray-400 italic">No value</span>
-                                  </td>
-                                ))}
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              <tr>
+                                {step.values.map((value: any, index: number) => {
+                                  // Try to get any existing data
+                                  const validation = validations?.find(v => v.fieldName === value.valueName);
+                                  const extractedValue = validation?.extractedValue || extractedData[value.valueName];
+                                  
+                                  return (
+                                    <td key={value.id || index} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                      {extractedValue ? (
+                                        <span>{extractedValue}</span>
+                                      ) : (
+                                        <span className="text-gray-400 italic">Empty</span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
                               </tr>
                             </tbody>
                           </table>
