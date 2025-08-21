@@ -1268,11 +1268,18 @@ export default function SessionView() {
   // Handle document selection and extraction
   const handleDocumentSelectionAndExtract = async () => {
     if (!selectedDocumentForExtraction || !documentSelectModal.valueId) {
+      console.warn('Missing document or value ID for extraction');
       return;
     }
 
     try {
-      console.log('Extracting with document:', selectedDocumentForExtraction, 'for value:', documentSelectModal.valueName);
+      console.log('🎯 Starting extraction flow:', {
+        stepId: documentSelectModal.stepId,
+        valueId: documentSelectModal.valueId,
+        valueName: documentSelectModal.valueName,
+        documentId: selectedDocumentForExtraction,
+        sessionId: sessionId
+      });
 
       // Trigger extraction with selected document
       const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
@@ -1285,13 +1292,49 @@ export default function SessionView() {
         })
       });
 
-      if (response.success) {
+      console.log('📊 Extraction response:', response);
+
+      if (response.results && Array.isArray(response.results)) {
+        response.results.forEach((stepResult: any) => {
+          console.log(`✅ Step "${stepResult.stepName}" extraction results:`, {
+            stepType: stepResult.stepType,
+            valuesExtracted: stepResult.values?.length || 0,
+            values: stepResult.values?.map((v: any) => ({
+              name: v.valueName,
+              value: v.extractedValue,
+              status: v.validationStatus,
+              reasoning: v.aiReasoning
+            }))
+          });
+        });
+      }
+
+      if (response.success || response.results) {
+        console.log('🔄 Refreshing validations...');
         // Refetch validations to update the UI
-        queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+        await queryClient.invalidateQueries({ queryKey: [`/api/validations/session/${sessionId}`] });
         setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
+        
+        toast({
+          title: "Extraction Complete",
+          description: `Successfully extracted ${documentSelectModal.valueName}`
+        });
+      } else {
+        console.error('❌ Extraction failed:', response);
+        toast({
+          title: "Extraction Failed", 
+          description: response.error || "Failed to extract value",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Error triggering workflow value extraction:', error);
+      console.error('❌ Error triggering workflow value extraction:', error);
+      toast({
+        title: "Extraction Error",
+        description: "An error occurred during extraction",
+        variant: "destructive"
+      });
     }
   };
 
