@@ -1,0 +1,67 @@
+✅ Successfully updated Excel function: {
+  "id": "683e5fa7-ef57-4896-a161-bb8d50104f96",
+  "projectId": "915d87a3-dd55-401e-8f8b-df38132c2215",
+  "name": "AI Extraction",
+  "description": "Extraction of data from documents using AI",
+  "functionCode": null,
+  "aiPrompt": "Extract data from the provided document, `Document`, according to the instructions in `AI Instructions`.  Return a JSON array of objects, where each object represents a single extracted data point.  Each object MUST contain the following fields:\n\n- `extractedValue`: The extracted data itself.\n- `validationStatus`:  \"valid\" or \"invalid\", indicating whether the extraction was successful based on the confidence score.\n- `aiReasoning`: A brief explanation of the AI's reasoning and the logic used to extract the value.\n- `confidenceScore`: A numerical score (0-100) representing the AI's confidence in the accuracy of the extracted value.\n- `documentSource`: The source of the extracted data (e.g., \"page 1\", \"table 2\", \"section 3\").\n\nThe output should be a JSON array formatted as follows:\n\n```json\n[{\"extractedValue\": \"result1\", \"validationStatus\": \"valid\", \"aiReasoning\": \"explanation1\", \"confidenceScore\": 95, \"documentSource\": \"source1\"}, {\"extractedValue\": \"result2\", \"validationStatus\": \"valid\", \"aiReasoning\": \"explanation2\", \"confidenceScore\": 90, \"documentSource\": \"source2\"}]\n```\n\nReturn multiple objects in the array, one for each extracted data point.\n",
+  "toolType": "AI_ONLY",
+  "outputType": "single",
+  "inputParameters": [
+    {
+      "id": "0.4q2kmgz9hxo",
+      "name": "Document",
+      "type": "document",
+      "multiline": false,
+      "sampleData": {
+        "name": "",
+        "rows": [],
+        "columns": []
+      },
+      "sampleFile": "Ersatz eighth (1).xlsx",
+      "description": "Document uploaded by the user for AI extraction of data",
+      "sampleFileURL": "https://storage.googleapis.com/replit-objstore-b80b8c29-8d49-411f-b6d6-1bba57bed40d/.private/sample-files/3bc07bda-3d44-4895-b596-b7d846c27f6a"
+    },
+    {
+      "id": "0.cdani1tj77s",
+      "name": "AI Instructions",
+      "type": "text",
+      "multiline": true,
+      "description": "The instructions from the user to the AI for the extraction."
+    }
+  ],
+  "aiAssistanceRequired": false,
+  "aiAssistancePrompt": null,
+  "metadata": {},
+  "inputSchema": {
+    "parameters": [
+      {
+        "id": "0.4q2kmgz9hxo",
+        "name": "Document",
+        "type": "document",
+        "multiline": false,
+        "sampleData": {
+          "name": "",
+          "rows": [],
+          "columns": []
+        },
+        "sampleFile": "Ersatz eighth (1).xlsx",
+        "description": "Document uploaded by the user for AI extraction of data",
+        "sampleFileURL": "https://storage.googleapis.com/replit-objstore-b80b8c29-8d49-411f-b6d6-1bba57bed40d/.private/sample-files/3bc07bda-3d44-4895-b596-b7d846c27f6a"
+      },
+      {
+        "id": "0.cdani1tj77s",
+        "name": "AI Instructions",
+        "type": "text",
+        "multiline": true,
+        "description": "The instructions from the user to the AI for the extraction."
+      }
+    ]
+  },
+  "outputSchema": {
+    "format": "field_validations_compatible"
+  },
+  "tags": [],
+  "usageCount": 0,
+  "createdAt": "2025-08-19T16:25:42.545Z",
+  "updatedAt": "2025-08-21T13:01:47.228Z"

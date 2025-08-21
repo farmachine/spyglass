@@ -226,6 +226,7 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }
   aiAssistanceRequired: boolean("ai_assistance_required").default(false).notNull(), // Whether AI assistance is needed
   aiAssistancePrompt: text("ai_assistance_prompt"), // AI assistance instructions
+  llmModel: text("llm_model").default("gemini-2.0-flash"), // LLM model to use for AI tools
   metadata: jsonb("metadata").notNull(), // Function metadata for field_validations schema compatibility
   inputSchema: jsonb("input_schema").notNull(), // Expected input format/parameters
   outputSchema: jsonb("output_schema").notNull(), // Expected output format
