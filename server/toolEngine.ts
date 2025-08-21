@@ -667,35 +667,23 @@ try:
         else:
             func_param_names = []
         
-        # Debug: print function parameter names
-        print(f"DEBUG: func_param_names: {func_param_names}", file=sys.stderr)
+        # Debug: print what we're about to do
+        print(f"DEBUG: Function '{function_name}' expects parameters: {func_param_names}", file=sys.stderr)
+        print(f"DEBUG: We have inputs: {list(inputs.keys())}", file=sys.stderr)
         
-        # Simplified approach: if we have a single-parameter function and document content
-        # just pass the document content directly
-        if len(func_param_names) == 1:
-            # Get the first (and only) input value - should be the document content
+        # Simple execution - just call the function with the document content
+        if 'excel_file_content' in inputs:
+            # Call the function with the excel content
+            print(f"DEBUG: Calling {function_name}(excel_file_content) with content length: {len(inputs['excel_file_content'])}", file=sys.stderr)
+            result = func_to_call(inputs['excel_file_content'])
+        else:
+            # Fallback: use the first input value
             input_values = list(inputs.values())
             if input_values:
-                print(f"DEBUG: Calling {function_name} with single argument (length: {len(str(input_values[0]))})", file=sys.stderr)
+                print(f"DEBUG: Calling {function_name} with first input (length: {len(str(input_values[0]))})", file=sys.stderr)
                 result = func_to_call(input_values[0])
             else:
                 raise Exception("No input provided for function")
-        elif len(func_param_names) > 1:
-            # Multiple parameters - map by position
-            args = []
-            input_values = list(inputs.values())
-            for i, param_name in enumerate(func_param_names):
-                if i < len(input_values):
-                    args.append(input_values[i])
-                else:
-                    args.append(None)
-            print(f"DEBUG: Calling {function_name} with {len(args)} arguments", file=sys.stderr)
-            result = func_to_call(*args)
-        else:
-            # No parameters detected, try calling with all inputs as args
-            args = list(inputs.values())
-            print(f"DEBUG: Calling {function_name} with {len(args)} arguments (no params detected)", file=sys.stderr)
-            result = func_to_call(*args)
     
     # Check if result is already in the correct format
     if isinstance(result, str):

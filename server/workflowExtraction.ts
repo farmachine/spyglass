@@ -480,16 +480,15 @@ export class WorkflowExtractionEngine {
     documentContent: Record<string, string>,
     extractedReferences: Record<string, any>
   ): Promise<Record<string, any>> {
-    // Simple approach: just pass the document content directly
-    // The function will receive it as the first parameter
+    // Get the document content
     const documentContentValue = Object.values(documentContent)[0] || "";
     
-    console.log('📋 Preparing inputs - Document content length:', documentContentValue.length);
+    console.log('📋 Preparing function input - Document length:', documentContentValue.length);
     
-    // Return a simple object with the document content
-    // The key doesn't matter since we're passing by position in the Python script
+    // For the "Get Column Names" function, we just need to pass the Excel content
+    // The function expects one parameter: excel_file_content
     return {
-      document: documentContentValue
+      excel_file_content: documentContentValue
     };
   }
 
