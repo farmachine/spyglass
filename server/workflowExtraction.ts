@@ -92,18 +92,26 @@ export class WorkflowExtractionEngine {
         toolName: tool.name,
         documentKeys: Object.keys(documentContent),
         documentContentLength: Object.values(documentContent)[0]?.length || 0,
-        inputValues: value.inputValues,
+        stepLevelInputValues: value.inputValues,
         preparedInputs: inputs,
-        firstDocumentPreview: Object.values(documentContent)[0]?.substring(0, 500)
+        preparedInputKeys: Object.keys(inputs),
+        firstDocumentPreview: Object.values(documentContent)[0]?.substring(0, 200)
+      });
+
+      // Log the actual document content being passed
+      console.log('📄 DOCUMENT CONTENT:', {
+        documentId: Object.keys(documentContent)[0],
+        contentLength: Object.values(documentContent)[0]?.length,
+        contentPreview: Object.values(documentContent)[0]?.substring(0, 500)
       });
 
       const toolResults = await this.toolEngine.testTool(toolConfig, inputs);
       
-      console.log('📊 FUNCTION OUTPUT:', {
+      console.log('📊 RAW FUNCTION OUTPUT:', {
         valueName: value.valueName,
         toolName: tool.name,
         resultsCount: toolResults.length,
-        results: toolResults
+        rawResults: JSON.stringify(toolResults, null, 2)
       });
       
       // For list steps with multiple outputs, return all records
@@ -504,8 +512,12 @@ export class WorkflowExtractionEngine {
     results: WorkflowExtractionResult[]
   ): Promise<void> {
     console.log(`💾 Saving extraction results for session ${sessionId}`);
+    console.log('📊 FULL RESULTS TO SAVE:', JSON.stringify(results, null, 2));
     
     for (const stepResult of results) {
+      console.log(`  📝 Processing step: ${stepResult.stepName} (${stepResult.stepType})`);
+      console.log(`    Values to save: ${stepResult.values.length}`);
+      
       // Track record index for list-type steps
       let recordIndex = 0;
       
