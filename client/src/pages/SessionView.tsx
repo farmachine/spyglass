@@ -3338,7 +3338,18 @@ Thank you for your assistance.`;
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => console.log(`Run tool ${value.toolId} for ${value.valueName}`)}
+                                          onClick={() => {
+                                            console.log(`Run tool ${value.toolId} for ${value.valueName}`);
+                                            console.log('Related flow value:', {
+                                              valueId: value.id,
+                                              valueName: value.valueName,
+                                              toolId: value.toolId,
+                                              inputValues: value.inputValues,
+                                              dataType: value.dataType,
+                                              fullValue: value,
+                                              parentStep: step
+                                            });
+                                          }}
                                           className="h-4 w-4 p-0"
                                         >
                                           <Wand2 className="h-3 w-3 text-[#4F63A4]" />
