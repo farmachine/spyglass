@@ -3225,11 +3225,19 @@ Thank you for your assistance.`;
                 
                 // Render Data Table steps (collections with values as columns)
                 if (step.stepType === 'DATA_TABLE') {
-                  // For Data Tables, we need to get the collection data
-                  // If there's an identifierId, it points to a collection
+                  // For Data Tables, always show the table structure
+                  // Check if we have actual collection data (multiple records)
                   const collectionData = step.identifierId && extractedData[step.stepName] ? 
-                    (Array.isArray(extractedData[step.stepName]) ? extractedData[step.stepName] : [extractedData[step.stepName]]) : 
+                    (Array.isArray(extractedData[step.stepName]) ? extractedData[step.stepName] : []) : 
                     [];
+                  
+                  // Debug log to see what values we have
+                  console.log(`📊 Data Table step: ${step.stepName}`, {
+                    values: step.values,
+                    collectionData,
+                    extractedData,
+                    validations
+                  });
                   
                   return (
                     <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
@@ -3240,80 +3248,33 @@ Thank you for your assistance.`;
                         </p>
                       </CardHeader>
                       <CardContent>
-                        {collectionData.length === 0 ? (
-                          // If no collection data, show values as a single row table
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                              <thead>
-                                <tr className="border-b bg-gray-50">
-                                  {step.values?.map((value) => (
-                                    <th key={value.id} className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                      <div className="flex items-center gap-1">
-                                        <span>{value.valueName}</span>
-                                        {value.toolId && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => console.log(`Run tool ${value.toolId}`)}
-                                            className="h-5 w-5 p-0"
-                                          >
-                                            <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr className="hover:bg-gray-50">
-                                  {step.values?.map((value) => {
-                                    const fieldName = value.valueName;
-                                    const fieldValue = extractedData[fieldName];
-                                    const validation = getValidation(fieldName);
-                                    const displayValue = validation?.extractedValue ?? fieldValue ?? '';
-                                    
-                                    return (
-                                      <td key={value.id} className="px-4 py-3 text-sm">
-                                        {displayValue ? (
-                                          <span className="text-gray-900">{displayValue}</span>
-                                        ) : (
-                                          <span className="text-gray-400 italic">No value</span>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          // If we have collection data, show multiple rows
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                              <thead>
-                                <tr className="border-b bg-gray-50">
-                                  {step.values?.map((value) => (
-                                    <th key={value.id} className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                      <div className="flex items-center gap-1">
-                                        <span>{value.valueName}</span>
-                                        {value.toolId && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => console.log(`Run tool ${value.toolId}`)}
-                                            className="h-5 w-5 p-0"
-                                          >
-                                            <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {collectionData.map((item: any, index: number) => (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b bg-gray-50">
+                                {step.values?.map((value) => (
+                                  <th key={value.id} className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    <div className="flex items-center gap-1">
+                                      <span>{value.valueName}</span>
+                                      {value.toolId && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => console.log(`Run tool ${value.toolId}`)}
+                                          className="h-5 w-5 p-0"
+                                        >
+                                          <Wand2 className="h-3 w-3 text-[#4F63A4]" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {collectionData.length > 0 ? (
+                                // Multiple records from collection
+                                collectionData.map((item: any, index: number) => (
                                   <tr key={index} className="border-b hover:bg-gray-50">
                                     {step.values?.map((value) => {
                                       const fieldValue = item[value.valueName] ?? '';
@@ -3328,11 +3289,32 @@ Thank you for your assistance.`;
                                       );
                                     })}
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                                ))
+                              ) : (
+                                // Single row showing current values or empty state
+                                <tr className="hover:bg-gray-50">
+                                  {step.values?.map((value) => {
+                                    const fieldName = value.valueName;
+                                    // Try to get value from validations/extractedData
+                                    const validation = getValidation(fieldName);
+                                    const fieldValue = extractedData[fieldName];
+                                    const displayValue = validation?.extractedValue ?? fieldValue ?? '';
+                                    
+                                    return (
+                                      <td key={value.id} className="px-4 py-3 text-sm">
+                                        {displayValue ? (
+                                          <span className="text-gray-900">{displayValue}</span>
+                                        ) : (
+                                          <span className="text-gray-400 italic">No value</span>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </CardContent>
                     </Card>
                   );
