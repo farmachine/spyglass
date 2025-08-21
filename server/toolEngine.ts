@@ -34,6 +34,7 @@ export interface Tool {
   functionCode?: string;
   aiPrompt?: string;
   outputType?: "single" | "multiple";
+  llmModel?: string;
   metadata?: Record<string, any>;
 }
 
@@ -300,9 +301,9 @@ export class ToolEngine {
       console.log('-'.repeat(80));
       console.log('');
       
-      // Extract llm_model from inputs, default to gemini-2.0-flash
-      const llmModel = inputs.llmModel || "gemini-2.0-flash";
-      console.log('🤖 Using LLM Model:', llmModel);
+      // Use the tool's configured llmModel, not from inputs
+      const llmModel = tool.llmModel || "gemini-2.0-flash";
+      console.log('🤖 Using LLM Model from tool configuration:', llmModel);
       
       const response = await genAI.models.generateContent({
         model: llmModel,

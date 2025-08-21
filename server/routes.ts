@@ -5816,6 +5816,7 @@ def extract_function(Column_Name, Excel_File):
           functionCode: func.functionCode,
           aiPrompt: func.aiPrompt || func.description,
           outputType: func.outputType,
+          llmModel: func.llmModel,
           metadata: func.metadata || {}
         };
         

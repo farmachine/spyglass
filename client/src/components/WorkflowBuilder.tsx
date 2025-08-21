@@ -996,47 +996,7 @@ function ValueEditor({
           </div>
 
           {/* Model Selection for AI Tools */}
-          {selectedTool?.toolType === 'AI_ONLY' && (
-            <div>
-              <Label>AI Model</Label>
-              <Select
-                value={value.inputValues.llmModel || 'gemini-2.0-flash'}
-                onValueChange={(model) => onUpdate({ 
-                  inputValues: { ...value.inputValues, llmModel: model }
-                })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gemini-2.0-flash">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-gray-600" />
-                      <span>Gemini 2.0 Flash (Fast)</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="gemini-2.0-flash-exp">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-gray-600" />
-                      <span>Gemini 2.0 Flash Experimental</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="gemini-1.5-pro">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-gray-600" />
-                      <span>Gemini 1.5 Pro (Accurate)</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="gemini-1.5-flash">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-gray-600" />
-                      <span>Gemini 1.5 Flash (Legacy)</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
 
           {/* Dynamic Input Parameters - integrated without container */}
           {inputParameters.length > 0 && (
