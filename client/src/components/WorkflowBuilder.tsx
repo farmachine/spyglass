@@ -19,6 +19,7 @@ import {
   ChevronUp,
   List,
   Info,
+  FileText,
   Trash2,
   GripVertical,
   Code,
@@ -660,7 +661,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             
             <Card className="p-12 w-3/4 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
               <div className="text-center">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
                 <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
                 <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
