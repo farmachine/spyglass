@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, File as FileIcon, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -3159,7 +3159,7 @@ Thank you for your assistance.`;
                         {sessionDocuments.map((doc) => (
                           <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex items-center gap-3">
-                              <File className="h-5 w-5 text-gray-400" />
+                              <FileIcon className="h-5 w-5 text-gray-400" />
                               <span className="text-sm font-medium">{doc.fileName}</span>
                             </div>
                             <span className="text-xs text-gray-500">
