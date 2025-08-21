@@ -4564,6 +4564,91 @@ print(json.dumps(results))
 
   // Excel Wizardry Functions Routes
   
+  // Workflow Step endpoints
+  app.get("/api/projects/:projectId/workflow", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const steps = await storage.getWorkflowSteps(projectId);
+      
+      // Get values for each step
+      const stepsWithValues = await Promise.all(steps.map(async (step) => {
+        const values = await storage.getStepValues(step.id);
+        return { ...step, values };
+      }));
+      
+      res.json({ steps: stepsWithValues });
+    } catch (error) {
+      console.error("Error getting workflow:", error);
+      res.status(500).json({ message: "Failed to get workflow" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/workflow", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const workflow = req.body;
+      
+      console.log("Saving workflow for project:", projectId);
+      console.log("Workflow data:", JSON.stringify(workflow, null, 2));
+      
+      await storage.saveProjectWorkflow(projectId, workflow);
+      
+      res.json({ success: true, message: "Workflow saved successfully" });
+    } catch (error) {
+      console.error("Error saving workflow:", error);
+      res.status(500).json({ message: "Failed to save workflow" });
+    }
+  });
+
+  app.post("/api/workflow-steps/:stepId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const stepData = req.body;
+      
+      console.log("Saving individual step:", stepId);
+      console.log("Step data:", JSON.stringify(stepData, null, 2));
+      
+      // Update the step
+      await storage.updateWorkflowStep(stepId, {
+        stepName: stepData.name,
+        stepType: stepData.type,
+        description: stepData.description,
+        orderIndex: stepData.orderIndex,
+        valueCount: stepData.valueCount || stepData.values?.length || 0,
+        identifierId: stepData.identifierId
+      });
+      
+      // Update values for this step
+      // First get existing values to delete
+      const existingValues = await storage.getStepValues(stepId);
+      for (const value of existingValues) {
+        await storage.deleteStepValue(value.id);
+      }
+      
+      // Now create new values
+      for (const value of stepData.values || []) {
+        await storage.createStepValue({
+          id: value.id,
+          stepId: stepId,
+          valueName: value.name,
+          dataType: value.dataType,
+          description: value.description,
+          isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
+          orderIndex: value.orderIndex || 0,
+          toolId: value.toolId,
+          inputValues: value.inputValues,
+          autoVerificationConfidence: value.autoVerificationConfidence,
+          choiceOptions: value.choiceOptions
+        });
+      }
+      
+      res.json({ success: true, message: "Step saved successfully" });
+    } catch (error) {
+      console.error("Error saving step:", error);
+      res.status(500).json({ message: "Failed to save step" });
+    }
+  });
+
   // Get all Excel wizardry functions
   app.get("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
     try {

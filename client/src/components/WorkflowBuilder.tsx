@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from '@/hooks/use-toast';
 import type { 
   ProjectSchemaField, 
   ObjectCollection, 
@@ -95,6 +96,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Convert existing data to workflow steps on mount
   useEffect(() => {
@@ -281,9 +283,124 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     setSteps(collapsedSteps);
   };
 
+  const saveCurrentStep = async () => {
+    // Find the currently expanded step
+    const expandedStep = steps.find(s => s.isExpanded);
+    if (!expandedStep) {
+      console.log('No expanded step to save');
+      return;
+    }
+
+    const stepData = {
+      ...expandedStep,
+      valueCount: expandedStep.values.length,
+      identifierId: expandedStep.type === 'list' && expandedStep.values[0] ? expandedStep.values[0].id : null
+    };
+
+    try {
+      const response = await fetch(`/api/workflow-steps/${expandedStep.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(stepData)
+      });
+
+      if (response.ok) {
+        console.log('Step saved successfully');
+        toast({
+          title: "Step Saved",
+          description: `"${expandedStep.name}" has been saved successfully`,
+        });
+      } else {
+        console.error('Failed to save step');
+        toast({
+          title: "Save Failed",
+          description: "Failed to save the step. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving step:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while saving the step",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveFlow = async () => {
+    const workflowData = {
+      steps: steps.map(step => ({
+        id: step.id,
+        name: step.name,
+        type: step.type,
+        description: step.description,
+        orderIndex: step.orderIndex,
+        valueCount: step.values.length,
+        identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null,
+        values: step.values.map(value => ({
+          id: value.id,
+          name: value.name,
+          dataType: value.dataType,
+          description: value.description,
+          toolId: value.toolId,
+          inputValues: value.inputValues
+        }))
+      }))
+    };
+    
+    console.log('===== SAVE FLOW - WORKFLOW DATA =====');
+    console.log(JSON.stringify(workflowData, null, 2));
+    console.log('========================================');
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/workflow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(workflowData)
+      });
+
+      if (response.ok) {
+        console.log('Workflow saved successfully');
+        toast({
+          title: "Flow Saved",
+          description: "Your workflow has been saved successfully",
+        });
+        // Collapse all steps after successful save
+        const collapsedSteps = steps.map(step => ({
+          ...step,
+          isExpanded: false
+        }));
+        setSteps(collapsedSteps);
+      } else {
+        console.error('Failed to save workflow');
+        toast({
+          title: "Save Failed",
+          description: "Failed to save the workflow. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error saving workflow:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while saving the workflow",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
-    collapseAll: handleSaveChanges
+    collapseAll: handleSaveChanges,
+    saveCurrentStep,
+    saveFlow
   }));
 
   return (

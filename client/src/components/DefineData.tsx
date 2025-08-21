@@ -312,17 +312,30 @@ export default function DefineData({
               Design your data extraction workflow
             </p>
           </div>
-          <Button 
-            onClick={() => {
-              // Trigger workflow save/collapse
-              if (workflowRef.current) {
-                workflowRef.current.collapseAll();
-              }
-            }}
-            className="bg-gray-700 hover:bg-gray-800 text-white"
-          >
-            Update Flow
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => {
+                // Save individual step (expanded step only)
+                if (workflowRef.current) {
+                  workflowRef.current.saveCurrentStep();
+                }
+              }}
+              className="bg-gray-600 hover:bg-gray-700 text-white"
+            >
+              Save Step
+            </Button>
+            <Button 
+              onClick={() => {
+                // Trigger workflow save
+                if (workflowRef.current) {
+                  workflowRef.current.saveFlow();
+                }
+              }}
+              className="bg-gray-700 hover:bg-gray-800 text-white"
+            >
+              Save Flow
+            </Button>
+          </div>
         </div>
       </div>
 

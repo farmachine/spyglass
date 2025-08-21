@@ -2,7 +2,9 @@ import {
   projects, 
   projectSchemaFields, 
   objectCollections, 
-  collectionProperties, 
+  collectionProperties,
+  workflowSteps,
+  stepValues,
   extractionSessions,
   sessionDocuments,
   knowledgeDocuments,
@@ -23,6 +25,10 @@ import {
   type InsertObjectCollection,
   type CollectionProperty,
   type InsertCollectionProperty,
+  type WorkflowStep,
+  type InsertWorkflowStep,
+  type StepValue,
+  type InsertStepValue,
   type ExtractionSession,
   type InsertExtractionSession,
   type SessionDocument,
@@ -183,6 +189,21 @@ export interface IStorage {
   updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined>;
   deleteSampleDocument(id: string): Promise<boolean>;
   deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean>;
+
+  // Workflow Steps
+  getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>;
+  getWorkflowStep(id: string): Promise<WorkflowStep | undefined>;
+  createWorkflowStep(step: InsertWorkflowStep): Promise<WorkflowStep>;
+  updateWorkflowStep(id: string, step: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined>;
+  deleteWorkflowStep(id: string): Promise<boolean>;
+  saveProjectWorkflow(projectId: string, workflow: any): Promise<void>;
+
+  // Step Values
+  getStepValues(stepId: string): Promise<StepValue[]>;
+  getStepValue(id: string): Promise<StepValue | undefined>;
+  createStepValue(value: InsertStepValue): Promise<StepValue>;
+  updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
+  deleteStepValue(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -3277,6 +3298,128 @@ class PostgreSQLStorage implements IStorage {
           eq(sampleDocuments.parameterName, parameterName)
         )
       );
+      return result.rowCount > 0;
+    });
+  }
+
+  // Workflow Steps
+  async getWorkflowSteps(projectId: string): Promise<WorkflowStep[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(workflowSteps)
+        .where(eq(workflowSteps.projectId, projectId))
+        .orderBy(workflowSteps.orderIndex);
+    });
+  }
+
+  async getWorkflowStep(id: string): Promise<WorkflowStep | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(workflowSteps).where(eq(workflowSteps.id, id));
+      return result;
+    });
+  }
+
+  async createWorkflowStep(step: InsertWorkflowStep): Promise<WorkflowStep> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(workflowSteps).values(step).returning();
+      return result;
+    });
+  }
+
+  async updateWorkflowStep(id: string, step: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(workflowSteps).set(step).where(eq(workflowSteps.id, id)).returning();
+      return result;
+    });
+  }
+
+  async deleteWorkflowStep(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      // First delete all step values
+      await this.db.delete(stepValues).where(eq(stepValues.stepId, id));
+      // Then delete the step
+      const result = await this.db.delete(workflowSteps).where(eq(workflowSteps.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  async saveProjectWorkflow(projectId: string, workflow: any): Promise<void> {
+    return this.retryOperation(async () => {
+      // Begin transaction-like behavior
+      // First, delete existing workflow steps for this project
+      const existingSteps = await this.db.select().from(workflowSteps).where(eq(workflowSteps.projectId, projectId));
+      
+      for (const step of existingSteps) {
+        await this.db.delete(stepValues).where(eq(stepValues.stepId, step.id));
+      }
+      await this.db.delete(workflowSteps).where(eq(workflowSteps.projectId, projectId));
+
+      // Now save the new workflow
+      for (const step of workflow.steps) {
+        // Create the step
+        const [newStep] = await this.db.insert(workflowSteps).values({
+          id: step.id,
+          projectId: projectId,
+          stepName: step.name,
+          stepType: step.type,
+          description: step.description,
+          orderIndex: step.orderIndex,
+          valueCount: step.valueCount || step.values?.length || 0,
+          identifierId: step.identifierId
+        }).returning();
+
+        // Create the values for this step
+        for (const value of step.values || []) {
+          await this.db.insert(stepValues).values({
+            id: value.id,
+            stepId: newStep.id,
+            valueName: value.name,
+            dataType: value.dataType,
+            description: value.description,
+            isIdentifier: step.type === 'list' && step.values[0]?.id === value.id,
+            orderIndex: value.orderIndex || 0,
+            toolId: value.toolId,
+            inputValues: value.inputValues,
+            autoVerificationConfidence: value.autoVerificationConfidence,
+            choiceOptions: value.choiceOptions
+          });
+        }
+      }
+    });
+  }
+
+  // Step Values
+  async getStepValues(stepId: string): Promise<StepValue[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(stepValues)
+        .where(eq(stepValues.stepId, stepId))
+        .orderBy(stepValues.orderIndex);
+    });
+  }
+
+  async getStepValue(id: string): Promise<StepValue | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
+      return result;
+    });
+  }
+
+  async createStepValue(value: InsertStepValue): Promise<StepValue> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(stepValues).values(value).returning();
+      return result;
+    });
+  }
+
+  async updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(stepValues).set(value).where(eq(stepValues.id, id)).returning();
+      return result;
+    });
+  }
+
+  async deleteStepValue(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
       return result.rowCount > 0;
     });
   }
