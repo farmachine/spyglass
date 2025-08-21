@@ -2946,8 +2946,18 @@ Thank you for your assistance.`;
           <div className="border-t border-slate-200 p-4 flex-1">
             {/* Documents Section - Session-specific */}
             <div className="mb-6">
-              <div className="flex items-center mb-3">
-                <Folder className="h-5 w-5 text-slate-600 mr-3" />
+              <div className="relative flex items-center">
+                {/* Logo dot for Documents */}
+                <div className="relative z-10 flex items-center justify-center mr-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activeTab === 'documents' ? 'bg-[#4F63A4]' : 'bg-slate-400'
+                  }`}></div>
+                </div>
+                
+                {/* Connecting line for active tab */}
+                {activeTab === 'documents' && (
+                  <div className="absolute left-1 w-4 h-0.5 bg-[#4F63A4]" style={{ left: '8px' }}></div>
+                )}
                 
                 {/* Tab button */}
                 <button
@@ -2968,7 +2978,7 @@ Thank you for your assistance.`;
             </div>
             <div className="relative">
               {/* Vertical connecting line - stops at last step */}
-              <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
+              <div className="absolute left-1 top-4 w-0.5 bg-slate-300" style={{ 
                 height: `${workflowSteps.length * 48 - 36}px` 
               }}></div>
               
@@ -2999,22 +3009,23 @@ Thank you for your assistance.`;
                     
                     return (
                       <div key={step.id} className="relative flex items-center">
-                        {/* Circular icon */}
-                        <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                          totalCount > 0 && verifiedCount === totalCount
-                            ? 'bg-white border-green-600'
-                            : (activeTab === step.id 
-                                ? 'bg-primary border-primary' 
-                                : 'bg-white border-slate-300')
-                        }`}>
+                        {/* Logo dot - solid slate blue */}
+                        <div className="relative z-10 flex items-center justify-center">
                           {totalCount > 0 && verifiedCount === totalCount ? (
-                            <Check className="w-4 h-4 text-green-600" />
+                            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
                           ) : (
-                            <div className={`w-3 h-3 rounded-full ${
-                              activeTab === step.id ? 'bg-white' : 'bg-slate-400'
+                            <div className={`w-2 h-2 rounded-full ${
+                              activeTab === step.id ? 'bg-[#4F63A4]' : 'bg-slate-400'
                             }`}></div>
                           )}
                         </div>
+                        
+                        {/* Connecting line for active tab */}
+                        {activeTab === step.id && (
+                          <div className="absolute left-1 w-6 h-0.5 bg-[#4F63A4]" style={{ left: '8px' }}></div>
+                        )}
                         
                         {/* Tab button */}
                         <button
