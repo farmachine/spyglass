@@ -32,8 +32,11 @@ export async function apiRequest(
 
     // If unauthorized or token expired, clear token and redirect to login
     if (res.status === 401 || res.status === 403) {
+      console.log('Token expired or unauthorized. Clearing auth and redirecting to login...');
       localStorage.removeItem("auth_token");
-      window.location.href = "/login";
+      localStorage.clear(); // Clear all localStorage to ensure clean state
+      sessionStorage.clear(); // Clear session storage as well
+      window.location.replace("/login"); // Use replace to ensure redirect
       return;
     }
 
