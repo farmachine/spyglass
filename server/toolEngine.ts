@@ -230,7 +230,7 @@ export class ToolEngine {
     console.log('');
     
     const response = await genAI.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt
     });
     
@@ -300,8 +300,12 @@ export class ToolEngine {
       console.log('-'.repeat(80));
       console.log('');
       
+      // Extract llm_model from inputs, default to gemini-2.0-flash
+      const llmModel = inputs.llmModel || "gemini-2.0-flash";
+      console.log('🤖 Using LLM Model:', llmModel);
+      
       const response = await genAI.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: llmModel,
         contents: prompt
       });
       

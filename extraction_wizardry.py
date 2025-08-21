@@ -267,7 +267,7 @@ def get_sample_document_properties_from_db(document_ids):
         return {"error": f"Database query failed: {str(e)}"}
 
 
-def analyze_document_format_with_gemini(documents, target_fields_data=None, max_retries=3):
+def analyze_document_format_with_gemini(documents, target_fields_data=None, max_retries=3, llm_model=None):
     """Send document properties to Gemini and return raw response with retry logic"""
     # Get API key from environment
     api_key = os.getenv('GEMINI_API_KEY')
@@ -286,17 +286,21 @@ def analyze_document_format_with_gemini(documents, target_fields_data=None, max_
         target_fields=target_fields_content
     )
     
+    # Use the provided model or default to gemini-2.0-flash
+    model_to_use = llm_model or "gemini-2.0-flash"
+    
     # Log truncated prompt for debugging
     print(f"\n📝 GEMINI PROMPT: {len(prompt)} characters")
+    print(f"   Model: {model_to_use}")
     print(f"   Preview: {prompt[:150].replace(chr(10), ' ')}...")
     print("=" * 40)
     
     # Retry logic for Gemini API calls
     for attempt in range(max_retries):
         try:
-            # Call Gemini API
+            # Call Gemini API with selected model
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=model_to_use,
                 contents=prompt
             )
             
@@ -887,7 +891,7 @@ def execute_excel_wizardry_function(function_code, extracted_content, target_fie
     except Exception as e:
         return {"error": f"Failed to execute Excel wizardry function: {str(e)}"}
 
-def update_document_format_analysis_with_functions(documents, target_fields_data, existing_functions, identifier_references=None, extraction_number=0):
+def update_document_format_analysis_with_functions(documents, target_fields_data, existing_functions, identifier_references=None, extraction_number=0, llm_model=None):
     """Update the document format analysis to include existing functions and identifier references"""
     # Get API key from environment
     api_key = os.getenv('GEMINI_API_KEY')
@@ -944,9 +948,14 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
     print(f"   Including {len(existing_functions)} functions and {len(identifier_references) if identifier_references else 0} references")
     print("=" * 40)
     
+    # Use the provided model or default to gemini-2.0-flash
+    model_to_use = llm_model or "gemini-2.0-flash"
+    
+    print(f"   Model: {model_to_use}")
+    
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model_to_use,
             contents=prompt
         )
         
@@ -955,7 +964,7 @@ def update_document_format_analysis_with_functions(documents, target_fields_data
     except Exception as e:
         return f"ERROR: Enhanced Gemini analysis failed: {str(e)}"
 
-def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
+def run_wizardry_with_gemini_analysis(data=None, extraction_number=0, llm_model=None):
     """Main function that gets documents from DB and analyzes them with Gemini"""
     
     # Log extraction run information
@@ -1211,7 +1220,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
             identifier_references = incoming_identifier_references
         
         # Analyze document formats with Gemini using enhanced analysis that includes existing functions and identifier references
-        gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions, identifier_references, extraction_number)
+        gemini_response = update_document_format_analysis_with_functions(documents, identifier_targets, existing_functions, identifier_references, extraction_number, llm_model)
         
         # Print Gemini analysis summary
         print(f"\n🤖 GEMINI DECISION:")
@@ -1564,8 +1573,15 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0):
                 "identifier_references": identifier_references if 'identifier_references' in locals() else first_run_identifier_references
             }
             
+            # Include llm_model in rerun data if it was provided
+            if llm_model:
+                rerun_data["llm_model"] = llm_model
+            
+            # Pass llm_model from the rerun_data if it exists
+            rerun_llm_model = rerun_data.get('llm_model')
+            
             # Re-run the extraction with the new parameters
-            run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number)
+            run_wizardry_with_gemini_analysis(rerun_data, next_extraction_number, rerun_llm_model)
         else:
             print("\n" + "=" * 80)
             print("EXTRACTION COMPLETE")
@@ -1593,8 +1609,11 @@ def run_wizardry(data=None, extraction_number=0):
         else:
             print("No collection IDs found in target fields")
     
+    # Extract llm_model from data if provided
+    llm_model = data.get('llm_model') if data else None
+    
     # Call the new function with Gemini analysis
-    run_wizardry_with_gemini_analysis(data, extraction_number)
+    run_wizardry_with_gemini_analysis(data, extraction_number, llm_model)
 
 if __name__ == "__main__":
     # Read JSON data from stdin if available
