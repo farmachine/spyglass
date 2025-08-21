@@ -30,8 +30,8 @@ export async function apiRequest(
       credentials: "include",
     });
 
-    // If unauthorized, clear token and redirect to login
-    if (res.status === 401) {
+    // If unauthorized or token expired, clear token and redirect to login
+    if (res.status === 401 || res.status === 403) {
       localStorage.removeItem("auth_token");
       window.location.href = "/login";
       return;

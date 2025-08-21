@@ -325,13 +325,23 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving step:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while saving the step",
-        variant: "destructive"
-      });
+      
+      // Check if it's a token expiration error
+      if (error?.message?.includes('Invalid or expired token') || error?.status === 403) {
+        toast({
+          title: "Session Expired",
+          description: "Your session has expired. Please refresh the page to log in again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An error occurred while saving the step",
+          variant: "destructive"
+        });
+      }
     }
   };
 
