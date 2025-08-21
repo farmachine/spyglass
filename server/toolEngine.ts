@@ -590,6 +590,11 @@ try:
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
     
+    # Debug: Print what we have
+    print(f"DEBUG: Function name: {function_name}", file=sys.stderr)
+    print(f"DEBUG: Inputs received: {inputs}", file=sys.stderr)
+    print(f"DEBUG: Parameters expected: {parameters}", file=sys.stderr)
+    
     # Check if we should iterate over sample data
     data_params = [p for p in parameters if p.get('type') == 'data']
     has_sample_data = False
@@ -654,15 +659,24 @@ try:
             param_id = param.get('id')
             param_name = param.get('name')
             
+            print(f"DEBUG: Looking for param_id={param_id}, param_name={param_name}", file=sys.stderr)
+            
             # Try to find input by ID first, then by name
             if param_id and param_id in inputs:
+                print(f"DEBUG: Found by ID: {param_id}", file=sys.stderr)
                 args.append(inputs[param_id])
             elif param_name and param_name in inputs:
+                print(f"DEBUG: Found by name: {param_name}", file=sys.stderr)
                 args.append(inputs[param_name])
             else:
                 # If neither found, try the first input value for single-param functions
                 if len(parameters) == 1 and len(inputs) == 1:
+                    print(f"DEBUG: Using fallback - single param function", file=sys.stderr)
                     args.append(list(inputs.values())[0])
+                else:
+                    print(f"DEBUG: Parameter not found in inputs!", file=sys.stderr)
+        
+        print(f"DEBUG: Calling function with {len(args)} arguments", file=sys.stderr)
         
         # Execute function once
         result = func_to_call(*args)
