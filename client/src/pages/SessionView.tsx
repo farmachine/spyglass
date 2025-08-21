@@ -15,6 +15,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1511,13 +1521,13 @@ export default function SessionView() {
   // Batch validation removed - validation now occurs only during extraction process
 
   // Document action handlers
-  const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) {
-      return;
-    }
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: string, name: string } | null>(null);
+
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
     
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/documents/${documentId}`, {
+      const response = await fetch(`/api/sessions/${sessionId}/documents/${documentToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -1532,9 +1542,9 @@ export default function SessionView() {
       queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/documents`] });
       toast({
         title: "Success",
-        description: "Document deleted successfully",
-        variant: "default"
+        description: "Document deleted successfully"
       });
+      setDocumentToDelete(null);
     } catch (error) {
       console.error('Error deleting document:', error);
       toast({
@@ -3187,7 +3197,7 @@ Thank you for your assistance.`;
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteDocument(doc.id)}
+                                onClick={() => setDocumentToDelete({ id: doc.id, name: doc.fileName })}
                                 className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
                                 title="Delete document"
                               >
@@ -3403,6 +3413,24 @@ Thank you for your assistance.`;
           validations={validations}
         />
       )}
+
+      {/* Delete Document Confirmation */}
+      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{documentToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDocumentToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDocument} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
