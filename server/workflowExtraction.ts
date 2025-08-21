@@ -299,8 +299,9 @@ export class WorkflowExtractionEngine {
       filteredContent = { [selectedDocumentId]: documentContent[selectedDocumentId] };
     }
     
-    // Extract just this single value - but it may return multiple records
-    const extractedValues = await this.extractValueWithMultipleRecords(
+    // Extract just this single value
+    console.log(`📎 Extracting single value: ${targetValue.valueName}`);
+    const extractedValue = await this.extractValueWithMultipleRecords(
       targetValue,
       filteredContent,
       extractedReferences,
@@ -309,12 +310,15 @@ export class WorkflowExtractionEngine {
       step
     );
     
-    // Return result in the same format
+    console.log(`✅ Extraction complete for ${targetValue.valueName}`);
+    console.log(`   Results: ${extractedValue.length} values extracted`);
+    
+    // Return only this single value's results
     return [{
       stepId: step.id,
       stepName: step.stepName,
       stepType: step.stepType,
-      values: extractedValues
+      values: extractedValue  // This should contain only the extracted value for the clicked column
     }];
   }
 
