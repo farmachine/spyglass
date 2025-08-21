@@ -481,7 +481,9 @@ export class WorkflowExtractionEngine {
     for (const [key, value] of Object.entries(inputValues)) {
       if (Array.isArray(value) && value[0] === "user_document") {
         // Use the first available document content
-        preparedInputs[key] = Object.values(documentContent)[0] || "";
+        // For CODE tools, the function expects a specific parameter name
+        // We need to use the actual function parameter name, not the display name
+        preparedInputs["excel_file_content"] = Object.values(documentContent)[0] || "";
       } else if (typeof value === "string" && value.startsWith("@")) {
         // Reference to previously extracted value
         preparedInputs[key] = extractedReferences[value] || null;

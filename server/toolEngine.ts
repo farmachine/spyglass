@@ -646,14 +646,56 @@ try:
         result = all_results
     else:
         # Single execution mode
-        args = []
-        for param in parameters:
-            param_name = param['name']
-            if param_name in inputs:
-                args.append(inputs[param_name])
+        # For document type parameters, the input might come with a different key
+        # We need to map the first available input to the function parameter
         
-        # Execute function once
-        result = func_to_call(*args)
+        # Extract actual parameter names from function signature
+        import inspect
+        import re
+        
+        # Parse function signature from the code string
+        func_def_match = re.search(r'def\s+' + re.escape(function_name) + r'\s*\(([^)]*)\)', """${functionCode.replace(/"/g, '\\"')}""")
+        if func_def_match:
+            params_str = func_def_match.group(1)
+            # Extract parameter names (ignore type hints)
+            func_param_names = [p.strip().split(':')[0].strip() for p in params_str.split(',') if p.strip()]
+        else:
+            func_param_names = []
+        
+        # If function expects specific parameter names, map inputs accordingly
+        if func_param_names:
+            # For single parameter functions with document inputs
+            if len(func_param_names) == 1 and len(inputs) > 0:
+                # Pass the first input value with the expected parameter name
+                result = func_to_call(list(inputs.values())[0])
+            else:
+                # Multiple parameters - try to match by name or position
+                kwargs = {}
+                for i, func_param in enumerate(func_param_names):
+                    # Try to find matching parameter by name
+                    matched = False
+                    for param in parameters:
+                        if param['name'] in inputs:
+                            if i < len(parameters):
+                                kwargs[func_param] = inputs[param['name']]
+                                matched = True
+                                break
+                    
+                    # If no match, use positional
+                    if not matched and i < len(list(inputs.values())):
+                        kwargs[func_param] = list(inputs.values())[i]
+                
+                result = func_to_call(**kwargs)
+        else:
+            # Fallback to original behavior
+            args = []
+            for param in parameters:
+                param_name = param['name']
+                if param_name in inputs:
+                    args.append(inputs[param_name])
+            
+            # Execute function once
+            result = func_to_call(*args)
     
     # Check if result is already in the correct format
     if isinstance(result, str):
