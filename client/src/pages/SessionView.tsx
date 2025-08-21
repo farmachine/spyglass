@@ -1538,8 +1538,9 @@ export default function SessionView() {
         throw new Error('Failed to delete document');
       }
 
-      // Refresh the documents list
-      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/documents`] });
+      // Refresh the documents list - use the correct query key format
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
       toast({
         title: "Success",
         description: "Document deleted successfully"
