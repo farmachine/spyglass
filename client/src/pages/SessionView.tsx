@@ -2944,8 +2944,8 @@ Thank you for your assistance.`;
           
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 p-4 flex-1">
-            {/* Documents Section - Session-specific */}
-            <div className="mb-6">
+            <div className="space-y-3">
+              {/* Documents Section - Session-specific */}
               <div className="relative flex items-center">
                 {/* Logo dot for Documents */}
                 <div className="relative z-10 flex items-center justify-center mr-3">
@@ -2971,20 +2971,19 @@ Thank you for your assistance.`;
                   <div className="truncate">Documents</div>
                 </button>
               </div>
-            </div>
             
-            <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">Flow Steps</h3>
-            </div>
-            <div className="relative">
-              {/* Vertical connecting line - stops at last step */}
-              <div className="absolute left-1 top-4 w-0.5 bg-slate-300" style={{ 
-                height: `${workflowSteps.length * 48 - 36}px` 
-              }}></div>
+              {/* Workflow steps with vertical line */}
+              <div className="relative">
+                {/* Vertical connecting line - only between steps, starts at first step */}
+                {workflowSteps.length > 1 && (
+                  <div className="absolute left-1 top-4 w-0.5 bg-slate-300" style={{ 
+                    height: `${(workflowSteps.length - 1) * 48}px` 
+                  }}></div>
+                )}
               
-              <div className="space-y-3">
-                {/* Workflow Steps as Tabs */}
-                {workflowSteps
+                <div className="space-y-3">
+                  {/* Workflow Steps as Tabs */}
+                  {workflowSteps
                   .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                   .map((step, index) => {
                     // Get validations for this step - depends on whether it's Data Table or Info Page
@@ -3041,6 +3040,7 @@ Thank you for your assistance.`;
                     </div>
                   );
                 })}
+                </div>
               </div>
             </div>
           </div>
