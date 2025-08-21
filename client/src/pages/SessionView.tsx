@@ -1287,6 +1287,87 @@ export default function SessionView() {
     }
   }, [resizing]);
 
+  // Execute tool function for individual values
+  const executeTool = async (toolId: string, valueName: string, inputValues: any) => {
+    try {
+      // Get the first session document to use as input
+      if (!sessionDocuments || sessionDocuments.length === 0) {
+        toast({
+          title: "No documents",
+          description: "Please upload a document first",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Use the first document as the default input
+      const selectedDocument = sessionDocuments[0];
+      
+      // Prepare inputs - replace any @document references with the actual document content
+      const preparedInputs: Record<string, any> = {};
+      
+      if (inputValues) {
+        for (const [key, value] of Object.entries(inputValues)) {
+          if (typeof value === 'string' && value.startsWith('@')) {
+            // This is a reference to a document - use the selected document's content
+            preparedInputs[key] = selectedDocument.extractedContent || '';
+          } else {
+            preparedInputs[key] = value;
+          }
+        }
+      }
+
+      console.log(`🚀 Executing tool ${toolId} for ${valueName}`);
+      console.log('📄 Using document:', selectedDocument.fileName);
+      console.log('📊 Prepared inputs:', preparedInputs);
+
+      // Call the test endpoint
+      const response = await fetch('/api/excel-functions/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          functionId: toolId,
+          inputs: preparedInputs
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to execute tool');
+      }
+
+      const result = await response.json();
+      console.log('✅ Tool execution result:', result);
+
+      if (result.success && result.results && result.results.length > 0) {
+        const extractedValue = result.results[0].extractedValue;
+        
+        toast({
+          title: "Extraction Complete",
+          description: `${valueName}: ${extractedValue || 'No value extracted'}`,
+        });
+
+        // TODO: Update the validation/extracted data in the session
+        // This would require calling an endpoint to save the extracted value
+      } else {
+        toast({
+          title: "Extraction Failed",
+          description: "No value could be extracted",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error executing tool:', error);
+      toast({
+        title: "Execution Error",
+        description: error.message || "Failed to execute extraction",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Sort data function
   const sortCollectionData = (itemsWithIndices: any[], collection: any, sortConfig: any) => {
     if (!sortConfig || sortConfig.collectionId !== collection.id) return itemsWithIndices;
@@ -3279,7 +3360,10 @@ Thank you for your assistance.`;
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => console.log(`Run tool ${value.toolId}`)}
+                                    onClick={async () => {
+                                      console.log(`Run tool ${value.toolId} for ${value.valueName}`);
+                                      await executeTool(value.toolId, value.valueName, value.inputValues);
+                                    }}
                                     className="h-5 w-5 p-0"
                                   >
                                     <Wand2 className="h-3 w-3 text-[#4F63A4]" />
@@ -3338,7 +3422,7 @@ Thank you for your assistance.`;
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => {
+                                          onClick={async () => {
                                             console.log(`Run tool ${value.toolId} for ${value.valueName}`);
                                             console.log('Related flow value:', {
                                               valueId: value.id,
@@ -3349,6 +3433,9 @@ Thank you for your assistance.`;
                                               fullValue: value,
                                               parentStep: step
                                             });
+                                            
+                                            // Execute the function with session documents
+                                            await executeTool(value.toolId, value.valueName, value.inputValues);
                                           }}
                                           className="h-4 w-4 p-0"
                                         >
