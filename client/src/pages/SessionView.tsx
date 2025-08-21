@@ -3055,7 +3055,10 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
+                        <h2 className="text-3xl font-bold flex items-center gap-2">
+                          <span className="w-2 h-2 bg-[#4F63A4] rounded-full"></span>
+                          {session?.sessionName}
+                        </h2>
                         <Button
                           size="sm"
                           variant="ghost"

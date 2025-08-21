@@ -32,7 +32,7 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 - **Color Scheme**: Professional slate blue (`#4F63A4`).
-- **Visual Consistency**: Unified borderless design for statistics cards; consistent tick-based verification icons.
+- **Visual Consistency**: Unified borderless design for statistics cards; consistent tick-based verification icons. Logo dots before section names in both admin panel and session views.
 - **Layout**: Optimized dashboard and form layouts for better space utilization.
 - **Interaction**: Icon-only UI, comprehensive optimistic updates, streamlined workflow.
 - **Responsiveness**: Responsive design using Tailwind CSS.
