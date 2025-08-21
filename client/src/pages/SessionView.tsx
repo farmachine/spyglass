@@ -3186,25 +3186,41 @@ Thank you for your assistance.`;
                     ) : (
                       <div className="space-y-2">
                         {sessionDocuments.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                            <div className="flex items-center gap-3">
-                              <FileIcon className="h-5 w-5 text-gray-400" />
-                              <span className="text-sm font-medium">{doc.fileName}</span>
+                          <div key={doc.id} className="p-3 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <FileIcon className="h-5 w-5 text-gray-400" />
+                                <span className="text-sm font-medium">{doc.fileName}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {new Date(doc.uploadedAt).toLocaleDateString()}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDocumentToDelete({ id: doc.id, name: doc.fileName })}
+                                  className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
+                                  title="Delete document"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">
-                                {new Date(doc.uploadedAt).toLocaleDateString()}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDocumentToDelete({ id: doc.id, name: doc.fileName })}
-                                className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
-                                title="Delete document"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            {doc.extractedContent && (
+                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 font-mono">
+                                <div className="font-semibold text-gray-700 mb-1">Content Preview:</div>
+                                <div className="whitespace-pre-wrap break-words line-clamp-3">
+                                  {doc.extractedContent.substring(0, 300)}
+                                  {doc.extractedContent.length > 300 && '...'}
+                                </div>
+                                {doc.extractedContent.length > 300 && (
+                                  <div className="text-gray-500 mt-1">
+                                    ({doc.extractedContent.length.toLocaleString()} characters extracted)
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
