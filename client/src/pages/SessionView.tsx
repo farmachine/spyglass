@@ -3436,9 +3436,10 @@ Thank you for your assistance.`;
       {/* Document Upload Modal */}
       <DocumentUploadModal
         open={documentUploadModalOpen}
-        onOpenChange={setDocumentUploadModalOpen}
+        onClose={() => setDocumentUploadModalOpen(false)}
         sessionId={sessionId}
-        onUploadComplete={() => {
+        projectId={projectId}
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
           setDocumentUploadModalOpen(false);
         }}
