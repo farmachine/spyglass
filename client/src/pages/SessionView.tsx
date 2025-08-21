@@ -3432,6 +3432,17 @@ Thank you for your assistance.`;
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Document Upload Modal */}
+      <DocumentUploadModal
+        open={documentUploadModalOpen}
+        onOpenChange={setDocumentUploadModalOpen}
+        sessionId={sessionId}
+        onUploadComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+          setDocumentUploadModalOpen(false);
+        }}
+      />
     </div>
   );
 }
