@@ -672,18 +672,36 @@ try:
         print(f"DEBUG: We have inputs: {list(inputs.keys())}", file=sys.stderr)
         
         # Simple execution - just call the function with the document content
-        if 'excel_file_content' in inputs:
-            # Call the function with the excel content
-            print(f"DEBUG: Calling {function_name}(excel_file_content) with content length: {len(inputs['excel_file_content'])}", file=sys.stderr)
-            result = func_to_call(inputs['excel_file_content'])
-        else:
-            # Fallback: use the first input value
-            input_values = list(inputs.values())
-            if input_values:
-                print(f"DEBUG: Calling {function_name} with first input (length: {len(str(input_values[0]))})", file=sys.stderr)
-                result = func_to_call(input_values[0])
+        try:
+            if 'excel_file_content' in inputs:
+                # Call the function with the excel content
+                content = inputs['excel_file_content']
+                print(f"DEBUG: Calling {function_name}(excel_file_content) with content length: {len(content)}", file=sys.stderr)
+                print(f"DEBUG: First 200 chars of content: {content[:200]}", file=sys.stderr)
+                result = func_to_call(content)
+                print(f"DEBUG: Function returned: {result}", file=sys.stderr)
             else:
-                raise Exception("No input provided for function")
+                # Fallback: use the first input value
+                input_values = list(inputs.values())
+                if input_values:
+                    content = input_values[0]
+                    print(f"DEBUG: Calling {function_name} with first input (length: {len(str(content))})", file=sys.stderr)
+                    print(f"DEBUG: First 200 chars of content: {str(content)[:200]}", file=sys.stderr)
+                    result = func_to_call(content)
+                    print(f"DEBUG: Function returned: {result}", file=sys.stderr)
+                else:
+                    raise Exception("No input provided for function")
+        except Exception as e:
+            print(f"ERROR in function execution: {str(e)}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+            # Return error result
+            result = [{
+                "extractedValue": None,
+                "validationStatus": "invalid",
+                "aiReasoning": f"Function execution error: {str(e)}",
+                "confidenceScore": 0
+            }]
     
     # Check if result is already in the correct format
     if isinstance(result, str):
