@@ -257,7 +257,7 @@ export class WorkflowExtractionEngine {
     
     // Get validations for this collection to find previously extracted values
     const session = await this.storage.getExtractionSession(sessionId);
-    const validations = await this.storage.getValidationsBySession(sessionId);
+    const validations = await this.storage.getFieldValidations(sessionId);
     
     // Build reference map from previous extractions
     for (const prevValue of stepValues) {
