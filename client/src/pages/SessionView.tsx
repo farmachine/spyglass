@@ -1330,11 +1330,13 @@ export default function SessionView() {
   });
 
   // Fetch workflow steps for the project
-  const { data: workflowSteps = [] } = useQuery({
+  const { data: workflowData } = useQuery({
     queryKey: ['/api/projects', projectId, 'workflow'],
     queryFn: () => apiRequest(`/api/projects/${projectId}/workflow`),
     enabled: !!projectId
   });
+  
+  const workflowSteps = workflowData?.steps || [];
 
   // Set dynamic page title based on session and project data
   usePageTitle(session?.sessionName && project?.name ? 
@@ -3545,13 +3547,16 @@ Thank you for your assistance.`;
 
                               {(() => {
                                 // Check if we have workflow steps for this collection
-                                const steps = workflowSteps?.steps || [];
-                                const workflowStep = steps.find((step: any) => 
+                                console.log('Looking for workflow step for:', collection.collectionName);
+                                console.log('Available workflow steps:', workflowSteps);
+                                const workflowStep = workflowSteps.find((step: any) => 
                                   step.stepType === 'list' && step.stepName === collection.collectionName
                                 );
+                                console.log('Found workflow step:', workflowStep);
                                 
                                 // Use workflow values if available, otherwise fall back to collection properties
                                 const columnsToRender = workflowStep?.values || collection.properties;
+                                console.log('Columns to render:', columnsToRender);
                                 
                                 return columnsToRender
                                   .filter((column: any) => column && (column.name || column.propertyName))
@@ -3699,8 +3704,7 @@ Thank you for your assistance.`;
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
                                   {(() => {
                                     // Check if we have workflow steps for this collection
-                                    const steps = workflowSteps?.steps || [];
-                                    const workflowStep = steps.find((step: any) => 
+                                    const workflowStep = workflowSteps.find((step: any) => 
                                       step.stepType === 'list' && step.stepName === collection.collectionName
                                     );
                                     
