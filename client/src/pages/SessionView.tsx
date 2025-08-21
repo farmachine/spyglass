@@ -1527,7 +1527,7 @@ export default function SessionView() {
     if (!documentToDelete) return;
     
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/documents/${documentToDelete.id}`, {
+      const response = await fetch(`/api/sessions/documents/${documentToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
