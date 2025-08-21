@@ -56,7 +56,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     description: "",
     aiAssistancePrompt: "",
     functionCode: "",
-    aiPrompt: ""
+    aiPrompt: "",
+    llmModel: "gemini-2.0-flash"
   });
 
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -73,7 +74,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "" });
+    setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
     setOutputType("single");
     setInputParameters([]);
@@ -101,7 +102,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           description: editingFunction.description || "",
           aiAssistancePrompt: editingFunction.aiAssistancePrompt || "",
           functionCode: editingFunction.functionCode || "",
-          aiPrompt: editingFunction.aiPrompt || ""
+          aiPrompt: editingFunction.aiPrompt || "",
+          llmModel: editingFunction.llmModel || "gemini-2.0-flash"
         });
         setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
@@ -149,7 +151,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           inputParameters: data.inputParameters,
           inputSchema: data.inputSchema,
           outputSchema: data.outputSchema,
-          tags: data.tags || []
+          tags: data.tags || [],
+          llmModel: data.llmModel || "gemini-2.0-flash"
         })
       });
     },
@@ -872,6 +875,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       // Include the actual content based on tool type
       aiPrompt: toolType === 'AI_ONLY' ? formData.aiPrompt : null,
       functionCode: toolType === 'CODE' ? formData.functionCode : null,
+      llmModel: formData.llmModel || "gemini-2.0-flash",
       // Add required schema fields
       inputSchema: {
         parameters: inputParameters
@@ -974,6 +978,31 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
             </CardContent>
           </Card>
+
+          {/* LLM Model Selector - Only for AI tools */}
+          {toolType === "AI_ONLY" && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800">AI Model</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={formData.llmModel} onValueChange={(value) => setFormData({ ...formData, llmModel: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select AI model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental</SelectItem>
+                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-600 mt-2">
+                  Choose the AI model to use for data extraction
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Inputs - Only show when tool type is selected */}
           {(toolType || isEditMode) && (
