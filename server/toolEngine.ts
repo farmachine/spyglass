@@ -186,9 +186,12 @@ export class ToolEngine {
               });
               
               const result = JSON.parse(output);
-              const extractedText = result.extracted_texts?.[0] || '';
+              console.log('📋 Extraction result:', JSON.stringify(result, null, 2));
+              
+              const extractedText = result.extracted_texts?.[0]?.text_content || result.extracted_texts?.[0] || '';
               
               console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
+              console.log('📄 First 500 chars of extracted text:', extractedText.substring(0, 500));
               preparedInputs[param.name] = extractedText;
               
             } catch (extractError) {
