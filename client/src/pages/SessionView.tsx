@@ -1356,6 +1356,16 @@ export default function SessionView() {
     enabled: !!sessionId,
   });
 
+  // Fetch workflow steps for the project
+  const { data: workflowData, isLoading: workflowLoading } = useQuery({
+    queryKey: ['/api/projects', projectId, 'workflow'],
+    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow`),
+    enabled: !!projectId,
+    refetchOnWindowFocus: false
+  });
+  
+  const workflowSteps = workflowData?.steps || [];
+
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
     queryKey: ['/api/validations/project', projectId],
@@ -1942,7 +1952,7 @@ export default function SessionView() {
 
   // Auto-validation removed - validation now occurs only during extraction process
 
-  if (projectLoading || sessionLoading || validationsLoading) {
+  if (projectLoading || sessionLoading || validationsLoading || workflowLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -1951,6 +1961,7 @@ export default function SessionView() {
             {projectLoading && "Loading project..."}
             {sessionLoading && "Loading session..."}
             {validationsLoading && "Loading validation data..."}
+            {workflowLoading && "Loading workflow..."}
           </p>
         </div>
       </div>
@@ -2909,112 +2920,68 @@ Thank you for your assistance.`;
             </div>
             
             <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
+              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">Flow Steps</h3>
             </div>
             <div className="relative">
-              {/* Vertical connecting line - stops at last collection */}
+              {/* Vertical connecting line - stops at last step */}
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
-                height: `${project.collections.length * 48 + 12}px` 
+                height: `${workflowSteps.length * 48 - 36}px` 
               }}></div>
               
               <div className="space-y-3">
-                {/* General Information Tab */}
-                <div className="relative flex items-center">
-                  {/* Circular icon */}
-                  <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                    (() => {
-                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
-                      const verifiedCount = infoValidations.filter(v => 
-                        v.validationStatus === 'verified' || 
-                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                      ).length;
-                      const totalCount = infoValidations.length;
-                      
-                      if (totalCount > 0 && verifiedCount === totalCount) {
-                        return 'bg-white border-green-600';
-                      } else {
-                        return activeTab === 'info' 
-                          ? 'bg-primary border-primary' 
-                          : 'bg-white border-slate-300';
-                      }
-                    })()
-                  }`}>
-                    {(() => {
-                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
-                      const verifiedCount = infoValidations.filter(v => 
-                        v.validationStatus === 'verified' || 
-                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                      ).length;
-                      const totalCount = infoValidations.length;
-                      
-                      if (totalCount > 0 && verifiedCount === totalCount) {
-                        return <Check className="w-4 h-4 text-green-600" />;
-                      } else {
-                        return <div className={`w-3 h-3 rounded-full ${
-                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400'
-                        }`}></div>;
-                      }
-                    })()}
-                  </div>
-                  
-                  {/* Tab button */}
-                  <button
-                    onClick={() => setActiveTab('info')}
-                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === 'info' 
-                        ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
-                    }`}
-                  >
-                    <div className="truncate">General Information</div>
-                  </button>
-                </div>
-                
-                {/* Collection Tabs */}
-                {project.collections.map((collection, index) => {
-                  const collectionValidations = validations.filter(v => 
-                    v.collectionName === collection.collectionName || 
-                    (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-                  );
-                  const validationIndices = collectionValidations.length > 0 ? 
-                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
-                  
-                  const verifiedCount = collectionValidations.filter(v => 
-                    v.validationStatus === 'verified' || 
-                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                  ).length;
-                  const totalCount = collectionValidations.length;
-                  
-                  return (
-                    <div key={collection.id} className="relative flex items-center">
-                      {/* Circular icon */}
-                      <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                        totalCount > 0 && verifiedCount === totalCount
-                          ? 'bg-white border-green-600'
-                          : (activeTab === collection.collectionName 
-                              ? 'bg-primary border-primary' 
-                              : 'bg-white border-slate-300')
-                      }`}>
-                        {totalCount > 0 && verifiedCount === totalCount ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <div className={`w-3 h-3 rounded-full ${
-                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400'
-                          }`}></div>
-                        )}
-                      </div>
-                      
-                      {/* Tab button */}
-                      <button
-                        onClick={() => setActiveTab(collection.collectionName)}
-                        className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                          activeTab === collection.collectionName 
-                            ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                {/* Workflow Steps as Tabs */}
+                {workflowSteps
+                  .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                  .map((step, index) => {
+                    // Get validations for this step - depends on whether it's Data Table or Info Page
+                    const stepValidations = step.stepType === 'DATA_TABLE' 
+                      ? validations.filter(v => {
+                          // For Data Tables, match by step name as collection name
+                          return v.collectionName === step.stepName || 
+                            (v.fieldName && v.fieldName.startsWith(step.stepName + '.'));
+                        })
+                      : validations.filter(v => {
+                          // For Info Pages, match by value names (like schema fields)
+                          return step.values?.some(value => 
+                            v.fieldName === value.valueName && !v.collectionName
+                          );
+                        });
+                    
+                    const verifiedCount = stepValidations.filter(v => 
+                      v.validationStatus === 'verified' || 
+                      (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                    ).length;
+                    const totalCount = stepValidations.length;
+                    
+                    return (
+                      <div key={step.id} className="relative flex items-center">
+                        {/* Circular icon */}
+                        <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                          totalCount > 0 && verifiedCount === totalCount
+                            ? 'bg-white border-green-600'
+                            : (activeTab === step.id 
+                                ? 'bg-primary border-primary' 
+                                : 'bg-white border-slate-300')
+                        }`}>
+                          {totalCount > 0 && verifiedCount === totalCount ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <div className={`w-3 h-3 rounded-full ${
+                              activeTab === step.id ? 'bg-white' : 'bg-slate-400'
+                            }`}></div>
+                          )}
+                        </div>
+                        
+                        {/* Tab button */}
+                        <button
+                          onClick={() => setActiveTab(step.id)}
+                          className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                            activeTab === step.id 
+                              ? 'bg-primary text-white font-medium shadow-sm' 
+                              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                         }`}
                       >
-                        <div className="truncate">{collection.collectionName}</div>
+                        <div className="truncate">{step.stepName}</div>
                       </button>
                     </div>
                   );
@@ -3153,52 +3120,77 @@ Thank you for your assistance.`;
               </div>
             </div>
 
-            {/* Session Data Content - Now controlled by sidebar navigation */}
+            {/* Session Data Content - Now controlled by workflow steps */}
             <div className="w-full">
-              {/* Info Tab Content - Single Object View */}
-              {activeTab === 'info' && (
+              {/* Documents Tab */}
+              {activeTab === 'documents' && (
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">General Information</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenAIExtraction(
-                          'General Information',
-                          project?.schemaFields?.map(field => ({
-                            id: field.id,
-                            name: field.fieldName,
-                            type: field.fieldType
-                          })) || []
-                        )}
-                        className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
-                      >
-                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                      </Button>
-                    </CardTitle>
+                    <CardTitle>Documents</CardTitle>
                     <p className="text-sm text-gray-600">
-                      Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
+                      Documents uploaded to this session for data extraction.
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {project.schemaFields
-                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                        .map((field) => {
-                        const originalValue = extractedData[field.fieldName];
-                        const validation = getValidation(field.fieldName);
-                        
-                        // Show field if it has a value OR if there's a validation for it
-                        if (originalValue !== undefined || validation) {
-                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                          if (displayValue === "null" || displayValue === "undefined") {
-                            displayValue = null;
-                          }
-                          
-                          return (
-                            <div key={field.id} className="space-y-2">
+                    {sessionDocuments.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No documents uploaded yet
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {sessionDocuments.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <File className="h-5 w-5 text-gray-400" />
+                              <span className="text-sm font-medium">{doc.fileName}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Render workflow step content */}
+              {workflowSteps.map(step => {
+                if (activeTab !== step.id) return null;
+                
+                // Render Info Page steps (single values like schema fields)
+                if (step.stepType === 'INFO_PAGE') {
+                  return (
+                    <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">{step.stepName}</span>
+                        </CardTitle>
+                        <p className="text-sm text-gray-600">
+                          {step.description || `Information fields for ${step.stepName}`}
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Render values as fields */}
+                          {step.values
+                            ?.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                            .map((value) => {
+                              const fieldName = value.valueName;
+                              const originalValue = extractedData[fieldName];
+                              const validation = getValidation(fieldName);
+                              
+                              // Show field if it has a value OR if there's a validation for it
+                              if (originalValue !== undefined || validation) {
+                                // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                                let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                if (displayValue === "null" || displayValue === "undefined") {
+                                  displayValue = null;
+                                }
+                                
+                                return (
+                                  <div key={value.id} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
                                   const fieldName = field.fieldName;
@@ -3274,15 +3266,31 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
-                                <Label className="text-sm font-medium text-gray-700">
-                                  {field.fieldName}
+                                <Label className="text-sm font-medium text-gray-700 flex-1">
+                                  {fieldName}
                                 </Label>
+                                {/* Magic wand icon to trigger the associated tool */}
+                                {value.toolId && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      // Trigger the tool associated with this value
+                                      console.log(`Triggering tool ${value.toolId} for ${fieldName}`);
+                                      // TODO: Implement tool execution
+                                    }}
+                                    className="h-6 w-6 p-0 hover:bg-slate-100"
+                                    title={`Run extraction for ${fieldName}`}
+                                  >
+                                    <Wand2 className="h-3 w-3 text-[#4F63A4]" />
+                                  </Button>
+                                )}
                               </div>
                               <div>
                                 {(() => {
-                                  const validation = getValidation(field.fieldName);
-                                  const isEditing = editingField === field.fieldName;
-                                  const fieldType = field.fieldType;
+                                  const validation = getValidation(fieldName);
+                                  const isEditing = editingField === fieldName;
+                                  const fieldType = value.dataType || 'TEXT';
                                   
                                   if (isEditing) {
                                     return (
@@ -3354,7 +3362,7 @@ Thank you for your assistance.`;
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => {
-                                            const validation = getValidation(field.fieldName);
+                                            const validation = getValidation(fieldName);
                                             if (validation) {
                                               handleEditField(validation);
                                             }
@@ -3369,9 +3377,9 @@ Thank you for your assistance.`;
                                 })()}
                               </div>
                               
-                              {field.description && (
+                              {value.description && (
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {field.description}
+                                  {value.description}
                                 </p>
                               )}
                             </div>
@@ -3384,10 +3392,19 @@ Thank you for your assistance.`;
 
                   </CardContent>
                 </Card>
-              )}
+                  );
+                }
+                
+                // Render Data Table steps (collections)
+                if (step.stepType === 'DATA_TABLE') {
+                  return null; // Temporarily return null to fix syntax
+                }
+                
+                return null;
+              })}
 
-              {/* Documents Tab Content */}
-              {activeTab === 'documents' && (
+              {/* Old Documents Tab Content - Remove this later */}
+              {false && activeTab === 'documents' && (
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
