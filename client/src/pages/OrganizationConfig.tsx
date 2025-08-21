@@ -57,21 +57,21 @@ export default function OrganizationConfig() {
   const organizationId = id || "";
 
   // Fetch organization data to get name for page title
-  const { data: organization } = useQuery({
+  const { data: organization, error: orgError } = useQuery({
     queryKey: ["/api/organizations", organizationId],
     queryFn: () => apiRequest(`/api/organizations/${organizationId}`),
-    enabled: !!organizationId,
+    enabled: !!organizationId && user?.role === "admin",
   });
 
   // Set dynamic page title
   usePageTitle(organization?.name ? `Admin - ${organization.name}` : "Organization Admin");
 
-  const { data: organizations } = useQuery({
+  const { data: organizations } = useQuery<any[]>({
     queryKey: ["/api/organizations"],
     enabled: user?.role === "admin",
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: users, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/users", organizationId],
     enabled: user?.role === "admin" && !!organizationId,
   });
@@ -171,8 +171,8 @@ export default function OrganizationConfig() {
   const orgForm = useForm({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
-      name: organization?.name || "",
-      description: organization?.description || "",
+      name: "",
+      description: "",
     },
   });
 
@@ -203,25 +203,48 @@ export default function OrganizationConfig() {
 
   // Update form when organization data loads
   React.useEffect(() => {
-    if (organization) {
+    const selectedOrg = organizations?.find((org: any) => org.id === organizationId);
+    if (selectedOrg) {
       orgForm.reset({
-        name: organization?.name || "",
-        description: organization?.description || "",
+        name: selectedOrg?.name || "",
+        description: selectedOrg?.description || "",
       });
     }
-  }, [organization, orgForm]);
+  }, [organizations, organizationId, orgForm]);
 
   if (user?.role !== "admin" || user?.organization?.type !== "primary") {
     navigate("/");
     return null;
   }
 
+  // Show loading state while fetching organizations
   if (!organizations) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-medium text-gray-600">Loading...</h2>
+        </div>
+      </div>
+    );
   }
 
-  if (!organization) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Organization not found</div>;
+  // Only show "not found" after organizations have loaded and we can't find the org
+  const selectedOrg = organizations?.find((org: any) => org.id === organizationId);
+  if (!selectedOrg && organizations) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Organization not found</h2>
+          <p className="text-gray-500">The organization you're looking for doesn't exist.</p>
+          <Button 
+            onClick={() => navigate("/admin")} 
+            className="mt-4"
+          >
+            Back to Admin
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -233,12 +256,12 @@ export default function OrganizationConfig() {
             <Breadcrumb 
               items={[
                 { label: "Admin Panel", href: "/admin", icon: <Settings className="h-4 w-4" /> },
-                { label: organization?.name || "Organization" }
+                { label: selectedOrg?.name || "Organization" }
               ]} 
             />
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                {organization?.name || "Organization"}
+                {selectedOrg?.name || "Organization"}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 Organization configuration
@@ -553,7 +576,7 @@ export default function OrganizationConfig() {
               onSubmit={resetPasswordForm.handleSubmit((data) => {
                 if (selectedUserId) {
                   resetPasswordMutation.mutate({
-                    userId: selectedUserId,
+                    userId: parseInt(selectedUserId),
                     tempPassword: data.tempPassword,
                   });
                 }

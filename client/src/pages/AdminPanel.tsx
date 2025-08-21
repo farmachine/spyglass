@@ -30,7 +30,7 @@ export default function AdminPanel() {
   const { user } = useAuth();
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
 
-  const { data: organizations, isLoading } = useQuery({
+  const { data: organizations, isLoading } = useQuery<any[]>({
     queryKey: ["/api/organizations"],
     enabled: user?.role === "admin",
   });
