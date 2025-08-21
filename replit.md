@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **ORM**: Drizzle ORM
 - **Migrations**: Drizzle Kit
 - **Driver**: Neon Database serverless driver
+- **Unified Architecture** (January 2025): New `workflow_steps` and `step_values` tables unify schema fields and collections as "steps" with "values". Each step has `valueCount` and `identifierId` fields for tracking value counts and identifier references. Legacy tables maintained for backward compatibility.
 
 ### UI/UX Decisions
 - **Color Scheme**: Professional slate blue (`#4F63A4`).
@@ -73,6 +74,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Tool Engine Document Retrieval** (January 2025): Updated toolEngine.ts to fetch pre-extracted content from sample_documents table first, with fallback to metadata. Fixed "Get Worksheet from Column" function to handle structured input and correctly identify sheet locations for all 185 columns across 6 Excel sheets.
 - **Complete Schema and Collection Forms Overhaul** (January 2025): Rebuilt SchemaFieldDialogNew and CollectionCard components to solely rely on functions/tools system. Removed all hardcoded fields, implementing dynamic parameter rendering based on tool selection. Both forms now use identical patterns with tool selection as primary driver, dynamic configuration panels, and unified document selection combining session and knowledge documents.
 - **Collection Property UI Improvements** (January 2025): Updated CollectionCard inline property editor to match schema field dialog layout with consistent numbered steps. Changed "Data Sources & Configuration" to "Information Source" for clarity. Removed redundant tool description containers. Made Information Source section dynamic, only showing when extraction method has configurable parameters. Note: Identifier field name is hardcoded as "ID" on server-side during collection creation (line 841 in routes.ts) - requires server-side modification to make editable.
+- **Unified Database Architecture** (January 2025): Restructured database to treat schema fields and collections consistently as "steps" with "values". New `workflow_steps` table stores both Info Pages (single values/schema) and Data Tables (multiple records/collections). Each step tracks `valueCount` (number of values) and `identifierId` (UUID of first value for list steps). New `step_values` table replaces both schema fields and collection properties, storing value configuration including `toolId` and `inputValues` for tool parameters and @references. Legacy tables maintained for backward compatibility during migration.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

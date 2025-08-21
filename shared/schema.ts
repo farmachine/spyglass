@@ -46,25 +46,56 @@ export const projectPublishing = pgTable("project_publishing", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// New unified structure for both schema fields and collections as "steps"
+export const workflowSteps = pgTable("workflow_steps", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stepName: text("step_name").notNull(),
+  stepType: text("step_type", { enum: ["page", "list"] }).notNull(), // page = single values (schema), list = multiple records (collection)
+  description: text("description"),
+  orderIndex: integer("order_index").default(0),
+  valueCount: integer("value_count").default(0), // Number of values in this step
+  identifierId: uuid("identifier_id"), // UUID of the identifier value (first value for list steps)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Values within each step (replaces both schema fields and collection properties)
+export const stepValues = pgTable("step_values", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  stepId: uuid("step_id").notNull().references(() => workflowSteps.id, { onDelete: "cascade" }),
+  valueName: text("value_name").notNull(),
+  dataType: text("data_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
+  description: text("description"),
+  isIdentifier: boolean("is_identifier").default(false).notNull(), // True for the first value in list steps
+  orderIndex: integer("order_index").default(0),
+  // Tool/function configuration
+  toolId: uuid("tool_id").references(() => excelWizardryFunctions.id),
+  inputValues: jsonb("input_values"), // Stores the input mappings including @references
+  // Legacy fields for backward compatibility
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80),
+  choiceOptions: jsonb("choice_options"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Keep old tables for backward compatibility during migration
 export const projectSchemaFields = pgTable("project_schema_fields", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   fieldName: text("field_name").notNull(),
-  fieldType: text("field_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
-  description: text("description"), // Renamed to "Prompt" in UI for AI extraction
-  autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
-  choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
+  fieldType: text("field_type").notNull(),
+  description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80),
+  choiceOptions: jsonb("choice_options"),
   orderIndex: integer("order_index").default(0),
-  // New extraction configuration fields
   extractionType: text("extraction_type", { enum: ["AI_ONLY", "FUNCTION"] }).default("AI_ONLY").notNull(),
-  knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
-  extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
-  documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
-  functionId: uuid("function_id").references(() => excelWizardryFunctions.id), // Reference to function for FUNCTION extraction
-  functionParameters: jsonb("function_parameters"), // Parameters for function execution
-  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }), // Required document type for FUNCTION extraction
-  referencedMainFieldIds: jsonb("referenced_main_field_ids"), // Array of main schema field IDs that this field references
-  referencedCollectionIds: jsonb("referenced_collection_ids"), // Array of collection IDs that this field references
+  knowledgeDocumentIds: jsonb("knowledge_document_ids"),
+  extractionRuleIds: jsonb("extraction_rule_ids"),
+  documentsRequired: boolean("documents_required").default(true).notNull(),
+  functionId: uuid("function_id").references(() => excelWizardryFunctions.id),
+  functionParameters: jsonb("function_parameters"),
+  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }),
+  referencedMainFieldIds: jsonb("referenced_main_field_ids"),
+  referencedCollectionIds: jsonb("referenced_collection_ids"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -73,7 +104,7 @@ export const objectCollections = pgTable("object_collections", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   collectionName: text("collection_name").notNull(),
   description: text("description"),
-  identifierFieldId: uuid("identifier_field_id"), // references collectionProperties.id for the identifier field
+  identifierFieldId: uuid("identifier_field_id"),
   orderIndex: integer("order_index").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -82,19 +113,18 @@ export const collectionProperties = pgTable("collection_properties", {
   id: uuid("id").defaultRandom().primaryKey(),
   collectionId: uuid("collection_id").notNull().references(() => objectCollections.id, { onDelete: "cascade" }),
   propertyName: text("property_name").notNull(),
-  propertyType: text("property_type").notNull(), // TEXT, NUMBER, DATE, CHOICE
-  description: text("description"), // Renamed to "Prompt" in UI for AI extraction
-  autoVerificationConfidence: integer("auto_verification_confidence").default(80), // 0-100 threshold for auto verification
-  choiceOptions: jsonb("choice_options"), // Array of choice options for CHOICE type fields
-  isIdentifier: boolean("is_identifier").default(false).notNull(), // marks this property as the identifier field
+  propertyType: text("property_type").notNull(),
+  description: text("description"),
+  autoVerificationConfidence: integer("auto_verification_confidence").default(80),
+  choiceOptions: jsonb("choice_options"),
+  isIdentifier: boolean("is_identifier").default(false).notNull(),
   orderIndex: integer("order_index").default(0),
-  // New extraction configuration fields
   extractionType: text("extraction_type", { enum: ["AI_ONLY", "FUNCTION"] }).default("AI_ONLY").notNull(),
-  knowledgeDocumentIds: jsonb("knowledge_document_ids"), // Array of knowledge document IDs for AI extraction
-  extractionRuleIds: jsonb("extraction_rule_ids"), // Array of extraction rule IDs for AI extraction
-  documentsRequired: boolean("documents_required").default(true).notNull(), // Whether source documents are required for AI extraction
-  functionId: uuid("function_id").references(() => excelWizardryFunctions.id), // Reference to function for FUNCTION extraction
-  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }), // Required document type for FUNCTION extraction
+  knowledgeDocumentIds: jsonb("knowledge_document_ids"),
+  extractionRuleIds: jsonb("extraction_rule_ids"),
+  documentsRequired: boolean("documents_required").default(true).notNull(),
+  functionId: uuid("function_id").references(() => excelWizardryFunctions.id),
+  requiredDocumentType: text("required_document_type", { enum: ["Excel", "Word", "PDF"] }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -249,6 +279,16 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   createdBy: true, // Backend adds this automatically
 });
 
+export const insertWorkflowStepSchema = createInsertSchema(workflowSteps).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStepValueSchema = createInsertSchema(stepValues).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertProjectSchemaFieldSchema = createInsertSchema(projectSchemaFields).omit({
   id: true,
   createdAt: true,
@@ -328,6 +368,10 @@ export type ProjectWithAuthor = Project & {
   creatorOrganizationName?: string;
 };
 export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type WorkflowStep = typeof workflowSteps.$inferSelect;
+export type InsertWorkflowStep = z.infer<typeof insertWorkflowStepSchema>;
+export type StepValue = typeof stepValues.$inferSelect;
+export type InsertStepValue = z.infer<typeof insertStepValueSchema>;
 export type ProjectSchemaField = typeof projectSchemaFields.$inferSelect;
 export type InsertProjectSchemaField = z.infer<typeof insertProjectSchemaFieldSchema>;
 export type ObjectCollection = typeof objectCollections.$inferSelect;

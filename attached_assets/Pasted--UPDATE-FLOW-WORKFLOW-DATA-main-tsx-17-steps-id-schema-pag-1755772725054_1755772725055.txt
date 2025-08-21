@@ -1,0 +1,131 @@
+===== UPDATE FLOW - WORKFLOW DATA =====
+main.tsx:17 {
+  "steps": [
+    {
+      "id": "schema-page",
+      "name": "Data Fields",
+      "type": "page",
+      "description": "Main data extraction fields",
+      "orderIndex": 0,
+      "valueCount": {Number of Values in the step},
+      "identifierID": {UUID of the identifier value (always the first value in the step)},
+      "values": [
+        {
+          "id": "ce6dbf10-8af4-4b4c-835f-ed994d3806ed",
+          "name": "Pension Scheme Name",
+          "dataType": "TEXT",
+          "description": "Name of Pension Scheme.",
+          "toolId": "683e5fa7-ef57-4896-a161-bb8d50104f96",
+          "inputValues": {
+            "0": {
+              "4q2kmgz9hxo": [
+                "user_provided"
+              ],
+              "cdani1tj77s": "Please find the name of the pension scheme."
+            },
+            "0.4q2kmgz9hxo": [
+              "user_document"
+            ],
+            "0.cdani1tj77s": "Get the name of the pension scheme"
+          }
+        }
+      ]
+    },
+    {
+      "id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+      "name": "Column Name Mapping",
+      "type": "list",
+      "description": "A list of all columns in the excel provided by the pension scheme provider",
+      "orderIndex": 1,
+      "valueCount": {Number of Values in the step},
+      "identifierID": {UUID of the identifier value (always the first value in the step)},
+      "values": [
+        {
+          "id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf",
+          "name": "Column Name",
+          "dataType": "TEXT",
+          "description": "Columns in the excel file.",
+          "toolId": "72204391-0d72-4493-889e-67807d6c96a8",
+          "inputValues": {
+            "0.my684050njo": [
+              "user_document"
+            ]
+          }
+        },
+        {
+          "id": "value-1755772042875",
+          "name": "Worksheet",
+          "dataType": "TEXT",
+          "description": "Gets the name of the worksheet of each column.",
+          "toolId": "f1689b16-0ea4-4422-bc8a-8e724930f058",
+          "inputValues": {
+            "0.e2e4q7okb0q": [
+              "user_document"
+            ]
+          }
+        },
+        {
+          "id": "value-1755772082024",
+          "name": "Standard Field Mapping",
+          "dataType": "TEXT",
+          "description": "Gets the Standard name for the data field based on the standards mentioned in the knowledge document.",
+          "toolId": "fb0190e9-0b26-4133-b8e8-decfba38cd22",
+          "inputValues": {
+            "0.0qv7jjabq7on": [
+              "@Column Name Mapping.Worksheet"
+            ],
+            "0.hb25dnz5dmd": "Map the columns to the standard equivalent in the standard field mappings document. Use say \"Not Found\" for any that can't be mapped.",
+            "0.4uir69thnel": [
+              "37dbd483-c91b-4470-a728-aec645b1ad5e"
+            ]
+          }
+        },
+        {
+          "id": "value-1755772201988",
+          "name": "AI Reasoning",
+          "dataType": "TEXT",
+          "description": "Reasoning behind mapping to standard.",
+          "toolId": "fb0190e9-0b26-4133-b8e8-decfba38cd22",
+          "inputValues": {
+            "0.0qv7jjabq7on": [
+              "@Column Name Mapping.Worksheet",
+              "@Column Name Mapping.Standard Field Mapping"
+            ],
+            "0.hb25dnz5dmd": "Explain the reasoning for the mapping of the columns.",
+            "0.4uir69thnel": [
+              "37dbd483-c91b-4470-a728-aec645b1ad5e"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "046920a4-b6f3-4e6d-957d-61dd4f3cc610",
+      "name": "Missing Fields",
+      "type": "list",
+      "description": "The missing fields from the provider data.",
+      "orderIndex": 2,
+      "valueCount": {Number of Values in the step},
+      "identifierID": {UUID of the identifier value (always the first value in the step)},
+      "values": [
+        {
+          "id": "a5ce92e0-c4cb-4641-b1e7-d05a381d6e88",
+          "name": "Missing Field",
+          "dataType": "TEXT",
+          "description": "Missing fields based on the standard.",
+          "toolId": "fb0190e9-0b26-4133-b8e8-decfba38cd22",
+          "inputValues": {
+            "0.0qv7jjabq7on": [
+              "@Column Name Mapping.Standard Field Mapping"
+            ],
+            "0.hb25dnz5dmd": "Create a list of fields present in the knowledge document that are not present in the list of standard columns.",
+            "0.4uir69thnel": [
+              "37dbd483-c91b-4470-a728-aec645b1ad5e"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+main.tsx:17 ========================================

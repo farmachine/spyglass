@@ -256,6 +256,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         type: step.type,
         description: step.description,
         orderIndex: step.orderIndex,
+        valueCount: step.values.length, // Number of values in the step
+        identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null, // UUID of first value for list steps
         values: step.values.map(value => ({
           id: value.id,
           name: value.name,
@@ -823,7 +825,7 @@ function ValueEditor({
                         // Ensure identifier ref is always included if it exists
                         const currentValues = value.inputValues[param.id] || [];
                         const allValues = identifierRef 
-                          ? [...new Set([identifierRef, ...currentValues])]
+                          ? Array.from(new Set([identifierRef, ...currentValues]))
                           : currentValues;
                         
                         if (allValues.length > 0) {
