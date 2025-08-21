@@ -4635,7 +4635,7 @@ print(json.dumps(results))
           description: value.description,
           isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
           orderIndex: value.orderIndex || 0,
-          toolId: value.toolId,
+          toolId: value.toolId || null,  // Convert empty string to null
           inputValues: value.inputValues,
           autoVerificationConfidence: value.autoVerificationConfidence,
           choiceOptions: value.choiceOptions

@@ -3405,7 +3405,12 @@ class PostgreSQLStorage implements IStorage {
 
   async createStepValue(value: InsertStepValue): Promise<StepValue> {
     return this.retryOperation(async () => {
-      const [result] = await this.db.insert(stepValues).values(value).returning();
+      // Convert empty string toolId to null
+      const cleanedValue = {
+        ...value,
+        toolId: value.toolId === '' ? null : value.toolId
+      };
+      const [result] = await this.db.insert(stepValues).values(cleanedValue).returning();
       return result;
     });
   }
