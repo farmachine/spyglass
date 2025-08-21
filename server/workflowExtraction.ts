@@ -29,6 +29,113 @@ export class WorkflowExtractionEngine {
   }
 
   /**
+   * Extract a value that may return multiple records
+   */
+  private async extractValueWithMultipleRecords(
+    value: any,
+    documentContent: Record<string, string>,
+    extractedReferences: Record<string, any>,
+    projectId: string,
+    sessionId: string,
+    step: any
+  ): Promise<any[]> {
+    if (!value.toolId) {
+      return [{
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: "No extraction tool configured",
+        confidenceScore: 0
+      }];
+    }
+
+    // Get the tool configuration
+    const tool = await this.storage.getExcelWizardryFunction(value.toolId);
+    if (!tool) {
+      return [{
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: "Extraction tool not found",
+        confidenceScore: 0
+      }];
+    }
+
+    // Prepare inputs for the tool
+    const inputs = await this.prepareToolInputs(
+      value.inputValues || {},
+      documentContent,
+      extractedReferences
+    );
+
+    // Execute the tool
+    try {
+      const toolConfig = {
+        id: tool.id,
+        name: tool.name,
+        description: tool.description,
+        toolType: tool.toolType,
+        inputParameters: tool.inputParameters || [],
+        functionCode: tool.functionCode,
+        aiPrompt: tool.aiPrompt || tool.description,
+        outputType: tool.outputType,
+        llmModel: tool.llmModel,
+        metadata: tool.metadata || {}
+      };
+
+      const toolResults = await this.toolEngine.testTool(toolConfig, inputs);
+      
+      // For list steps with multiple outputs, return all records
+      if (step.stepType === "list" && tool.outputType === "multiple" && toolResults.length > 0) {
+        return toolResults.map((result, index) => ({
+          valueId: `${value.id}_${index}`,
+          valueName: value.valueName,
+          dataType: value.dataType,
+          extractedValue: result.extractedValue,
+          validationStatus: result.validationStatus || "valid",
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 1,
+          documentSource: result.documentSource
+        }));
+      } else {
+        // Single result
+        const result = toolResults[0] || {
+          extractedValue: null,
+          validationStatus: "invalid",
+          aiReasoning: "No result from tool",
+          confidenceScore: 0
+        };
+        
+        return [{
+          valueId: value.id,
+          valueName: value.valueName,
+          dataType: value.dataType,
+          extractedValue: result.extractedValue,
+          validationStatus: result.validationStatus || "valid",
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 1,
+          documentSource: result.documentSource
+        }];
+      }
+    } catch (error) {
+      console.error(`Error executing tool for ${value.valueName}:`, error);
+      return [{
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        confidenceScore: 0
+      }];
+    }
+  }
+
+  /**
    * Extract a single value using its configured tool
    */
   private async extractValue(
@@ -126,7 +233,8 @@ export class WorkflowExtractionEngine {
     sessionId: string,
     documentContent: Record<string, string>,
     stepId: string,
-    valueId: string
+    valueId: string,
+    selectedDocumentId?: string
   ): Promise<WorkflowExtractionResult[]> {
     console.log(`🔄 Starting single value extraction for value ${valueId} in step ${stepId}`);
     
@@ -149,7 +257,7 @@ export class WorkflowExtractionEngine {
     
     // Get validations for this collection to find previously extracted values
     const session = await this.storage.getExtractionSession(sessionId);
-    const validations = await this.storage.getProjectValidations(session?.projectId || projectId);
+    const validations = await this.storage.getValidationsBySession(sessionId);
     
     // Build reference map from previous extractions
     for (const prevValue of stepValues) {
@@ -164,13 +272,20 @@ export class WorkflowExtractionEngine {
       }
     }
     
-    // Extract just this single value
-    const extractedValue = await this.extractValue(
+    // If a specific document is selected, filter content
+    let filteredContent = documentContent;
+    if (selectedDocumentId) {
+      filteredContent = { [selectedDocumentId]: documentContent[selectedDocumentId] };
+    }
+    
+    // Extract just this single value - but it may return multiple records
+    const extractedValues = await this.extractValueWithMultipleRecords(
       targetValue,
-      documentContent,
+      filteredContent,
       extractedReferences,
       projectId,
-      sessionId
+      sessionId,
+      step
     );
     
     // Return result in the same format
@@ -178,7 +293,7 @@ export class WorkflowExtractionEngine {
       stepId: step.id,
       stepName: step.stepName,
       stepType: step.stepType,
-      values: [extractedValue]
+      values: extractedValues
     }];
   }
 
@@ -372,15 +487,24 @@ export class WorkflowExtractionEngine {
     console.log(`💾 Saving extraction results for session ${sessionId}`);
     
     for (const stepResult of results) {
+      // Track record index for list-type steps
+      let recordIndex = 0;
+      
       for (const value of stepResult.values) {
+        // Parse record index from valueId if it contains underscore (for multiple records)
+        const valueIdParts = value.valueId.split('_');
+        if (valueIdParts.length > 1) {
+          recordIndex = parseInt(valueIdParts[valueIdParts.length - 1]) || 0;
+        }
+        
         // Create or update field validation record
         const fieldName = stepResult.stepType === "list" 
-          ? `${stepResult.stepName}.${value.valueName}` 
+          ? `${stepResult.stepName}.${value.valueName}[${recordIndex}]` 
           : value.valueName;
         
         await this.storage.createFieldValidation({
           sessionId,
-          fieldId: value.valueId,
+          fieldId: valueIdParts[0], // Use base valueId without index suffix
           fieldName,
           fieldValue: value.extractedValue,
           extractedValue: value.extractedValue,
@@ -393,7 +517,7 @@ export class WorkflowExtractionEngine {
           originalConfidenceScore: value.confidenceScore,
           documentSource: value.documentSource,
           collectionName: stepResult.stepType === "list" ? stepResult.stepName : undefined,
-          recordIndex: stepResult.stepType === "list" ? 0 : undefined
+          recordIndex: stepResult.stepType === "list" ? recordIndex : undefined
         });
       }
     }

@@ -2501,7 +2501,8 @@ except Exception as e:
       let results;
       if (stepId && valueId) {
         // Extract single value
-        results = await engine.executeSingleValue(projectId, sessionId, documentContent, stepId, valueId);
+        const documentId = req.body.documentId;
+        results = await engine.executeSingleValue(projectId, sessionId, documentContent, stepId, valueId, documentId);
       } else {
         // Extract full workflow
         results = await engine.executeWorkflow(projectId, sessionId, documentContent);

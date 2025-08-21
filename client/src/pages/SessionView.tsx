@@ -1060,6 +1060,16 @@ export default function SessionView() {
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
 
+  // Document selection modal for workflow value extraction
+  const [documentSelectModal, setDocumentSelectModal] = useState<{
+    open: boolean;
+    stepId: string;
+    valueId: string;
+    valueName: string;
+    collectionName: string;
+  }>({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
+  const [selectedDocumentForExtraction, setSelectedDocumentForExtraction] = useState<string>('');
+
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
     if (validation.validationType !== 'schema_field' || !project?.schemaFields) return null;
@@ -1219,7 +1229,7 @@ export default function SessionView() {
     });
   };
 
-  // Handle triggering workflow value extraction
+  // Handle triggering workflow value extraction - opens document selection modal
   const handleTriggerWorkflowValue = async (collectionName: string, column: any, index: number) => {
     try {
       // Get the workflow step
@@ -1239,24 +1249,49 @@ export default function SessionView() {
         return;
       }
 
-      console.log('Triggering extraction for value:', value.valueName, 'with ID:', value.id);
+      console.log('Opening document selection modal for value:', value.valueName, 'with ID:', value.id);
 
-      // Trigger extraction for this specific value
+      // Open the document selection modal
+      setDocumentSelectModal({
+        open: true,
+        stepId: workflowStep.id,
+        valueId: value.id,
+        valueName: value.valueName,
+        collectionName: collectionName
+      });
+      setSelectedDocumentForExtraction(''); // Reset selection
+    } catch (error) {
+      console.error('Error opening document selection modal:', error);
+    }
+  };
+
+  // Handle document selection and extraction
+  const handleDocumentSelectionAndExtract = async () => {
+    if (!selectedDocumentForExtraction || !documentSelectModal.valueId) {
+      return;
+    }
+
+    try {
+      console.log('Extracting with document:', selectedDocumentForExtraction, 'for value:', documentSelectModal.valueName);
+
+      // Trigger extraction with selected document
       const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
         method: 'POST',
         body: JSON.stringify({
-          stepId: workflowStep.id,
-          valueId: value.id,
-          sessionId: sessionId
+          stepId: documentSelectModal.stepId,
+          valueId: documentSelectModal.valueId,
+          sessionId: sessionId,
+          documentId: selectedDocumentForExtraction
         })
       });
 
       if (response.success) {
         // Refetch validations to update the UI
         queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+        setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
       }
     } catch (error) {
-      console.error('Error triggering workflow value:', error);
+      console.error('Error triggering workflow value extraction:', error);
     }
   };
 
@@ -4138,6 +4173,96 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         }}
       />
+
+      {/* Document Selection Modal for Workflow Value Extraction */}
+      <Dialog open={documentSelectModal.open} onOpenChange={(open) => {
+        if (!open) {
+          setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
+          setSelectedDocumentForExtraction('');
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select Document for {documentSelectModal.valueName}</DialogTitle>
+            <DialogDescription>
+              Choose a document to extract "{documentSelectModal.valueName}" from the "{documentSelectModal.collectionName}" collection.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4 space-y-4">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+              {sessionDocuments.map(doc => {
+                const fileName = doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`;
+                const fileType = doc.mimeType || doc.fileType || '';
+                
+                // Determine icon and color based on file type
+                let iconColor = 'text-muted-foreground';
+                let IconComponent = FileText;
+                
+                if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+                  iconColor = 'text-red-500';
+                } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || 
+                         fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
+                  iconColor = 'text-green-500';
+                  IconComponent = TableIcon;
+                } else if (fileType.includes('word') || fileType.includes('document') || 
+                         fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
+                  iconColor = 'text-blue-500';
+                }
+                
+                return (
+                  <div 
+                    key={doc.id} 
+                    className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedDocumentForExtraction === doc.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    }`}
+                    onClick={() => setSelectedDocumentForExtraction(doc.id)}
+                  >
+                    <div className="flex-shrink-0">
+                      <input
+                        type="radio"
+                        checked={selectedDocumentForExtraction === doc.id}
+                        onChange={() => setSelectedDocumentForExtraction(doc.id)}
+                        className="h-4 w-4 text-primary focus:ring-primary"
+                      />
+                    </div>
+                    <IconComponent className={`h-5 w-5 ${iconColor} flex-shrink-0`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {fileName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {fileType || 'Unknown type'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
+                  setSelectedDocumentForExtraction('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={!selectedDocumentForExtraction}
+                onClick={handleDocumentSelectionAndExtract}
+              >
+                <Wand2 className="h-4 w-4 mr-2" />
+                Extract
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* AI Extraction Modal */}
       <AIExtractionModal
         isOpen={aiExtractionModal.open}
