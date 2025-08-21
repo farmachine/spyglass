@@ -39,6 +39,7 @@ import type {
   ValidationStatus 
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { toast } from "@/hooks/use-toast";
 
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
@@ -1510,6 +1511,40 @@ export default function SessionView() {
   // Batch validation removed - validation now occurs only during extraction process
 
   // Document action handlers
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/documents/${documentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document');
+      }
+
+      // Refresh the documents list
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/documents`] });
+      toast({
+        title: "Success",
+        description: "Document deleted successfully",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDownloadDocument = async (documentId: string, fileName: string) => {
     try {
       const response = await fetch(`/api/sessions/documents/${documentId}/download?sessionId=${sessionId}`, {
@@ -1538,26 +1573,9 @@ export default function SessionView() {
     }
   };
 
-  const deleteDocumentMutation = useMutation({
-    mutationFn: async (documentId: string) => {
-      return apiRequest(`/api/sessions/documents/${documentId}`, {
-        method: 'DELETE',
-      });
-    },
-    onSuccess: () => {
-      // Invalidate and refetch session documents
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
-    },
-    onError: (error: any) => {
-      console.error('Failed to delete document:', error);
-    }
-  });
 
-  const handleDeleteDocument = (documentId: string) => {
-    if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-      deleteDocumentMutation.mutate(documentId);
-    }
-  };
+
+
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
@@ -3157,14 +3175,25 @@ Thank you for your assistance.`;
                     ) : (
                       <div className="space-y-2">
                         {sessionDocuments.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                             <div className="flex items-center gap-3">
                               <FileIcon className="h-5 w-5 text-gray-400" />
                               <span className="text-sm font-medium">{doc.fileName}</span>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(doc.uploadedAt).toLocaleDateString()}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">
+                                {new Date(doc.uploadedAt).toLocaleDateString()}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDocument(doc.id)}
+                                className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
+                                title="Delete document"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
