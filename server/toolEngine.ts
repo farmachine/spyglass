@@ -677,18 +677,20 @@ try:
                 # Call the function with the excel content
                 content = inputs['excel_file_content']
                 print(f"DEBUG: Calling {function_name}(excel_file_content) with content length: {len(content)}", file=sys.stderr)
-                print(f"DEBUG: First 200 chars of content: {content[:200]}", file=sys.stderr)
+                print(f"DEBUG: First 500 chars of content: {content[:500]}", file=sys.stderr)
                 result = func_to_call(content)
-                print(f"DEBUG: Function returned: {result}", file=sys.stderr)
+                print(f"DEBUG: Function returned type: {type(result)}", file=sys.stderr)
+                print(f"DEBUG: Function returned: {result[:1000] if isinstance(result, str) else result}", file=sys.stderr)
             else:
                 # Fallback: use the first input value
                 input_values = list(inputs.values())
                 if input_values:
                     content = input_values[0]
                     print(f"DEBUG: Calling {function_name} with first input (length: {len(str(content))})", file=sys.stderr)
-                    print(f"DEBUG: First 200 chars of content: {str(content)[:200]}", file=sys.stderr)
+                    print(f"DEBUG: First 500 chars of content: {str(content)[:500]}", file=sys.stderr)
                     result = func_to_call(content)
-                    print(f"DEBUG: Function returned: {result}", file=sys.stderr)
+                    print(f"DEBUG: Function returned type: {type(result)}", file=sys.stderr)
+                    print(f"DEBUG: Function returned: {result[:1000] if isinstance(result, str) else result}", file=sys.stderr)
                 else:
                     raise Exception("No input provided for function")
         except Exception as e:
@@ -696,12 +698,12 @@ try:
             import traceback
             traceback.print_exc(file=sys.stderr)
             # Return error result
-            result = [{
+            result = json.dumps([{
                 "extractedValue": None,
                 "validationStatus": "invalid",
                 "aiReasoning": f"Function execution error: {str(e)}",
                 "confidenceScore": 0
-            }]
+            }])
     
     # Check if result is already in the correct format
     if isinstance(result, str):
