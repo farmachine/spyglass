@@ -2509,10 +2509,10 @@ except Exception as e:
       }
       
       // Log the results for debugging
-      console.log('🎯 EXTRACTION COMPLETE - RESULTS:', JSON.stringify(results, null, 2));
+      console.log('🎯 EXTRACTION COMPLETE - Just logging, not saving');
       
-      // Save the extraction results
-      await engine.saveExtractionResults(sessionId, results);
+      // Skip saving for now - just log and return
+      // await engine.saveExtractionResults(sessionId, results);
       
       // Update session status only if full extraction
       if (!valueId) {

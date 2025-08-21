@@ -107,12 +107,8 @@ export class WorkflowExtractionEngine {
 
       const toolResults = await this.toolEngine.testTool(toolConfig, inputs);
       
-      console.log('📊 RAW FUNCTION OUTPUT:', {
-        valueName: value.valueName,
-        toolName: tool.name,
-        resultsCount: toolResults.length,
-        rawResults: JSON.stringify(toolResults, null, 2)
-      });
+      console.log('📊 FUNCTION EXECUTION RESULTS:');
+      console.log(JSON.stringify(toolResults, null, 2));
       
       // For list steps with multiple outputs, return all records
       if (step.stepType === "list" && tool.outputType === "multiple" && toolResults.length > 0) {
@@ -484,24 +480,17 @@ export class WorkflowExtractionEngine {
     documentContent: Record<string, string>,
     extractedReferences: Record<string, any>
   ): Promise<Record<string, any>> {
-    const preparedInputs: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(inputValues)) {
-      if (Array.isArray(value) && value[0] === "user_document") {
-        // Use the first available document content
-        // For CODE tools, the function expects a specific parameter name
-        // We need to use the actual function parameter name, not the display name
-        preparedInputs["excel_file_content"] = Object.values(documentContent)[0] || "";
-      } else if (typeof value === "string" && value.startsWith("@")) {
-        // Reference to previously extracted value
-        preparedInputs[key] = extractedReferences[value] || null;
-      } else {
-        // Direct value
-        preparedInputs[key] = value;
-      }
-    }
-
-    return preparedInputs;
+    // Simple approach: just pass the document content directly
+    // The function will receive it as the first parameter
+    const documentContentValue = Object.values(documentContent)[0] || "";
+    
+    console.log('📋 Preparing inputs - Document content length:', documentContentValue.length);
+    
+    // Return a simple object with the document content
+    // The key doesn't matter since we're passing by position in the Python script
+    return {
+      document: documentContentValue
+    };
   }
 
   /**
