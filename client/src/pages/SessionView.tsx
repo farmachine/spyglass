@@ -1331,8 +1331,8 @@ export default function SessionView() {
 
   // Fetch workflow steps for the project
   const { data: workflowSteps = [] } = useQuery({
-    queryKey: ['/api/projects', projectId, 'workflow-steps'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow-steps`),
+    queryKey: ['/api/projects', projectId, 'workflow'],
+    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow`),
     enabled: !!projectId
   });
 
@@ -3545,12 +3545,15 @@ Thank you for your assistance.`;
 
                               {(() => {
                                 // Check if we have workflow steps for this collection
+                                console.log('Workflow steps:', workflowSteps);
                                 const workflowStep = workflowSteps?.find((step: any) => 
                                   step.stepType === 'list' && step.name === collection.collectionName
                                 );
+                                console.log('Found workflow step for', collection.collectionName, ':', workflowStep);
                                 
                                 // Use workflow values if available, otherwise fall back to collection properties
                                 const columnsToRender = workflowStep?.values || collection.properties;
+                                console.log('Columns to render:', columnsToRender);
                                 
                                 return columnsToRender
                                   .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
