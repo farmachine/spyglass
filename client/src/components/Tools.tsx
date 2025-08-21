@@ -435,7 +435,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" aria-describedby="test-dialog-description">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="text-gray-800">extrapl <span className="text-blue-600">•</span> Test</DialogTitle>
+            <DialogTitle className="text-gray-800"><span className="text-blue-600">•</span> Test</DialogTitle>
             <p id="test-dialog-description" className="sr-only">
               Test dialog for running extraction tools with sample data and viewing results
             </p>

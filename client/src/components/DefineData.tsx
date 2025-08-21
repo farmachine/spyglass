@@ -306,7 +306,7 @@ export default function DefineData({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">
-              extrapl <span style={{ color: '#4F63A4' }}>•</span> Flow
+              <span style={{ color: '#4F63A4' }}>•</span> Flow
             </h1>
             <p className="text-gray-600 mt-1">
               Design your data extraction workflow

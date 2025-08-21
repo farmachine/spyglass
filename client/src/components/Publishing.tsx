@@ -109,7 +109,7 @@ export default function Publishing({ project }: PublishingProps) {
     <div className="space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">
-          extrapl <span style={{ color: '#4F63A4' }}>•</span> Publish
+          <span style={{ color: '#4F63A4' }}>•</span> Publish
         </h1>
         <p className="text-gray-600 mt-1">
           Manage which organizations have access to this project
