@@ -1340,31 +1340,20 @@ export default function SessionView() {
       console.log('📄 Using document:', selectedDocument.fileName);
       console.log('📊 Prepared inputs:', preparedInputs);
 
-      // Call the test endpoint
-      const token = localStorage.getItem('token');
-      console.log('🔑 Using token:', token ? 'Token found' : 'No token found');
-      
-      const response = await fetch('/api/excel-functions/test', {
+      // Call the test endpoint using apiRequest which handles auth properly
+      const result = await apiRequest('/api/excel-functions/test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
         body: JSON.stringify({
           functionId: toolId,
           inputs: preparedInputs
         })
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to execute tool');
-      }
-
-      const result = await response.json();
       console.log('✅ Tool execution result:', result);
-
+      console.log('📊 Results array:', result.results);
+      
       if (result.success && result.results && result.results.length > 0) {
         const extractedValue = result.results[0].extractedValue;
+        console.log('✨ Extracted value:', extractedValue);
         
         toast({
           title: "Extraction Complete",
@@ -1374,6 +1363,7 @@ export default function SessionView() {
         // TODO: Update the validation/extracted data in the session
         // This would require calling an endpoint to save the extracted value
       } else {
+        console.log('❌ No results extracted');
         toast({
           title: "Extraction Failed",
           description: "No value could be extracted",
