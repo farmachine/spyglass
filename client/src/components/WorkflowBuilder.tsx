@@ -18,7 +18,7 @@ import {
   ChevronDown, 
   ChevronUp,
   List,
-  BarChart3,
+  Layers,
   FileText,
   Trash2,
   GripVertical,
@@ -431,7 +431,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   {step.type === 'list' ? (
                     <List className="h-5 w-5 text-gray-700" />
                   ) : (
-                    <BarChart3 className="h-5 w-5 text-gray-700" />
+                    <Layers className="h-5 w-5 text-gray-700" />
                   )}
                   
                   {editingStepId === step.id ? (
@@ -661,7 +661,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             
             <Card className="p-12 w-3/4 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
               <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
                 <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
                 <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
