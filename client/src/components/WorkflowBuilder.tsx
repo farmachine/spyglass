@@ -297,6 +297,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
     const stepData = {
       ...stepToSave,
+      projectId: projectId, // Add the projectId for creating new steps
       valueCount: stepToSave.values.length,
       identifierId: stepToSave.type === 'list' && stepToSave.values[0] ? stepToSave.values[0].id : null
     };

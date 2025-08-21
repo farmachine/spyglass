@@ -4600,15 +4600,16 @@ print(json.dumps(results))
     }
   });
 
-  app.post("/api/workflow-steps/:stepId", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { stepId } = req.params;
-      const stepData = req.body;
-      
-      console.log("Saving individual step:", stepId);
-      console.log("Step data:", JSON.stringify(stepData, null, 2));
-      
-      // Update the step
+  // Helper function to handle workflow step saving logic
+  const saveWorkflowStep = async (stepId: string, stepData: any) => {
+    console.log("Saving individual step:", stepId);
+    console.log("Step data:", JSON.stringify(stepData, null, 2));
+    
+    // Check if step exists
+    const existingStep = await storage.getWorkflowStep(stepId);
+    
+    if (existingStep) {
+      // Update existing step
       await storage.updateWorkflowStep(stepId, {
         stepName: stepData.name,
         stepType: stepData.type,
@@ -4617,30 +4618,71 @@ print(json.dumps(results))
         valueCount: stepData.valueCount || stepData.values?.length || 0,
         identifierId: stepData.identifierId
       });
-      
-      // Update values for this step
-      // First get existing values to delete
-      const existingValues = await storage.getStepValues(stepId);
-      for (const value of existingValues) {
-        await storage.deleteStepValue(value.id);
+    } else {
+      // Create new step - need to get project ID from the step data
+      if (!stepData.projectId) {
+        throw new Error("Project ID is required to create a new step");
       }
       
-      // Now create new values
-      for (const value of stepData.values || []) {
-        await storage.createStepValue({
-          id: value.id,
-          stepId: stepId,
-          valueName: value.name,
-          dataType: value.dataType,
-          description: value.description,
-          isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
-          orderIndex: value.orderIndex || 0,
-          toolId: value.toolId || null,  // Convert empty string to null
-          inputValues: value.inputValues,
-          autoVerificationConfidence: value.autoVerificationConfidence,
-          choiceOptions: value.choiceOptions
-        });
-      }
+      await storage.createWorkflowStep({
+        id: stepId,
+        projectId: stepData.projectId,
+        stepName: stepData.name,
+        stepType: stepData.type,
+        description: stepData.description,
+        orderIndex: stepData.orderIndex,
+        valueCount: stepData.valueCount || stepData.values?.length || 0,
+        identifierId: stepData.identifierId
+      });
+    }
+    
+    // Update values for this step
+    // First get existing values to delete
+    const existingValues = await storage.getStepValues(stepId);
+    for (const value of existingValues) {
+      await storage.deleteStepValue(value.id);
+    }
+    
+    // Now create new values
+    for (const value of stepData.values || []) {
+      await storage.createStepValue({
+        id: value.id,
+        stepId: stepId,
+        valueName: value.name,
+        dataType: value.dataType,
+        description: value.description,
+        isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
+        orderIndex: value.orderIndex || 0,
+        toolId: value.toolId || null,  // Convert empty string to null
+        inputValues: value.inputValues,
+        autoVerificationConfidence: value.autoVerificationConfidence,
+        choiceOptions: value.choiceOptions
+      });
+    }
+  };
+
+  // POST endpoint for workflow steps
+  app.post("/api/workflow-steps/:stepId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const stepData = req.body;
+      
+      await saveWorkflowStep(stepId, stepData);
+      
+      res.json({ success: true, message: "Step saved successfully" });
+    } catch (error) {
+      console.error("Error saving step:", error);
+      res.status(500).json({ message: "Failed to save step" });
+    }
+  });
+
+  // PUT endpoint for workflow steps (same logic as POST)
+  app.put("/api/workflow-steps/:stepId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const stepData = req.body;
+      
+      await saveWorkflowStep(stepId, stepData);
       
       res.json({ success: true, message: "Step saved successfully" });
     } catch (error) {
