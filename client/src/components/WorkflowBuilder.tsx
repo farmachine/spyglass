@@ -50,6 +50,7 @@ import type {
   KnowledgeDocument 
 } from "@shared/schema";
 import { useKnowledgeDocuments } from "@/hooks/useKnowledge";
+import { v4 as uuidv4 } from 'uuid';
 
 interface WorkflowStep {
   id: string;
@@ -169,7 +170,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   const addStep = () => {
     const newStep: WorkflowStep = {
-      id: `step-${Date.now()}`,
+      id: uuidv4(),
       type: 'list',
       name: '',
       description: '',
@@ -196,7 +197,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     if (!step) return;
 
     const newValue: WorkflowValue = {
-      id: `value-${Date.now()}`,
+      id: uuidv4(),
       name: '',
       description: '',
       dataType: 'TEXT',

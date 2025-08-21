@@ -4655,15 +4655,24 @@ print(json.dumps(results))
     }
     
     // Update values for this step
-    // First get existing values to delete
+    console.log("\n🔄 Updating step values...");
+    
+    // Get existing values to track what needs to be deleted
     const existingValues = await storage.getStepValues(stepId);
-    for (const value of existingValues) {
-      await storage.deleteStepValue(value.id);
+    const existingValueIds = new Set(existingValues.map(v => v.id));
+    const newValueIds = new Set((stepData.values || []).map((v: any) => v.id));
+    
+    // Delete values that are no longer in the new data
+    for (const existingValue of existingValues) {
+      if (!newValueIds.has(existingValue.id)) {
+        console.log(`  🗑️ Deleting removed value: ${existingValue.id}`);
+        await storage.deleteStepValue(existingValue.id);
+      }
     }
     
-    // Now create new values
+    // Process each value - either update existing or create new
     for (const value of stepData.values || []) {
-      await storage.createStepValue({
+      const valueData = {
         id: value.id,
         stepId: stepId,
         valueName: value.name,
@@ -4675,7 +4684,17 @@ print(json.dumps(results))
         inputValues: value.inputValues,
         autoVerificationConfidence: value.autoVerificationConfidence,
         choiceOptions: value.choiceOptions
-      });
+      };
+      
+      if (existingValueIds.has(value.id)) {
+        // Update existing value
+        console.log(`  📝 Updating existing value: ${value.id}`);
+        await storage.updateStepValue(value.id, valueData);
+      } else {
+        // Create new value
+        console.log(`  ➕ Creating new value: ${value.id}`);
+        await storage.createStepValue(valueData);
+      }
     }
     
     console.log("✅ Step saved successfully!");

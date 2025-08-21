@@ -3446,7 +3446,16 @@ class PostgreSQLStorage implements IStorage {
 
   async updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined> {
     return this.retryOperation(async () => {
-      const [result] = await this.db.update(stepValues).set(value).where(eq(stepValues.id, id)).returning();
+      // Convert empty string toolId to null
+      const cleanedValue = {
+        ...value,
+        toolId: value.toolId === '' ? null : value.toolId
+      };
+      console.log("\n📝 DATABASE UPDATE - step_values table:");
+      console.log("Value ID:", id);
+      console.log("Update Data:", JSON.stringify(cleanedValue, null, 2));
+      const [result] = await this.db.update(stepValues).set(cleanedValue).where(eq(stepValues.id, id)).returning();
+      console.log("✅ Updated step value:", result?.id);
       return result;
     });
   }
