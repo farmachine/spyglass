@@ -100,66 +100,113 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Function to load workflow from server
+  const loadWorkflow = async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/workflow`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.steps && data.steps.length > 0) {
+          // Convert server data to WorkflowStep format
+          const loadedSteps: WorkflowStep[] = data.steps.map((step: any) => ({
+            id: step.id,
+            type: step.stepType === 'list' ? 'list' : 'page',
+            name: step.stepName,
+            description: step.description || '',
+            values: (step.values || []).map((value: any) => ({
+              id: value.id,
+              name: value.valueName,
+              description: value.description || '',
+              dataType: value.dataType,
+              toolId: value.toolId || '',
+              inputValues: value.inputValues || {},
+              orderIndex: value.orderIndex || 0
+            })),
+            isExpanded: false,
+            orderIndex: step.orderIndex || 0
+          }));
+          
+          setSteps(loadedSteps.sort((a, b) => a.orderIndex - b.orderIndex));
+          return true; // Loaded from server
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load workflow:', error);
+    }
+    return false; // Failed to load or no data
+  };
+
   // Convert existing data to workflow steps on mount
   useEffect(() => {
-    const workflowSteps: WorkflowStep[] = [];
-    let orderIndex = 0;
+    // First try to load from server
+    loadWorkflow().then(loaded => {
+      if (!loaded) {
+        // If no saved workflow, convert existing data
+        const workflowSteps: WorkflowStep[] = [];
+        let orderIndex = 0;
 
-    // Convert collections to list steps
-    collections.forEach(collection => {
-      const values: WorkflowValue[] = (collection.properties || []).map((prop: CollectionProperty) => ({
-        id: prop.id,
-        name: prop.propertyName,
-        description: prop.description || '',
-        dataType: prop.propertyType as WorkflowValue['dataType'],
-        toolId: prop.functionId || '',
-        inputValues: (prop as any).functionParameters || {},
-        outputDescription: getToolOutputDescription(prop.functionId),
-        orderIndex: prop.orderIndex || 0,
-        originalId: prop.id
-      }));
+        // Convert collections to list steps
+        collections.forEach(collection => {
+          const values: WorkflowValue[] = (collection.properties || []).map((prop: CollectionProperty) => ({
+            id: prop.id,
+            name: prop.propertyName,
+            description: prop.description || '',
+            dataType: prop.propertyType as WorkflowValue['dataType'],
+            toolId: prop.functionId || '',
+            inputValues: (prop as any).functionParameters || {},
+            outputDescription: getToolOutputDescription(prop.functionId),
+            orderIndex: prop.orderIndex || 0,
+            originalId: prop.id
+          }));
 
-      workflowSteps.push({
-        id: collection.id,
-        type: 'list',
-        name: collection.collectionName,
-        description: collection.description || '',
-        values: values.sort((a, b) => a.orderIndex - b.orderIndex),
-        isExpanded: true,
-        orderIndex: orderIndex++,
-        originalId: collection.id,
-        originalType: 'collection'
-      });
+          workflowSteps.push({
+            id: collection.id,
+            type: 'list',
+            name: collection.collectionName,
+            description: collection.description || '',
+            values: values.sort((a, b) => a.orderIndex - b.orderIndex),
+            isExpanded: true,
+            orderIndex: orderIndex++,
+            originalId: collection.id,
+            originalType: 'collection'
+          });
+        });
+
+        // Group schema fields into a page step if they exist
+        if (schemaFields.length > 0) {
+          const values: WorkflowValue[] = schemaFields.map(field => ({
+            id: field.id,
+            name: field.fieldName,
+            description: field.description || '',
+            dataType: field.fieldType as WorkflowValue['dataType'],
+            toolId: field.functionId || '',
+            inputValues: field.functionParameters || {},
+            outputDescription: getToolOutputDescription(field.functionId),
+            orderIndex: field.orderIndex || 0,
+            originalId: field.id
+          }));
+
+          workflowSteps.push({
+            id: 'schema-page',
+            type: 'page',
+            name: 'Data Fields',
+            description: 'Main data extraction fields',
+            values: values.sort((a, b) => a.orderIndex - b.orderIndex),
+            isExpanded: true,
+            orderIndex: orderIndex++,
+            originalId: 'schema-page',
+            originalType: 'schema'
+          });
+        }
+
+        setSteps(workflowSteps.sort((a, b) => a.orderIndex - b.orderIndex));
+      }
     });
-
-    // Group schema fields into a page step if they exist
-    if (schemaFields.length > 0) {
-      const values: WorkflowValue[] = schemaFields.map(field => ({
-        id: field.id,
-        name: field.fieldName,
-        description: field.description || '',
-        dataType: field.fieldType as WorkflowValue['dataType'],
-        toolId: field.functionId || '',
-        inputValues: field.functionParameters || {},
-        outputDescription: getToolOutputDescription(field.functionId),
-        orderIndex: field.orderIndex || 0,
-        originalId: field.id
-      }));
-
-      workflowSteps.push({
-        id: 'schema-page',
-        type: 'page',
-        name: 'Data Fields',
-        description: 'Main data extraction fields',
-        values: values.sort((a, b) => a.orderIndex - b.orderIndex),
-        isExpanded: true,
-        orderIndex: orderIndex++,
-        originalId: 'schema-page',
-        originalType: 'schema'
-      });
-    }
-
-    setSteps(workflowSteps.sort((a, b) => a.orderIndex - b.orderIndex));
   }, [schemaFields, collections]);
 
   function getToolOutputDescription(toolId?: string | null): string {
@@ -319,6 +366,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           title: "Step Saved",
           description: `"${stepToSave.name}" has been saved successfully`,
         });
+        // Reload workflow to get the current state from database
+        await loadWorkflow();
       } else {
         console.error('Failed to save step');
         toast({
