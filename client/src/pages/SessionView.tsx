@@ -3191,14 +3191,13 @@ Thank you for your assistance.`;
                                 
                                 return (
                                   <div key={value.id} className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                {(() => {
-                                  const fieldName = field.fieldName;
-                                  const validation = getValidation(fieldName);
-                                  const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                  const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                                  const score = Math.round(validation?.confidenceScore || 0);
+                                    <div className="flex items-center gap-2">
+                                      {(() => {
+                                        const validation = getValidation(fieldName);
+                                        const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                        const wasManuallyUpdated = validation && validation.manuallyUpdated;
+                                        const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                        const score = Math.round(validation?.confidenceScore || 0);
 
 
 
