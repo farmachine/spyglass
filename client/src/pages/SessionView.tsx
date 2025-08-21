@@ -3170,89 +3170,71 @@ Thank you for your assistance.`;
                 </Card>
               )}
 
-              {/* Render workflow step content */}
+              {/* Render workflow step content - simplified approach */}
               {workflowSteps.map(step => {
                 if (activeTab !== step.id) return null;
+                
+                // Check the actual step type from the logs - it's 'list' or 'single'
+                const isDataTable = step.stepType === 'list' || step.stepType === 'DATA_TABLE';
+                const isInfoPage = step.stepType === 'single' || step.stepType === 'INFO_PAGE';
                 
                 console.log(`🔍 Rendering step:`, {
                   id: step.id,
                   name: step.stepName,
                   type: step.stepType,
-                  values: step.values,
-                  activeTab
+                  isDataTable,
+                  isInfoPage,
+                  values: step.values
                 });
                 
-                // Render Info Page steps (single values as individual fields)  
-                if (step.stepType === 'INFO_PAGE') {
+                // Render Info Page (single values as individual fields)
+                if (isInfoPage) {
                   return (
                     <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
                         <CardTitle>{step.stepName}</CardTitle>
                         <p className="text-sm text-gray-600">
-                          {step.description || `Information fields for ${step.stepName}`}
+                          {step.description || `Information fields`}
                         </p>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Render each value as an individual field */}
-                          {step.values?.map((value) => {
-                            const fieldName = value.valueName;
-                            const fieldValue = extractedData[fieldName];
-                            const validation = getValidation(fieldName);
-                            let displayValue = validation?.extractedValue ?? fieldValue ?? '';
-                            
-                            return (
-                              <div key={value.id} className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Label className="text-sm font-medium text-gray-700">
-                                    {fieldName}
-                                  </Label>
-                                  {/* Magic wand icon */}
-                                  {value.toolId && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => console.log(`Run tool ${value.toolId}`)}
-                                      className="h-5 w-5 p-0"
-                                    >
-                                      <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="p-2 border rounded bg-gray-50">
-                                  {displayValue || <span className="text-gray-400">No value</span>}
-                                </div>
+                          {step.values?.map((value) => (
+                            <div key={value.id} className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  {value.valueName}
+                                </Label>
+                                {value.toolId && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => console.log(`Run tool ${value.toolId}`)}
+                                    className="h-5 w-5 p-0"
+                                  >
+                                    <Wand2 className="h-3 w-3 text-[#4F63A4]" />
+                                  </Button>
+                                )}
                               </div>
-                            );
-                          })}
+                              <div className="p-2 border rounded bg-gray-50">
+                                <span className="text-gray-400">No value</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </CardContent>
                     </Card>
                   );
                 }
                 
-                // Render Data Table steps (collections with values as columns)
-                if (step.stepType === 'DATA_TABLE') {
-                  // For Data Tables, always show the table structure
-                  // Check if we have actual collection data (multiple records)
-                  const collectionData = step.identifierId && extractedData[step.stepName] ? 
-                    (Array.isArray(extractedData[step.stepName]) ? extractedData[step.stepName] : []) : 
-                    [];
-                  
-                  // Debug log to see what values we have
-                  console.log(`📊 Data Table step: ${step.stepName}`, {
-                    values: step.values,
-                    collectionData,
-                    extractedData,
-                    validations
-                  });
-                  
+                // Render Data Table (values as columns)
+                if (isDataTable) {
                   return (
                     <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
                         <CardTitle>{step.stepName}</CardTitle>
                         <p className="text-sm text-gray-600">
-                          {step.description || `Data records for ${step.stepName}`}
+                          {step.description || `Data table`}
                         </p>
                       </CardHeader>
                       <CardContent>
@@ -3280,46 +3262,13 @@ Thank you for your assistance.`;
                               </tr>
                             </thead>
                             <tbody>
-                              {collectionData.length > 0 ? (
-                                // Multiple records from collection
-                                collectionData.map((item: any, index: number) => (
-                                  <tr key={index} className="border-b hover:bg-gray-50">
-                                    {step.values?.map((value) => {
-                                      const fieldValue = item[value.valueName] ?? '';
-                                      return (
-                                        <td key={value.id} className="px-4 py-3 text-sm">
-                                          {fieldValue ? (
-                                            <span className="text-gray-900">{fieldValue}</span>
-                                          ) : (
-                                            <span className="text-gray-400 italic">No value</span>
-                                          )}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))
-                              ) : (
-                                // Single row showing current values or empty state
-                                <tr className="hover:bg-gray-50">
-                                  {step.values?.map((value) => {
-                                    const fieldName = value.valueName;
-                                    // Try to get value from validations/extractedData
-                                    const validation = getValidation(fieldName);
-                                    const fieldValue = extractedData[fieldName];
-                                    const displayValue = validation?.extractedValue ?? fieldValue ?? '';
-                                    
-                                    return (
-                                      <td key={value.id} className="px-4 py-3 text-sm">
-                                        {displayValue ? (
-                                          <span className="text-gray-900">{displayValue}</span>
-                                        ) : (
-                                          <span className="text-gray-400 italic">No value</span>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              )}
+                              <tr className="hover:bg-gray-50">
+                                {step.values?.map((value) => (
+                                  <td key={value.id} className="px-4 py-3 text-sm">
+                                    <span className="text-gray-400 italic">No value</span>
+                                  </td>
+                                ))}
+                              </tr>
                             </tbody>
                           </table>
                         </div>
@@ -3328,8 +3277,15 @@ Thank you for your assistance.`;
                   );
                 }
                 
-                // Default return null if step type is not recognized
-                return null;
+                // Default: show as info page if type not recognized
+                return (
+                  <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
+                    <CardHeader>
+                      <CardTitle>{step.stepName}</CardTitle>
+                      <p className="text-sm text-gray-600">Unknown step type: {step.stepType}</p>
+                    </CardHeader>
+                  </Card>
+                );
               })}
             </div>
           </div>
