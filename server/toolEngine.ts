@@ -117,54 +117,87 @@ export class ToolEngine {
             const extractedContent = tool.metadata.sampleDocumentContent[param.name];
             console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
             preparedInputs[param.name] = extractedContent;
-          } else {
-            // No pre-extracted content available
-            console.log(`⚠️ No pre-extracted content found for ${param.name}`);
+          } else if (param.sampleFileURL) {
+            // Fallback: fetch and extract content if not already stored
+            console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
             
-            // For testing purposes, create placeholder Excel content
-            if (param.name === 'Excel File' || param.name.toLowerCase().includes('excel')) {
-              console.log(`📝 Creating test Excel content for ${param.name}`);
+            try {
+              // Extract content using document_extractor.py
+              const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+              const urlParts = new URL(param.sampleFileURL);
+              const pathParts = urlParts.pathname.split('/');
+              const bucketName = pathParts[1];
+              const objectName = pathParts.slice(2).join('/');
               
-              // Create sample Excel content with proper format
-              const testContent = `=== Sheet: Active Members ===
-Member ID       Name    Date of Birth   Pension Start Date      Monthly Amount  Status  Category        Last Updated
-001     John Smith      01/01/1960      01/01/2020      2500.00 Active  Standard        15/12/2024
-002     Jane Doe        15/03/1962      01/06/2021      3200.00 Active  Enhanced        15/12/2024
-003     Robert Johnson  22/07/1958      01/01/2019      2800.00 Active  Standard        15/12/2024
-
-=== Sheet: Deferred Members ===
-Member ID       Name    Date of Birth   Expected Retirement     Accrued Amount  Status  Vesting Date    Last Review
-D001    Alice Brown     10/05/1970      01/05/2035      45000.00        Deferred        01/01/2015      01/01/2024
-D002    Charlie Wilson  18/09/1975      01/09/2040      38000.00        Deferred        01/06/2018      01/01/2024
-
-=== Sheet: Pensioners ===
-Pensioner ID    Name    Date of Birth   Pension Start   Monthly Payment Payment Method  Bank Details    Review Date
-P001    Mary Johnson    05/02/1955      01/02/2015      3500.00 BACS    HSBC ****1234   01/01/2025
-P002    David Lee       12/11/1953      01/11/2013      4200.00 BACS    Barclays ****5678       01/01/2025
-
-=== Sheet: Beneficiaries ===
-Beneficiary ID  Name    Relationship    Member ID       Percentage      Contact Info    Date Added
-B001    Sarah Smith     Spouse  001     100%    sarah@email.com 01/01/2020
-B002    Mike Doe        Child   002     50%     mike@email.com  01/06/2021
-
-=== Sheet: Contributions ===
-Contribution ID Member ID       Date    Employee Amount Employer Amount Total   Tax Relief      Period
-C001    001     31/12/2024      500.00  750.00  1250.00 125.00  2024-12
-C002    002     31/12/2024      600.00  900.00  1500.00 150.00  2024-12
-
-=== Sheet: Audit Trail ===
-Audit ID        Date    User    Action  Details Member ID       Status
-A001    15/12/2024      Admin   Update  Updated monthly payment 001     Completed
-A002    14/12/2024      System  Calculate       Annual review calculation       002     Completed`;
+              const bucket = objectStorageClient.bucket(bucketName);
+              const objectFile = bucket.file(objectName);
               
-              preparedInputs[param.name] = testContent;
-              console.log(`✅ Created test Excel content (${testContent.length} characters)`);
-            } else {
-              preparedInputs[param.name] = inputValue || `[No content available for ${param.name}]`;
+              const chunks: Buffer[] = [];
+              const stream = objectFile.createReadStream();
+              
+              await new Promise((resolve, reject) => {
+                stream.on('data', (chunk) => chunks.push(chunk));
+                stream.on('end', resolve);
+                stream.on('error', reject);
+              });
+              
+              const fileBuffer = Buffer.concat(chunks);
+              const [fileMetadata] = await objectFile.getMetadata();
+              const mimeType = fileMetadata.contentType || 'application/octet-stream';
+              const base64Content = fileBuffer.toString('base64');
+              const dataURL = `data:${mimeType};base64,${base64Content}`;
+              
+              // Extract text content using document_extractor.py
+              const extractionData = {
+                step: "extract_text_only",
+                documents: [{
+                  fileName: param.sampleFile || 'document',
+                  mimeType: mimeType,
+                  dataURL: dataURL
+                }]
+              };
+              
+              const { spawn } = await import('child_process');
+              const python = spawn('python3', ['document_extractor.py']);
+              
+              python.stdin.write(JSON.stringify(extractionData));
+              python.stdin.end();
+              
+              let output = '';
+              let error = '';
+              
+              await new Promise((resolve, reject) => {
+                python.stdout.on('data', (data: any) => {
+                  output += data.toString();
+                });
+                
+                python.stderr.on('data', (data: any) => {
+                  error += data.toString();
+                });
+                
+                python.on('close', (code: any) => {
+                  if (code !== 0) {
+                    console.error('Document extraction error:', error);
+                    reject(new Error(error));
+                  } else {
+                    resolve(undefined);
+                  }
+                });
+              });
+              
+              const result = JSON.parse(output);
+              const extractedText = result.extracted_texts?.[0] || '';
+              
+              console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
+              preparedInputs[param.name] = extractedText;
+              
+            } catch (extractError) {
+              console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
+              // Last resort fallback
+              preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
             }
-          }
-        } else {
-          preparedInputs[param.name] = inputValue;
+          } else {
+            preparedInputs[param.name] = inputValue;
           }
         } catch (error) {
           console.error(`Failed to prepare document for ${param.name}:`, error);
@@ -551,11 +584,6 @@ try:
     parameters = ${parametersPython}
     output_type = "${outputType}"
     
-    # Debug logging
-    print(f"DEBUG: inputs keys: {list(inputs.keys())}", file=sys.stderr)
-    print(f"DEBUG: inputs values type: {[type(v).__name__ for v in inputs.values()]}", file=sys.stderr)
-    print(f"DEBUG: function_name: {function_name}", file=sys.stderr)
-    
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
     
@@ -618,59 +646,14 @@ try:
         result = all_results
     else:
         # Single execution mode
-        # For document type parameters, the input might come with a different key
-        # We need to map the first available input to the function parameter
+        args = []
+        for param in parameters:
+            param_name = param['name']
+            if param_name in inputs:
+                args.append(inputs[param_name])
         
-        # Extract actual parameter names from function signature
-        import inspect
-        import re
-        
-        # Parse function signature from the code string
-        func_def_match = re.search(r'def\s+' + re.escape(function_name) + r'\s*\(([^)]*)\)', """${functionCode.replace(/"/g, '\\"')}""")
-        if func_def_match:
-            params_str = func_def_match.group(1)
-            # Extract parameter names (ignore type hints)
-            func_param_names = [p.strip().split(':')[0].strip() for p in params_str.split(',') if p.strip()]
-        else:
-            func_param_names = []
-        
-        # Debug: print what we're about to do
-        print(f"DEBUG: Function '{function_name}' expects parameters: {func_param_names}", file=sys.stderr)
-        print(f"DEBUG: We have inputs: {list(inputs.keys())}", file=sys.stderr)
-        
-        # Simple execution - just call the function with the document content
-        try:
-            if 'excel_file_content' in inputs:
-                # Call the function with the excel content
-                content = inputs['excel_file_content']
-                print(f"DEBUG: Calling {function_name}(excel_file_content) with content length: {len(content)}", file=sys.stderr)
-                print(f"DEBUG: First 500 chars of content: {content[:500]}", file=sys.stderr)
-                result = func_to_call(content)
-                print(f"DEBUG: Function returned type: {type(result)}", file=sys.stderr)
-                print(f"DEBUG: Function returned: {result[:1000] if isinstance(result, str) else result}", file=sys.stderr)
-            else:
-                # Fallback: use the first input value
-                input_values = list(inputs.values())
-                if input_values:
-                    content = input_values[0]
-                    print(f"DEBUG: Calling {function_name} with first input (length: {len(str(content))})", file=sys.stderr)
-                    print(f"DEBUG: First 500 chars of content: {str(content)[:500]}", file=sys.stderr)
-                    result = func_to_call(content)
-                    print(f"DEBUG: Function returned type: {type(result)}", file=sys.stderr)
-                    print(f"DEBUG: Function returned: {result[:1000] if isinstance(result, str) else result}", file=sys.stderr)
-                else:
-                    raise Exception("No input provided for function")
-        except Exception as e:
-            print(f"ERROR in function execution: {str(e)}", file=sys.stderr)
-            import traceback
-            traceback.print_exc(file=sys.stderr)
-            # Return error result
-            result = json.dumps([{
-                "extractedValue": None,
-                "validationStatus": "invalid",
-                "aiReasoning": f"Function execution error: {str(e)}",
-                "confidenceScore": 0
-            }])
+        # Execute function once
+        result = func_to_call(*args)
     
     # Check if result is already in the correct format
     if isinstance(result, str):

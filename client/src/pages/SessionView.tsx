@@ -39,7 +39,6 @@ import type {
   ValidationStatus 
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useToast } from "@/hooks/use-toast";
 
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
@@ -624,15 +623,12 @@ const AIExtractionModal = ({
       
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
       
-      // Use workflow extraction if available, otherwise fall back to wizardry
-      const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
+      const response = await apiRequest('/api/run-wizardry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          projectId: project?.id
-        }),
+        body: JSON.stringify(requestData),
       });
       console.log('Wizardry Result:', response);
       if (response.output) {
@@ -1026,7 +1022,6 @@ const AIExtractionModal = ({
 
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
-  const { toast } = useToast();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
@@ -1061,16 +1056,6 @@ export default function SessionView() {
     sectionName: string;
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
-
-  // Document selection modal for workflow value extraction
-  const [documentSelectModal, setDocumentSelectModal] = useState<{
-    open: boolean;
-    stepId: string;
-    valueId: string;
-    valueName: string;
-    collectionName: string;
-  }>({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
-  const [selectedDocumentForExtraction, setSelectedDocumentForExtraction] = useState<string>('');
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -1231,117 +1216,6 @@ export default function SessionView() {
     });
   };
 
-  // Handle triggering workflow value extraction - opens document selection modal
-  const handleTriggerWorkflowValue = async (collectionName: string, column: any, columnIndex: number) => {
-    try {
-      // Get the workflow step
-      const workflowStep = workflowSteps.find((step: any) => 
-        step.stepType === 'list' && step.stepName === collectionName
-      );
-      
-      if (!workflowStep) {
-        console.error('Workflow step not found for collection:', collectionName);
-        return;
-      }
-
-      // The column parameter contains the value configuration directly
-      // It has id, valueName, dataType, toolId, etc.
-      const value = column;
-      
-      if (!value || !value.id) {
-        console.error('Invalid value configuration:', column);
-        return;
-      }
-
-      console.log('Opening document selection modal for value:', value.valueName, 'with ID:', value.id);
-
-      // Open the document selection modal
-      setDocumentSelectModal({
-        open: true,
-        stepId: workflowStep.id,
-        valueId: value.id,
-        valueName: value.valueName,
-        collectionName: collectionName
-      });
-      setSelectedDocumentForExtraction(''); // Reset selection
-    } catch (error) {
-      console.error('Error opening document selection modal:', error);
-    }
-  };
-
-  // Handle document selection and extraction
-  const handleDocumentSelectionAndExtract = async () => {
-    if (!selectedDocumentForExtraction || !documentSelectModal.valueId) {
-      console.warn('Missing document or value ID for extraction');
-      return;
-    }
-
-    try {
-      console.log('🎯 Starting extraction flow:', {
-        stepId: documentSelectModal.stepId,
-        valueId: documentSelectModal.valueId,
-        valueName: documentSelectModal.valueName,
-        documentId: selectedDocumentForExtraction,
-        sessionId: sessionId
-      });
-
-      // Trigger extraction with selected document
-      const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
-        method: 'POST',
-        body: JSON.stringify({
-          stepId: documentSelectModal.stepId,
-          valueId: documentSelectModal.valueId,
-          sessionId: sessionId,
-          documentId: selectedDocumentForExtraction
-        })
-      });
-
-      console.log('📊 Extraction response:', response);
-
-      if (response.results && Array.isArray(response.results)) {
-        response.results.forEach((stepResult: any) => {
-          console.log(`✅ Step "${stepResult.stepName}" extraction results:`, {
-            stepType: stepResult.stepType,
-            valuesExtracted: stepResult.values?.length || 0,
-            values: stepResult.values?.map((v: any) => ({
-              name: v.valueName,
-              value: v.extractedValue,
-              status: v.validationStatus,
-              reasoning: v.aiReasoning
-            }))
-          });
-        });
-      }
-
-      if (response.success || response.results) {
-        console.log('🔄 Refreshing validations...');
-        // Refetch validations to update the UI
-        await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
-        await queryClient.invalidateQueries({ queryKey: [`/api/validations/session/${sessionId}`] });
-        setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
-        
-        toast({
-          title: "Extraction Complete",
-          description: `Successfully extracted ${documentSelectModal.valueName}`
-        });
-      } else {
-        console.error('❌ Extraction failed:', response);
-        toast({
-          title: "Extraction Failed", 
-          description: response.error || "Failed to extract value",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error triggering workflow value extraction:', error);
-      toast({
-        title: "Extraction Error",
-        description: "An error occurred during extraction",
-        variant: "destructive"
-      });
-    }
-  };
-
   const getSortIcon = (key: string, collectionId?: string) => {
     if (sortConfig?.key === key && sortConfig?.collectionId === collectionId) {
       if (sortConfig.direction === 'asc') return <ArrowUp className="h-4 w-4" />;
@@ -1451,15 +1325,6 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/projects/${projectId}`),
     enabled: !!projectId // Only run this query when we have a projectId
   });
-
-  // Fetch workflow steps for the project
-  const { data: workflowData } = useQuery({
-    queryKey: ['/api/projects', projectId, 'workflow'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow`),
-    enabled: !!projectId
-  });
-  
-  const workflowSteps = workflowData?.steps || [];
 
   // Set dynamic page title based on session and project data
   usePageTitle(session?.sessionName && project?.name ? 
@@ -3668,85 +3533,41 @@ Thank you for your assistance.`;
                           <TableHeader>
                             <TableRow>
 
-                              {(() => {
-                                // Check if we have workflow steps for this collection
-                                console.log('Looking for workflow step for:', collection.collectionName);
-                                console.log('Available workflow steps:', workflowSteps);
-                                const workflowStep = workflowSteps.find((step: any) => 
-                                  step.stepType === 'list' && step.stepName === collection.collectionName
-                                );
-                                console.log('Found workflow step:', workflowStep);
-                                
-                                // Use workflow values if available, otherwise fall back to collection properties
-                                const columnsToRender = workflowStep?.values || collection.properties;
-                                console.log('Columns to render:', columnsToRender);
-                                
-                                return columnsToRender
-                                  .filter((column: any) => column && (column.valueName || column.name || column.propertyName))
-                                  .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                  .map((column: any, index: number) => {
-                                    // Determine the property name and type based on whether it's a workflow value or collection property
-                                    const columnName = column.valueName || column.name || column.propertyName || '';
-                                    const columnType = column.dataType || column.fieldType || column.propertyType || 'TEXT';
-                                    const columnId = column.id;
-                                    
-                                    // Check if this is a workflow value and if previous values have been extracted
-                                    const isWorkflowValue = !!column.valueName;
-                                    const canTrigger = !isWorkflowValue || index === 0 || 
-                                      columnsToRender.slice(0, index).every((prevCol: any) => {
-                                        // Check if previous columns have been extracted
-                                        const prevFieldName = `${collection.collectionName}.${prevCol.valueName || prevCol.name || prevCol.propertyName}[0]`;
-                                        const prevValidation = getValidation(prevFieldName);
-                                        return prevValidation?.extractedValue !== null && prevValidation?.extractedValue !== undefined;
-                                      });
-                                    
-                                    return (
-                                      <TableHead 
-                                        key={columnId} 
-                                        className="relative border-r border-gray-300"
-                                        style={{ 
-                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                            columnType === 'TEXTAREA' ? 400 : 
-                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
-                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
-                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                            columnType === 'TEXT' ? 120 : 
-                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
-                                            columnName.toLowerCase().includes('status') ? 100 :
-                                            100
-                                          )}px`,
-                                          minWidth: '80px'
-                                        }}
-                                      >
-                                        <div className="flex items-center justify-between group">
-                                          <button
-                                            onClick={() => handleSort(columnName, collection.id)}
-                                            className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
-                                          >
-                                            <span className="truncate">{columnName}</span>
-                                            {getSortIcon(columnName, collection.id)}
-                                          </button>
-                                          {isWorkflowValue && (
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              onClick={() => handleTriggerWorkflowValue(collection.collectionName, column, index)}
-                                              disabled={!canTrigger}
-                                              className={`h-6 w-6 p-0 ${canTrigger ? 'text-purple-600 hover:text-purple-700 hover:bg-purple-50' : 'text-gray-400 cursor-not-allowed'}`}
-                                              title={canTrigger ? `Run extraction for ${columnName}` : 'Complete previous values first'}
-                                            >
-                                              <Wand2 className="h-4 w-4" />
-                                            </Button>
-                                          )}
-                                          <div
-                                            className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
-                                          />
-                                        </div>
-                                      </TableHead>
-                                    );
-                                  });
-                              })()}
+                              {collection.properties
+                                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                .map((property) => (
+                                <TableHead 
+                                  key={property.id} 
+                                  className="relative border-r border-gray-300"
+                                  style={{ 
+                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                      property.fieldType === 'TEXTAREA' ? 400 : 
+                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.fieldType === 'TEXT' ? 120 : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                      property.propertyName.toLowerCase().includes('status') ? 100 :
+                                      100
+                                    )}px`,
+                                    minWidth: '80px'
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between group">
+                                    <button
+                                      onClick={() => handleSort(property.propertyName, collection.id)}
+                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
+                                    >
+                                      <span className="truncate">{property.propertyName}</span>
+                                      {getSortIcon(property.propertyName, collection.id)}
+                                    </button>
+                                    <div
+                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
+                                    />
+                                  </div>
+                                </TableHead>
+                              ))}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
@@ -3847,32 +3668,17 @@ Thank you for your assistance.`;
                               
                               return sortedItems.map(({ item, originalIndex }) => (
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
-                                  {(() => {
-                                    // Check if we have workflow steps for this collection
-                                    const workflowStep = workflowSteps.find((step: any) => 
-                                      step.stepType === 'list' && step.stepName === collection.collectionName
-                                    );
+                                  {collection.properties
+                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                    .map((property) => {
+                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                    const validation = getValidation(fieldName);
                                     
-                                    // Use workflow values if available, otherwise fall back to collection properties
-                                    const columnsToRender = workflowStep?.values || collection.properties;
-                                    
-                                    return columnsToRender
-                                      .filter((column: any) => column && (column.valueName || column.name || column.propertyName))
-                                      .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                      .map((column: any) => {
-                                        // Determine the property name based on whether it's a workflow value or collection property
-                                        const columnName = column.valueName || column.name || column.propertyName || '';
-                                        const columnType = column.dataType || column.fieldType || column.propertyType || 'TEXT';
-                                        const columnId = column.id;
-                                        
-                                        const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
-                                        const validation = getValidation(fieldName);
-                                        
-                                        // Try multiple possible property name mappings for extracted data
-                                        const possibleKeys = [
-                                          columnName,
-                                          columnName.toLowerCase(),
-                                          columnName.charAt(0).toLowerCase() + columnName.slice(1),
+                                    // Try multiple possible property name mappings for extracted data
+                                    const possibleKeys = [
+                                      property.propertyName,
+                                      property.propertyName.toLowerCase(),
+                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
                                     ];
                                     
                                     let originalValue = undefined;
@@ -3888,31 +3694,31 @@ Thank you for your assistance.`;
                                       displayValue = null;
                                     }
                                     
-                                        return (
-                                          <TableCell 
-                                            key={columnId} 
-                                            className="relative border-r border-gray-300"
-                                            style={{ 
-                                              width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                                columnType === 'TEXTAREA' ? 400 : 
-                                                columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
-                                                columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
-                                                columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                                columnType === 'TEXT' ? 120 : 
-                                                columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
-                                                columnName.toLowerCase().includes('status') ? 100 :
-                                                100
-                                              )}px`,
-                                              minWidth: '80px'
-                                            }}
-                                          >
-                                            <div className="relative w-full">
-                                              {/* Content */}
-                                              <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                                columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                              } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                                <span className={formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 italic' : ''}>
-                                                  {formatValueForDisplay(displayValue, columnType)}
+                                    return (
+                                      <TableCell 
+                                        key={property.id} 
+                                        className="relative border-r border-gray-300"
+                                        style={{ 
+                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                            property.fieldType === 'TEXTAREA' ? 400 : 
+                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.fieldType === 'TEXT' ? 120 : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                            property.propertyName.toLowerCase().includes('status') ? 100 :
+                                            100
+                                          )}px`,
+                                          minWidth: '80px'
+                                        }}
+                                      >
+                                        <div className="relative w-full">
+                                          {/* Content */}
+                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                              {formatValueForDisplay(displayValue, property.fieldType)}
                                             </span>
                                             
                                             {/* Edit button */}
@@ -4003,8 +3809,7 @@ Thank you for your assistance.`;
                                         </div>
                                       </TableCell>
                                     );
-                                  });
-                                })()}
+                                  })}
                                   <TableCell className="border-r border-gray-300">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
@@ -4220,96 +4025,6 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         }}
       />
-
-      {/* Document Selection Modal for Workflow Value Extraction */}
-      <Dialog open={documentSelectModal.open} onOpenChange={(open) => {
-        if (!open) {
-          setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
-          setSelectedDocumentForExtraction('');
-        }
-      }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Select Document for {documentSelectModal.valueName}</DialogTitle>
-            <DialogDescription>
-              Choose a document to extract "{documentSelectModal.valueName}" from the "{documentSelectModal.collectionName}" collection.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4 space-y-4">
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-              {sessionDocuments.map(doc => {
-                const fileName = doc.originalName || doc.filename || doc.name || doc.fileName || `Document ${doc.id.slice(0, 8)}`;
-                const fileType = doc.mimeType || doc.fileType || '';
-                
-                // Determine icon and color based on file type
-                let iconColor = 'text-muted-foreground';
-                let IconComponent = FileText;
-                
-                if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
-                  iconColor = 'text-red-500';
-                } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || 
-                         fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
-                  iconColor = 'text-green-500';
-                  IconComponent = TableIcon;
-                } else if (fileType.includes('word') || fileType.includes('document') || 
-                         fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
-                  iconColor = 'text-blue-500';
-                }
-                
-                return (
-                  <div 
-                    key={doc.id} 
-                    className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedDocumentForExtraction === doc.id 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                    }`}
-                    onClick={() => setSelectedDocumentForExtraction(doc.id)}
-                  >
-                    <div className="flex-shrink-0">
-                      <input
-                        type="radio"
-                        checked={selectedDocumentForExtraction === doc.id}
-                        onChange={() => setSelectedDocumentForExtraction(doc.id)}
-                        className="h-4 w-4 text-primary focus:ring-primary"
-                      />
-                    </div>
-                    <IconComponent className={`h-5 w-5 ${iconColor} flex-shrink-0`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {fileName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {fileType || 'Unknown type'}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDocumentSelectModal({ open: false, stepId: '', valueId: '', valueName: '', collectionName: '' });
-                  setSelectedDocumentForExtraction('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={!selectedDocumentForExtraction}
-                onClick={handleDocumentSelectionAndExtract}
-              >
-                <Wand2 className="h-4 w-4 mr-2" />
-                Extract
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
       {/* AI Extraction Modal */}
       <AIExtractionModal
         isOpen={aiExtractionModal.open}
