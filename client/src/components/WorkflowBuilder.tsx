@@ -787,7 +787,7 @@ function ValueEditor({
   const getValueIcon = () => {
     if (selectedTool) {
       if (selectedTool.toolType === "AI_ONLY") {
-        return <Brain className="h-4 w-4 text-blue-500" />;
+        return <Brain className="h-4 w-4 text-gray-600" />;
       } else {
         return <Code className="h-4 w-4 text-gray-500" />;
       }
