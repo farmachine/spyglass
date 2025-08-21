@@ -4588,22 +4588,40 @@ print(json.dumps(results))
       const { projectId } = req.params;
       const workflow = req.body;
       
-      console.log("Saving workflow for project:", projectId);
-      console.log("Workflow data:", JSON.stringify(workflow, null, 2));
+      console.log("\n========== SAVING FULL WORKFLOW ==========");
+      console.log("Project ID:", projectId);
+      console.log("Number of Steps:", workflow.steps?.length || 0);
+      
+      // Log each step summary
+      if (workflow.steps && workflow.steps.length > 0) {
+        console.log("\nSteps Summary:");
+        workflow.steps.forEach((step: any, index: number) => {
+          console.log(`  ${index + 1}. ${step.name} (${step.type}) - ${step.values?.length || 0} values`);
+        });
+      }
+      
+      console.log("\nFull Workflow Data:", JSON.stringify(workflow, null, 2));
+      console.log("==========================================\n");
       
       await storage.saveProjectWorkflow(projectId, workflow);
       
+      console.log("✅ Full workflow saved successfully!");
       res.json({ success: true, message: "Workflow saved successfully" });
     } catch (error) {
-      console.error("Error saving workflow:", error);
+      console.error("\n❌ Error saving full workflow:", error);
       res.status(500).json({ message: "Failed to save workflow" });
     }
   });
 
   // Helper function to handle workflow step saving logic
   const saveWorkflowStep = async (stepId: string, stepData: any) => {
-    console.log("Saving individual step:", stepId);
-    console.log("Step data:", JSON.stringify(stepData, null, 2));
+    console.log("\n========== SAVING WORKFLOW STEP ==========");
+    console.log("Step ID:", stepId);
+    console.log("Step Name:", stepData.name);
+    console.log("Step Type:", stepData.type);
+    console.log("Project ID:", stepData.projectId);
+    console.log("Full Step Data:", JSON.stringify(stepData, null, 2));
+    console.log("==========================================\n");
     
     // Check if step exists
     const existingStep = await storage.getWorkflowStep(stepId);
@@ -4659,6 +4677,8 @@ print(json.dumps(results))
         choiceOptions: value.choiceOptions
       });
     }
+    
+    console.log("✅ Step saved successfully!");
   };
 
   // POST endpoint for workflow steps
@@ -4667,11 +4687,12 @@ print(json.dumps(results))
       const { stepId } = req.params;
       const stepData = req.body;
       
+      console.log("\n🔄 POST request to save workflow step:", stepId);
       await saveWorkflowStep(stepId, stepData);
       
       res.json({ success: true, message: "Step saved successfully" });
     } catch (error) {
-      console.error("Error saving step:", error);
+      console.error("\n❌ Error saving step (POST):", error);
       res.status(500).json({ message: "Failed to save step" });
     }
   });
@@ -4682,11 +4703,12 @@ print(json.dumps(results))
       const { stepId } = req.params;
       const stepData = req.body;
       
+      console.log("\n🔄 PUT request to save workflow step:", stepId);
       await saveWorkflowStep(stepId, stepData);
       
       res.json({ success: true, message: "Step saved successfully" });
     } catch (error) {
-      console.error("Error saving step:", error);
+      console.error("\n❌ Error saving step (PUT):", error);
       res.status(500).json({ message: "Failed to save step" });
     }
   });
