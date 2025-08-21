@@ -1219,6 +1219,47 @@ export default function SessionView() {
     });
   };
 
+  // Handle triggering workflow value extraction
+  const handleTriggerWorkflowValue = async (collectionName: string, column: any, index: number) => {
+    try {
+      // Get the workflow step
+      const workflowStep = workflowSteps.find((step: any) => 
+        step.stepType === 'list' && step.stepName === collectionName
+      );
+      
+      if (!workflowStep) {
+        console.error('Workflow step not found for collection:', collectionName);
+        return;
+      }
+
+      // Get the value configuration
+      const value = workflowStep.values[index];
+      if (!value) {
+        console.error('Value not found at index:', index);
+        return;
+      }
+
+      console.log('Triggering extraction for value:', value.valueName, 'with ID:', value.id);
+
+      // Trigger extraction for this specific value
+      const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
+        method: 'POST',
+        body: JSON.stringify({
+          stepId: workflowStep.id,
+          valueId: value.id,
+          sessionId: sessionId
+        })
+      });
+
+      if (response.success) {
+        // Refetch validations to update the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+      }
+    } catch (error) {
+      console.error('Error triggering workflow value:', error);
+    }
+  };
+
   const getSortIcon = (key: string, collectionId?: string) => {
     if (sortConfig?.key === key && sortConfig?.collectionId === collectionId) {
       if (sortConfig.direction === 'asc') return <ArrowUp className="h-4 w-4" />;
@@ -3561,11 +3602,21 @@ Thank you for your assistance.`;
                                 return columnsToRender
                                   .filter((column: any) => column && (column.valueName || column.name || column.propertyName))
                                   .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                  .map((column: any) => {
+                                  .map((column: any, index: number) => {
                                     // Determine the property name and type based on whether it's a workflow value or collection property
                                     const columnName = column.valueName || column.name || column.propertyName || '';
                                     const columnType = column.dataType || column.fieldType || column.propertyType || 'TEXT';
                                     const columnId = column.id;
+                                    
+                                    // Check if this is a workflow value and if previous values have been extracted
+                                    const isWorkflowValue = !!column.valueName;
+                                    const canTrigger = !isWorkflowValue || index === 0 || 
+                                      columnsToRender.slice(0, index).every((prevCol: any) => {
+                                        // Check if previous columns have been extracted
+                                        const prevFieldName = `${collection.collectionName}.${prevCol.valueName || prevCol.name || prevCol.propertyName}[0]`;
+                                        const prevValidation = getValidation(prevFieldName);
+                                        return prevValidation?.extractedValue !== null && prevValidation?.extractedValue !== undefined;
+                                      });
                                     
                                     return (
                                       <TableHead 
@@ -3593,6 +3644,18 @@ Thank you for your assistance.`;
                                             <span className="truncate">{columnName}</span>
                                             {getSortIcon(columnName, collection.id)}
                                           </button>
+                                          {isWorkflowValue && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => handleTriggerWorkflowValue(collection.collectionName, column, index)}
+                                              disabled={!canTrigger}
+                                              className={`h-6 w-6 p-0 ${canTrigger ? 'text-purple-600 hover:text-purple-700 hover:bg-purple-50' : 'text-gray-400 cursor-not-allowed'}`}
+                                              title={canTrigger ? `Run extraction for ${columnName}` : 'Complete previous values first'}
+                                            >
+                                              <Wand2 className="h-4 w-4" />
+                                            </Button>
+                                          )}
                                           <div
                                             className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                             onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}

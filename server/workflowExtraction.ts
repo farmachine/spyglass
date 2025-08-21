@@ -29,6 +29,160 @@ export class WorkflowExtractionEngine {
   }
 
   /**
+   * Extract a single value using its configured tool
+   */
+  private async extractValue(
+    value: any,
+    documentContent: Record<string, string>,
+    extractedReferences: Record<string, any>,
+    projectId: string,
+    sessionId: string
+  ): Promise<any> {
+    if (!value.toolId) {
+      return {
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: "No extraction tool configured",
+        confidenceScore: 0
+      };
+    }
+
+    // Get the tool configuration
+    const tool = await this.storage.getExcelWizardryFunction(value.toolId);
+    if (!tool) {
+      return {
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: "Extraction tool not found",
+        confidenceScore: 0
+      };
+    }
+
+    // Prepare inputs for the tool
+    const inputs = await this.prepareToolInputs(
+      value.inputValues || {},
+      documentContent,
+      extractedReferences
+    );
+
+    // Execute the tool
+    try {
+      const toolConfig = {
+        id: tool.id,
+        name: tool.name,
+        description: tool.description,
+        toolType: tool.toolType,
+        inputParameters: tool.inputParameters || [],
+        functionCode: tool.functionCode,
+        aiPrompt: tool.aiPrompt || tool.description,
+        outputType: tool.outputType,
+        llmModel: tool.llmModel,
+        metadata: tool.metadata || {}
+      };
+
+      const toolResults = await this.toolEngine.testTool(toolConfig, inputs);
+      const result = toolResults[0] || {
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: "No result from tool",
+        confidenceScore: 0
+      };
+      
+      return {
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: result.extractedValue,
+        validationStatus: result.validationStatus,
+        aiReasoning: result.aiReasoning,
+        confidenceScore: result.confidenceScore,
+        documentSource: result.documentSource
+      };
+    } catch (error) {
+      console.error(`Error executing tool for ${value.valueName}:`, error);
+      return {
+        valueId: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType,
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        confidenceScore: 0
+      };
+    }
+  }
+
+  /**
+   * Execute extraction for a single value
+   */
+  async executeSingleValue(
+    projectId: string,
+    sessionId: string,
+    documentContent: Record<string, string>,
+    stepId: string,
+    valueId: string
+  ): Promise<WorkflowExtractionResult[]> {
+    console.log(`🔄 Starting single value extraction for value ${valueId} in step ${stepId}`);
+    
+    // Get the specific step
+    const step = await this.storage.getWorkflowStep(stepId);
+    if (!step) {
+      throw new Error(`Step ${stepId} not found`);
+    }
+    
+    // Get all values for this step
+    const stepValues = await this.storage.getStepValues(step.id);
+    const targetValue = stepValues.find(v => v.id === valueId);
+    
+    if (!targetValue) {
+      throw new Error(`Value ${valueId} not found in step ${stepId}`);
+    }
+    
+    // Get previously extracted values from this step (for reference)
+    const extractedReferences: Record<string, any> = {};
+    
+    // Get validations for this collection to find previously extracted values
+    const session = await this.storage.getExtractionSession(sessionId);
+    const validations = await this.storage.getProjectValidations(session?.projectId || projectId);
+    
+    // Build reference map from previous extractions
+    for (const prevValue of stepValues) {
+      if (prevValue.orderIndex < targetValue.orderIndex) {
+        const fieldName = `${step.stepName}.${prevValue.valueName}[0]`;
+        const validation = validations.find(v => v.fieldName === fieldName);
+        if (validation?.extractedValue) {
+          const refKey = `@${prevValue.valueName}`;
+          extractedReferences[refKey] = validation.extractedValue;
+          console.log(`  📌 Added reference ${refKey} = ${validation.extractedValue}`);
+        }
+      }
+    }
+    
+    // Extract just this single value
+    const extractedValue = await this.extractValue(
+      targetValue,
+      documentContent,
+      extractedReferences,
+      projectId,
+      sessionId
+    );
+    
+    // Return result in the same format
+    return [{
+      stepId: step.id,
+      stepName: step.stepName,
+      stepType: step.stepType,
+      values: [extractedValue]
+    }];
+  }
+
+  /**
    * Execute extraction for all workflow steps
    */
   async executeWorkflow(

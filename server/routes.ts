@@ -2472,9 +2472,12 @@ except Exception as e:
   app.post("/api/sessions/:sessionId/workflow-extract", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { projectId } = req.body;
+      const { projectId, stepId, valueId } = req.body;
       
       console.log(`🔄 WORKFLOW EXTRACTION: Starting for session ${sessionId}`);
+      if (valueId) {
+        console.log(`  Extracting single value: ${valueId} from step: ${stepId}`);
+      }
       
       // Get session documents
       const sessionDocs = await storage.getSessionDocuments(sessionId);
@@ -2495,20 +2498,29 @@ except Exception as e:
       const { WorkflowExtractionEngine } = await import("./workflowExtraction");
       const engine = new WorkflowExtractionEngine(storage);
       
-      const results = await engine.executeWorkflow(projectId, sessionId, documentContent);
+      let results;
+      if (stepId && valueId) {
+        // Extract single value
+        results = await engine.executeSingleValue(projectId, sessionId, documentContent, stepId, valueId);
+      } else {
+        // Extract full workflow
+        results = await engine.executeWorkflow(projectId, sessionId, documentContent);
+      }
       
       // Save results to field validations
       await engine.saveExtractionResults(sessionId, results);
       
-      // Update session status
-      await storage.updateExtractionSession(sessionId, {
-        status: "extracted",
-        extractedData: JSON.stringify(results)
-      });
+      // Update session status only if full extraction
+      if (!valueId) {
+        await storage.updateExtractionSession(sessionId, {
+          status: "extracted",
+          extractedData: JSON.stringify(results)
+        });
+      }
       
       res.json({
         success: true,
-        message: "Workflow extraction completed",
+        message: valueId ? "Value extraction completed" : "Workflow extraction completed",
         results
       });
       
