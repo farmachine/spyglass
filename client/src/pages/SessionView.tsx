@@ -3174,1020 +3174,151 @@ Thank you for your assistance.`;
               {workflowSteps.map(step => {
                 if (activeTab !== step.id) return null;
                 
-                // Render Info Page steps (single values like schema fields)
+                // Render Info Page steps (single values as individual fields)  
                 if (step.stepType === 'INFO_PAGE') {
                   return (
                     <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <span className="flex items-center gap-2">{step.stepName}</span>
-                        </CardTitle>
+                        <CardTitle>{step.stepName}</CardTitle>
                         <p className="text-sm text-gray-600">
                           {step.description || `Information fields for ${step.stepName}`}
                         </p>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Render values as fields */}
-                          {step.values
-                            ?.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                            .map((value) => {
-                              const fieldName = value.valueName;
-                              const originalValue = extractedData[fieldName];
-                              const validation = getValidation(fieldName);
-                              
-                              // Show field if it has a value OR if there's a validation for it
-                              if (originalValue !== undefined || validation) {
-                                // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                                let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                                if (displayValue === "null" || displayValue === "undefined") {
-                                  displayValue = null;
-                                }
-                                
-                                return (
-                                  <div key={value.id} className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      {(() => {
-                                        const validation = getValidation(fieldName);
-                                        const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                        const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                        const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                                        const score = Math.round(validation?.confidenceScore || 0);
-
-
-
-                                  // Render confidence indicator/verification status to the left of field name
-                                  if (wasManuallyUpdated) {
-                                    // Show blue user icon for manually updated fields - highest priority
-                                    
-                                    return (
-                                      <div className="w-3 h-3 flex items-center justify-center">
-                                        <User className="h-3 w-3 text-slate-700" />
-                                      </div>
-                                    );
-                                  } else if (isVerified) {
-                                    // Show green tick when verified - clicking unverifies
-                                    return (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <button
-                                              onClick={() => handleFieldVerification(fieldName, false)}
-                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
-                                              aria-label="Click to unverify"
-                                            >
-                                              <span className="text-xs font-bold">✓</span>
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    );
-                                  } else if (hasValue && validation) {
-                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
-                                    const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                    
-                                    return (
-                                      <button
-                                        onClick={() => {
-                                          if (validation.aiReasoning) {
-                                            setSelectedReasoning({
-                                              reasoning: validation.aiReasoning,
-                                              fieldName: getFieldDisplayName(fieldName),
-                                              confidenceScore: validation.confidenceScore || 0,
-                                              getFieldDisplayName,
-                                              validation,
-                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
-                                            });
-                                          }
-                                        }}
-                                        className={`w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                        title={`${score}% confidence - Click for AI analysis`}
-                                      />
-                                    );
-                                  } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields
-                                    return (
-                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
-                                        !
-                                      </div>
-                                    );
-                                  }
-                                  // Return empty div to maintain consistent spacing
-                                  return <div className="w-3 h-3 flex-shrink-0"></div>;
-                                })()}
-                                <Label className="text-sm font-medium text-gray-700 flex-1">
-                                  {fieldName}
-                                </Label>
-                                {/* Magic wand icon to trigger the associated tool */}
-                                {value.toolId && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={async () => {
-                                      // Trigger the tool associated with this value
-                                      console.log(`Triggering tool ${value.toolId} for ${fieldName}`);
-                                      // TODO: Implement tool execution
-                                    }}
-                                    className="h-6 w-6 p-0 hover:bg-slate-100"
-                                    title={`Run extraction for ${fieldName}`}
-                                  >
-                                    <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                  </Button>
-                                )}
+                          {/* Render each value as an individual field */}
+                          {step.values?.map((value) => {
+                            const fieldName = value.valueName;
+                            const fieldValue = extractedData[fieldName];
+                            const validation = getValidation(fieldName);
+                            let displayValue = validation?.extractedValue ?? fieldValue ?? '';
+                            
+                            return (
+                              <div key={value.id} className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-sm font-medium text-gray-700">
+                                    {fieldName}
+                                  </Label>
+                                  {/* Magic wand icon */}
+                                  {value.toolId && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => console.log(`Run tool ${value.toolId}`)}
+                                      className="h-5 w-5 p-0"
+                                    >
+                                      <Wand2 className="h-3 w-3 text-[#4F63A4]" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="p-2 border rounded bg-gray-50">
+                                  {displayValue || <span className="text-gray-400">No value</span>}
+                                </div>
                               </div>
-                              <div>
-                                {(() => {
-                                  const validation = getValidation(fieldName);
-                                  const isEditing = editingField === fieldName;
-                                  const fieldType = value.dataType || 'TEXT';
-                                  
-                                  if (isEditing) {
-                                    return (
-                                      <div className="flex items-center gap-2">
-                                        {fieldType === 'DATE' ? (
-                                          <Input
-                                            type="date"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        ) : fieldType === 'NUMBER' ? (
-                                          <Input
-                                            type="number"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        ) : fieldType === 'BOOLEAN' ? (
-                                          <Select value={editValue} onValueChange={setEditValue}>
-                                            <SelectTrigger className="flex-1">
-                                              <SelectValue placeholder="Select value" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="true">True</SelectItem>
-                                              <SelectItem value="false">False</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        ) : fieldType === 'TEXTAREA' ? (
-                                          <textarea
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            rows={4}
-                                          />
-                                        ) : (
-                                          <Input
-                                            type="text"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        )}
-                                        <Button size="sm" onClick={() => handleSave(field.fieldName)}>
-                                          Save
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-1">
-                                          {fieldType === 'TEXTAREA' ? (
-                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
-                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
-                                                {formatValueForDisplay(displayValue, fieldType)}
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
-                                              {formatValueForDisplay(displayValue, fieldType)}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => {
-                                            const validation = getValidation(fieldName);
-                                            if (validation) {
-                                              handleEditField(validation);
-                                            }
-                                          }}
-                                          className="h-6 px-2"
-                                        >
-                                          <Edit3 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    );
-                                  }
-                                })()}
-                              </div>
-                              
-                              {value.description && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {value.description}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-
-
-                  </CardContent>
-                </Card>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 }
                 
-                // Render Data Table steps (collections)
+                // Render Data Table steps (collections with values as columns)
                 if (step.stepType === 'DATA_TABLE') {
-                  // Find the matching collection from the project
-                  const collection = project?.collections?.find(c => 
-                    c.name === step.stepName || c.id === step.identifierId
-                  );
-                  
-                  if (!collection) return null;
-                  
-                  const collectionData = extractedData[collection.name] || [];
-                  const properties = collection.properties || [];
-                  
                   return (
-                    <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
+                    <Card key={step.id}>
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <span className="flex items-center gap-2">{step.stepName}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAIExtraction(
-                              collection.name,
-                              properties.map(prop => ({
-                                id: prop.id,
-                                name: prop.propertyName,
-                                type: prop.propertyType
-                              }))
-                            )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
-                          >
-                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                          </Button>
-                        </CardTitle>
-                        <p className="text-sm text-gray-600">
-                          {step.description || `Data records for ${step.stepName}`}
+                        <CardTitle>{step.stepName}</CardTitle>
+                        <p className="text-sm text-gray-500">
+                          {step.description || `Data table for ${step.stepName}`}
                         </p>
                       </CardHeader>
                       <CardContent>
-                        {collectionData.length === 0 ? (
-                          <div className="text-center py-12 text-gray-500">
-                            <div className="space-y-2">
-                              <p>No data extracted yet</p>
-                              <Button
-                                onClick={() => handleOpenAIExtraction(
-                                  collection.name,
-                                  properties.map(prop => ({
-                                    id: prop.id,
-                                    name: prop.propertyName,
-                                    type: prop.propertyType
-                                  }))
-                                )}
-                                variant="outline"
-                                size="sm"
-                                className="mt-2"
-                              >
-                                <Wand2 className="h-4 w-4 mr-2" />
-                                Extract Data
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead>
-                                <tr>
-                                  {/* Render value names as column headers with magic wands */}
-                                  {step.values?.map((value, index) => (
-                                    <th
-                                      key={value.id}
-                                      className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                    >
-                                      <div className="flex items-center gap-1">
-                                        <span>{value.valueName}</span>
-                                        {value.toolId && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={async () => {
-                                              console.log(`Triggering tool ${value.toolId} for ${value.valueName}`);
-                                              // TODO: Implement tool execution
-                                            }}
-                                            className="h-5 w-5 p-0 hover:bg-slate-100"
-                                            title={`Run extraction for ${value.valueName}`}
-                                          >
-                                            <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {collectionData.map((record: any, recordIndex: number) => (
-                                  <tr key={recordIndex} className="hover:bg-gray-50">
-                                    {step.values?.map((value) => {
-                                      const fieldName = `${collection.name}.${value.valueName}[${recordIndex}]`;
-                                      const cellValue = record[value.valueName];
-                                      const validation = getValidation(fieldName);
-                                      const displayValue = validation?.extractedValue ?? cellValue ?? '';
-                                      
-                                      return (
-                                        <td key={value.id} className="px-3 py-2 text-sm text-gray-900">
-                                          <div className="flex items-center gap-2">
-                                            {validation?.validationStatus === 'verified' && (
-                                              <span className="text-green-600 text-xs">✓</span>
-                                            )}
-                                            <span className="truncate" title={String(displayValue)}>
-                                              {formatValueForDisplay(displayValue, value.dataType || 'TEXT')}
-                                            </span>
-                                          </div>
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                {step.values?.map((value) => (
+                                  <th key={value.id} className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                    {value.valueName}
+                                  </th>
                                 ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                {step.values?.map((value) => {
+                                  const fieldName = value.valueName;
+                                  const fieldValue = extractedData[fieldName];
+                                  const validation = getValidation(fieldName);
+                                  const displayValue = validation?.extractedValue ?? fieldValue ?? '';
+                                  
+                                  return (
+                                    <td key={value.id} className="px-4 py-2 text-sm">
+                                      {displayValue || <span className="text-gray-400">No value</span>}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </CardContent>
                     </Card>
                   );
                 }
                 
+                // Default return null if step type is not recognized
                 return null;
-              })}
-
-              {/* Old Documents Tab Content - Remove this later */}
-              {false && activeTab === 'documents' && (
-                <Card className="border-t-0 rounded-tl-none ml-0">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">Documents</span>
-                    </CardTitle>
-                    <p className="text-sm text-gray-600">
-                      Documents uploaded and processed for this session.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {sessionDocuments && sessionDocuments.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sessionDocuments.map((doc: any, index: number) => (
-                          <div 
-                            key={doc.id || index} 
-                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-1">
-                                {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                  <FileText className="w-8 h-8 text-green-600" />
-                                ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                  <FileText className="w-8 h-8 text-blue-600" />
-                                ) : doc.mimeType?.includes('pdf') ? (
-                                  <FileText className="w-8 h-8 text-red-600" />
-                                ) : (
-                                  <FileText className="w-8 h-8 text-gray-600" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between">
-                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
-                                    {doc.fileName}
-                                  </h4>
-                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
-                                      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                      title="Download extracted content"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleDeleteDocument(doc.id)}
-                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      title="Delete document"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div className="mt-1 space-y-1">
-                                  <p className="text-xs text-gray-500">
-                                    Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
-                                  </p>
-                                  {doc.extractedAt && (
-                                    <p className="text-xs text-gray-500">
-                                      Processed: {new Date(doc.extractedAt).toLocaleDateString()}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {doc.extractedContent && doc.extractedContent.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <p className="text-xs text-gray-600 line-clamp-2">
-                                  {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No documents uploaded yet</p>
-                        <p className="text-sm text-gray-400 mt-1">Upload documents using the upload button above</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Individual Collection Tabs */}
-              {project.collections.map((collection) => {
-                const collectionData = extractedData[collection.collectionName];
-                const collectionValidations = validations.filter(v => 
-                  v.collectionName === collection.collectionName || 
-                  (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-                );
-                
-                console.log(`Collection ${collection.collectionName} - found ${collectionValidations.length} validations:`, 
-                  collectionValidations.map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, collectionName: v.collectionName })));
-                
-                const validationIndices = collectionValidations.length > 0 ? 
-                  collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
-                const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
-                
-                console.log(`Collection ${collection.collectionName} - uniqueIndices:`, uniqueIndices);
-                
-                // Always show the table even when there are no records, so headers remain visible
-
-                return activeTab === collection.collectionName ? (
-                  <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="border-t-0 rounded-tl-none ml-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {collection.collectionName}
-                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                              {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
-                            </span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAIExtraction(
-                              collection.collectionName,
-                              collection.properties?.map(prop => ({
-                                id: prop.id,
-                                name: prop.propertyName,
-                                type: prop.propertyType
-                              })) || []
-                            )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100"
-                          >
-                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                          </Button>
-                        </CardTitle>
-                        <p className="text-sm text-gray-600">{collection.description}</p>
-                      </CardHeader>
-                      <CardContent>
-                        <Table className="session-table">
-                          <TableHeader>
-                            <TableRow>
-
-                              {collection.properties
-                                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                .map((property) => (
-                                <TableHead 
-                                  key={property.id} 
-                                  className="relative border-r border-gray-300"
-                                  style={{ 
-                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.fieldType === 'TEXTAREA' ? 400 : 
-                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                      property.fieldType === 'TEXT' ? 120 : 
-                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                      property.propertyName.toLowerCase().includes('status') ? 100 :
-                                      100
-                                    )}px`,
-                                    minWidth: '80px'
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between group">
-                                    <button
-                                      onClick={() => handleSort(property.propertyName, collection.id)}
-                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
-                                    >
-                                      <span className="truncate">{property.propertyName}</span>
-                                      {getSortIcon(property.propertyName, collection.id)}
-                                    </button>
-                                    <div
-                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
-                                    />
-                                  </div>
-                                </TableHead>
-                              ))}
-                              <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
-                                <div className="flex items-center justify-center gap-1 px-2">
-                                  {(() => {
-                                    // Handle empty collections
-                                    if (uniqueIndices.length === 0) {
-                                      return (
-                                        <button
-                                          disabled
-                                          className="flex items-center justify-center px-2 py-1 rounded transition-colors opacity-50 cursor-not-allowed"
-                                          title="No items to verify"
-                                        >
-                                          <CheckCircle className="h-5 w-5 text-gray-400" />
-                                        </button>
-                                      );
-                                    }
-                                    
-                                    // Calculate if all items in this collection are verified (only for existing indices)
-                                    const allItemsVerified = uniqueIndices.every(index => {
-                                      const itemValidations = collection.properties.map(property => {
-                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                                        return getValidation(fieldName);
-                                      }).filter(Boolean);
-                                      
-                                      return itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
-                                    });
-                                    
-                                    return (
-                                      <button
-                                        onClick={() => handleVerifyAllCollectionItems(collection.collectionName, !allItemsVerified)}
-                                        className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                        title={allItemsVerified ? "Click to mark all items as unverified" : "Click to mark all items as verified"}
-                                      >
-                                        <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
-                                      </button>
-                                    );
-                                  })()}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
-                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    title="Add new item"
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                        title="More actions"
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete all data
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(() => {
-                              // Handle empty collections by showing a placeholder row
-                              if (uniqueIndices.length === 0) {
-                                return (
-                                  <TableRow className="border-b border-gray-300">
-                                    <TableCell 
-                                      colSpan={collection.properties.length + 1} 
-                                      className="text-center text-gray-500 py-8 italic"
-                                    >
-                                      No items yet. Click the + button to add the first item.
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              }
-                              
-                              // Create array of items only for indices that actually exist
-                              const itemsWithIndices = uniqueIndices.map(index => ({
-                                item: collectionData?.[index] || {},
-                                originalIndex: index
-                              }));
-                              
-                              // Apply sorting if configured, but reverse to show newest (highest index) first
-                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
-                                ? sortCollectionData(itemsWithIndices, collection, sortConfig)
-                                : itemsWithIndices.reverse(); // Show newest items first
-                              
-                              return sortedItems.map(({ item, originalIndex }) => (
-                                <TableRow key={originalIndex} className="border-b border-gray-300">
-                                  {collection.properties
-                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((property) => {
-                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
-                                    const validation = getValidation(fieldName);
-                                    
-                                    // Try multiple possible property name mappings for extracted data
-                                    const possibleKeys = [
-                                      property.propertyName,
-                                      property.propertyName.toLowerCase(),
-                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
-                                    ];
-                                    
-                                    let originalValue = undefined;
-                                    for (const key of possibleKeys) {
-                                      if (item[key] !== undefined) {
-                                        originalValue = item[key];
-                                        break;
-                                      }
-                                    }
-                                    
-                                    let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                                    if (displayValue === "null" || displayValue === "undefined") {
-                                      displayValue = null;
-                                    }
-                                    
-                                    return (
-                                      <TableCell 
-                                        key={property.id} 
-                                        className="relative border-r border-gray-300"
-                                        style={{ 
-                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.fieldType === 'TEXTAREA' ? 400 : 
-                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                            property.fieldType === 'TEXT' ? 120 : 
-                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                            property.propertyName.toLowerCase().includes('status') ? 100 :
-                                            100
-                                          )}px`,
-                                          minWidth: '80px'
-                                        }}
-                                      >
-                                        <div className="relative w-full">
-                                          {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
-                                              {formatValueForDisplay(displayValue, property.fieldType)}
-                                            </span>
-                                            
-                                            {/* Edit button */}
-                                            {validation && (
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => handleEditField(validation)}
-                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                title="Edit field value"
-                                              >
-                                                <Edit3 className="h-3 w-3" />
-                                              </Button>
-                                            )}
-                                          </div>
-                                          
-                                          {/* Combined confidence/verification indicator on top-left corner */}
-                                          {validation && (
-                                            <>
-                                              {(() => {
-                                                const wasManuallyUpdated = validation.manuallyUpdated;
-                                                const hasValue = validation.extractedValue !== null && 
-                                                               validation.extractedValue !== undefined && 
-                                                               validation.extractedValue !== "" && 
-                                                               validation.extractedValue !== "null" && 
-                                                               validation.extractedValue !== "undefined";
-                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
-                                                const score = Math.round(validation.confidenceScore || 0);
-
-                                                if (wasManuallyUpdated) {
-                                                  return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
-                                                      <User className="h-3 w-3 text-slate-700" />
-                                                    </div>
-                                                  );
-                                                } else if (isVerified) {
-                                                  // Show green tick when verified
-                                                  return (
-                                                    <TooltipProvider>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <button
-                                                            onClick={() => handleFieldVerification(fieldName, false)}
-                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
-                                                            aria-label="Click to unverify"
-                                                          >
-                                                            <span className="text-xs font-bold">✓</span>
-                                                          </button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          Verified with {score}% confidence
-                                                        </TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
-                                                  );
-                                                } else if (hasValue && validation.confidenceScore) {
-                                                  // Show colored confidence dot when not verified
-                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                                  
-                                                  return (
-                                                    <button
-                                                      onClick={() => {
-                                                        if (validation.aiReasoning) {
-                                                          setSelectedReasoning({
-                                                            reasoning: validation.aiReasoning,
-                                                            fieldName,
-                                                            confidenceScore: validation.confidenceScore || 0
-                                                          });
-                                                        }
-                                                      }}
-                                                      className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                      title={`${score}% confidence - Click for AI analysis`}
-                                                    />
-                                                  );
-                                                } else if (!hasValue) {
-                                                  // Show red exclamation mark for missing fields
-                                                  return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
-                                                      <span className="text-red-500 text-xs font-bold leading-none">!</span>
-                                                    </div>
-                                                  );
-                                                }
-                                                return null;
-                                              })()}
-                                            </>
-                                          )}
-                                        </div>
-                                      </TableCell>
-                                    );
-                                  })}
-                                  <TableCell className="border-r border-gray-300">
-                                    <div className="flex items-center justify-center gap-3 px-2">
-                                      {(() => {
-                                        // Calculate verification status for this item using improved filtering
-                                        const itemValidations = validations.filter(v => {
-                                          // Primary approach: match by collectionName and recordIndex
-                                          if (v.collectionName === collection.collectionName && v.recordIndex === originalIndex) {
-                                            return true;
-                                          }
-                                          
-                                          // Fallback approach: match by fieldName pattern for records with null collectionName
-                                          if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${originalIndex}]`)) {
-                                            // Check if fieldName starts with the collection name
-                                            return v.fieldName.startsWith(`${collection.collectionName}.`);
-                                          }
-                                          
-                                          return false;
-                                        });
-                                        
-                                        const allVerified = itemValidations.length > 0 && 
-                                          itemValidations.every(v => 
-                                            v?.validationStatus === 'valid' || 
-                                            v?.validationStatus === 'verified' || 
-                                            (v?.validationStatus === 'manual' && v?.manuallyVerified)
-                                          );
-                                        
-                                        console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
-                                          itemValidations: itemValidations.length,
-                                          allVerified,
-                                          validations: itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, status: v.validationStatus }))
-                                        });
-                                        
-                                        return (
-                                          <button
-                                            onClick={() => {
-                                              console.log(`Button clicked for ${collection.collectionName}[${originalIndex}], currently verified: ${allVerified}`);
-                                              handleItemVerification(collection.collectionName, originalIndex, !allVerified);
-                                            }}
-                                            className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                            title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
-                                          >
-                                            {allVerified ? (
-                                              <CheckCircle className="h-5 w-5 text-green-600" />
-                                            ) : (
-                                              <CheckCircle className="h-5 w-5 text-gray-400" />
-                                            )}
-                                          </button>
-                                        );
-                                      })()}
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => handleDeleteCollectionItem(collection.collectionName, originalIndex)}
-                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        title="Delete this item"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ));
-                            })()}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ) : null;
               })}
             </div>
           </div>
         </div>
       </div>
-      {/* AI Reasoning Modal */}
-      {selectedReasoning && (
-        <Dialog open={!!selectedReasoning} onOpenChange={() => setSelectedReasoning(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-blue-600" />
-                AI Analysis - {getFieldDisplayName(selectedReasoning.fieldName)}
-              </DialogTitle>
-              <DialogDescription>
-                Confidence: {Math.round(selectedReasoning.confidenceScore)}%
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="mt-4 space-y-4">
-              <div>
-                <Label className="text-sm font-medium">AI Reasoning</Label>
-                <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                  {selectedReasoning.reasoning}
-                </div>
-              </div>
-              
-              {(() => {
-                const validation = getValidation(selectedReasoning.fieldName);
-                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
-                
-                return (
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => {
-                          handleFieldVerification(selectedReasoning.fieldName, !isVerified);
-                          // Short delay to let user see the visual feedback before closing
-                          setTimeout(() => {
-                            setSelectedReasoning(null);
-                          }, 300);
-                        }}
-                        className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
-                        title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
-                      >
-                        {isVerified ? (
-                          <CheckCircle className="h-6 w-6 text-green-600" />
-                        ) : (
-                          <CheckCircle className="h-6 w-6 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                    <Button
-                      onClick={() => setSelectedReasoning(null)}
-                      variant="outline"
-                    >
-                      Close
-                    </Button>
-                  </div>
-                );
-              })()}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-      {/* Data Report Dialog */}
+      
+      {/* AI Reasoning Dialog */}
       <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
-              Request More Info Draft
+              <Brain className="h-5 w-5 text-[#4F63A4]" />
+              Session AI Analysis Summary
             </DialogTitle>
-            <DialogDescription>
-              Email-ready report for requesting missing information from data providers
-            </DialogDescription>
           </DialogHeader>
-          
-          <div className="mt-4">
-            <Label htmlFor="report-text" className="text-sm font-medium">
-              Report Content (ready to copy and paste into email)
-            </Label>
-            <textarea
-              id="report-text"
-              value={generateDataReport()}
-              readOnly
-              className="w-full h-80 mt-2 p-3 border rounded-md bg-gray-50 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="space-y-6 mt-4">
+            <div className="p-4 bg-slate-50 rounded-lg">
+              <h3 className="font-semibold mb-2">Overview</h3>
+              <p className="text-sm text-gray-700">
+                This session contains AI-powered extraction and validation for {getAllProjectFields().length} fields.
+                Fields marked with confidence scores have been analyzed by AI, while manually entered data shows user icons.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-semibold">Field Analysis Details</h3>
+              {validations?.filter(v => v.aiReasoning).map((validation) => (
+                <div key={validation.id} className="border rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">
+                      {getFieldDisplayName(validation.fieldName)}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      Confidence: {Math.round(validation.confidenceScore || 0)}%
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                    {validation.aiReasoning}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          
-          <div className="flex justify-between mt-6 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(generateDataReport());
-                } catch (error) {
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy to Clipboard
-            </Button>
-            <Button onClick={() => setShowReasoningDialog(false)}>
-              Close
-            </Button>
-          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowReasoningDialog(false)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Validation processing dialog removed - validation now occurs during extraction */}
-      {/* Edit Field Value Dialog */}
-      {editFieldDialog.validation && (
-        <EditFieldValueDialog
-          open={editFieldDialog.open}
-          validation={editFieldDialog.validation}
-          onClose={() => setEditFieldDialog({ open: false, validation: null })}
-          onSave={handleSaveFieldEdit}
-          schemaField={findSchemaField(editFieldDialog.validation)}
-          collectionProperty={findCollectionProperty(editFieldDialog.validation)}
-        />
-      )}
-      {/* Add Documents Modal */}
-      <AddDocumentsModal
-        open={addDocumentsModalOpen}
-        onClose={() => setAddDocumentsModalOpen(false)}
-        sessionId={sessionId!}
-        projectId={projectId!}
-        onSuccess={() => {
-          // Refresh session data and validations after successful document upload
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        }}
-      />
-      {/* Document Upload Modal (upload only, no AI processing) */}
-      <DocumentUploadModal
-        open={documentUploadModalOpen}
-        onClose={() => setDocumentUploadModalOpen(false)}
-        sessionId={sessionId!}
-        projectId={projectId!}
-        onSuccess={() => {
-          // Refresh session documents after successful upload
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-        }}
-      />
-      {/* AI Extraction Modal */}
-      <AIExtractionModal
-        isOpen={aiExtractionModal.open}
-        onClose={handleCloseAIExtraction}
-        sectionName={aiExtractionModal.sectionName}
-        availableFields={aiExtractionModal.availableFields}
-        sessionDocuments={sessionDocuments || []}
-        verifiedFields={getVerifiedFields()}
-        allProjectFields={getAllProjectFields()}
-        sessionId={sessionId}
-        project={project}
-      />
+
       {/* Session Chat */}
       {session && validations && (
         <SessionChat
