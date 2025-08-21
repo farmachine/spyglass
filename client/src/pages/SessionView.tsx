@@ -1061,6 +1061,14 @@ export default function SessionView() {
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
   
+  // Document selection modal for tool execution
+  const [documentSelectionModal, setDocumentSelectionModal] = useState<{
+    open: boolean;
+    toolId: string;
+    valueName: string;
+    inputValues: any;
+  }>({ open: false, toolId: '', valueName: '', inputValues: null });
+  
   // AI extraction modal state
   const [aiExtractionModal, setAiExtractionModal] = useState<{
     open: boolean;
@@ -1287,21 +1295,28 @@ export default function SessionView() {
     }
   }, [resizing]);
 
-  // Execute tool function for individual values
-  const executeTool = async (toolId: string, valueName: string, inputValues: any) => {
-    try {
-      // Get the first session document to use as input
-      if (!sessionDocuments || sessionDocuments.length === 0) {
-        toast({
-          title: "No documents",
-          description: "Please upload a document first",
-          variant: "destructive"
-        });
-        return;
-      }
+  // Open document selection modal
+  const openDocumentSelectionModal = (toolId: string, valueName: string, inputValues: any) => {
+    if (!sessionDocuments || sessionDocuments.length === 0) {
+      toast({
+        title: "No documents",
+        description: "Please upload a document first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setDocumentSelectionModal({
+      open: true,
+      toolId,
+      valueName,
+      inputValues
+    });
+  };
 
-      // Use the first document as the default input
-      const selectedDocument = sessionDocuments[0];
+  // Execute tool function for individual values with selected document
+  const executeTool = async (toolId: string, valueName: string, inputValues: any, selectedDocument: any) => {
+    try {
       
       // Prepare inputs - replace any @document references with the actual document content
       const preparedInputs: Record<string, any> = {};
@@ -3360,9 +3375,9 @@ Thank you for your assistance.`;
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={async () => {
+                                    onClick={() => {
                                       console.log(`Run tool ${value.toolId} for ${value.valueName}`);
-                                      await executeTool(value.toolId, value.valueName, value.inputValues);
+                                      openDocumentSelectionModal(value.toolId, value.valueName, value.inputValues);
                                     }}
                                     className="h-5 w-5 p-0"
                                   >
@@ -3422,20 +3437,9 @@ Thank you for your assistance.`;
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={async () => {
+                                          onClick={() => {
                                             console.log(`Run tool ${value.toolId} for ${value.valueName}`);
-                                            console.log('Related flow value:', {
-                                              valueId: value.id,
-                                              valueName: value.valueName,
-                                              toolId: value.toolId,
-                                              inputValues: value.inputValues,
-                                              dataType: value.dataType,
-                                              fullValue: value,
-                                              parentStep: step
-                                            });
-                                            
-                                            // Execute the function with session documents
-                                            await executeTool(value.toolId, value.valueName, value.inputValues);
+                                            openDocumentSelectionModal(value.toolId, value.valueName, value.inputValues);
                                           }}
                                           className="h-4 w-4 p-0"
                                         >
@@ -3569,6 +3573,68 @@ Thank you for your assistance.`;
           setDocumentUploadModalOpen(false);
         }}
       />
+
+      {/* Document Selection Modal for Tool Execution */}
+      <Dialog 
+        open={documentSelectionModal.open} 
+        onOpenChange={(open) => !open && setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null })}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select Document for {documentSelectionModal.valueName}</DialogTitle>
+            <DialogDescription>
+              Choose a document to extract data from
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {sessionDocuments?.map((doc) => (
+              <div
+                key={doc.id}
+                onClick={async () => {
+                  setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null });
+                  await executeTool(
+                    documentSelectionModal.toolId, 
+                    documentSelectionModal.valueName, 
+                    documentSelectionModal.inputValues,
+                    doc
+                  );
+                }}
+                className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="font-medium text-sm">{doc.fileName}</p>
+                      <p className="text-xs text-gray-500">
+                        Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {doc.mimeType?.split('/').pop()?.toUpperCase() || 'Unknown'}
+                  </span>
+                </div>
+                {doc.extractedContent && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded">
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {doc.extractedContent.substring(0, 200)}...
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null })}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
