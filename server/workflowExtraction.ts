@@ -530,6 +530,7 @@ export class WorkflowExtractionEngine {
           originalExtractedValue: value.extractedValue,
           validationStatus: value.validationStatus,
           validationType: stepResult.stepType === "list" ? "collection_property" : "schema_field",
+          dataType: value.dataType || "TEXT", // Add dataType field
           aiReasoning: value.aiReasoning || "",
           originalAiReasoning: value.aiReasoning || "",
           confidenceScore: value.confidenceScore,
