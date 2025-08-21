@@ -1232,7 +1232,7 @@ export default function SessionView() {
   };
 
   // Handle triggering workflow value extraction - opens document selection modal
-  const handleTriggerWorkflowValue = async (collectionName: string, column: any, index: number) => {
+  const handleTriggerWorkflowValue = async (collectionName: string, column: any, columnIndex: number) => {
     try {
       // Get the workflow step
       const workflowStep = workflowSteps.find((step: any) => 
@@ -1244,10 +1244,12 @@ export default function SessionView() {
         return;
       }
 
-      // Get the value configuration
-      const value = workflowStep.values[index];
-      if (!value) {
-        console.error('Value not found at index:', index);
+      // The column parameter contains the value configuration directly
+      // It has id, valueName, dataType, toolId, etc.
+      const value = column;
+      
+      if (!value || !value.id) {
+        console.error('Invalid value configuration:', column);
         return;
       }
 
