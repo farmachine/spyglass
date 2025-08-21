@@ -3545,15 +3545,13 @@ Thank you for your assistance.`;
 
                               {(() => {
                                 // Check if we have workflow steps for this collection
-                                console.log('Workflow steps:', workflowSteps);
-                                const workflowStep = workflowSteps?.find((step: any) => 
-                                  step.stepType === 'list' && step.name === collection.collectionName
+                                const steps = workflowSteps?.steps || [];
+                                const workflowStep = steps.find((step: any) => 
+                                  step.stepType === 'list' && step.stepName === collection.collectionName
                                 );
-                                console.log('Found workflow step for', collection.collectionName, ':', workflowStep);
                                 
                                 // Use workflow values if available, otherwise fall back to collection properties
                                 const columnsToRender = workflowStep?.values || collection.properties;
-                                console.log('Columns to render:', columnsToRender);
                                 
                                 return columnsToRender
                                   .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -3700,8 +3698,9 @@ Thank you for your assistance.`;
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
                                   {(() => {
                                     // Check if we have workflow steps for this collection
-                                    const workflowStep = workflowSteps?.find((step: any) => 
-                                      step.stepType === 'list' && step.name === collection.collectionName
+                                    const steps = workflowSteps?.steps || [];
+                                    const workflowStep = steps.find((step: any) => 
+                                      step.stepType === 'list' && step.stepName === collection.collectionName
                                     );
                                     
                                     // Use workflow values if available, otherwise fall back to collection properties
