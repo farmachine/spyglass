@@ -1365,6 +1365,21 @@ export default function SessionView() {
   });
   
   const workflowSteps = workflowData?.steps || [];
+  
+  // Initialize active tab with first workflow step when loaded
+  useEffect(() => {
+    if (workflowSteps.length > 0) {
+      console.log('Workflow steps loaded:', workflowSteps);
+      console.log('Current active tab:', activeTab);
+      
+      // If active tab is the default "info" or doesn't match any workflow step, set to first workflow step
+      const isValidWorkflowTab = workflowSteps.some(step => step.id === activeTab) || activeTab === 'documents';
+      if (!isValidWorkflowTab && workflowSteps.length > 0) {
+        console.log('Setting active tab to first workflow step:', workflowSteps[0].id);
+        setActiveTab(workflowSteps[0].id);
+      }
+    }
+  }, [workflowSteps]);
 
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
@@ -3396,7 +3411,127 @@ Thank you for your assistance.`;
                 
                 // Render Data Table steps (collections)
                 if (step.stepType === 'DATA_TABLE') {
-                  return null; // Temporarily return null to fix syntax
+                  // Find the matching collection from the project
+                  const collection = project?.collections?.find(c => 
+                    c.name === step.stepName || c.id === step.identifierId
+                  );
+                  
+                  if (!collection) return null;
+                  
+                  const collectionData = extractedData[collection.name] || [];
+                  const properties = collection.properties || [];
+                  
+                  return (
+                    <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">{step.stepName}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAIExtraction(
+                              collection.name,
+                              properties.map(prop => ({
+                                id: prop.id,
+                                name: prop.propertyName,
+                                type: prop.propertyType
+                              }))
+                            )}
+                            className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
+                          >
+                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                          </Button>
+                        </CardTitle>
+                        <p className="text-sm text-gray-600">
+                          {step.description || `Data records for ${step.stepName}`}
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        {collectionData.length === 0 ? (
+                          <div className="text-center py-12 text-gray-500">
+                            <div className="space-y-2">
+                              <p>No data extracted yet</p>
+                              <Button
+                                onClick={() => handleOpenAIExtraction(
+                                  collection.name,
+                                  properties.map(prop => ({
+                                    id: prop.id,
+                                    name: prop.propertyName,
+                                    type: prop.propertyType
+                                  }))
+                                )}
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                              >
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Extract Data
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead>
+                                <tr>
+                                  {/* Render value names as column headers with magic wands */}
+                                  {step.values?.map((value, index) => (
+                                    <th
+                                      key={value.id}
+                                      className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        <span>{value.valueName}</span>
+                                        {value.toolId && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={async () => {
+                                              console.log(`Triggering tool ${value.toolId} for ${value.valueName}`);
+                                              // TODO: Implement tool execution
+                                            }}
+                                            className="h-5 w-5 p-0 hover:bg-slate-100"
+                                            title={`Run extraction for ${value.valueName}`}
+                                          >
+                                            <Wand2 className="h-3 w-3 text-[#4F63A4]" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {collectionData.map((record: any, recordIndex: number) => (
+                                  <tr key={recordIndex} className="hover:bg-gray-50">
+                                    {step.values?.map((value) => {
+                                      const fieldName = `${collection.name}.${value.valueName}[${recordIndex}]`;
+                                      const cellValue = record[value.valueName];
+                                      const validation = getValidation(fieldName);
+                                      const displayValue = validation?.extractedValue ?? cellValue ?? '';
+                                      
+                                      return (
+                                        <td key={value.id} className="px-3 py-2 text-sm text-gray-900">
+                                          <div className="flex items-center gap-2">
+                                            {validation?.validationStatus === 'verified' && (
+                                              <span className="text-green-600 text-xs">✓</span>
+                                            )}
+                                            <span className="truncate" title={String(displayValue)}>
+                                              {formatValueForDisplay(displayValue, value.dataType || 'TEXT')}
+                                            </span>
+                                          </div>
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
                 }
                 
                 return null;
