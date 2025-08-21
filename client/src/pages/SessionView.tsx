@@ -3554,11 +3554,12 @@ Thank you for your assistance.`;
                                 const columnsToRender = workflowStep?.values || collection.properties;
                                 
                                 return columnsToRender
+                                  .filter((column: any) => column && (column.name || column.propertyName))
                                   .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                   .map((column: any) => {
                                     // Determine the property name and type based on whether it's a workflow value or collection property
-                                    const columnName = column.name || column.propertyName;
-                                    const columnType = column.dataType || column.fieldType || column.propertyType;
+                                    const columnName = column.name || column.propertyName || '';
+                                    const columnType = column.dataType || column.fieldType || column.propertyType || 'TEXT';
                                     const columnId = column.id;
                                     
                                     return (
@@ -3707,11 +3708,12 @@ Thank you for your assistance.`;
                                     const columnsToRender = workflowStep?.values || collection.properties;
                                     
                                     return columnsToRender
+                                      .filter((column: any) => column && (column.name || column.propertyName))
                                       .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                       .map((column: any) => {
                                         // Determine the property name based on whether it's a workflow value or collection property
-                                        const columnName = column.name || column.propertyName;
-                                        const columnType = column.dataType || column.fieldType || column.propertyType;
+                                        const columnName = column.name || column.propertyName || '';
+                                        const columnType = column.dataType || column.fieldType || column.propertyType || 'TEXT';
                                         const columnId = column.id;
                                         
                                         const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
