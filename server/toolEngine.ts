@@ -584,6 +584,11 @@ try:
     parameters = ${parametersPython}
     output_type = "${outputType}"
     
+    # Debug logging
+    print(f"DEBUG: inputs keys: {list(inputs.keys())}", file=sys.stderr)
+    print(f"DEBUG: inputs values type: {[type(v).__name__ for v in inputs.values()]}", file=sys.stderr)
+    print(f"DEBUG: function_name: {function_name}", file=sys.stderr)
+    
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
     
@@ -662,39 +667,34 @@ try:
         else:
             func_param_names = []
         
-        # If function expects specific parameter names, map inputs accordingly
-        if func_param_names:
-            # For single parameter functions with document inputs
-            if len(func_param_names) == 1 and len(inputs) > 0:
-                # Pass the first input value with the expected parameter name
-                result = func_to_call(list(inputs.values())[0])
+        # Debug: print function parameter names
+        print(f"DEBUG: func_param_names: {func_param_names}", file=sys.stderr)
+        
+        # Simplified approach: if we have a single-parameter function and document content
+        # just pass the document content directly
+        if len(func_param_names) == 1:
+            # Get the first (and only) input value - should be the document content
+            input_values = list(inputs.values())
+            if input_values:
+                print(f"DEBUG: Calling {function_name} with single argument (length: {len(str(input_values[0]))})", file=sys.stderr)
+                result = func_to_call(input_values[0])
             else:
-                # Multiple parameters - try to match by name or position
-                kwargs = {}
-                for i, func_param in enumerate(func_param_names):
-                    # Try to find matching parameter by name
-                    matched = False
-                    for param in parameters:
-                        if param['name'] in inputs:
-                            if i < len(parameters):
-                                kwargs[func_param] = inputs[param['name']]
-                                matched = True
-                                break
-                    
-                    # If no match, use positional
-                    if not matched and i < len(list(inputs.values())):
-                        kwargs[func_param] = list(inputs.values())[i]
-                
-                result = func_to_call(**kwargs)
-        else:
-            # Fallback to original behavior
+                raise Exception("No input provided for function")
+        elif len(func_param_names) > 1:
+            # Multiple parameters - map by position
             args = []
-            for param in parameters:
-                param_name = param['name']
-                if param_name in inputs:
-                    args.append(inputs[param_name])
-            
-            # Execute function once
+            input_values = list(inputs.values())
+            for i, param_name in enumerate(func_param_names):
+                if i < len(input_values):
+                    args.append(input_values[i])
+                else:
+                    args.append(None)
+            print(f"DEBUG: Calling {function_name} with {len(args)} arguments", file=sys.stderr)
+            result = func_to_call(*args)
+        else:
+            # No parameters detected, try calling with all inputs as args
+            args = list(inputs.values())
+            print(f"DEBUG: Calling {function_name} with {len(args)} arguments (no params detected)", file=sys.stderr)
             result = func_to_call(*args)
     
     # Check if result is already in the correct format
