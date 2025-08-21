@@ -3320,14 +3320,21 @@ class PostgreSQLStorage implements IStorage {
 
   async createWorkflowStep(step: InsertWorkflowStep): Promise<WorkflowStep> {
     return this.retryOperation(async () => {
+      console.log("\n📝 DATABASE INSERT - workflow_steps table:");
+      console.log(JSON.stringify(step, null, 2));
       const [result] = await this.db.insert(workflowSteps).values(step).returning();
+      console.log("✅ Inserted workflow step:", result.id);
       return result;
     });
   }
 
   async updateWorkflowStep(id: string, step: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined> {
     return this.retryOperation(async () => {
+      console.log("\n📝 DATABASE UPDATE - workflow_steps table:");
+      console.log("Step ID:", id);
+      console.log("Update Data:", JSON.stringify(step, null, 2));
       const [result] = await this.db.update(workflowSteps).set(step).where(eq(workflowSteps.id, id)).returning();
+      console.log("✅ Updated workflow step:", result?.id);
       return result;
     });
   }
@@ -3344,9 +3351,14 @@ class PostgreSQLStorage implements IStorage {
 
   async saveProjectWorkflow(projectId: string, workflow: any): Promise<void> {
     return this.retryOperation(async () => {
+      console.log("\n🔄 DATABASE OPERATION - Full Workflow Save");
+      console.log("Project ID:", projectId);
+      
       // Begin transaction-like behavior
       // First, delete existing workflow steps for this project
       const existingSteps = await this.db.select().from(workflowSteps).where(eq(workflowSteps.projectId, projectId));
+      
+      console.log(`Deleting ${existingSteps.length} existing steps...`);
       
       for (const step of existingSteps) {
         await this.db.delete(stepValues).where(eq(stepValues.stepId, step.id));
@@ -3354,9 +3366,11 @@ class PostgreSQLStorage implements IStorage {
       await this.db.delete(workflowSteps).where(eq(workflowSteps.projectId, projectId));
 
       // Now save the new workflow
+      console.log(`\nInserting ${workflow.steps?.length || 0} new steps...`);
+      
       for (const step of workflow.steps) {
         // Create the step
-        const [newStep] = await this.db.insert(workflowSteps).values({
+        const stepData = {
           id: step.id,
           projectId: projectId,
           stepName: step.name,
@@ -3365,11 +3379,16 @@ class PostgreSQLStorage implements IStorage {
           orderIndex: step.orderIndex,
           valueCount: step.valueCount || step.values?.length || 0,
           identifierId: step.identifierId
-        }).returning();
+        };
+        
+        console.log("\n📝 DATABASE INSERT - workflow_steps (from full workflow):");
+        console.log(JSON.stringify(stepData, null, 2));
+        
+        const [newStep] = await this.db.insert(workflowSteps).values(stepData).returning();
 
         // Create the values for this step
         for (const value of step.values || []) {
-          await this.db.insert(stepValues).values({
+          const valueData = {
             id: value.id,
             stepId: newStep.id,
             valueName: value.name,
@@ -3377,13 +3396,20 @@ class PostgreSQLStorage implements IStorage {
             description: value.description,
             isIdentifier: step.type === 'list' && step.values[0]?.id === value.id,
             orderIndex: value.orderIndex || 0,
-            toolId: value.toolId,
+            toolId: value.toolId === '' ? null : value.toolId,
             inputValues: value.inputValues,
             autoVerificationConfidence: value.autoVerificationConfidence,
             choiceOptions: value.choiceOptions
-          });
+          };
+          
+          console.log("\n📝 DATABASE INSERT - step_values (from full workflow):");
+          console.log(JSON.stringify(valueData, null, 2));
+          
+          await this.db.insert(stepValues).values(valueData);
         }
       }
+      
+      console.log("\n✅ Full workflow saved to database successfully!");
     });
   }
 
@@ -3410,7 +3436,10 @@ class PostgreSQLStorage implements IStorage {
         ...value,
         toolId: value.toolId === '' ? null : value.toolId
       };
+      console.log("\n📝 DATABASE INSERT - step_values table:");
+      console.log(JSON.stringify(cleanedValue, null, 2));
       const [result] = await this.db.insert(stepValues).values(cleanedValue).returning();
+      console.log("✅ Inserted step value:", result.id);
       return result;
     });
   }
