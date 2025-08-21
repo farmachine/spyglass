@@ -2508,15 +2508,18 @@ except Exception as e:
         results = await engine.executeWorkflow(projectId, sessionId, documentContent);
       }
       
-      // Save results to field validations
-      await engine.saveExtractionResults(sessionId, results);
+      // Temporarily skip saving to debug the output
+      console.log('🎯 EXTRACTION COMPLETE - RESULTS:', JSON.stringify(results, null, 2));
+      
+      // Comment out saving for now to debug
+      // await engine.saveExtractionResults(sessionId, results);
       
       // Update session status only if full extraction
       if (!valueId) {
-        await storage.updateExtractionSession(sessionId, {
-          status: "extracted",
-          extractedData: JSON.stringify(results)
-        });
+        // await storage.updateExtractionSession(sessionId, {
+        //   status: "extracted",
+        //   extractedData: JSON.stringify(results)
+        // });
       }
       
       res.json({

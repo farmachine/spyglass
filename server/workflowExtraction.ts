@@ -87,7 +87,24 @@ export class WorkflowExtractionEngine {
         metadata: tool.metadata || {}
       };
 
+      console.log('🔍 FUNCTION INPUTS:', {
+        valueName: value.valueName,
+        toolName: tool.name,
+        documentKeys: Object.keys(documentContent),
+        documentContentLength: Object.values(documentContent)[0]?.length || 0,
+        inputValues: value.inputValues,
+        preparedInputs: inputs,
+        firstDocumentPreview: Object.values(documentContent)[0]?.substring(0, 500)
+      });
+
       const toolResults = await this.toolEngine.testTool(toolConfig, inputs);
+      
+      console.log('📊 FUNCTION OUTPUT:', {
+        valueName: value.valueName,
+        toolName: tool.name,
+        resultsCount: toolResults.length,
+        results: toolResults
+      });
       
       // For list steps with multiple outputs, return all records
       if (step.stepType === "list" && tool.outputType === "multiple" && toolResults.length > 0) {
