@@ -651,9 +651,18 @@ try:
         # Single execution mode
         args = []
         for param in parameters:
-            param_name = param['name']
-            if param_name in inputs:
+            param_id = param.get('id')
+            param_name = param.get('name')
+            
+            # Try to find input by ID first, then by name
+            if param_id and param_id in inputs:
+                args.append(inputs[param_id])
+            elif param_name and param_name in inputs:
                 args.append(inputs[param_name])
+            else:
+                # If neither found, try the first input value for single-param functions
+                if len(parameters) == 1 and len(inputs) == 1:
+                    args.append(list(inputs.values())[0])
         
         # Execute function once
         result = func_to_call(*args)
