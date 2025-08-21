@@ -1323,7 +1323,11 @@ export default function SessionView() {
       
       if (inputValues) {
         for (const [key, value] of Object.entries(inputValues)) {
-          if (typeof value === 'string' && value.startsWith('@')) {
+          // Check if this is a document reference (could be in an array)
+          if (Array.isArray(value) && value.length > 0 && value[0] === 'user_document') {
+            // This is a document reference - use the selected document's content
+            preparedInputs[key] = selectedDocument.extractedContent || '';
+          } else if (typeof value === 'string' && (value === 'user_document' || value.startsWith('@'))) {
             // This is a reference to a document - use the selected document's content
             preparedInputs[key] = selectedDocument.extractedContent || '';
           } else {
@@ -1337,11 +1341,14 @@ export default function SessionView() {
       console.log('📊 Prepared inputs:', preparedInputs);
 
       // Call the test endpoint
+      const token = localStorage.getItem('token');
+      console.log('🔑 Using token:', token ? 'Token found' : 'No token found');
+      
       const response = await fetch('/api/excel-functions/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           functionId: toolId,
