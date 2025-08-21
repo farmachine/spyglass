@@ -283,22 +283,25 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     setSteps(collapsedSteps);
   };
 
-  const saveCurrentStep = async () => {
-    // Find the currently expanded step
-    const expandedStep = steps.find(s => s.isExpanded);
-    if (!expandedStep) {
-      console.log('No expanded step to save');
+  const saveCurrentStep = async (stepId?: string) => {
+    // Find the step to save - either by ID or the currently expanded one
+    const stepToSave = stepId 
+      ? steps.find(s => s.id === stepId)
+      : steps.find(s => s.isExpanded);
+    
+    if (!stepToSave) {
+      console.log('No step to save');
       return;
     }
 
     const stepData = {
-      ...expandedStep,
-      valueCount: expandedStep.values.length,
-      identifierId: expandedStep.type === 'list' && expandedStep.values[0] ? expandedStep.values[0].id : null
+      ...stepToSave,
+      valueCount: stepToSave.values.length,
+      identifierId: stepToSave.type === 'list' && stepToSave.values[0] ? stepToSave.values[0].id : null
     };
 
     try {
-      const response = await fetch(`/api/workflow-steps/${expandedStep.id}`, {
+      const response = await fetch(`/api/workflow-steps/${stepToSave.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -311,7 +314,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         console.log('Step saved successfully');
         toast({
           title: "Step Saved",
-          description: `"${expandedStep.name}" has been saved successfully`,
+          description: `"${stepToSave.name}" has been saved successfully`,
         });
       } else {
         console.error('Failed to save step');
@@ -583,7 +586,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 )}
 
                 {/* Add Value button below value cards */}
-                <div className="flex justify-center pt-1">
+                <div className="flex justify-center gap-2 pt-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -592,6 +595,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   >
                     <Plus className="h-3 w-3" />
                     Add Value
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => saveCurrentStep(step.id)}
+                    className="gap-2 bg-gray-600 hover:bg-gray-700 text-white"
+                  >
+                    Save Step
                   </Button>
                 </div>
 
