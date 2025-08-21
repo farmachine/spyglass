@@ -1329,6 +1329,13 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
+  // Fetch workflow steps for the project
+  const { data: workflowSteps = [] } = useQuery({
+    queryKey: ['/api/projects', projectId, 'workflow-steps'],
+    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow-steps`),
+    enabled: !!projectId
+  });
+
   // Set dynamic page title based on session and project data
   usePageTitle(session?.sessionName && project?.name ? 
     `${session.sessionName} - ${project.name}` : 
@@ -3536,41 +3543,58 @@ Thank you for your assistance.`;
                           <TableHeader>
                             <TableRow>
 
-                              {collection.properties
-                                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                .map((property) => (
-                                <TableHead 
-                                  key={property.id} 
-                                  className="relative border-r border-gray-300"
-                                  style={{ 
-                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.fieldType === 'TEXTAREA' ? 400 : 
-                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                      property.fieldType === 'TEXT' ? 120 : 
-                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                      property.propertyName.toLowerCase().includes('status') ? 100 :
-                                      100
-                                    )}px`,
-                                    minWidth: '80px'
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between group">
-                                    <button
-                                      onClick={() => handleSort(property.propertyName, collection.id)}
-                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
-                                    >
-                                      <span className="truncate">{property.propertyName}</span>
-                                      {getSortIcon(property.propertyName, collection.id)}
-                                    </button>
-                                    <div
-                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
-                                    />
-                                  </div>
-                                </TableHead>
-                              ))}
+                              {(() => {
+                                // Check if we have workflow steps for this collection
+                                const workflowStep = workflowSteps?.find((step: any) => 
+                                  step.stepType === 'list' && step.name === collection.collectionName
+                                );
+                                
+                                // Use workflow values if available, otherwise fall back to collection properties
+                                const columnsToRender = workflowStep?.values || collection.properties;
+                                
+                                return columnsToRender
+                                  .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                  .map((column: any) => {
+                                    // Determine the property name and type based on whether it's a workflow value or collection property
+                                    const columnName = column.name || column.propertyName;
+                                    const columnType = column.dataType || column.fieldType || column.propertyType;
+                                    const columnId = column.id;
+                                    
+                                    return (
+                                      <TableHead 
+                                        key={columnId} 
+                                        className="relative border-r border-gray-300"
+                                        style={{ 
+                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
+                                            columnType === 'TEXTAREA' ? 400 : 
+                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                            columnType === 'TEXT' ? 120 : 
+                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
+                                            columnName.toLowerCase().includes('status') ? 100 :
+                                            100
+                                          )}px`,
+                                          minWidth: '80px'
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between group">
+                                          <button
+                                            onClick={() => handleSort(columnName, collection.id)}
+                                            className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
+                                          >
+                                            <span className="truncate">{columnName}</span>
+                                            {getSortIcon(columnName, collection.id)}
+                                          </button>
+                                          <div
+                                            className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
+                                          />
+                                        </div>
+                                      </TableHead>
+                                    );
+                                  });
+                              })()}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
@@ -3671,17 +3695,31 @@ Thank you for your assistance.`;
                               
                               return sortedItems.map(({ item, originalIndex }) => (
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
-                                  {collection.properties
-                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((property) => {
-                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
-                                    const validation = getValidation(fieldName);
+                                  {(() => {
+                                    // Check if we have workflow steps for this collection
+                                    const workflowStep = workflowSteps?.find((step: any) => 
+                                      step.stepType === 'list' && step.name === collection.collectionName
+                                    );
                                     
-                                    // Try multiple possible property name mappings for extracted data
-                                    const possibleKeys = [
-                                      property.propertyName,
-                                      property.propertyName.toLowerCase(),
-                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
+                                    // Use workflow values if available, otherwise fall back to collection properties
+                                    const columnsToRender = workflowStep?.values || collection.properties;
+                                    
+                                    return columnsToRender
+                                      .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                      .map((column: any) => {
+                                        // Determine the property name based on whether it's a workflow value or collection property
+                                        const columnName = column.name || column.propertyName;
+                                        const columnType = column.dataType || column.fieldType || column.propertyType;
+                                        const columnId = column.id;
+                                        
+                                        const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
+                                        const validation = getValidation(fieldName);
+                                        
+                                        // Try multiple possible property name mappings for extracted data
+                                        const possibleKeys = [
+                                          columnName,
+                                          columnName.toLowerCase(),
+                                          columnName.charAt(0).toLowerCase() + columnName.slice(1),
                                     ];
                                     
                                     let originalValue = undefined;
@@ -3697,31 +3735,31 @@ Thank you for your assistance.`;
                                       displayValue = null;
                                     }
                                     
-                                    return (
-                                      <TableCell 
-                                        key={property.id} 
-                                        className="relative border-r border-gray-300"
-                                        style={{ 
-                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.fieldType === 'TEXTAREA' ? 400 : 
-                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                            property.fieldType === 'TEXT' ? 120 : 
-                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                            property.propertyName.toLowerCase().includes('status') ? 100 :
-                                            100
-                                          )}px`,
-                                          minWidth: '80px'
-                                        }}
-                                      >
-                                        <div className="relative w-full">
-                                          {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
-                                              {formatValueForDisplay(displayValue, property.fieldType)}
+                                        return (
+                                          <TableCell 
+                                            key={columnId} 
+                                            className="relative border-r border-gray-300"
+                                            style={{ 
+                                              width: `${columnWidths[`${collection.id}-${columnId}`] || (
+                                                columnType === 'TEXTAREA' ? 400 : 
+                                                columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
+                                                columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
+                                                columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                                columnType === 'TEXT' ? 120 : 
+                                                columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
+                                                columnName.toLowerCase().includes('status') ? 100 :
+                                                100
+                                              )}px`,
+                                              minWidth: '80px'
+                                            }}
+                                          >
+                                            <div className="relative w-full">
+                                              {/* Content */}
+                                              <div className={`table-cell-content w-full pl-6 pr-8 ${
+                                                columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                              } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                                <span className={formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                                  {formatValueForDisplay(displayValue, columnType)}
                                             </span>
                                             
                                             {/* Edit button */}
@@ -3812,7 +3850,8 @@ Thank you for your assistance.`;
                                         </div>
                                       </TableCell>
                                     );
-                                  })}
+                                  });
+                                })()}
                                   <TableCell className="border-r border-gray-300">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
