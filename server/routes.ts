@@ -2468,6 +2468,60 @@ except Exception as e:
     }
   });
 
+  // Workflow-based extraction using configured tools
+  app.post("/api/sessions/:sessionId/workflow-extract", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const { projectId } = req.body;
+      
+      console.log(`🔄 WORKFLOW EXTRACTION: Starting for session ${sessionId}`);
+      
+      // Get session documents
+      const sessionDocs = await storage.getSessionDocuments(sessionId);
+      if (!sessionDocs || sessionDocs.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "No documents found in session" 
+        });
+      }
+      
+      // Build document content map
+      const documentContent: Record<string, string> = {};
+      for (const doc of sessionDocs) {
+        documentContent[doc.id] = doc.extractedContent || "";
+      }
+      
+      // Execute workflow extraction
+      const { WorkflowExtractionEngine } = await import("./workflowExtraction");
+      const engine = new WorkflowExtractionEngine(storage);
+      
+      const results = await engine.executeWorkflow(projectId, sessionId, documentContent);
+      
+      // Save results to field validations
+      await engine.saveExtractionResults(sessionId, results);
+      
+      // Update session status
+      await storage.updateExtractionSession(sessionId, {
+        status: "extracted",
+        extractedData: JSON.stringify(results)
+      });
+      
+      res.json({
+        success: true,
+        message: "Workflow extraction completed",
+        results
+      });
+      
+    } catch (error) {
+      console.error("Workflow extraction error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to execute workflow extraction",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // AI extraction for existing sessions (used by Add Documents)
   app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
     try {

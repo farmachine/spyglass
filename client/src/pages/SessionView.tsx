@@ -623,12 +623,15 @@ const AIExtractionModal = ({
       
       console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
       
-      const response = await apiRequest('/api/run-wizardry', {
+      // Use workflow extraction if available, otherwise fall back to wizardry
+      const response = await apiRequest(`/api/sessions/${sessionId}/workflow-extract`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({
+          projectId: project?.id
+        }),
       });
       console.log('Wizardry Result:', response);
       if (response.output) {
