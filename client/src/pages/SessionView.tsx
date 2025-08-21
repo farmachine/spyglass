@@ -1318,20 +1318,18 @@ export default function SessionView() {
   const executeTool = async (toolId: string, valueName: string, inputValues: any, selectedDocument: any) => {
     try {
       
-      // Prepare inputs - replace any @document references with the actual document content
+      // Prepare inputs - for the column extraction function, we need to pass the content directly
+      // The function expects a single parameter: excel_file_content
       const preparedInputs: Record<string, any> = {};
       
-      if (inputValues) {
-        for (const [key, value] of Object.entries(inputValues)) {
-          // Check if this is a document reference (could be in an array)
-          if (Array.isArray(value) && value.length > 0 && value[0] === 'user_document') {
-            // This is a document reference - use the selected document's content
-            preparedInputs[key] = selectedDocument.extractedContent || '';
-          } else if (typeof value === 'string' && (value === 'user_document' || value.startsWith('@'))) {
-            // This is a reference to a document - use the selected document's content
-            preparedInputs[key] = selectedDocument.extractedContent || '';
-          } else {
-            preparedInputs[key] = value;
+      // For this specific function, we just pass the extracted content
+      // The key should match what the function expects
+      if (selectedDocument.extractedContent) {
+        // Pass with the key that the tool configuration expects
+        if (inputValues) {
+          for (const [key, value] of Object.entries(inputValues)) {
+            // Use the configured key, but pass the document content
+            preparedInputs[key] = selectedDocument.extractedContent;
           }
         }
       }
