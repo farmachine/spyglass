@@ -19,6 +19,7 @@ import ProjectCard from "@/components/ProjectCard";
 import CreateProjectDialog from "@/components/CreateProjectDialog";
 import UserProfile from "@/components/UserProfile";
 import ExtraplLogo from "@/components/ExtraplLogo";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 
 export default function Dashboard() {
@@ -251,9 +252,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       {/* Fixed Header - Updated Layout */}
-      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0 z-10">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <ExtraplLogo />
@@ -277,6 +278,7 @@ export default function Dashboard() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              <DarkModeToggle />
               <UserProfile />
             </div>
           </div>
@@ -284,7 +286,7 @@ export default function Dashboard() {
       </div>
 
       {/* Fixed Dashboard Header and Controls */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Page Title and Statistics */}
           <div className="mb-6">
@@ -298,40 +300,40 @@ export default function Dashboard() {
               <div className="flex items-center space-x-4">
                 {statisticsLoading ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Skeleton className="h-6 w-6 rounded" />
                       <Skeleton className="h-6 w-8" />
                     </div>
                   </>
                 ) : statistics ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <TrendingUp className="h-6 w-6 text-primary" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.totalProjects || 0}</span>
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{statistics?.totalProjects || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <Database className="h-6 w-6 text-slate-700" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.totalSessions || 0}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <Database className="h-6 w-6 text-slate-700 dark:text-slate-400" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{statistics?.totalSessions || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-gray-400" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.unverifiedSessions || 0}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{statistics?.unverifiedSessions || 0}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-green-600" />
-                      <span className="text-xl font-bold text-gray-900">{statistics?.verifiedSessions || 0}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{statistics?.verifiedSessions || 0}</span>
                     </div>
                   </>
                 ) : null}
