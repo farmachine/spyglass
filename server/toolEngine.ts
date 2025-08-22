@@ -763,8 +763,25 @@ try:
                 "documentSource": "CODE_FUNCTION"
             }]
             print(json.dumps(output))
+    elif isinstance(result, list):
+        # Check if it's already a list of field validation objects
+        if all(isinstance(item, dict) and 'extractedValue' in item and 'validationStatus' in item for item in result):
+            # Result is already in field validation format - just JSON encode it
+            print(json.dumps(result))
+        else:
+            # List but not field validation format - convert each item
+            output = []
+            for idx, item in enumerate(result):
+                output.append({
+                    "extractedValue": item,
+                    "validationStatus": "valid",
+                    "aiReasoning": f"Extracted item {idx+1} from {function_name}",
+                    "confidenceScore": 95,
+                    "documentSource": f"CODE_FUNCTION_ITEM_{idx+1}"
+                })
+            print(json.dumps(output))
     else:
-        # Non-string result, wrap in field validation structure
+        # Non-string, non-list result, wrap in field validation structure
         output = [{
             "extractedValue": result,
             "validationStatus": "valid",
