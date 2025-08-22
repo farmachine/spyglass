@@ -41,7 +41,8 @@ import {
   ChevronLeft,
   AlertCircle,
   ChevronUp,
-  Upload
+  Upload,
+  Layers
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -104,6 +105,9 @@ export default function DefineData({
     name?: string;
   }>({ open: false });
 
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [selectedTestItems, setSelectedTestItems] = useState<Set<string>>(new Set());
+
   // Fetch data
   const { data: schemaFields = [] } = useQuery<SchemaField[]>({
     queryKey: [`/api/projects/${project.id}/schema`],
@@ -119,6 +123,10 @@ export default function DefineData({
 
   const { data: wizardryFunctions = [] } = useQuery<ExcelWizardryFunction[]>({
     queryKey: [`/api/projects/${project.id}/excel-functions`],
+  });
+
+  const { data: testDocuments = [] } = useQuery<any[]>({
+    queryKey: [`/api/projects/${project.id}/test-documents`],
   });
 
   // Create mutations
@@ -404,6 +412,13 @@ export default function DefineData({
               <Upload className="h-4 w-4 mr-2" />
               Test Document
             </Button>
+            <Button
+              onClick={() => setTestModalOpen(true)}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Test
+            </Button>
             <Button 
               onClick={() => {
                 // Trigger workflow save
@@ -470,6 +485,176 @@ export default function DefineData({
         onClose={() => setDeleteDialog({ open: false })}
         onConfirm={handleDelete}
       />
+
+      {/* Test Modal */}
+      <Dialog open={testModalOpen} onOpenChange={setTestModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Test Workflow</DialogTitle>
+            <DialogDescription>
+              Select test documents and workflow steps to test extraction
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto space-y-4 py-4">
+            {/* Test Documents Section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Test Documents</h3>
+              <div className="space-y-2 pl-4">
+                {testDocuments.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">No test documents uploaded</p>
+                ) : (
+                  testDocuments.map((doc: any) => (
+                    <div key={doc.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`test-doc-${doc.id}`}
+                        checked={selectedTestItems.has(`test-doc-${doc.id}`)}
+                        onCheckedChange={(checked) => {
+                          const newSet = new Set(selectedTestItems);
+                          if (checked) {
+                            newSet.add(`test-doc-${doc.id}`);
+                          } else {
+                            newSet.delete(`test-doc-${doc.id}`);
+                          }
+                          setSelectedTestItems(newSet);
+                        }}
+                      />
+                      <label htmlFor={`test-doc-${doc.id}`} className="text-sm text-gray-600 cursor-pointer">
+                        {doc.document_name || "Unnamed Document"}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Workflow Steps Section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Workflow Steps</h3>
+              
+              {/* Info Pages (Schema Fields) */}
+              {safeSchemaFields.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                    <Layers className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Info Pages</span>
+                  </div>
+                  <div className="space-y-1 pl-8">
+                    {safeSchemaFields.map((field: SchemaField) => (
+                      <div key={field.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`field-${field.id}`}
+                          checked={selectedTestItems.has(`field-${field.id}`)}
+                          onCheckedChange={(checked) => {
+                            const newSet = new Set(selectedTestItems);
+                            if (checked) {
+                              newSet.add(`field-${field.id}`);
+                            } else {
+                              newSet.delete(`field-${field.id}`);
+                            }
+                            setSelectedTestItems(newSet);
+                          }}
+                        />
+                        <label htmlFor={`field-${field.id}`} className="text-sm text-gray-600 cursor-pointer">
+                          {field.fieldName || "Unnamed Field"}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Data Tables (Collections) */}
+              {collectionsWithProps.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                    <List className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Data Tables</span>
+                  </div>
+                  <div className="space-y-3 pl-8">
+                    {collectionsWithProps.map((collection: Collection) => (
+                      <div key={collection.id} className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`collection-${collection.id}`}
+                            checked={selectedTestItems.has(`collection-${collection.id}`)}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedTestItems);
+                              if (checked) {
+                                newSet.add(`collection-${collection.id}`);
+                                // Also select all properties when collection is selected
+                                collection.properties?.forEach((prop: Property) => {
+                                  newSet.add(`property-${prop.id}`);
+                                });
+                              } else {
+                                newSet.delete(`collection-${collection.id}`);
+                                // Also deselect all properties
+                                collection.properties?.forEach((prop: Property) => {
+                                  newSet.delete(`property-${prop.id}`);
+                                });
+                              }
+                              setSelectedTestItems(newSet);
+                            }}
+                          />
+                          <label htmlFor={`collection-${collection.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                            {collection.collectionName || "Unnamed Collection"}
+                          </label>
+                        </div>
+                        {collection.properties && collection.properties.length > 0 && (
+                          <div className="space-y-1 pl-6">
+                            {collection.properties.map((property: Property) => (
+                              <div key={property.id} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`property-${property.id}`}
+                                  checked={selectedTestItems.has(`property-${property.id}`)}
+                                  onCheckedChange={(checked) => {
+                                    const newSet = new Set(selectedTestItems);
+                                    if (checked) {
+                                      newSet.add(`property-${property.id}`);
+                                    } else {
+                                      newSet.delete(`property-${property.id}`);
+                                    }
+                                    setSelectedTestItems(newSet);
+                                  }}
+                                />
+                                <label htmlFor={`property-${property.id}`} className="text-sm text-gray-500 cursor-pointer">
+                                  {property.propertyName || "Unnamed Property"}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setTestModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                console.log("Selected items for testing:", Array.from(selectedTestItems));
+                setTestModalOpen(false);
+              }}
+              className="bg-gray-700 hover:bg-gray-800 text-white"
+            >
+              Run Test
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
