@@ -1,36 +1,25 @@
 import json
 import sys
+import subprocess
 
-# Test data similar to what the server sends
+# Test data
 test_data = {
     "step": "extract_text_only",
     "documents": [{
-        "file_name": "test.txt",
-        "file_content": "data:text/plain;base64,VGVzdCBjb250ZW50IGZvciBleHRyYWN0aW9u",  # "Test content for extraction"
-        "mime_type": "text/plain"
+        "file_name": "test.xlsx",
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "file_content": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBAoAAAAIAA=="  # Truncated for test
     }]
 }
 
-# Run the document_extractor
-import subprocess
-result = subprocess.run(['python3', 'document_extractor.py'], 
-                       input=json.dumps(test_data), 
-                       capture_output=True, 
-                       text=True)
+# Run the extractor
+process = subprocess.Popen(['python3', 'document_extractor.py'], 
+                          stdin=subprocess.PIPE, 
+                          stdout=subprocess.PIPE, 
+                          stderr=subprocess.PIPE)
 
-print("STDOUT:", result.stdout)
-print("STDERR:", result.stderr)
-print("Return code:", result.returncode)
+stdout, stderr = process.communicate(input=json.dumps(test_data).encode())
 
-# Parse and show structure
-try:
-    output = json.loads(result.stdout)
-    print("\nParsed output structure:")
-    if isinstance(output, list):
-        print(f"  - Array with {len(output)} elements")
-        if output:
-            print(f"  - First element keys: {list(output[0].keys())}")
-    elif isinstance(output, dict):
-        print(f"  - Object with keys: {list(output.keys())}")
-except:
-    print("Could not parse as JSON")
+print("STDOUT:", stdout.decode())
+if stderr:
+    print("STDERR:", stderr.decode())

@@ -5084,6 +5084,10 @@ print(json.dumps(results))
               const dataURL = `data:${mimeType};base64,${base64Content}`;
               
               // Extract text content
+              console.log(`📊 Starting extraction for ${param.sampleFile}`);
+              console.log(`📊 File size: ${fileBuffer.length} bytes`);
+              console.log(`📊 MIME type: ${mimeType}`);
+              
               const extractionData = {
                 step: "extract_text_only",
                 documents: [{
@@ -5133,7 +5137,7 @@ print(json.dumps(results))
               console.log(`📝 Extracted content length: ${extractedContent.length}`);
               
               // Save new sample document
-              await storage.createSampleDocument({
+              const savedDoc = await storage.createSampleDocument({
                 functionId: id,
                 parameterName: param.name,
                 fileName: param.sampleFile,
@@ -5141,6 +5145,8 @@ print(json.dumps(results))
                 mimeType: mimeType,
                 extractedContent: extractedContent
               });
+              
+              console.log(`💾 Saved sample document:`, savedDoc ? `ID ${savedDoc.id}` : 'Failed to save');
               
               // Update metadata
               if (!metadata.sampleDocumentContent) {
