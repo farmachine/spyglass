@@ -6192,12 +6192,15 @@ def extract_function(Column_Name, Excel_File):
     try {
       console.log('📄 Processing sample document with data:', JSON.stringify(req.body, null, 2));
       const { functionId, parameterName, fileName, fileURL, sampleText } = req.body;
+      
+      // For new tools, use a stable temporary ID that can be updated later
+      const actualFunctionId = functionId.startsWith('temp-') ? `pending-${functionId}` : functionId;
 
       if (sampleText) {
         console.log('📝 Processing sample text for parameter:', parameterName);
         // For text parameters, just save the text directly
         const sampleDocument = await storage.createSampleDocument({
-          functionId,
+          functionId: actualFunctionId,
           parameterName,
           fileName: `${parameterName}_sample_text.txt`,
           sampleText,
@@ -6292,7 +6295,7 @@ def extract_function(Column_Name, Excel_File):
                 if (extractedContent) {
                   // Create a sample document record using the same pattern as the existing endpoint
                   const sampleDocument = await storage.createSampleDocument({
-                    functionId,
+                    functionId: actualFunctionId,
                     parameterName,
                     fileName: fileName || 'sample-file',
                     filePath: fileURL,

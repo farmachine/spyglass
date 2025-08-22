@@ -748,14 +748,17 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
       const fileURL = uploadURL.split('?')[0]; // Store the base URL without query params
       
-      // Update the parameter with the uploaded file info temporarily
+      // Update the parameter with the uploaded file info
       updateInputParameter(paramId, "sampleFile", file.name);
       updateInputParameter(paramId, "sampleFileURL", fileURL);
       
-      // Immediately process the uploaded document for extraction if editing existing function
+      // Always process the uploaded document for extraction
       const param = inputParameters.find(p => p.id === paramId);
-      if (param && editingFunction?.id) {
+      if (param) {
         try {
+          // Use a temporary ID for new functions or the existing ID for edits
+          const functionId = editingFunction?.id || `temp-${Date.now()}`;
+          
           const processResponse = await fetch("/api/sample-documents/process", {
             method: "POST",
             headers: {
@@ -763,7 +766,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               ...(token && { Authorization: `Bearer ${token}` })
             },
             body: JSON.stringify({
-              functionId: editingFunction.id,
+              functionId: functionId,
               parameterName: param.name,
               fileName: file.name,
               fileURL: fileURL
@@ -777,38 +780,25 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           const processResult = await processResponse.json();
           console.log('✅ Sample document processed:', processResult);
           
-          // Store the sample document ID in the parameter
-          if (processResult.document?.id) {
-            updateInputParameter(paramId, "sampleDocumentIds", [processResult.document.id]);
-            console.log(`✅ Stored sample document ID ${processResult.document.id} for parameter ${param.name}`);
+          // Store the sample document ID in metadata for now
+          if (processResult.sampleDocument?.id) {
+            // We'll store this in the parameter's metadata or just log it
+            console.log(`✅ Sample document ID ${processResult.sampleDocument.id} created for parameter ${param.name}`);
             
-            // Update the function with the new sample document IDs
-            try {
-              const updatedParams = inputParameters.map(p => 
-                p.id === paramId 
-                  ? { ...p, sampleDocumentIds: [processResult.document.id] }
-                  : p
-              );
-              
-              await apiRequest(`/api/excel-functions/${editingFunction.id}`, {
-                method: "PATCH",
-                body: JSON.stringify({
-                  inputParameters: updatedParams
-                })
-              });
-              console.log('✅ Function updated with new sample document ID');
-            } catch (updateError) {
-              console.error('Failed to update function with sample document ID:', updateError);
+            // If editing an existing function, we don't need to update it here
+            // since the sample document is already saved with the function ID
+            if (editingFunction?.id) {
+              console.log('✅ Sample document linked to existing function');
             }
           }
           
-          console.log(`Sample file "${file.name}" has been uploaded and processed for extraction.`);
+          console.log(`📝 Sample file "${file.name}" has been uploaded and processed for extraction.`);
         } catch (processError) {
           console.error("Processing error:", processError);
           console.warn(`File uploaded but processing failed. It will be processed when testing the tool.`);
         }
       } else {
-        console.log(`Sample file "${file.name}" uploaded. It will be processed when the tool is created.`);
+        console.error("Parameter not found for file upload");
       }
     } catch (error) {
       console.error("Upload error:", error);
