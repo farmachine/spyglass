@@ -539,31 +539,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   return (
     <div className="space-y-6 relative">
-      {/* Test Document Upload - Top Right */}
-      <div className="absolute top-0 right-0 z-10">
-        <input
-          type="file"
-          id="test-document-upload"
-          accept=".xlsx,.xls,.pdf,.docx,.doc"
-          style={{ display: 'none' }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              await handleTestDocumentUpload(file);
-              // Reset input value to allow re-uploading same file
-              e.target.value = '';
-            }
-          }}
-        />
-        <Button
-          onClick={() => document.getElementById('test-document-upload')?.click()}
-          className="bg-gray-600 hover:bg-gray-700 text-white"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Test Document
-        </Button>
-      </div>
-      
       <div className="flex flex-col items-center">
         {/* Start dot and arrow */}
         {steps.length > 0 && (
@@ -751,14 +726,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   >
                     <Plus className="h-3 w-3" />
                     Add Value
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => saveCurrentStep(step.id)}
-                    className="gap-2 bg-gray-600 hover:bg-gray-700 text-white"
-                  >
-                    Save Step
                   </Button>
                 </div>
 
