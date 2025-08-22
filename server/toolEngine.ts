@@ -745,6 +745,11 @@ try:
     parameters = ${parametersPython}
     output_type = "${outputType}"
     
+    # Debug logging
+    print(f"DEBUG: Function name: {function_name}", file=sys.stderr)
+    print(f"DEBUG: Inputs keys: {list(inputs.keys())}", file=sys.stderr)
+    print(f"DEBUG: Input content preview: {str(inputs)[:500]}...", file=sys.stderr)
+    
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
     
