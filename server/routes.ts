@@ -5129,6 +5129,9 @@ print(json.dumps(results))
                 extractedContent = extractResult.text_content;
               }
               
+              console.log(`📄 Extraction result:`, JSON.stringify(extractResult, null, 2).substring(0, 500));
+              console.log(`📝 Extracted content length: ${extractedContent.length}`);
+              
               // Save new sample document
               await storage.createSampleDocument({
                 functionId: id,
