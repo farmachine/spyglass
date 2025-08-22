@@ -3433,6 +3433,9 @@ Thank you for your assistance.`;
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => {
+                                            // Log the complete value metadata for the clicked column
+                                            console.log('Clicked on column value metadata:', value);
+                                            
                                             // Check if this is the identifier (first column)
                                             if (index === 0) {
                                               console.log(`Clicked On Identifier... here is the identifier ID = ${value.id}`);
