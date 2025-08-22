@@ -721,28 +721,38 @@ export default function DefineData({
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {testDocuments?.map((doc: TestDocument) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">{doc.fileName}</p>
-                          {doc.extractedContent && (
-                            <p className="text-xs text-gray-500">
-                              {doc.extractedContent.length} characters extracted
-                            </p>
-                          )}
+                    <div key={doc.id} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-5 w-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{doc.fileName}</p>
+                            {doc.extractedContent && (
+                              <p className="text-xs text-gray-500">
+                                {doc.extractedContent.length} characters extracted
+                              </p>
+                            )}
+                          </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            await deleteTestDocumentMutation.mutateAsync(doc.id);
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          await deleteTestDocumentMutation.mutateAsync(doc.id);
-                        }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {doc.extractedContent && (
+                        <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                          <p className="text-xs text-gray-600 font-semibold mb-1">Preview:</p>
+                          <p className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words overflow-hidden max-h-24 overflow-y-auto">
+                            {doc.extractedContent.substring(0, 500)}{doc.extractedContent.length > 500 ? '...' : ''}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
