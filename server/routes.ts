@@ -6113,83 +6113,43 @@ def extract_function(Column_Name, Excel_File):
             }
           }
           
-          // Prepare the extraction request
-          const extractionData = {
-            step: "extract_with_function",
-            function_id: valueConfig.toolId,
-            documents: [{
-              file_name: `test-doc-${documentId}`,
-              content: documentContent || '',
-              extracted_content: documentContent || ''
-            }],
-            inputValues: preparedInputValues
-          };
-          
-          // Call extraction_wizardry.py
-          const { spawn } = await import('child_process');
-          const python = spawn('python3', ['extraction_wizardry.py']);
-          
-          console.log('📝 Sending to extraction_wizardry:', JSON.stringify(extractionData, null, 2));
-          
-          python.stdin.write(JSON.stringify(extractionData));
-          python.stdin.end();
-          
-          let stdoutData = '';
-          let stderrData = '';
-          
-          python.stdout.on('data', (data) => {
-            stdoutData += data.toString();
-          });
-          
-          python.stderr.on('data', (data) => {
-            stderrData += data.toString();
-          });
-          
-          await new Promise((resolve) => {
-            python.on('close', (code) => {
-              if (code === 0 && stdoutData) {
-                try {
-                  const result = JSON.parse(stdoutData);
-                  console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2));
-                  
-                  // Log to console for visibility
-                  console.log('');
-                  console.log('=== WORKFLOW TEST EXECUTION COMPLETE ===');
-                  console.log('Step:', valueConfig.stepName);
-                  console.log('Value:', valueConfig.valueName);
-                  console.log('Tool:', excelFunction.functionName);
-                  console.log('Test Document:', documentId);
-                  console.log('Results:', result.results?.length || 0, 'items extracted');
-                  console.log('=========================================');
-                  console.log('');
-                  
-                  res.json({ 
-                    success: true, 
-                    result: result,
-                    valueName: valueConfig.valueName,
-                    stepName: valueConfig.stepName
-                  });
-                } catch (parseError) {
-                  console.error('❌ Parse Error:', parseError);
-                  res.json({ 
-                    success: false, 
-                    error: 'Failed to parse extraction result',
-                    valueName: valueConfig.valueName,
-                    stepName: valueConfig.stepName
-                  });
-                }
-              } else {
-                console.error('❌ Extraction Error:', stderrData);
-                res.json({ 
-                  success: false, 
-                  error: stderrData || 'Extraction failed',
-                  valueName: valueConfig.valueName,
-                  stepName: valueConfig.stepName
-                });
-              }
-              resolve(null);
+          // Use the tool engine to execute the function
+          try {
+            const { executeTool } = await import('./toolEngine');
+            
+            console.log('📝 Executing tool with test document content');
+            console.log('  Input values:', JSON.stringify(preparedInputValues, null, 2));
+            
+            const result = await executeTool(valueConfig.toolId, preparedInputValues);
+            
+            console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2));
+            
+            // Log to console for visibility
+            console.log('');
+            console.log('=== WORKFLOW TEST EXECUTION COMPLETE ===');
+            console.log('Step:', valueConfig.stepName);
+            console.log('Value:', valueConfig.valueName);
+            console.log('Tool:', excelFunction.functionName);
+            console.log('Test Document:', documentId);
+            console.log('Results:', result.results?.length || 0, 'items extracted');
+            console.log('=========================================');
+            console.log('');
+            
+            res.json({ 
+              success: true, 
+              result: result,
+              valueName: valueConfig.valueName,
+              stepName: valueConfig.stepName
             });
-          });
+          } catch (error) {
+            console.error('❌ Execution Error:', error);
+            res.json({ 
+              success: false, 
+              error: error instanceof Error ? error.message : 'Tool execution failed',
+              valueName: valueConfig.valueName,
+              stepName: valueConfig.stepName
+            });
+          }
         } else {
           res.json({ 
             success: false, 

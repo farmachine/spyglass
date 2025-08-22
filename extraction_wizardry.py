@@ -1598,7 +1598,7 @@ def run_wizardry(data=None, extraction_number=0):
     if data and isinstance(data, dict):
         target_fields = data.get('target_fields', [])
         collection_ids = list(set([field.get('collectionId') for field in target_fields if field.get('collectionId')]))
-        print(f"DEBUG: Found collection IDs: {collection_ids}")
+        # Debug: Found collection IDs
         if collection_ids:
             all_collection_properties = get_all_collection_properties(collection_ids)
             print("\n" + "=" * 80)
