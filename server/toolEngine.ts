@@ -656,8 +656,13 @@ try:
         # Single execution mode - SIMPLIFIED: just pass all input values as args
         args = list(inputs.values())
         
+        print(f"DEBUG: inputs dict = {inputs}", file=sys.stderr)
         print(f"DEBUG: Calling function with {len(args)} arguments", file=sys.stderr)
-        print(f"DEBUG: First arg preview: {str(args[0])[:200] if args else 'NO ARGS'}", file=sys.stderr)
+        if args:
+            print(f"DEBUG: First arg type: {type(args[0])}", file=sys.stderr)
+            print(f"DEBUG: First arg preview: {str(args[0])[:500]}", file=sys.stderr)
+        else:
+            print(f"DEBUG: NO ARGS - empty inputs!", file=sys.stderr)
         
         # Execute function once
         result = func_to_call(*args)
