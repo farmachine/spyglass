@@ -3326,8 +3326,15 @@ class PostgreSQLStorage implements IStorage {
 
   async deleteTestDocument(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
-      const result = await this.db.delete(testDocuments).where(eq(testDocuments.id, id));
-      return result.rowCount > 0;
+      // First check if the document exists
+      const [existing] = await this.db.select().from(testDocuments).where(eq(testDocuments.id, id));
+      if (!existing) {
+        return false;
+      }
+      
+      // Delete the document
+      await this.db.delete(testDocuments).where(eq(testDocuments.id, id));
+      return true;
     });
   }
 

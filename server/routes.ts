@@ -6007,6 +6007,21 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Delete a test document
+  app.delete("/api/test-documents/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteTestDocument(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Test document not found" });
+      }
+      res.json({ message: "Test document deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting test document:", error);
+      res.status(500).json({ message: "Failed to delete test document" });
+    }
+  });
+
   // Get sample documents for a function
   app.get("/api/sample-documents/function/:functionId", authenticateToken, async (req: AuthRequest, res) => {
     try {
