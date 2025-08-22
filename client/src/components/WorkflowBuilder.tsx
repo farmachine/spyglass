@@ -385,6 +385,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       
       for (const file of files) {
         try {
+          console.log(`\n===== UPLOADING TEST DOCUMENT (CLIENT) =====`);
+          console.log('File Name:', file.name);
+          console.log('File Type:', file.type);
+          console.log('File Size:', file.size, 'bytes');
+          console.log('Step ID:', stepId);
+          
           // Convert file to base64
           const base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -395,6 +401,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             reader.onerror = reject;
             reader.readAsDataURL(file);
           });
+          
+          console.log('Base64 Length:', base64.length);
+          console.log('First 100 chars of base64:', base64.substring(0, 100) + '...');
           
           // Upload to server
           const response = await fetch(`/api/steps/${stepId}/test-documents`, {

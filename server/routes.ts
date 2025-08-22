@@ -6150,8 +6150,17 @@ def extract_function(Column_Name, Excel_File):
       const { stepId } = req.params;
       const { fileName, fileContent, mimeType } = req.body;
       
+      console.log('\n===== TEST DOCUMENT UPLOAD START =====');
+      console.log('Step ID:', stepId);
+      console.log('File Name:', fileName);
+      console.log('MIME Type:', mimeType);
+      console.log('File Content Length (base64):', fileContent ? fileContent.length : 0);
+      console.log('File Size (bytes):', fileContent ? Buffer.from(fileContent, 'base64').length : 0);
+      console.log('First 100 chars of base64:', fileContent ? fileContent.substring(0, 100) + '...' : 'No content');
+      
       // Process the document to extract content (re-using existing extraction process)
       const { spawn } = await import('child_process');
+      console.log('Starting document extraction process...');
       const pythonProcess = spawn('python3', ['server/scripts/document_extractor.py']);
       
       const input = {
@@ -6164,18 +6173,43 @@ def extract_function(Column_Name, Excel_File):
       pythonProcess.stdin.end();
       
       let output = '';
+      let errorOutput = '';
+      
       pythonProcess.stdout.on('data', (data) => {
         output += data.toString();
       });
       
+      pythonProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
       await new Promise((resolve, reject) => {
         pythonProcess.on('exit', async (code) => {
+          console.log('Python process exit code:', code);
+          if (errorOutput) {
+            console.log('Python stderr output:', errorOutput);
+          }
+          
           if (code === 0) {
             try {
+              console.log('Raw extraction output length:', output.length);
               const result = JSON.parse(output);
+              
+              console.log('\n===== EXTRACTION RESULTS =====');
+              console.log('Extraction Success:', result.success);
+              console.log('Has extracted_texts:', !!result.extracted_texts);
+              console.log('Number of extracted texts:', result.extracted_texts ? result.extracted_texts.length : 0);
               
               if (result.success && result.extracted_texts && result.extracted_texts[0]) {
                 const extractedContent = result.extracted_texts[0].text_content;
+                
+                console.log('Extracted Content Length:', extractedContent.length);
+                console.log('First 500 chars of extracted content:');
+                console.log(extractedContent.substring(0, 500));
+                console.log('...');
+                console.log('Last 200 chars of extracted content:');
+                console.log('...' + extractedContent.substring(Math.max(0, extractedContent.length - 200)));
+                console.log('===============================\n');
                 
                 // Create test document
                 const testDocument = await storage.createTestDocument({
@@ -6186,19 +6220,30 @@ def extract_function(Column_Name, Excel_File):
                   fileSize: fileContent ? Buffer.from(fileContent, 'base64').length : 0
                 });
                 
+                console.log('Test document saved to database:');
+                console.log('- Document ID:', testDocument.id);
+                console.log('- Step ID:', testDocument.stepId);
+                console.log('- File Name:', testDocument.fileName);
+                console.log('- Extracted Content Length:', testDocument.extractedContent?.length || 0);
+                console.log('===== TEST DOCUMENT UPLOAD COMPLETE =====\n');
+                
                 res.json({ 
                   success: true, 
                   testDocument,
                   message: `Successfully processed ${fileName} and extracted ${extractedContent.length} characters` 
                 });
               } else {
+                console.log('Extraction failed:', result.error || 'No extracted content');
+                console.log('Full result:', JSON.stringify(result, null, 2));
                 res.status(400).json({ success: false, message: result.error || 'Document extraction failed' });
               }
             } catch (parseError) {
               console.error('Failed to parse extraction result:', parseError);
+              console.log('Raw output that failed to parse:', output);
               res.status(500).json({ success: false, message: "Failed to parse extraction result" });
             }
           } else {
+            console.log('Document processing failed with exit code:', code);
             res.status(500).json({ success: false, message: "Document processing failed" });
           }
           resolve(undefined);
