@@ -44,7 +44,9 @@ import {
   Upload,
   Layers,
   Play,
-  FileUp
+  FileUp,
+  FileText,
+  Table2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -109,6 +111,7 @@ export default function DefineData({
 
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedTestItems, setSelectedTestItems] = useState<Set<string>>(new Set());
+  const [testDocumentsModalOpen, setTestDocumentsModalOpen] = useState(false);
 
   // Fetch data
   const { data: schemaFields = [] } = useQuery<SchemaField[]>({
@@ -127,7 +130,7 @@ export default function DefineData({
     queryKey: [`/api/projects/${project.id}/excel-functions`],
   });
 
-  const { data: testDocuments = [] } = useQuery<any[]>({
+  const { data: testDocuments = [], refetch: refetchTestDocuments } = useQuery<any[]>({
     queryKey: [`/api/projects/${project.id}/test-documents`],
   });
 
@@ -226,6 +229,16 @@ export default function DefineData({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/collections`] });
       toast({ title: "Property deleted successfully" });
+    },
+  });
+
+  const deleteTestDocumentMutation = useMutation({
+    mutationFn: (id: string) => apiRequest(`/api/test-documents/${id}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/test-documents`] });
+      toast({ title: "Test document deleted successfully" });
     },
   });
 
@@ -392,27 +405,11 @@ export default function DefineData({
             </p>
           </div>
           <div className="flex gap-2">
-            {/* Test Document Upload */}
-            <input
-              type="file"
-              id="test-document-upload-define"
-              accept=".xlsx,.xls,.pdf,.docx,.doc"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  await handleTestDocumentUpload(file);
-                  // Reset input value to allow re-uploading same file
-                  e.target.value = '';
-                }
-              }}
-            />
             <Button
-              onClick={() => document.getElementById('test-document-upload-define')?.click()}
-              className="bg-transparent hover:bg-gray-100 text-gray-700 border-0 p-2"
-              title="Upload Test Document"
+              onClick={() => setTestDocumentsModalOpen(true)}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
             >
-              <FileUp className="h-4 w-4" />
+              Test Documents
             </Button>
             <Button
               onClick={() => setTestModalOpen(true)}
@@ -665,6 +662,102 @@ export default function DefineData({
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
               Run Test
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Documents Modal */}
+      <Dialog open={testDocumentsModalOpen} onOpenChange={setTestDocumentsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Test Documents</DialogTitle>
+            <DialogDescription>
+              Manage test documents for your workflow
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Upload New Document */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+              <input
+                type="file"
+                id="test-document-modal-upload"
+                accept=".xlsx,.xls,.pdf,.docx,.doc"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    await handleTestDocumentUpload(file);
+                    e.target.value = '';
+                    // Refresh the test documents list
+                    refetchTestDocuments?.();
+                  }
+                }}
+              />
+              <div className="text-center">
+                <FileUp className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-600">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Excel, Word, or PDF files
+                </p>
+                <Button
+                  onClick={() => document.getElementById('test-document-modal-upload')?.click()}
+                  className="mt-4 bg-gray-700 hover:bg-gray-800 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Document
+                </Button>
+              </div>
+            </div>
+
+            {/* List of Test Documents */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-gray-700">Current Test Documents</h3>
+              {testDocuments?.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No test documents uploaded yet</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {testDocuments?.map((doc: TestDocument) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{doc.fileName}</p>
+                          {doc.extractedContent && (
+                            <p className="text-xs text-gray-500">
+                              {doc.extractedContent.length} characters extracted
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          if (confirm(`Delete test document "${doc.fileName}"?`)) {
+                            await deleteTestDocumentMutation.mutateAsync(doc.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setTestDocumentsModalOpen(false)}
+            >
+              Close
             </Button>
           </div>
         </DialogContent>
