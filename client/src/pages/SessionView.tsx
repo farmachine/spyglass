@@ -1318,12 +1318,9 @@ export default function SessionView() {
   const executeTool = async (toolId: string, valueName: string, inputValues: any, selectedDocument: any) => {
     try {
       
-      // Simply pass the document content directly
-      // The function in the database accepts flexible input - just pass the content
+      // Simply pass the document content as a single parameter
       const preparedInputs: Record<string, any> = {
-        'excel_file_content': selectedDocument.extractedContent || '',
-        'content': selectedDocument.extractedContent || '',
-        'Excel_Document': selectedDocument.extractedContent || ''
+        'document': selectedDocument.extractedContent || ''
       };
 
       console.log(`🚀 Executing tool ${toolId} for ${valueName}`);
