@@ -6140,9 +6140,16 @@ def extract_function(Column_Name, Excel_File):
             // Execute using toolEngine's testTool method
             const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
             
+            // Add step_id and value_id to each result
+            const enhancedResults = toolResults?.map((item: any) => ({
+              ...item,
+              step_id: valueConfig.stepId,
+              value_id: valueConfig.valueId
+            })) || [];
+            
             // Transform to expected format
             const result = {
-              results: toolResults,
+              results: enhancedResults,
               success: true
             };
             
