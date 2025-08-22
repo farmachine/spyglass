@@ -87,6 +87,10 @@ export class ToolEngine {
    */
   private async prepareInputs(tool: Tool, rawInputs: Record<string, any>, forAI: boolean = false): Promise<Record<string, any>> {
     const preparedInputs: Record<string, any> = {};
+    // Import dependencies once at the start
+    const { db } = await import('./db');
+    const { sampleDocuments } = await import('@shared/schema');
+    const { eq, and } = await import('drizzle-orm');
     
     for (const param of tool.inputParameters) {
       const inputValue = rawInputs[param.name];
@@ -95,9 +99,6 @@ export class ToolEngine {
       if (param.type === 'document' && inputValue) {
         try {
           // First check sample_documents table for pre-extracted content
-          const { db } = await import('./db');
-          const { sampleDocuments } = await import('@shared/schema');
-          const { eq, and } = await import('drizzle-orm');
           
           const [sampleDoc] = await db
             .select()
@@ -186,10 +187,59 @@ export class ToolEngine {
               });
               
               const result = JSON.parse(output);
-              const extractedText = result.extracted_texts?.[0] || '';
+              // Handle both response formats
+              let extractedText = '';
+              if (result.extracted_texts && result.extracted_texts[0]) {
+                extractedText = result.extracted_texts[0].text_content || '';
+              } else if (result.text_content) {
+                extractedText = result.text_content;
+              }
               
               console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
               preparedInputs[param.name] = extractedText;
+              
+              // Save the extracted content to sample_documents table for future use
+              if (extractedText) {
+                try {
+                  
+                  // Check if sample document already exists
+                  const [existingDoc] = await db
+                    .select()
+                    .from(sampleDocuments)
+                    .where(
+                      and(
+                        eq(sampleDocuments.functionId, tool.id),
+                        eq(sampleDocuments.parameterName, param.name)
+                      )
+                    );
+                  
+                  if (existingDoc) {
+                    // Update existing document with extracted content
+                    await db
+                      .update(sampleDocuments)
+                      .set({
+                        extractedContent: extractedText,
+                        updatedAt: new Date()
+                      })
+                      .where(eq(sampleDocuments.id, existingDoc.id));
+                    console.log(`📝 Updated sample document with extracted content`);
+                  } else {
+                    // Create new sample document with extracted content
+                    await db
+                      .insert(sampleDocuments)
+                      .values({
+                        functionId: tool.id,
+                        parameterName: param.name,
+                        fileName: param.sampleFile || 'document',
+                        fileURL: param.sampleFileURL || '',
+                        extractedContent: extractedText
+                      });
+                    console.log(`📝 Created sample document with extracted content`);
+                  }
+                } catch (saveError) {
+                  console.error('Failed to save extracted content:', saveError);
+                }
+              }
               
             } catch (extractError) {
               console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
