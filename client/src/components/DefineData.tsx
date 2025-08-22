@@ -42,7 +42,8 @@ import {
   AlertCircle,
   ChevronUp,
   Upload,
-  Layers
+  Layers,
+  Play
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -407,17 +408,17 @@ export default function DefineData({
             />
             <Button
               onClick={() => document.getElementById('test-document-upload-define')?.click()}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600 p-2"
+              title="Upload Test Document"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Test Document
+              <Upload className="h-4 w-4" />
             </Button>
             <Button
               onClick={() => setTestModalOpen(true)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600 p-2"
+              title="Test Workflow"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Test
+              <Play className="h-4 w-4" />
             </Button>
             <Button 
               onClick={() => {
