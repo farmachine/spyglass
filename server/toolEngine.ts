@@ -839,14 +839,25 @@ except Exception as e:
         
         try {
           console.log('Python stdout length:', stdout.length);
-          console.log('Python stdout preview:', stdout.substring(0, 200));
-          const result = JSON.parse(stdout.trim());
+          console.log('Python stderr:', stderr);
+          
+          // Look for JSON array in the output - it might have debug output before it
+          const jsonMatch = stdout.match(/\[[\s\S]*\](?!.*\[)/);
+          let jsonStr = stdout.trim();
+          
+          if (jsonMatch) {
+            console.log('Found JSON array in output, extracting...');
+            jsonStr = jsonMatch[0];
+          }
+          
+          const result = JSON.parse(jsonStr);
           console.log('Parsed result type:', Array.isArray(result) ? 'array' : typeof result);
           console.log('Parsed result length:', Array.isArray(result) ? result.length : 'N/A');
           resolve(Array.isArray(result) ? result : [result]);
         } catch (parseError) {
           console.error('JSON parse error:', parseError);
-          console.log('Raw stdout:', stdout);
+          console.log('Raw stdout first 500 chars:', stdout.substring(0, 500));
+          console.log('Raw stdout last 500 chars:', stdout.substring(stdout.length - 500));
           // If JSON parsing fails, return raw output
           resolve([{
             extractedValue: stdout.trim(),
