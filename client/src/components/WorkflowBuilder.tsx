@@ -802,6 +802,67 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </Button>
                 </div>
 
+                {/* Test Documents Section */}
+                {testDocuments[step.id]?.length > 0 && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-sm font-medium text-gray-700">Test Documents</h5>
+                      <Badge variant="secondary" className="text-xs">
+                        {testDocuments[step.id].length} document{testDocuments[step.id].length > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {testDocuments[step.id].map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                          <div className="flex items-center gap-2 flex-1">
+                            <FileText className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm text-gray-700 truncate">{doc.fileName}</span>
+                            {doc.extractedContent && (
+                              <span className="text-xs text-gray-500">
+                                ({doc.extractedContent.length} chars)
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              // Delete test document
+                              try {
+                                const response = await fetch(`/api/test-documents/${doc.id}`, {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                                  }
+                                });
+                                if (response.ok) {
+                                  // Update local state
+                                  setTestDocuments(prev => ({
+                                    ...prev,
+                                    [step.id]: prev[step.id].filter((d: any) => d.id !== doc.id)
+                                  }));
+                                  toast({
+                                    title: "Document Removed",
+                                    description: `${doc.fileName} has been removed`,
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Error deleting test document:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to remove document",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded"
+                          >
+                            <X className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Description Section with dot format */}
                 <div className="mt-6 p-4 bg-white rounded-lg group relative">
                   <div className="flex flex-col items-center">

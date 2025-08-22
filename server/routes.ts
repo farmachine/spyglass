@@ -6161,7 +6161,7 @@ def extract_function(Column_Name, Excel_File):
       // Process the document to extract content (re-using existing extraction process)
       const { spawn } = await import('child_process');
       console.log('Starting document extraction process...');
-      const pythonProcess = spawn('python3', ['server/scripts/document_extractor.py']);
+      const pythonProcess = spawn('python3', ['document_extractor.py']);
       
       const input = {
         file_name: fileName,
@@ -6253,6 +6253,18 @@ def extract_function(Column_Name, Excel_File):
     } catch (error) {
       console.error("Error creating test document:", error);
       res.status(500).json({ message: "Failed to create test document" });
+    }
+  });
+
+  // Get test documents for a step
+  app.get('/api/steps/:stepId/test-documents', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const testDocuments = await storage.getTestDocuments(stepId);
+      res.json(testDocuments);
+    } catch (error) {
+      console.error("Error fetching test documents:", error);
+      res.status(500).json({ message: "Failed to fetch test documents" });
     }
   });
 
