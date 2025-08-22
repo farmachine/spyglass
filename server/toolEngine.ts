@@ -653,30 +653,11 @@ try:
         
         result = all_results
     else:
-        # Single execution mode
-        args = []
-        for param in parameters:
-            param_id = param.get('id')
-            param_name = param.get('name')
-            
-            print(f"DEBUG: Looking for param_id={param_id}, param_name={param_name}", file=sys.stderr)
-            
-            # Try to find input by ID first, then by name
-            if param_id and param_id in inputs:
-                print(f"DEBUG: Found by ID: {param_id}", file=sys.stderr)
-                args.append(inputs[param_id])
-            elif param_name and param_name in inputs:
-                print(f"DEBUG: Found by name: {param_name}", file=sys.stderr)
-                args.append(inputs[param_name])
-            else:
-                # If neither found, try the first input value for single-param functions
-                if len(parameters) == 1 and len(inputs) == 1:
-                    print(f"DEBUG: Using fallback - single param function", file=sys.stderr)
-                    args.append(list(inputs.values())[0])
-                else:
-                    print(f"DEBUG: Parameter not found in inputs!", file=sys.stderr)
+        # Single execution mode - SIMPLIFIED: just pass all input values as args
+        args = list(inputs.values())
         
         print(f"DEBUG: Calling function with {len(args)} arguments", file=sys.stderr)
+        print(f"DEBUG: First arg preview: {str(args[0])[:200] if args else 'NO ARGS'}", file=sys.stderr)
         
         # Execute function once
         result = func_to_call(*args)
