@@ -619,8 +619,61 @@ export default function DefineData({
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                console.log("Selected items for testing:", Array.from(selectedTestItems));
+              onClick={async () => {
+                // Get selected test documents and workflow values
+                const selectedDocs = testDocuments.filter((doc: any) => 
+                  selectedTestItems.has(`test-doc-${doc.id}`)
+                );
+                
+                const selectedValues: any[] = [];
+                if (workflowData?.steps) {
+                  workflowData.steps.forEach((step: any) => {
+                    step.values?.forEach((value: any) => {
+                      if (selectedTestItems.has(`value-${value.id}`)) {
+                        selectedValues.push({
+                          stepId: step.id,
+                          stepName: step.stepName,
+                          stepType: step.stepType,
+                          valueId: value.id,
+                          valueName: value.name || value.valueName,
+                          toolId: value.toolId,
+                          inputValues: value.inputValues
+                        });
+                      }
+                    });
+                  });
+                }
+
+                console.log("🧪 Running Test Workflow");
+                console.log("📄 Selected Documents:", selectedDocs);
+                console.log("🔧 Selected Values:", selectedValues);
+
+                // Process each document through each selected value
+                for (const doc of selectedDocs) {
+                  console.log(`\n📊 Processing document: ${doc.file_name || doc.fileName}`);
+                  
+                  for (const value of selectedValues) {
+                    console.log(`  ⚙️ Running ${value.stepName} > ${value.valueName}`);
+                    
+                    try {
+                      // Call the test endpoint
+                      const response = await apiRequest(`/api/projects/${project.id}/test-workflow`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          documentId: doc.id,
+                          documentContent: doc.extracted_content || doc.extractedContent,
+                          valueConfig: value
+                        })
+                      });
+                      
+                      console.log(`  ✅ Result:`, response.result);
+                    } catch (error) {
+                      console.error(`  ❌ Error:`, error);
+                    }
+                  }
+                }
+                
+                console.log("\n✨ Test completed!");
                 setTestModalOpen(false);
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white"

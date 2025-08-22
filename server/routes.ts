@@ -6039,6 +6039,115 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Test workflow endpoint
+  app.post("/api/projects/:projectId/test-workflow", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { documentId, documentContent, valueConfig } = req.body;
+      
+      console.log('🧪 Test Workflow Request:');
+      console.log('  Project:', projectId);
+      console.log('  Document:', documentId);
+      console.log('  Value Config:', valueConfig);
+      
+      // If there's a toolId, we need to execute the tool/function
+      if (valueConfig.toolId) {
+        // Get the tool/function details
+        const excelFunction = await storage.getExcelWizardryFunction(valueConfig.toolId);
+        
+        if (excelFunction) {
+          console.log('  Tool Found:', excelFunction.functionName);
+          
+          // Prepare the extraction request
+          const extractionData = {
+            step: "extract_with_function",
+            function_id: valueConfig.toolId,
+            documents: [{
+              file_name: `test-doc-${documentId}`,
+              content: documentContent || '',
+              extracted_content: documentContent || ''
+            }],
+            inputValues: valueConfig.inputValues || {}
+          };
+          
+          // Call extraction_wizardry.py
+          const { spawn } = await import('child_process');
+          const python = spawn('python3', ['extraction_wizardry.py']);
+          
+          python.stdin.write(JSON.stringify(extractionData));
+          python.stdin.end();
+          
+          let stdoutData = '';
+          let stderrData = '';
+          
+          python.stdout.on('data', (data) => {
+            stdoutData += data.toString();
+          });
+          
+          python.stderr.on('data', (data) => {
+            stderrData += data.toString();
+          });
+          
+          await new Promise((resolve) => {
+            python.on('close', (code) => {
+              if (code === 0 && stdoutData) {
+                try {
+                  const result = JSON.parse(stdoutData);
+                  console.log('  Extraction Result:', result);
+                  res.json({ 
+                    success: true, 
+                    result: result,
+                    valueName: valueConfig.valueName,
+                    stepName: valueConfig.stepName
+                  });
+                } catch (parseError) {
+                  console.error('  Parse Error:', parseError);
+                  res.json({ 
+                    success: false, 
+                    error: 'Failed to parse extraction result',
+                    valueName: valueConfig.valueName,
+                    stepName: valueConfig.stepName
+                  });
+                }
+              } else {
+                console.error('  Extraction Error:', stderrData);
+                res.json({ 
+                  success: false, 
+                  error: stderrData || 'Extraction failed',
+                  valueName: valueConfig.valueName,
+                  stepName: valueConfig.stepName
+                });
+              }
+              resolve(null);
+            });
+          });
+        } else {
+          res.json({ 
+            success: false, 
+            error: 'Tool not found',
+            valueName: valueConfig.valueName,
+            stepName: valueConfig.stepName
+          });
+        }
+      } else {
+        // No tool configured, just return empty result
+        res.json({ 
+          success: true, 
+          result: null,
+          message: 'No tool configured for this value',
+          valueName: valueConfig.valueName,
+          stepName: valueConfig.stepName
+        });
+      }
+    } catch (error) {
+      console.error("Error running test workflow:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to run test workflow" 
+      });
+    }
+  });
+
   // Get sample documents for a function
   app.get("/api/sample-documents/function/:functionId", authenticateToken, async (req: AuthRequest, res) => {
     try {
