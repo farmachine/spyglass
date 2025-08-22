@@ -5048,12 +5048,16 @@ print(json.dumps(results))
       const processedParams = [];
       const metadata = result.data.metadata || {};
       
+      console.log(`📦 Processing ${inputParameters?.length || 0} input parameters`);
+      
       if (inputParameters) {
         for (const param of inputParameters) {
           const processedParam = { ...param };
           
-          // If document parameter with new sample file, extract content
+          // If document parameter with sample file, always extract content
           if (param.type === 'document' && param.sampleFileURL && param.sampleFile) {
+            console.log(`📎 Processing document parameter: ${param.name}`);
+            console.log(`📎 Sample file URL: ${param.sampleFileURL}`);
             try {
               // Delete old sample documents for this parameter
               await storage.deleteSampleDocumentsByParameter(id, param.name);
@@ -5113,11 +5117,14 @@ print(json.dumps(results))
                 
                 python.stderr.on('data', (data: any) => {
                   error += data.toString();
+                  console.log('🐍 Python stderr:', data.toString());
                 });
                 
                 python.on('close', (code: any) => {
+                  console.log(`🐍 Python extraction finished with code ${code}`);
+                  console.log(`🐍 Output length: ${output.length}`);
                   if (code !== 0) {
-                    console.error('Document extraction error:', error);
+                    console.error('❌ Document extraction error:', error);
                     reject(new Error(error));
                   } else {
                     resolve(undefined);
@@ -5125,7 +5132,14 @@ print(json.dumps(results))
                 });
               });
               
-              const extractResult = JSON.parse(output);
+              let extractResult: any = {};
+              try {
+                extractResult = JSON.parse(output);
+              } catch (parseError) {
+                console.error('❌ Failed to parse extraction output:', parseError);
+                console.error('❌ Raw output:', output.substring(0, 500));
+                throw parseError;
+              }
               let extractedContent = '';
               if (extractResult.extracted_texts && extractResult.extracted_texts[0]) {
                 extractedContent = extractResult.extracted_texts[0].text_content || '';
