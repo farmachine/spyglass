@@ -274,6 +274,12 @@ export class ToolEngine {
    * Test tool with given inputs
    */
   async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+    // For CODE tools with document inputs already provided, skip prepareInputs
+    if (tool.toolType === "CODE" && inputs['document']) {
+      console.log('📝 Using provided document content directly for CODE tool');
+      return this.testCodeTool(tool, inputs);
+    }
+    
     // Prepare inputs by fetching document content if needed
     const forAI = tool.toolType === "AI_ONLY";
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
@@ -369,6 +375,8 @@ export class ToolEngine {
       const tempFile = path.join(tempDir, `test_function_${Date.now()}.py`);
       
       const testScript = this.buildCodeTestScript(tool, inputs);
+      console.log('📝 Writing test script to:', tempFile);
+      console.log('📝 Inputs being passed:', JSON.stringify(inputs).substring(0, 200));
       await fs.writeFile(tempFile, testScript);
       
       try {
