@@ -768,8 +768,15 @@ try:
             print(json.dumps(output))
     elif isinstance(result, list):
         # Check if it's already a list of field validation objects
+        print(f"DEBUG: Result is list with {len(result)} items", file=sys.stderr)
+        if len(result) > 0:
+            print(f"DEBUG: First item type: {type(result[0])}", file=sys.stderr)
+            if isinstance(result[0], dict):
+                print(f"DEBUG: First item keys: {result[0].keys()}", file=sys.stderr)
+        
         if all(isinstance(item, dict) and 'extractedValue' in item and 'validationStatus' in item for item in result):
             # Result is already in field validation format - just JSON encode it
+            print(f"DEBUG: All {len(result)} items are field validation objects", file=sys.stderr)
             print(json.dumps(result))
         else:
             # List but not field validation format - convert each item
