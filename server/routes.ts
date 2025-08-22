@@ -6133,6 +6133,99 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Test Documents endpoints
+  app.get("/api/steps/:stepId/test-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const testDocuments = await storage.getTestDocuments(stepId);
+      res.json(testDocuments);
+    } catch (error) {
+      console.error("Error fetching test documents:", error);
+      res.status(500).json({ message: "Failed to fetch test documents" });
+    }
+  });
+
+  app.post("/api/steps/:stepId/test-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      const { fileName, fileContent, mimeType } = req.body;
+      
+      // Process the document to extract content (re-using existing extraction process)
+      const { spawn } = await import('child_process');
+      const pythonProcess = spawn('python3', ['server/scripts/document_extractor.py']);
+      
+      const input = {
+        file_name: fileName,
+        mime_type: mimeType,
+        file_content: fileContent
+      };
+      
+      pythonProcess.stdin.write(JSON.stringify(input));
+      pythonProcess.stdin.end();
+      
+      let output = '';
+      pythonProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      await new Promise((resolve, reject) => {
+        pythonProcess.on('exit', async (code) => {
+          if (code === 0) {
+            try {
+              const result = JSON.parse(output);
+              
+              if (result.success && result.extracted_texts && result.extracted_texts[0]) {
+                const extractedContent = result.extracted_texts[0].text_content;
+                
+                // Create test document
+                const testDocument = await storage.createTestDocument({
+                  stepId,
+                  fileName,
+                  extractedContent,
+                  mimeType,
+                  fileSize: fileContent ? Buffer.from(fileContent, 'base64').length : 0
+                });
+                
+                res.json({ 
+                  success: true, 
+                  testDocument,
+                  message: `Successfully processed ${fileName} and extracted ${extractedContent.length} characters` 
+                });
+              } else {
+                res.status(400).json({ success: false, message: result.error || 'Document extraction failed' });
+              }
+            } catch (parseError) {
+              console.error('Failed to parse extraction result:', parseError);
+              res.status(500).json({ success: false, message: "Failed to parse extraction result" });
+            }
+          } else {
+            res.status(500).json({ success: false, message: "Document processing failed" });
+          }
+          resolve(undefined);
+        });
+      });
+      
+    } catch (error) {
+      console.error("Error creating test document:", error);
+      res.status(500).json({ message: "Failed to create test document" });
+    }
+  });
+
+  app.delete("/api/test-documents/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteTestDocument(id);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: "Test document not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting test document:", error);
+      res.status(500).json({ message: "Failed to delete test document" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
