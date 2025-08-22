@@ -1349,13 +1349,58 @@ export default function SessionView() {
           const columnNames = result.results.map((r: any) => r.extractedValue).filter(Boolean);
           console.log('📋 Extracted column names:', columnNames);
           
-          toast({
-            title: "Column Extraction Complete",
-            description: `Extracted ${columnNames.length} column names`,
-          });
-          
-          // TODO: Create field_validation records for each extracted column
-          // This would populate the entire data table with the extracted columns
+          // Save all column names as field_validation records
+          try {
+            // Find the parent collection/step - look for the step containing the "Coiumn Names" value
+            const step = workflowSteps?.find((s: any) => 
+              s.values?.some((v: any) => v.valueName === valueName)
+            );
+            
+            if (step) {
+              console.log('📝 Found step:', step.stepName);
+              
+              // Create field_validation records for each column
+              for (let i = 0; i < columnNames.length; i++) {
+                const fieldName = `${step.stepName}.${columnNames[i]}[0]`; // Using [0] for first record
+                
+                console.log(`💾 Saving validation for: ${fieldName}`);
+                
+                await apiRequest(`/api/sessions/${sessionId}/validations`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    fieldName,
+                    extractedValue: columnNames[i],
+                    validationStatus: 'valid',
+                    aiReasoning: `Column extracted from Excel sheet`,
+                    confidenceScore: 100
+                  })
+                });
+              }
+              
+              // Refresh validations
+              await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+              
+              toast({
+                title: "Columns Populated",
+                description: `Successfully added ${columnNames.length} columns to the data table`,
+              });
+            } else {
+              console.log('❌ Could not find step for value:', valueName);
+              toast({
+                title: "Warning",
+                description: "Extracted columns but could not save to database",
+                variant: "destructive"
+              });
+            }
+          } catch (error) {
+            console.error('Error saving columns:', error);
+            toast({
+              title: "Save Failed",
+              description: "Could not save extracted columns",
+              variant: "destructive"
+            });
+          }
         } else {
           // Regular single value extraction
           const extractedValue = result.results[0].extractedValue;
@@ -1366,9 +1411,6 @@ export default function SessionView() {
             description: `${valueName}: ${extractedValue || 'No value extracted'}`,
           });
         }
-
-        // TODO: Update the validation/extracted data in the session
-        // This would require calling an endpoint to save the extracted value
       } else {
         console.log('❌ No results extracted');
         toast({
