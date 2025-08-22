@@ -737,9 +737,7 @@ export default function DefineData({
                         variant="ghost"
                         size="sm"
                         onClick={async () => {
-                          if (confirm(`Delete test document "${doc.fileName}"?`)) {
-                            await deleteTestDocumentMutation.mutateAsync(doc.id);
-                          }
+                          await deleteTestDocumentMutation.mutateAsync(doc.id);
                         }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
