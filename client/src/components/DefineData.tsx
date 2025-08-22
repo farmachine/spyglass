@@ -666,18 +666,7 @@ export default function DefineData({
                         })
                       });
                       
-                      if (response.success) {
-                        console.log(`  ✅ Result:`, response.result);
-                        // Display the result in a formatted way
-                        if (response.result && typeof response.result === 'object') {
-                          console.table(response.result);
-                        }
-                      } else {
-                        console.error(`  ⚠️ Warning: ${response.error || 'No results returned'}`);
-                        if (response.rawOutput) {
-                          console.log(`  📝 Raw output:`, response.rawOutput);
-                        }
-                      }
+                      console.log(`  ✅ Result:`, response.result);
                     } catch (error) {
                       console.error(`  ❌ Error:`, error);
                     }
