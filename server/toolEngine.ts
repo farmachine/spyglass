@@ -373,17 +373,85 @@ export class ToolEngine {
    */
   private async testAITool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
     try {
+      // Check if we need to batch large arrays
+      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
+        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+        return param?.type === 'data' && Array.isArray(value);
+      });
+      
+      // If we have large arrays, process in batches
+      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
+        const [dataKey, dataArray] = dataInputs[0];
+        if (Array.isArray(dataArray) && dataArray.length > 20) {
+          console.log(`📦 Large array detected (${dataArray.length} items). Processing in batches...`);
+          
+          const BATCH_SIZE = 20; // Process 20 items at a time
+          const allResults: ToolResult[] = [];
+          
+          for (let i = 0; i < dataArray.length; i += BATCH_SIZE) {
+            const batch = dataArray.slice(i, Math.min(i + BATCH_SIZE, dataArray.length));
+            const batchEnd = Math.min(i + BATCH_SIZE, dataArray.length);
+            console.log(`  Processing batch ${Math.floor(i / BATCH_SIZE) + 1}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
+            
+            // Create inputs for this batch
+            const batchInputs = { ...inputs };
+            batchInputs[dataKey] = batch;
+            
+            // Process batch
+            const batchPrompt = this.buildTestPrompt(tool, batchInputs);
+            
+            const response = await genAI.models.generateContent({
+              model: tool.llmModel || "gemini-2.0-flash",
+              contents: batchPrompt
+            });
+            
+            let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            
+            // Clean and parse batch results
+            if (batchResult.includes('```json')) {
+              const jsonMatch = batchResult.match(/```json\s*([\s\S]*?)\s*```/);
+              if (jsonMatch) {
+                batchResult = jsonMatch[1].trim();
+              }
+            }
+            
+            try {
+              const parsed = JSON.parse(batchResult);
+              const results = Array.isArray(parsed) ? parsed : [parsed];
+              allResults.push(...results);
+              console.log(`    ✅ Batch processed: ${results.length} results`);
+            } catch (e) {
+              console.error(`    ❌ Failed to parse batch results:`, e);
+              // Add placeholder results for failed batch
+              for (let j = 0; j < batch.length; j++) {
+                allResults.push({
+                  extractedValue: "Processing Error",
+                  validationStatus: "invalid",
+                  aiReasoning: "Failed to process this item in batch",
+                  confidenceScore: 0,
+                  documentSource: "ERROR"
+                });
+              }
+            }
+          }
+          
+          console.log(`✅ All batches complete. Total results: ${allResults.length}`);
+          return allResults;
+        }
+      }
+      
+      // Normal processing for small arrays or non-array inputs
       const prompt = this.buildTestPrompt(tool, inputs);
       
       console.log('🧪 GEMINI AI PROMPT FOR TOOL TESTING');
       console.log('='.repeat(80));
       console.log('📝 Tool Name:', tool.name);
       console.log('📝 Tool AI Prompt:', tool.aiPrompt);
-      console.log('📝 Test Inputs:', JSON.stringify(inputs, null, 2));
+      console.log('📝 Test Inputs:', JSON.stringify(inputs, null, 2).slice(0, 1000) + '...');
       console.log('');
       console.log('🎯 FULL TEST PROMPT SENT TO GEMINI:');
       console.log('-'.repeat(80));
-      console.log(prompt);
+      console.log(prompt.slice(0, 2000) + '...');
       console.log('-'.repeat(80));
       console.log('');
       
@@ -400,7 +468,7 @@ export class ToolEngine {
       
       console.log('🎉 GEMINI TEST RESPONSE:');
       console.log('-'.repeat(80));
-      console.log(result);
+      console.log(result.slice(0, 1000) + '...');
       console.log('-'.repeat(80));
       console.log('');
       
@@ -682,6 +750,20 @@ ${itemsList}`;
       
       if (arrayInputs.length > 0) {
         expectedResultCount = arrayInputs.reduce((sum, [, value]) => sum + (Array.isArray(value) ? value.length : 0), 0);
+        
+        // Log the actual count for debugging
+        console.log(`🔢 EXPECTED RESULT COUNT: ${expectedResultCount} items`);
+        arrayInputs.forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            console.log(`  - ${key}: ${value.length} items`);
+            // Log first few and last few items for verification
+            if (value.length > 10) {
+              console.log(`    First 3: ${value.slice(0, 3).map(v => typeof v === 'object' ? v.extractedValue || JSON.stringify(v).slice(0, 50) : v).join(', ')}`);
+              console.log(`    Last 3: ${value.slice(-3).map(v => typeof v === 'object' ? v.extractedValue || JSON.stringify(v).slice(0, 50) : v).join(', ')}`);
+            }
+          }
+        });
+        
         arrayInstruction = `
 
 CRITICAL INSTRUCTION: 

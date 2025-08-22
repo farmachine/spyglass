@@ -6112,8 +6112,34 @@ def extract_function(Column_Name, Excel_File):
               
               // Check if we have previous results for this reference
               if (previousResults && previousResults[referencePath]) {
-                console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousResults[referencePath].length} items)`);
-                preparedInputValues[key] = previousResults[referencePath];
+                const previousData = previousResults[referencePath];
+                console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousData.length} items)`);
+                
+                // Log more details about what we're passing
+                if (Array.isArray(previousData)) {
+                  console.log(`    📊 Array contains ${previousData.length} items`);
+                  if (previousData.length > 0) {
+                    console.log(`    First item: ${JSON.stringify(previousData[0]).slice(0, 100)}...`);
+                    if (previousData.length > 1) {
+                      console.log(`    Last item: ${JSON.stringify(previousData[previousData.length - 1]).slice(0, 100)}...`);
+                    }
+                    
+                    // Check if these are result objects with extractedValue
+                    const extractedValues = previousData
+                      .filter(item => item && typeof item === 'object' && 'extractedValue' in item)
+                      .map(item => item.extractedValue);
+                    
+                    if (extractedValues.length > 0) {
+                      console.log(`    📝 Extracted values count: ${extractedValues.length}`);
+                      console.log(`    First 5 values: ${extractedValues.slice(0, 5).join(', ')}`);
+                      if (extractedValues.length > 5) {
+                        console.log(`    ... and ${extractedValues.length - 5} more values`);
+                      }
+                    }
+                  }
+                }
+                
+                preparedInputValues[key] = previousData;
               } else {
                 console.log(`  ⚠️ No previous results found for ${referencePath}`);
               }
