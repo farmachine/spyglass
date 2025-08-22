@@ -100,156 +100,190 @@ export class ToolEngine {
       // If this is a document parameter, check for extracted content first
       if (param.type === 'document' && inputValue) {
         try {
-          // First check sample_documents table for pre-extracted content
-          
-          const [sampleDoc] = await db
-            .select()
-            .from(sampleDocuments)
-            .where(
-              and(
-                eq(sampleDocuments.functionId, tool.id),
-                eq(sampleDocuments.parameterName, param.name)
-              )
-            );
-          
-          if (sampleDoc?.extractedContent) {
-            console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
-            preparedInputs[param.name] = sampleDoc.extractedContent;
-          } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
-            // Fallback to metadata if available
-            const extractedContent = tool.metadata.sampleDocumentContent[param.name];
-            console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
-            preparedInputs[param.name] = extractedContent;
-          } else if (param.sampleFileURL) {
-            // Fallback: fetch and extract content if not already stored
-            console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
-            
-            try {
-              // Extract content using document_extractor.py
-              const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
-              const urlParts = new URL(param.sampleFileURL);
-              const pathParts = urlParts.pathname.split('/');
-              const bucketName = pathParts[1];
-              const objectName = pathParts.slice(2).join('/');
+          // Check if inputValue is an array of knowledge document IDs
+          if (Array.isArray(inputValue) && inputValue.length > 0) {
+            // Check if these are knowledge document IDs
+            const firstValue = inputValue[0];
+            if (typeof firstValue === 'string' && firstValue.length === 36) { // UUID check
+              console.log(`📚 Fetching knowledge document content for ${param.name}`);
               
-              const bucket = objectStorageClient.bucket(bucketName);
-              const objectFile = bucket.file(objectName);
+              // Import knowledge documents schema
+              const { knowledgeDocuments } = await import('@shared/schema');
+              const { inArray } = await import('drizzle-orm');
               
-              const chunks: Buffer[] = [];
-              const stream = objectFile.createReadStream();
+              // Fetch knowledge documents by IDs
+              const knowledgeDocs = await db
+                .select()
+                .from(knowledgeDocuments)
+                .where(inArray(knowledgeDocuments.id, inputValue));
               
-              await new Promise((resolve, reject) => {
-                stream.on('data', (chunk) => chunks.push(chunk));
-                stream.on('end', resolve);
-                stream.on('error', reject);
-              });
-              
-              const fileBuffer = Buffer.concat(chunks);
-              const [fileMetadata] = await objectFile.getMetadata();
-              const mimeType = fileMetadata.contentType || 'application/octet-stream';
-              const base64Content = fileBuffer.toString('base64');
-              const dataURL = `data:${mimeType};base64,${base64Content}`;
-              
-              // Extract text content using document_extractor.py
-              const extractionData = {
-                step: "extract_text_only",
-                documents: [{
-                  fileName: param.sampleFile || 'document',
-                  mimeType: mimeType,
-                  dataURL: dataURL
-                }]
-              };
-              
-              const { spawn } = await import('child_process');
-              const python = spawn('python3', ['document_extractor.py']);
-              
-              python.stdin.write(JSON.stringify(extractionData));
-              python.stdin.end();
-              
-              let output = '';
-              let error = '';
-              
-              await new Promise((resolve, reject) => {
-                python.stdout.on('data', (data: any) => {
-                  output += data.toString();
-                });
+              if (knowledgeDocs.length > 0) {
+                // Combine content from all selected knowledge documents
+                const combinedContent = knowledgeDocs
+                  .map(doc => `=== ${doc.title} ===\n${doc.content || 'No content'}`)
+                  .join('\n\n');
                 
-                python.stderr.on('data', (data: any) => {
-                  error += data.toString();
-                });
-                
-                python.on('close', (code: any) => {
-                  if (code !== 0) {
-                    console.error('Document extraction error:', error);
-                    reject(new Error(error));
-                  } else {
-                    resolve(undefined);
-                  }
-                });
-              });
-              
-              const result = JSON.parse(output);
-              // Handle both response formats
-              let extractedText = '';
-              if (result.extracted_texts && result.extracted_texts[0]) {
-                extractedText = result.extracted_texts[0].text_content || '';
-              } else if (result.text_content) {
-                extractedText = result.text_content;
+                console.log(`📄 Using knowledge document content for ${param.name} (${combinedContent.length} chars)`);
+                preparedInputs[param.name] = combinedContent;
+              } else {
+                console.log(`⚠️ No knowledge documents found for IDs: ${inputValue.join(', ')}`);
+                preparedInputs[param.name] = '';
               }
-              
-              console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
-              preparedInputs[param.name] = extractedText;
-              
-              // Save the extracted content to sample_documents table for future use
-              if (extractedText) {
-                try {
-                  
-                  // Check if sample document already exists
-                  const [existingDoc] = await db
-                    .select()
-                    .from(sampleDocuments)
-                    .where(
-                      and(
-                        eq(sampleDocuments.functionId, tool.id),
-                        eq(sampleDocuments.parameterName, param.name)
-                      )
-                    );
-                  
-                  if (existingDoc) {
-                    // Update existing document with extracted content
-                    await db
-                      .update(sampleDocuments)
-                      .set({
-                        extractedContent: extractedText,
-                        updatedAt: new Date()
-                      })
-                      .where(eq(sampleDocuments.id, existingDoc.id));
-                    console.log(`📝 Updated sample document with extracted content`);
-                  } else {
-                    // Create new sample document with extracted content
-                    await db
-                      .insert(sampleDocuments)
-                      .values({
-                        functionId: tool.id,
-                        parameterName: param.name,
-                        fileName: param.sampleFile || 'document',
-                        fileURL: param.sampleFileURL || '',
-                        extractedContent: extractedText
-                      });
-                    console.log(`📝 Created sample document with extracted content`);
-                  }
-                } catch (saveError) {
-                  console.error('Failed to save extracted content:', saveError);
-                }
-              }
-              
-            } catch (extractError) {
-              console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
-              // Last resort fallback
-              preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
+            } else {
+              // Not knowledge document IDs, treat as regular input
+              preparedInputs[param.name] = inputValue;
             }
           } else {
-            preparedInputs[param.name] = inputValue;
+            // Single value or empty, check sample_documents table for pre-extracted content
+            const [sampleDoc] = await db
+              .select()
+              .from(sampleDocuments)
+              .where(
+                and(
+                  eq(sampleDocuments.functionId, tool.id),
+                  eq(sampleDocuments.parameterName, param.name)
+                )
+              );
+            
+            if (sampleDoc?.extractedContent) {
+              console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
+              preparedInputs[param.name] = sampleDoc.extractedContent;
+            } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
+              // Fallback to metadata if available
+              const extractedContent = tool.metadata.sampleDocumentContent[param.name];
+              console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
+              preparedInputs[param.name] = extractedContent;
+            } else if (param.sampleFileURL) {
+              // Fallback: fetch and extract content if not already stored
+              console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
+              
+              try {
+                // Extract content using document_extractor.py
+                const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
+                const urlParts = new URL(param.sampleFileURL);
+                const pathParts = urlParts.pathname.split('/');
+                const bucketName = pathParts[1];
+                const objectName = pathParts.slice(2).join('/');
+                
+                const bucket = objectStorageClient.bucket(bucketName);
+                const objectFile = bucket.file(objectName);
+              
+                const chunks: Buffer[] = [];
+                const stream = objectFile.createReadStream();
+                
+                await new Promise((resolve, reject) => {
+                  stream.on('data', (chunk) => chunks.push(chunk));
+                  stream.on('end', resolve);
+                  stream.on('error', reject);
+                });
+                
+                const fileBuffer = Buffer.concat(chunks);
+                const [fileMetadata] = await objectFile.getMetadata();
+                const mimeType = fileMetadata.contentType || 'application/octet-stream';
+                const base64Content = fileBuffer.toString('base64');
+                const dataURL = `data:${mimeType};base64,${base64Content}`;
+              
+                // Extract text content using document_extractor.py
+                const extractionData = {
+                  step: "extract_text_only",
+                  documents: [{
+                    fileName: param.sampleFile || 'document',
+                    mimeType: mimeType,
+                    dataURL: dataURL
+                  }]
+                };
+                
+                const { spawn } = await import('child_process');
+                const python = spawn('python3', ['document_extractor.py']);
+                
+                python.stdin.write(JSON.stringify(extractionData));
+                python.stdin.end();
+                
+                let output = '';
+                let error = '';
+                
+                await new Promise((resolve, reject) => {
+                  python.stdout.on('data', (data: any) => {
+                    output += data.toString();
+                  });
+                  
+                  python.stderr.on('data', (data: any) => {
+                    error += data.toString();
+                  });
+                  
+                  python.on('close', (code: any) => {
+                    if (code !== 0) {
+                      console.error('Document extraction error:', error);
+                      reject(new Error(error));
+                    } else {
+                      resolve(undefined);
+                    }
+                  });
+                });
+                
+                const result = JSON.parse(output);
+                // Handle both response formats
+                let extractedText = '';
+                if (result.extracted_texts && result.extracted_texts[0]) {
+                  extractedText = result.extracted_texts[0].text_content || '';
+                } else if (result.text_content) {
+                  extractedText = result.text_content;
+                }
+                
+                console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
+                preparedInputs[param.name] = extractedText;
+              
+                // Save the extracted content to sample_documents table for future use
+                if (extractedText) {
+                  try {
+                    
+                    // Check if sample document already exists
+                    const [existingDoc] = await db
+                      .select()
+                      .from(sampleDocuments)
+                      .where(
+                        and(
+                          eq(sampleDocuments.functionId, tool.id),
+                          eq(sampleDocuments.parameterName, param.name)
+                        )
+                      );
+                    
+                    if (existingDoc) {
+                      // Update existing document with extracted content
+                      await db
+                        .update(sampleDocuments)
+                        .set({
+                          extractedContent: extractedText,
+                          updatedAt: new Date()
+                        })
+                        .where(eq(sampleDocuments.id, existingDoc.id));
+                      console.log(`📝 Updated sample document with extracted content`);
+                    } else {
+                      // Create new sample document with extracted content
+                      await db
+                        .insert(sampleDocuments)
+                        .values({
+                          functionId: tool.id,
+                          parameterName: param.name,
+                          fileName: param.sampleFile || 'document',
+                          fileURL: param.sampleFileURL || '',
+                          extractedContent: extractedText
+                        });
+                      console.log(`📝 Created sample document with extracted content`);
+                    }
+                  } catch (saveError) {
+                    console.error('Failed to save extracted content:', saveError);
+                  }
+                }
+                
+              } catch (extractError) {
+                console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
+                // Last resort fallback
+                preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
+              }
+            } else {
+              preparedInputs[param.name] = inputValue;
+            }
           }
         } catch (error) {
           console.error(`Failed to prepare document for ${param.name}:`, error);
