@@ -6115,12 +6115,19 @@ def extract_function(Column_Name, Excel_File):
           
           // Use the tool engine to execute the function
           try {
-            const { executeTool } = await import('./toolEngine');
+            const { toolEngine } = await import('./toolEngine');
             
             console.log('📝 Executing tool with test document content');
             console.log('  Input values:', JSON.stringify(preparedInputValues, null, 2));
             
-            const result = await executeTool(valueConfig.toolId, preparedInputValues);
+            // Execute using toolEngine's testTool method
+            const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
+            
+            // Transform to expected format
+            const result = {
+              results: toolResults,
+              success: true
+            };
             
             console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2));
             
@@ -6131,7 +6138,7 @@ def extract_function(Column_Name, Excel_File):
             console.log('Value:', valueConfig.valueName);
             console.log('Tool:', excelFunction.functionName);
             console.log('Test Document:', documentId);
-            console.log('Results:', result.results?.length || 0, 'items extracted');
+            console.log('Results:', toolResults?.length || 0, 'items extracted');
             console.log('=========================================');
             console.log('');
             
