@@ -93,7 +93,9 @@ export class ToolEngine {
     const { eq, and } = await import('drizzle-orm');
     
     for (const param of tool.inputParameters) {
-      const inputValue = rawInputs[param.name];
+      // Try to get input value by parameter ID first, then by name
+      const paramId = (param as any).id || param.name;
+      const inputValue = rawInputs[paramId] || rawInputs[param.name];
       
       // If this is a document parameter, check for extracted content first
       if (param.type === 'document' && inputValue) {
@@ -658,11 +660,15 @@ try:
             args = []
             for param in parameters:
                 param_name = param['name']
+                param_id = param.get('id', param_name)
                 if param['type'] == 'data':
                     # Pass the current record
                     args.append(record)
+                elif param_id in inputs:
+                    # Pass other inputs by ID
+                    args.append(inputs[param_id])
                 elif param_name in inputs:
-                    # Pass other inputs as-is
+                    # Pass other inputs by name
                     args.append(inputs[param_name])
             
             # Execute function for this record
@@ -699,8 +705,16 @@ try:
         args = []
         for param in parameters:
             param_name = param['name']
-            if param_name in inputs:
+            param_id = param.get('id', param_name)
+            
+            # Try to find input by parameter ID first, then by name
+            if param_id in inputs:
+                args.append(inputs[param_id])
+            elif param_name in inputs:
                 args.append(inputs[param_name])
+            else:
+                # No input found for this parameter - this might cause an error
+                pass
         
         # Execute function once
         result = func_to_call(*args)
