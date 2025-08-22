@@ -101,6 +101,13 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Helper function to get tool output description
+  function getToolOutputDescription(toolId?: string | null): string {
+    if (!toolId) return '';
+    const tool = excelFunctions.find(f => f.id === toolId);
+    return tool?.description || 'Extracted data';
+  }
+
   // Function to load workflow from server
   const loadWorkflow = async () => {
     try {
@@ -132,6 +139,38 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             orderIndex: step.orderIndex || 0
           }));
           
+          // Check if we need to add schema fields as an Info Page step
+          const hasInfoPage = loadedSteps.some(step => step.type === 'page');
+          
+          if (!hasInfoPage && schemaFields.length > 0) {
+            console.log('Adding missing Info Page for schema fields');
+            const values: WorkflowValue[] = schemaFields.map(field => ({
+              id: field.id,
+              name: field.fieldName,
+              description: field.description || '',
+              dataType: field.fieldType as WorkflowValue['dataType'],
+              toolId: field.functionId || '',
+              inputValues: field.functionParameters || {},
+              outputDescription: getToolOutputDescription(field.functionId),
+              orderIndex: field.orderIndex || 0,
+              originalId: field.id
+            }));
+
+            const infoPageStep: WorkflowStep = {
+              id: 'schema-page',
+              type: 'page',
+              name: 'Info Page',
+              description: 'Main data extraction fields',
+              values: values.sort((a, b) => a.orderIndex - b.orderIndex),
+              isExpanded: true,
+              orderIndex: loadedSteps.length,
+              originalId: 'schema-page',
+              originalType: 'schema'
+            };
+            
+            loadedSteps.push(infoPageStep);
+          }
+          
           setSteps(loadedSteps.sort((a, b) => a.orderIndex - b.orderIndex));
           return true; // Loaded from server
         }
@@ -148,6 +187,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     loadWorkflow().then(loaded => {
       if (!loaded) {
         // If no saved workflow, convert existing data
+        console.log('Converting existing data to workflow:', { schemaFields, collections });
         const workflowSteps: WorkflowStep[] = [];
         let orderIndex = 0;
 
@@ -179,6 +219,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         });
 
         // Group schema fields into a page step if they exist
+        console.log('Schema fields to convert:', schemaFields.length, schemaFields);
         if (schemaFields.length > 0) {
           const values: WorkflowValue[] = schemaFields.map(field => ({
             id: field.id,
@@ -209,12 +250,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       }
     });
   }, [schemaFields, collections]);
-
-  function getToolOutputDescription(toolId?: string | null): string {
-    if (!toolId) return '';
-    const tool = excelFunctions.find(f => f.id === toolId);
-    return tool?.description || 'Extracted data';
-  }
 
   const addStep = () => {
     const newStep: WorkflowStep = {
