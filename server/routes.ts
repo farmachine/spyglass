@@ -6124,8 +6124,19 @@ def extract_function(Column_Name, Excel_File):
           if (excelFunction.inputParameters) {
             for (const param of excelFunction.inputParameters) {
               if (param.type === 'document') {
-                console.log(`  Replacing ${param.name} with test document content (${documentContent?.length || 0} chars)`);
-                preparedInputValues[param.name] = documentContent || '';
+                // Check if the current value is ["user_document"] or similar placeholder
+                const currentValue = preparedInputValues[param.id];
+                const shouldReplaceWithTestDoc = 
+                  !currentValue || 
+                  (Array.isArray(currentValue) && currentValue.length === 1 && currentValue[0] === 'user_document') ||
+                  currentValue === 'user_document';
+                
+                if (shouldReplaceWithTestDoc) {
+                  console.log(`  Replacing ${param.name} (${param.id}) with test document content (${documentContent?.length || 0} chars)`);
+                  preparedInputValues[param.id] = documentContent || '';
+                } else {
+                  console.log(`  Keeping existing value for ${param.name}: ${JSON.stringify(currentValue).slice(0, 100)}...`);
+                }
               }
             }
           }
