@@ -1319,10 +1319,12 @@ export default function SessionView() {
     try {
       
       // Simply pass the document content directly
-      const preparedInputs: Record<string, any> = {};
-      
-      // The function expects Excel_Document parameter
-      preparedInputs['Excel_Document'] = selectedDocument.extractedContent || '';
+      // The function in the database accepts flexible input - just pass the content
+      const preparedInputs: Record<string, any> = {
+        'excel_file_content': selectedDocument.extractedContent || '',
+        'content': selectedDocument.extractedContent || '',
+        'Excel_Document': selectedDocument.extractedContent || ''
+      };
 
       console.log(`🚀 Executing tool ${toolId} for ${valueName}`);
       console.log('📄 Using document:', selectedDocument.fileName);
