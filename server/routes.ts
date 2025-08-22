@@ -5054,13 +5054,24 @@ print(json.dumps(results))
         for (const param of inputParameters) {
           const processedParam = { ...param };
           
-          // If document parameter with sample file, always extract content
+          // If document parameter with sample file, check if we need to extract
           if (param.type === 'document' && param.sampleFileURL && param.sampleFile) {
             console.log(`📎 Processing document parameter: ${param.name}`);
             console.log(`📎 Sample file URL: ${param.sampleFileURL}`);
+            
+            // Check if a sample document already exists for this function and parameter
+            const existingDocs = await storage.getSampleDocuments(id);
+            const existingDoc = existingDocs.find((doc: any) => doc.parameterName === param.name);
+            
+            if (existingDoc) {
+              console.log(`📎 Sample document already exists for ${param.name}, skipping extraction`);
+              // Keep the existing document, don't delete or re-extract
+              processedParams.push(processedParam);
+              continue;
+            }
+            
+            console.log(`📎 No existing sample document for ${param.name}, extracting content`);
             try {
-              // Delete old sample documents for this parameter
-              await storage.deleteSampleDocumentsByParameter(id, param.name);
               
               // Extract and save new content
               const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
