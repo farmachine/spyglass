@@ -6087,6 +6087,7 @@ def extract_function(Column_Name, Excel_File):
       console.log('🧪 Test Workflow Request:');
       console.log('  Project:', projectId);
       console.log('  Document:', documentId);
+      console.log('  Document Content Length:', documentContent?.length || 0);
       console.log('  Value Config:', valueConfig);
       
       // If there's a toolId, we need to execute the tool/function
@@ -6096,6 +6097,21 @@ def extract_function(Column_Name, Excel_File):
         
         if (excelFunction) {
           console.log('  Tool Found:', excelFunction.functionName);
+          console.log('  Tool Type:', excelFunction.toolType);
+          console.log('  Using workflow test document instead of tool sample document');
+          
+          // Prepare input values, replacing document parameters with test document content
+          const preparedInputValues = { ...valueConfig.inputValues };
+          
+          // Check if any parameters are document type and replace with test document content
+          if (excelFunction.inputParameters) {
+            for (const param of excelFunction.inputParameters) {
+              if (param.type === 'document') {
+                console.log(`  Replacing ${param.name} with test document content (${documentContent?.length || 0} chars)`);
+                preparedInputValues[param.name] = documentContent || '';
+              }
+            }
+          }
           
           // Prepare the extraction request
           const extractionData = {
@@ -6106,12 +6122,14 @@ def extract_function(Column_Name, Excel_File):
               content: documentContent || '',
               extracted_content: documentContent || ''
             }],
-            inputValues: valueConfig.inputValues || {}
+            inputValues: preparedInputValues
           };
           
           // Call extraction_wizardry.py
           const { spawn } = await import('child_process');
           const python = spawn('python3', ['extraction_wizardry.py']);
+          
+          console.log('📝 Sending to extraction_wizardry:', JSON.stringify(extractionData, null, 2));
           
           python.stdin.write(JSON.stringify(extractionData));
           python.stdin.end();
@@ -6132,7 +6150,19 @@ def extract_function(Column_Name, Excel_File):
               if (code === 0 && stdoutData) {
                 try {
                   const result = JSON.parse(stdoutData);
-                  console.log('  Extraction Result:', result);
+                  console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2));
+                  
+                  // Log to console for visibility
+                  console.log('');
+                  console.log('=== WORKFLOW TEST EXECUTION COMPLETE ===');
+                  console.log('Step:', valueConfig.stepName);
+                  console.log('Value:', valueConfig.valueName);
+                  console.log('Tool:', excelFunction.functionName);
+                  console.log('Test Document:', documentId);
+                  console.log('Results:', result.results?.length || 0, 'items extracted');
+                  console.log('=========================================');
+                  console.log('');
+                  
                   res.json({ 
                     success: true, 
                     result: result,
@@ -6140,7 +6170,7 @@ def extract_function(Column_Name, Excel_File):
                     stepName: valueConfig.stepName
                   });
                 } catch (parseError) {
-                  console.error('  Parse Error:', parseError);
+                  console.error('❌ Parse Error:', parseError);
                   res.json({ 
                     success: false, 
                     error: 'Failed to parse extraction result',
@@ -6149,7 +6179,7 @@ def extract_function(Column_Name, Excel_File):
                   });
                 }
               } else {
-                console.error('  Extraction Error:', stderrData);
+                console.error('❌ Extraction Error:', stderrData);
                 res.json({ 
                   success: false, 
                   error: stderrData || 'Extraction failed',
