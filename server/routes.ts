@@ -5942,17 +5942,24 @@ def extract_function(Column_Name, Excel_File):
           if (code === 0 && stdoutData) {
             try {
               const extractedData = JSON.parse(stdoutData);
-              console.log('📊 Extraction results:', extractedData);
+              console.log('📊 Extraction results:', JSON.stringify(extractedData).substring(0, 500));
               
-              // Get the extracted content from the first result
+              // Get the extracted content from the document_extractor.py response
               let extractedContent = '';
-              if (Array.isArray(extractedData) && extractedData.length > 0) {
-                extractedContent = extractedData[0].extracted_content || '';
-              } else if (extractedData.extracted_content) {
-                extractedContent = extractedData.extracted_content;
+              if (extractedData.success && extractedData.extracted_texts && extractedData.extracted_texts.length > 0) {
+                // The content is in extracted_texts[0].text_content
+                extractedContent = extractedData.extracted_texts[0].text_content || '';
+                console.log('📊 Extracted text result:', {
+                  file_name: extractedData.extracted_texts[0].file_name,
+                  file_size: extractedData.extracted_texts[0].file_size,
+                  word_count: extractedData.extracted_texts[0].word_count,
+                  extraction_method: extractedData.extracted_texts[0].extraction_method,
+                  content_length: extractedContent.length
+                });
               }
               
               console.log('📝 Extracted content length:', extractedContent.length);
+              console.log('📝 Extracted content preview:', extractedContent.substring(0, 100));
               
               // Save to test_documents table
               const testDoc = await storage.createTestDocument({
