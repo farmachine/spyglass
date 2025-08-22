@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glibcLocales", "jq", "libxcrypt", "poppler", "poppler_utils"]
+packages = ["glibcLocales", "jq", "libxcrypt", "poppler", "poppler_utils", "run"]
 
 [deployment]
 deploymentTarget = "autoscale"
