@@ -425,7 +425,36 @@ export class ToolEngine {
       console.log('-'.repeat(80));
       
       const parsed = JSON.parse(result);
-      return Array.isArray(parsed) ? parsed : [parsed];
+      let results = Array.isArray(parsed) ? parsed : [parsed];
+      
+      // Check if we have data type parameters with arrays
+      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
+        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+        return param?.type === 'data' && Array.isArray(value);
+      });
+      
+      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
+        const expectedCount = dataInputs.reduce((sum, [, value]) => 
+          sum + (Array.isArray(value) ? value.length : 0), 0);
+        
+        console.log(`⚠️ Expected ${expectedCount} results, got ${results.length}`);
+        
+        // If we got fewer results than expected, pad with "Not Found" entries
+        if (results.length < expectedCount) {
+          console.log(`📝 Padding results to match expected count of ${expectedCount}`);
+          while (results.length < expectedCount) {
+            results.push({
+              extractedValue: "Not Found",
+              validationStatus: "invalid",
+              aiReasoning: "Result not provided by AI - item may have been skipped",
+              confidenceScore: 0,
+              documentSource: "Missing"
+            });
+          }
+        }
+      }
+      
+      return results;
       
     } catch (error) {
       return [{
@@ -643,6 +672,8 @@ ${itemsList}`;
     // Add explicit instruction for array processing
     const arrayParams = tool.inputParameters.filter(p => p.type === 'data');
     let arrayInstruction = '';
+    let expectedResultCount = 0;
+    
     if (arrayParams.length > 0) {
       const arrayInputs = Object.entries(inputs).filter(([key, value]) => {
         const param = tool.inputParameters.find(p => p.id === key || p.name === key);
@@ -650,10 +681,16 @@ ${itemsList}`;
       });
       
       if (arrayInputs.length > 0) {
-        const totalItems = arrayInputs.reduce((sum, [, value]) => sum + (Array.isArray(value) ? value.length : 0), 0);
+        expectedResultCount = arrayInputs.reduce((sum, [, value]) => sum + (Array.isArray(value) ? value.length : 0), 0);
         arrayInstruction = `
 
-CRITICAL INSTRUCTION: You MUST process ALL ${totalItems} items provided in the input data. Return exactly ${totalItems} result objects in your JSON array response.`;
+CRITICAL INSTRUCTION: 
+- You are processing ${expectedResultCount} items from the input data
+- You MUST return EXACTLY ${expectedResultCount} result objects in your JSON array
+- Each input item MUST have a corresponding output object
+- The output array length MUST be ${expectedResultCount}
+- DO NOT stop early - process ALL ${expectedResultCount} items
+- If you cannot find information for an item, still include it with "Not Found" as the extractedValue`;
       }
     }
     
