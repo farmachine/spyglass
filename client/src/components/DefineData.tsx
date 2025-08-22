@@ -399,7 +399,7 @@ export default function DefineData({
             />
             <Button
               onClick={() => document.getElementById('test-document-upload-define')?.click()}
-              className="bg-gray-400 hover:bg-gray-500 text-white"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
             >
               <Upload className="h-4 w-4 mr-2" />
               Test Document
