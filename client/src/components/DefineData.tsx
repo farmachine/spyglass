@@ -538,105 +538,87 @@ export default function DefineData({
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700">Workflow Steps</h3>
               
-              {/* Info Pages (Schema Fields) */}
-              {safeSchemaFields.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                    <Layers className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Info Pages</span>
+              <div className="space-y-2">
+                {/* Show Info Pages (Schema Fields) in order */}
+                {safeSchemaFields.map((field: SchemaField) => (
+                  <div key={field.id} className="flex items-center space-x-2 pl-2">
+                    <Checkbox 
+                      id={`field-${field.id}`}
+                      checked={selectedTestItems.has(`field-${field.id}`)}
+                      onCheckedChange={(checked) => {
+                        const newSet = new Set(selectedTestItems);
+                        if (checked) {
+                          newSet.add(`field-${field.id}`);
+                        } else {
+                          newSet.delete(`field-${field.id}`);
+                        }
+                        setSelectedTestItems(newSet);
+                      }}
+                    />
+                    <Layers className="h-4 w-4 text-gray-500" />
+                    <label htmlFor={`field-${field.id}`} className="text-sm text-gray-700 cursor-pointer">
+                      {field.fieldName || "Unnamed Field"}
+                    </label>
                   </div>
-                  <div className="space-y-1 pl-8">
-                    {safeSchemaFields.map((field: SchemaField) => (
-                      <div key={field.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`field-${field.id}`}
-                          checked={selectedTestItems.has(`field-${field.id}`)}
-                          onCheckedChange={(checked) => {
-                            const newSet = new Set(selectedTestItems);
-                            if (checked) {
-                              newSet.add(`field-${field.id}`);
-                            } else {
-                              newSet.delete(`field-${field.id}`);
-                            }
-                            setSelectedTestItems(newSet);
-                          }}
-                        />
-                        <label htmlFor={`field-${field.id}`} className="text-sm text-gray-600 cursor-pointer">
-                          {field.fieldName || "Unnamed Field"}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                ))}
 
-              {/* Data Tables (Collections) */}
-              {collectionsWithProps.length > 0 && (
-                <div className="space-y-2 mt-4">
-                  <div className="flex items-center space-x-2">
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                    <List className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Data Tables</span>
-                  </div>
-                  <div className="space-y-3 pl-8">
-                    {collectionsWithProps.map((collection: Collection) => (
-                      <div key={collection.id} className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`collection-${collection.id}`}
-                            checked={selectedTestItems.has(`collection-${collection.id}`)}
-                            onCheckedChange={(checked) => {
-                              const newSet = new Set(selectedTestItems);
-                              if (checked) {
-                                newSet.add(`collection-${collection.id}`);
-                                // Also select all properties when collection is selected
-                                collection.properties?.forEach((prop: Property) => {
-                                  newSet.add(`property-${prop.id}`);
-                                });
-                              } else {
-                                newSet.delete(`collection-${collection.id}`);
-                                // Also deselect all properties
-                                collection.properties?.forEach((prop: Property) => {
-                                  newSet.delete(`property-${prop.id}`);
-                                });
-                              }
-                              setSelectedTestItems(newSet);
-                            }}
-                          />
-                          <label htmlFor={`collection-${collection.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
-                            {collection.collectionName || "Unnamed Collection"}
-                          </label>
-                        </div>
-                        {collection.properties && collection.properties.length > 0 && (
-                          <div className="space-y-1 pl-6">
-                            {collection.properties.map((property: Property) => (
-                              <div key={property.id} className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`property-${property.id}`}
-                                  checked={selectedTestItems.has(`property-${property.id}`)}
-                                  onCheckedChange={(checked) => {
-                                    const newSet = new Set(selectedTestItems);
-                                    if (checked) {
-                                      newSet.add(`property-${property.id}`);
-                                    } else {
-                                      newSet.delete(`property-${property.id}`);
-                                    }
-                                    setSelectedTestItems(newSet);
-                                  }}
-                                />
-                                <label htmlFor={`property-${property.id}`} className="text-sm text-gray-500 cursor-pointer">
-                                  {property.propertyName || "Unnamed Property"}
-                                </label>
-                              </div>
-                            ))}
+                {/* Show Data Tables (Collections) in order */}
+                {collectionsWithProps.map((collection: Collection) => (
+                  <div key={collection.id} className="space-y-1">
+                    <div className="flex items-center space-x-2 pl-2">
+                      <Checkbox 
+                        id={`collection-${collection.id}`}
+                        checked={selectedTestItems.has(`collection-${collection.id}`)}
+                        onCheckedChange={(checked) => {
+                          const newSet = new Set(selectedTestItems);
+                          if (checked) {
+                            newSet.add(`collection-${collection.id}`);
+                            // Also select all properties when collection is selected
+                            collection.properties?.forEach((prop: Property) => {
+                              newSet.add(`property-${prop.id}`);
+                            });
+                          } else {
+                            newSet.delete(`collection-${collection.id}`);
+                            // Also deselect all properties
+                            collection.properties?.forEach((prop: Property) => {
+                              newSet.delete(`property-${prop.id}`);
+                            });
+                          }
+                          setSelectedTestItems(newSet);
+                        }}
+                      />
+                      <List className="h-4 w-4 text-gray-500" />
+                      <label htmlFor={`collection-${collection.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        {collection.collectionName || "Unnamed Collection"}
+                      </label>
+                    </div>
+                    {collection.properties && collection.properties.length > 0 && (
+                      <div className="space-y-1 pl-10">
+                        {collection.properties.map((property: Property) => (
+                          <div key={property.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`property-${property.id}`}
+                              checked={selectedTestItems.has(`property-${property.id}`)}
+                              onCheckedChange={(checked) => {
+                                const newSet = new Set(selectedTestItems);
+                                if (checked) {
+                                  newSet.add(`property-${property.id}`);
+                                } else {
+                                  newSet.delete(`property-${property.id}`);
+                                }
+                                setSelectedTestItems(newSet);
+                              }}
+                            />
+                            <label htmlFor={`property-${property.id}`} className="text-sm text-gray-500 cursor-pointer">
+                              {property.propertyName || "Unnamed Property"}
+                            </label>
                           </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           </div>
 
