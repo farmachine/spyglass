@@ -503,28 +503,39 @@ export default function DefineData({
             {/* Test Documents Section */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700">Test Documents</h3>
-              <div className="space-y-2 pl-4">
+              <div className="space-y-3 pl-4">
                 {testDocuments.length === 0 ? (
                   <p className="text-sm text-gray-500 italic">No test documents uploaded</p>
                 ) : (
                   testDocuments.map((doc: any) => (
-                    <div key={doc.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`test-doc-${doc.id}`}
-                        checked={selectedTestItems.has(`test-doc-${doc.id}`)}
-                        onCheckedChange={(checked) => {
-                          const newSet = new Set(selectedTestItems);
-                          if (checked) {
-                            newSet.add(`test-doc-${doc.id}`);
-                          } else {
-                            newSet.delete(`test-doc-${doc.id}`);
-                          }
-                          setSelectedTestItems(newSet);
-                        }}
-                      />
-                      <label htmlFor={`test-doc-${doc.id}`} className="text-sm text-gray-600 cursor-pointer">
-                        {doc.document_name || "Unnamed Document"}
-                      </label>
+                    <div key={doc.id} className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`test-doc-${doc.id}`}
+                          checked={selectedTestItems.has(`test-doc-${doc.id}`)}
+                          onCheckedChange={(checked) => {
+                            const newSet = new Set(selectedTestItems);
+                            if (checked) {
+                              newSet.add(`test-doc-${doc.id}`);
+                            } else {
+                              newSet.delete(`test-doc-${doc.id}`);
+                            }
+                            setSelectedTestItems(newSet);
+                          }}
+                        />
+                        <label htmlFor={`test-doc-${doc.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                          {doc.fileName || doc.file_name || "Unnamed Document"}
+                        </label>
+                      </div>
+                      {(doc.extractedContent || doc.extracted_content) && (
+                        <div className="ml-6 p-2 bg-gray-50 rounded-md border border-gray-200">
+                          <p className="text-xs text-gray-600 line-clamp-3">
+                            {typeof (doc.extractedContent || doc.extracted_content) === 'string' 
+                              ? (doc.extractedContent || doc.extracted_content).substring(0, 200) + ((doc.extractedContent || doc.extracted_content).length > 200 ? '...' : '')
+                              : JSON.stringify(doc.extractedContent || doc.extracted_content).substring(0, 200) + '...'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
