@@ -1350,13 +1350,32 @@ export default function SessionView() {
       console.log('📊 Results array:', result.results);
       
       if (result.success && result.results && result.results.length > 0) {
-        const extractedValue = result.results[0].extractedValue;
-        console.log('✨ Extracted value:', extractedValue);
-        
-        toast({
-          title: "Extraction Complete",
-          description: `${valueName}: ${extractedValue || 'No value extracted'}`,
-        });
+        // Check if this is an identifier extraction (returns multiple values)
+        if (valueName === "Coiumn Names" || valueName === "Column Names") {
+          // This is the identifier extraction - it returns multiple column names
+          console.log(`📊 Identifier extraction returned ${result.results.length} column names`);
+          
+          // For identifier extraction, show all extracted column names
+          const columnNames = result.results.map((r: any) => r.extractedValue).filter(Boolean);
+          console.log('📋 Extracted column names:', columnNames);
+          
+          toast({
+            title: "Column Extraction Complete",
+            description: `Extracted ${columnNames.length} column names`,
+          });
+          
+          // TODO: Create field_validation records for each extracted column
+          // This would populate the entire data table with the extracted columns
+        } else {
+          // Regular single value extraction
+          const extractedValue = result.results[0].extractedValue;
+          console.log('✨ Extracted value:', extractedValue);
+          
+          toast({
+            title: "Extraction Complete",
+            description: `${valueName}: ${extractedValue || 'No value extracted'}`,
+          });
+        }
 
         // TODO: Update the validation/extracted data in the session
         // This would require calling an endpoint to save the extracted value
