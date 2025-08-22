@@ -1,0 +1,59 @@
+📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Date of birth, birth date, DOB, DateOfBirth, Member Birth Date",
+        "validationStatus": "valid",
+        "aiReasoning": "The 'Date of Birth' column name is mapped to 'Date of birth, birth date, DOB, DateOfBirth, Member Birth Date' in the Basic Data Items section of the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      }
+    ],
+    "success": true
+  },
+  "valueName": "Standard Equivalent",
+  "stepName": "Column Name Mapping"
+}
+main.tsx:17   ✅ Extracted 5 items
+main.tsx:17   💾 Stored results as "Column Name Mapping.Standard Equivalent" and "Standard Equivalent" for subsequent steps
+main.tsx:17 
+✨ Test completed!
