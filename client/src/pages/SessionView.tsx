@@ -1359,23 +1359,33 @@ export default function SessionView() {
             if (step) {
               console.log('📝 Found step:', step.stepName);
               
-              // Create field_validation records for each column
+              // Build extractedData object with all columns
+              const extractedData: any = {};
+              const validations: any[] = [];
+              
               for (let i = 0; i < columnNames.length; i++) {
                 const fieldName = `${step.stepName}.${columnNames[i]}[0]`; // Using [0] for first record
+                extractedData[fieldName] = columnNames[i];
                 
-                console.log(`💾 Saving validation for: ${fieldName}`);
-                
-                await apiRequest(`/api/sessions/${sessionId}/validations`, {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    fieldName,
-                    extractedValue: columnNames[i],
-                    validationStatus: 'valid',
-                    aiReasoning: `Column extracted from Excel sheet`,
-                    confidenceScore: 100
-                  })
+                validations.push({
+                  fieldName,
+                  extractedValue: columnNames[i],
+                  validationStatus: 'valid',
+                  aiReasoning: `Column extracted from Excel sheet`,
+                  confidenceScore: 100
                 });
               }
+              
+              console.log(`💾 Saving ${columnNames.length} validations in bulk`);
+              
+              // Use the bulk save endpoint
+              await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  extractedData,
+                  validations
+                })
+              });
               
               // Refresh validations
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
