@@ -136,7 +136,7 @@ export default function DefineData({
     queryKey: [`/api/projects/${project.id}/test-documents`],
   });
 
-  const { data: workflowData } = useQuery({
+  const { data: workflowData, refetch: refetchWorkflow } = useQuery({
     queryKey: [`/api/projects/${project.id}/workflow`],
   });
 
@@ -320,6 +320,9 @@ export default function DefineData({
   const handleSaveWorkflow = async (steps: any[]) => {
     // Convert workflow steps back to schema fields and collections
     console.log('Saving workflow steps:', steps);
+    
+    // After saving, refresh the workflow data for the test modal
+    await refetchWorkflow();
   };
 
   // Handle test document upload
