@@ -43,7 +43,8 @@ import {
   ChevronUp,
   Upload,
   Layers,
-  Play
+  Play,
+  FileUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -411,14 +412,15 @@ export default function DefineData({
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600 p-2"
               title="Upload Test Document"
             >
-              <Upload className="h-4 w-4" />
+              <FileUp className="h-4 w-4" />
             </Button>
             <Button
               onClick={() => setTestModalOpen(true)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600 p-2"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
               title="Test Workflow"
             >
-              <Play className="h-4 w-4" />
+              <Play className="h-4 w-4 mr-2" />
+              Test
             </Button>
             <Button 
               onClick={() => {
