@@ -4103,6 +4103,76 @@ except Exception as e:
       const sessionId = req.params.sessionId;
       console.log('CREATE VALIDATION - Raw request body:', JSON.stringify(req.body, null, 2));
       
+      // Special handling for column extraction results
+      if (req.body.isColumnExtraction) {
+        const { columns, collectionName } = req.body;
+        
+        // Get the collection by name
+        const session = await storage.getExtractionSession(sessionId);
+        if (!session) {
+          return res.status(404).json({ message: "Session not found" });
+        }
+        
+        const collections = await storage.getObjectCollections(session.projectId);
+        const collection = collections.find(c => c.collectionName === collectionName);
+        
+        if (!collection) {
+          return res.status(404).json({ message: `Collection ${collectionName} not found` });
+        }
+        
+        // Get existing properties for the collection
+        const properties = await storage.getCollectionProperties(collection.id);
+        
+        // Create validation records for each column
+        const createdValidations = [];
+        for (const columnName of columns) {
+          // Find if this property already exists
+          let property = properties.find(p => p.propertyName === columnName);
+          
+          // If property doesn't exist, create it
+          if (!property) {
+            property = await storage.createCollectionProperty({
+              collectionId: collection.id,
+              propertyName: columnName,
+              dataType: 'TEXT',
+              isRequired: false,
+              defaultValue: null,
+              validationRules: null,
+              displayOrder: properties.length + createdValidations.length,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+          
+          // Create validation record
+          const validation = await storage.createFieldValidation({
+            sessionId,
+            validationType: 'collection_property',
+            dataType: 'TEXT',
+            fieldId: property.id,
+            collectionId: collection.id,
+            collectionName: collection.collectionName,
+            recordIndex: 0,
+            extractedValue: columnName,
+            originalExtractedValue: columnName,
+            validationStatus: 'valid',
+            confidenceScore: 100,
+            aiReasoning: 'Column extracted from Excel',
+            documentSource: 'Excel extraction',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          createdValidations.push(validation);
+        }
+        
+        return res.json({ 
+          message: `Created ${createdValidations.length} validations`,
+          validations: createdValidations 
+        });
+      }
+      
+      // Regular validation creation
       const result = insertFieldValidationSchema.safeParse({
         ...req.body,
         sessionId
@@ -5858,130 +5928,6 @@ def extract_function(Column_Name, Excel_File):
     } catch (error) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ message: "Failed to get upload URL" });
-    }
-  });
-
-  // Test workflow step with saved sample document (temporarily public for testing)
-  app.post("/api/workflow/test-step", async (req, res) => {
-    try {
-      const { stepId, valueId } = req.body;
-      
-      console.log('\n🔄 ========== WORKFLOW STEP TEST ==========');
-      console.log(`📍 Step ID: ${stepId}`);
-      console.log(`📍 Value ID: ${valueId}`);
-      
-      // Get the step value configuration
-      const stepValue = await storage.getStepValue(valueId);
-      if (!stepValue) {
-        return res.status(404).json({ message: "Step value not found" });
-      }
-      
-      console.log(`📋 Value Name: ${stepValue.valueName}`);
-      console.log(`🔧 Tool ID: ${stepValue.toolId}`);
-      
-      // Get the tool/function
-      const func = await storage.getExcelWizardryFunction(stepValue.toolId);
-      if (!func) {
-        return res.status(404).json({ message: "Tool not found" });
-      }
-      
-      console.log(`🛠️ Tool Name: ${func.name} (${func.toolType})`);
-      
-      // Get sample documents for this tool
-      const sampleDocs = await storage.getSampleDocuments(func.id);
-      console.log(`📄 Found ${sampleDocs.length} sample document(s)`);
-      
-      // Prepare inputs using the sample document or test data
-      const inputs: Record<string, any> = {};
-      
-      if (sampleDocs.length > 0) {
-        for (const doc of sampleDocs) {
-          console.log(`  - ${doc.parameterName}: ${doc.fileName}`);
-          
-          // Use the extracted content directly for the test
-          if (doc.extractedContent) {
-            inputs[doc.parameterName] = doc.extractedContent;
-          } else if (doc.sampleText) {
-            inputs[doc.parameterName] = doc.sampleText;
-          }
-        }
-      } else {
-        // Use test data if no sample documents are available
-        console.log('⚠️ No sample documents found, using test data');
-        
-        // Create test Excel content with tab-separated format as expected by the function
-        const testExcelContent = `Sheet: New Pensioners
-MPAN    member_unique_id        surname forenames       title   date_of_birth   ni_number       sex_m_f marital_status  address_line_1  address_line_2  address_line_3  address_line_4  address_line_5  postcode        telephone_number        normal_retirement_date  date_pensioned  date_joined_company     date_joined_scheme      date_leaving_company    date_leaving_scheme     contracting_out_reference_no    pensionable_service_years       pensionable_service_days        company_service_years   company_service_days    annual_pension  cash_on_retirement      scheme_category
-
-Sheet: Current Pensioners
-MPAN    surname forenames       title   date_of_birth   sex_m_f address_line_1  address_line_2  address_line_3  postcode        annual_pension_at_valuation     total_pension_increases total_pension_amount
-
-Sheet: Deferred Pensioners
-MPAN    member_name     date_of_birth   deferred_pension_amount revaluation_date
-
-Sheet: Active Members
-Employee_ID     full_name       date_of_birth   date_joined     salary  contribution_rate
-
-Sheet: Transfer Values
-Transfer_ID     member_reference        transfer_amount transfer_date   receiving_scheme
-
-Sheet: Death Benefits
-Claim_ID        deceased_member_id      beneficiary_name        benefit_amount  payment_date`;
-        
-        // Map to the actual parameter name from the function definition
-        // The function expects "Excel File" as the parameter name
-        inputs['Excel File'] = testExcelContent;
-      }
-      
-      console.log('\n🎯 Test Inputs:', JSON.stringify(Object.keys(inputs)));
-      const excelFile = inputs['Excel File'] || inputs.document;
-      console.log('📄 Input document preview:', excelFile ? excelFile.substring(0, 200) + '...' : 'No document');
-      
-      // Execute the tool with the sample data
-      const { toolEngine } = await import("./toolEngine");
-      
-      const tool = {
-        id: func.id,
-        name: func.name,
-        description: func.description,
-        toolType: func.toolType,
-        inputParameters: func.inputParameters || [],
-        functionCode: func.functionCode,
-        aiPrompt: func.aiPrompt || func.description,
-        outputType: func.outputType,
-        llmModel: func.llmModel,
-        metadata: func.metadata || {}
-      };
-      
-      console.log('\n🚀 Executing tool...');
-      const testResults = await toolEngine.testTool(tool, inputs);
-      
-      console.log('\n✅ Test Results:');
-      console.log(JSON.stringify(testResults, null, 2));
-      
-      res.json({
-        success: true,
-        stepValue: {
-          id: stepValue.id,
-          name: stepValue.valueName,
-          toolId: stepValue.toolId
-        },
-        tool: {
-          id: func.id,
-          name: func.name,
-          type: func.toolType
-        },
-        sampleDocuments: sampleDocs.map(d => ({
-          parameterName: d.parameterName,
-          fileName: d.fileName,
-          hasContent: !!d.extractedContent || !!d.sampleText
-        })),
-        results: testResults
-      });
-      
-    } catch (error) {
-      console.error("Workflow step test error:", error);
-      res.status(500).json({ message: "Failed to test workflow step" });
     }
   });
 
