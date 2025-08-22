@@ -5122,14 +5122,19 @@ print(json.dumps(results))
               });
               
               const extractResult = JSON.parse(output);
-              const extractedContent = extractResult.extracted_texts?.[0] || '';
+              let extractedContent = '';
+              if (extractResult.extracted_texts && extractResult.extracted_texts[0]) {
+                extractedContent = extractResult.extracted_texts[0].text_content || '';
+              } else if (extractResult.text_content) {
+                extractedContent = extractResult.text_content;
+              }
               
               // Save new sample document
               await storage.createSampleDocument({
                 functionId: id,
                 parameterName: param.name,
                 fileName: param.sampleFile,
-                filePath: param.sampleFileURL,
+                fileURL: param.sampleFileURL,  // Changed from filePath to fileURL
                 mimeType: mimeType,
                 extractedContent: extractedContent
               });
