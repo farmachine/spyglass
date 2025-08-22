@@ -46,7 +46,8 @@ import {
   Play,
   FileUp,
   FileText,
-  Table2
+  Table2,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -112,6 +113,7 @@ export default function DefineData({
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedTestItems, setSelectedTestItems] = useState<Set<string>>(new Set());
   const [testDocumentsModalOpen, setTestDocumentsModalOpen] = useState(false);
+  const [processingDocument, setProcessingDocument] = useState<string | null>(null);
 
   // Fetch data
   const { data: schemaFields = [] } = useQuery<SchemaField[]>({
@@ -319,6 +321,8 @@ export default function DefineData({
   // Handle test document upload
   const handleTestDocumentUpload = async (file: File) => {
     try {
+      setProcessingDocument(file.name);
+      
       // First get the upload URL
       const uploadResponse = await fetch('/api/objects/upload', {
         method: 'POST',
@@ -363,24 +367,13 @@ export default function DefineData({
       if (response.ok) {
         const data = await response.json();
         console.log('Test document processed:', data);
-        toast({
-          title: "Test Document Uploaded",
-          description: `${file.name} has been processed and saved`
-        });
-      } else {
-        toast({
-          title: "Processing Failed",
-          description: "Failed to process the test document",
-          variant: "destructive"
-        });
+        // Refetch test documents to show the new one
+        refetchTestDocuments?.();
       }
     } catch (error) {
       console.error('Error processing test document:', error);
-      toast({
-        title: "Upload Error",
-        description: "An error occurred while processing the document",
-        variant: "destructive"
-      });
+    } finally {
+      setProcessingDocument(null);
     }
   };
 
@@ -716,7 +709,19 @@ export default function DefineData({
             {/* List of Test Documents */}
             <div className="space-y-2">
               <h3 className="font-semibold text-sm text-gray-700">Current Test Documents</h3>
-              {testDocuments?.length === 0 ? (
+              
+              {/* Show processing spinner if a document is being processed */}
+              {processingDocument && (
+                <div className="p-3 bg-blue-50 rounded-lg flex items-center space-x-3">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">{processingDocument}</p>
+                    <p className="text-xs text-blue-600">Processing...</p>
+                  </div>
+                </div>
+              )}
+              
+              {testDocuments?.length === 0 && !processingDocument ? (
                 <p className="text-sm text-gray-500 italic">No test documents uploaded yet</p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -726,10 +731,10 @@ export default function DefineData({
                         <div className="flex items-center space-x-3">
                           <FileText className="h-5 w-5 text-gray-400" />
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{doc.fileName}</p>
-                            {doc.extractedContent && (
+                            <p className="text-sm font-medium text-gray-700">{doc.file_name || doc.fileName}</p>
+                            {(doc.extracted_content || doc.extractedContent) && (
                               <p className="text-xs text-gray-500">
-                                {doc.extractedContent.length} characters extracted
+                                {(doc.extracted_content || doc.extractedContent).length} characters extracted
                               </p>
                             )}
                           </div>
@@ -745,11 +750,11 @@ export default function DefineData({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      {doc.extractedContent && (
+                      {(doc.extracted_content || doc.extractedContent) && (
                         <div className="mt-2 p-2 bg-white rounded border border-gray-200">
                           <p className="text-xs text-gray-600 font-semibold mb-1">Preview:</p>
                           <p className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words overflow-hidden max-h-24 overflow-y-auto">
-                            {doc.extractedContent.substring(0, 500)}{doc.extractedContent.length > 500 ? '...' : ''}
+                            {(doc.extracted_content || doc.extractedContent).substring(0, 500)}{(doc.extracted_content || doc.extractedContent).length > 500 ? '...' : ''}
                           </p>
                         </div>
                       )}
