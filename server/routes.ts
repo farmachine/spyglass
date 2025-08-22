@@ -6195,6 +6195,10 @@ def extract_function(Column_Name, Excel_File):
       
       // For new tools, use a stable temporary ID that can be updated later
       const actualFunctionId = functionId.startsWith('temp-') ? `pending-${functionId}` : functionId;
+      
+      console.log('🔍 Processing document for function:', actualFunctionId);
+      console.log('🔍 Parameter name:', parameterName);
+      console.log('🔍 File name:', fileName);
 
       if (sampleText) {
         console.log('📝 Processing sample text for parameter:', parameterName);

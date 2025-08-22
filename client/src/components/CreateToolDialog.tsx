@@ -766,6 +766,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           // Use a temporary ID for new functions or the existing ID for edits
           const functionId = editingFunction?.id || `temp-${Date.now()}`;
           console.log('📄 Using function ID for extraction:', functionId);
+          console.log('📄 Calling /api/sample-documents/process with:', {
+            functionId,
+            parameterName: param.name,
+            fileName: file.name,
+            fileURL
+          });
           
           const processResponse = await fetch("/api/sample-documents/process", {
             method: "POST",
