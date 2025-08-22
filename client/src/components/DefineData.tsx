@@ -409,7 +409,7 @@ export default function DefineData({
             />
             <Button
               onClick={() => document.getElementById('test-document-upload-define')?.click()}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600 p-2"
+              className="bg-transparent hover:bg-gray-100 text-gray-700 border-0 p-2"
               title="Upload Test Document"
             >
               <FileUp className="h-4 w-4" />
