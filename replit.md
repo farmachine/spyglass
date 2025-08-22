@@ -62,7 +62,7 @@ Preferred communication style: Simple, everyday language.
 - **Strict Function vs AI Extraction Logic**: Creates Excel functions only for computational tasks, using AI for knowledge document comparisons and reasoning fields.
 - **Unified Extraction System**: All extraction endpoints consistently use `extraction_wizardry.py`.
 - **Function Extraction Type Detection**: `extraction_wizardry.py` detects `extractionType = 'FUNCTION'` to bypass AI for predefined tasks.
-- **Sequential Function Extraction Workflow**: Implemented identifier reference chaining between function extractions, enabling complex multi-step workflows.
+- **Sequential Function Extraction Workflow** (January 2025): Successfully implemented identifier reference chaining between function extractions. Functions with `output_type: 'multiple'` properly iterate over previous step results, processing each item individually. The "Get Worksheet from Column" function now correctly maps 185 columns to their respective worksheets.
 - **Unified Tool-First Configuration System**: Redesigned field configuration interfaces with consistent tool-first approach, dynamic form generation, and @-key referencing.
 - **Comprehensive AI Function Training System**: Enhanced AI training prompts with function generation patterns for array iteration and single object processing, including mandatory structure, parameter validation, and common patterns.
 - **Excel Format Training Integration**: Both main function generation and debug systems now include comprehensive Excel text format training, preventing pandas usage and enforcing proper text parsing with regex and string methods.
