@@ -606,25 +606,63 @@ Return only the Python function code, no explanations.`;
     
     // Format inputs properly, handling data arrays specially
     const formattedInputs = Object.entries(inputs).map(([key, value]) => {
-      // Find the parameter definition to check its type
-      const param = tool.inputParameters.find(p => p.name === key);
+      // Find the parameter definition by ID or name
+      const param = tool.inputParameters.find(p => p.id === key || p.name === key);
       
-      if (param?.type === 'data' && param.sampleData?.rows) {
-        // For data parameters, format the rows properly
-        return `${key}: ${JSON.stringify(param.sampleData.rows, null, 2)}`;
-      } else if (typeof value === 'object') {
-        return `${key}: ${JSON.stringify(value, null, 2)}`;
-      } else {
-        return `${key}: ${value}`;
+      if (param?.type === 'data') {
+        // For data parameters with arrays, check if value is an array
+        if (Array.isArray(value)) {
+          // When receiving array data (like column names from previous step)
+          console.log(`📊 Processing data array for ${param.name}: ${value.length} items`);
+          
+          // CRITICAL: Make sure all items are processed
+          // The AI needs explicit instruction about array length
+          const itemsList = value.map((item, idx) => {
+            if (typeof item === 'object' && item.extractedValue !== undefined) {
+              // Handle result objects from previous steps
+              return `Item ${idx + 1}: ${item.extractedValue}`;
+            }
+            return `Item ${idx + 1}: ${item}`;
+          }).join('\n');
+          
+          return `${param.name} (${value.length} items total - PROCESS ALL ${value.length} ITEMS):
+${itemsList}`;
+        } else if (param.sampleData?.rows) {
+          // Use sample data if available
+          return `${param.name}: ${JSON.stringify(param.sampleData.rows, null, 2)}`;
+        }
       }
-    }).join('\n');
+      
+      if (typeof value === 'object') {
+        return `${param.name || key}: ${JSON.stringify(value, null, 2)}`;
+      } else {
+        return `${param.name || key}: ${value}`;
+      }
+    }).join('\n\n');
+    
+    // Add explicit instruction for array processing
+    const arrayParams = tool.inputParameters.filter(p => p.type === 'data');
+    let arrayInstruction = '';
+    if (arrayParams.length > 0) {
+      const arrayInputs = Object.entries(inputs).filter(([key, value]) => {
+        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+        return param?.type === 'data' && Array.isArray(value);
+      });
+      
+      if (arrayInputs.length > 0) {
+        const totalItems = arrayInputs.reduce((sum, [, value]) => sum + (Array.isArray(value) ? value.length : 0), 0);
+        arrayInstruction = `
+
+CRITICAL INSTRUCTION: You MUST process ALL ${totalItems} items provided in the input data. Return exactly ${totalItems} result objects in your JSON array response.`;
+      }
+    }
     
     // Use the AI prompt as-is since it should already contain the correct format instructions
     // Just provide the input data
     return `${aiPrompt}
 
 Input Data:
-${formattedInputs}`;
+${formattedInputs}${arrayInstruction}`;
   }
   
   /**
