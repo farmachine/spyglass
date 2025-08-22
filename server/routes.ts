@@ -6164,6 +6164,7 @@ def extract_function(Column_Name, Excel_File):
       const pythonProcess = spawn('python3', ['document_extractor.py']);
       
       const input = {
+        step: 'extract_text_only',  // Required by document_extractor.py
         file_name: fileName,
         mime_type: mimeType,
         file_content: fileContent
