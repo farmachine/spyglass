@@ -828,9 +828,15 @@ except Exception as e:
         }
         
         try {
+          console.log('Python stdout length:', stdout.length);
+          console.log('Python stdout preview:', stdout.substring(0, 200));
           const result = JSON.parse(stdout.trim());
+          console.log('Parsed result type:', Array.isArray(result) ? 'array' : typeof result);
+          console.log('Parsed result length:', Array.isArray(result) ? result.length : 'N/A');
           resolve(Array.isArray(result) ? result : [result]);
         } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.log('Raw stdout:', stdout);
           // If JSON parsing fails, return raw output
           resolve([{
             extractedValue: stdout.trim(),
