@@ -1358,38 +1358,25 @@ export default function SessionView() {
             
             if (step) {
               console.log('📝 Found step:', step.stepName);
+              console.log(`💾 Saving ${columnNames.length} columns to collection`);
               
-              // Build extractedData object with all columns
-              const extractedData: any = {};
-              const validations: any[] = [];
-              
-              for (let i = 0; i < columnNames.length; i++) {
-                const fieldName = `${step.stepName}.${columnNames[i]}[0]`; // Using [0] for first record
-                extractedData[fieldName] = columnNames[i];
-                
-                validations.push({
-                  fieldName,
-                  extractedValue: columnNames[i],
-                  validationStatus: 'valid',
-                  aiReasoning: `Column extracted from Excel sheet`,
-                  confidenceScore: 100
-                });
-              }
-              
-              console.log(`💾 Saving ${columnNames.length} validations in bulk`);
-              
-              // Use the bulk save endpoint
-              await apiRequest(`/api/sessions/${sessionId}/save-validations`, {
+              // Use the special column extraction endpoint
+              const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
                 method: 'POST',
                 body: JSON.stringify({
-                  extractedData,
-                  validations
+                  isColumnExtraction: true,
+                  columns: columnNames,
+                  collectionName: step.stepName
                 })
               });
               
-              // Refresh validations
+              console.log('✅ Save response:', response);
+              
+              // Refresh validations and collections
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
               await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'collections'] });
               
               toast({
                 title: "Columns Populated",
