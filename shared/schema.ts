@@ -261,6 +261,18 @@ export const sampleDocuments = pgTable("sample_documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Test documents for flow page testing
+export const testDocuments = pgTable("test_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  filePath: text("file_path"), // Object storage path
+  extractedContent: text("extracted_content"), // Text content extracted from the document
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -358,6 +370,11 @@ export const insertSampleDocumentSchema = createInsertSchema(sampleDocuments).om
   createdAt: true,
 });
 
+export const insertTestDocumentSchema = createInsertSchema(testDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -402,6 +419,8 @@ export type ExtractionIdentifierReference = typeof extractionIdentifierReference
 export type InsertExtractionIdentifierReference = z.infer<typeof insertExtractionIdentifierReferenceSchema>;
 export type SampleDocument = typeof sampleDocuments.$inferSelect;
 export type InsertSampleDocument = z.infer<typeof insertSampleDocumentSchema>;
+export type TestDocument = typeof testDocuments.$inferSelect;
+export type InsertTestDocument = z.infer<typeof insertTestDocumentSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual';

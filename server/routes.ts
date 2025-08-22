@@ -5862,6 +5862,151 @@ def extract_function(Column_Name, Excel_File):
   });
 
   // Sample Document Processing Route - uses the same extraction process as session documents
+  // Test document upload endpoint for Flow page
+  app.post("/api/projects/:projectId/test-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { fileName, fileURL } = req.body;
+
+      if (!fileURL) {
+        return res.status(400).json({ message: "File URL is required for document processing" });
+      }
+
+      console.log('📥 Processing test document for project:', projectId);
+      console.log('📄 File name:', fileName);
+      console.log('🔗 File URL:', fileURL);
+      
+      // Extract the relative path from the object storage URL
+      const urlParts = new URL(fileURL);
+      const pathParts = urlParts.pathname.split('/');
+      const bucketName = pathParts[1];
+      const objectName = pathParts.slice(2).join('/');
+      
+      console.log('📁 Bucket:', bucketName, 'Object:', objectName);
+      
+      // Use ObjectStorageService with the Google Cloud Storage client directly
+      const { objectStorageClient } = await import("./objectStorage");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const objectFile = bucket.file(objectName);
+      
+      // Stream the file content to a buffer
+      const chunks: Buffer[] = [];
+      const stream = objectFile.createReadStream();
+      
+      await new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      
+      const fileBuffer = Buffer.concat(chunks);
+      const [metadata] = await objectFile.getMetadata();
+      const mimeType = metadata.contentType || 'application/octet-stream';
+      const base64Content = fileBuffer.toString('base64');
+      const dataURL = `data:${mimeType};base64,${base64Content}`;
+
+      // Use the SAME document extraction process as session documents
+      const extractionData = {
+        step: "extract_text_only",
+        documents: [{
+          file_name: fileName || 'test-document',
+          file_content: dataURL,
+          mime_type: mimeType
+        }]
+      };
+
+      const { spawn } = await import('child_process');
+      const python = spawn('python3', ['document_extractor.py']);
+      
+      python.stdin.write(JSON.stringify(extractionData));
+      python.stdin.end();
+
+      let stdoutData = '';
+      let stderrData = '';
+
+      python.stdout.on('data', (data) => {
+        stdoutData += data.toString();
+      });
+
+      python.stderr.on('data', (data) => {
+        stderrData += data.toString();
+      });
+
+      await new Promise((resolve) => {
+        python.on('close', async (code) => {
+          console.log(`Python process exited with code ${code}`);
+          if (stderrData) {
+            console.log('Python stderr:', stderrData);
+          }
+          
+          if (code === 0 && stdoutData) {
+            try {
+              const extractedData = JSON.parse(stdoutData);
+              console.log('📊 Extraction results:', extractedData);
+              
+              // Save to test_documents table
+              const testDoc = await storage.createTestDocument({
+                projectId,
+                fileName: fileName || 'test-document',
+                fileSize: fileBuffer.length,
+                mimeType,
+                filePath: fileURL,
+                extractedContent: extractedData.extracted_content || ''
+              });
+
+              // Console log all saved data
+              console.log('✅ TEST DOCUMENT SAVED TO DATABASE:');
+              console.log('=====================================');
+              console.log('📌 Document ID:', testDoc.id);
+              console.log('📌 Project ID:', testDoc.projectId);
+              console.log('📌 File Name:', testDoc.fileName);
+              console.log('📌 File Size:', testDoc.fileSize, 'bytes');
+              console.log('📌 MIME Type:', testDoc.mimeType);
+              console.log('📌 File Path:', testDoc.filePath);
+              console.log('📌 Created At:', testDoc.createdAt);
+              console.log('📌 EXTRACTED CONTENT:');
+              console.log('-------------------------------------');
+              console.log(testDoc.extractedContent);
+              console.log('=====================================');
+              
+              res.json({
+                message: "Test document processed successfully",
+                document: testDoc
+              });
+            } catch (parseError) {
+              console.error('Failed to parse extraction result:', parseError);
+              res.status(500).json({ 
+                message: "Failed to parse extraction result",
+                error: parseError.message 
+              });
+            }
+          } else {
+            res.status(500).json({ 
+              message: "Document extraction failed",
+              error: stderrData || "Unknown error"
+            });
+          }
+          resolve(null);
+        });
+      });
+    } catch (error) {
+      console.error("Error processing test document:", error);
+      res.status(500).json({ message: "Failed to process test document" });
+    }
+  });
+
+  // Get test documents for a project
+  app.get("/api/projects/:projectId/test-documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const documents = await storage.getTestDocuments(projectId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error getting test documents:", error);
+      res.status(500).json({ message: "Failed to get test documents" });
+    }
+  });
+
   // Get sample documents for a function
   app.get("/api/sample-documents/function/:functionId", authenticateToken, async (req: AuthRequest, res) => {
     try {

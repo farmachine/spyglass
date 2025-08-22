@@ -56,7 +56,10 @@ import {
   type ExtractionIdentifierReference,
   type InsertExtractionIdentifierReference,
   type SampleDocument,
-  type InsertSampleDocument
+  type InsertSampleDocument,
+  testDocuments,
+  type TestDocument,
+  type InsertTestDocument
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -189,6 +192,11 @@ export interface IStorage {
   updateSampleDocument(id: string, document: Partial<InsertSampleDocument>): Promise<SampleDocument | undefined>;
   deleteSampleDocument(id: string): Promise<boolean>;
   deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean>;
+
+  // Test Documents
+  getTestDocuments(projectId: string): Promise<TestDocument[]>;
+  createTestDocument(document: InsertTestDocument): Promise<TestDocument>;
+  deleteTestDocument(id: string): Promise<boolean>;
 
   // Workflow Steps
   getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>;
@@ -3298,6 +3306,27 @@ class PostgreSQLStorage implements IStorage {
           eq(sampleDocuments.parameterName, parameterName)
         )
       );
+      return result.rowCount > 0;
+    });
+  }
+
+  // Test Documents
+  async getTestDocuments(projectId: string): Promise<TestDocument[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(testDocuments).where(eq(testDocuments.projectId, projectId));
+    });
+  }
+
+  async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(testDocuments).values(document).returning();
+      return result;
+    });
+  }
+
+  async deleteTestDocument(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(testDocuments).where(eq(testDocuments.id, id));
       return result.rowCount > 0;
     });
   }

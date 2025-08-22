@@ -30,7 +30,8 @@ import {
   Hash,
   Calendar,
   ToggleLeft,
-  Edit2
+  Edit2,
+  Upload
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -468,8 +469,101 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     saveFlow
   }));
 
+  // Handle test document upload
+  const handleTestDocumentUpload = async (file: File) => {
+    try {
+      // First get the upload URL
+      const uploadResponse = await fetch('/api/objects/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const { uploadURL } = await uploadResponse.json();
+      
+      // Upload the file to object storage
+      const uploadResult = await fetch(uploadURL, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+      
+      if (!uploadResult.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      // Process the document through extraction pipeline
+      const response = await fetch(`/api/projects/${projectId}/test-documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          fileName: file.name, 
+          fileURL: uploadURL.split('?')[0] // Remove query params from URL
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Test document processed:', data);
+        toast({
+          title: "Test Document Uploaded",
+          description: `${file.name} has been processed and saved`
+        });
+      } else {
+        toast({
+          title: "Processing Failed",
+          description: "Failed to process the test document",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error processing test document:', error);
+      toast({
+        title: "Upload Error",
+        description: "An error occurred while processing the document",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 relative">
+      {/* Test Document Upload - Top Right */}
+      <div className="absolute top-0 right-0 z-10">
+        <input
+          type="file"
+          id="test-document-upload"
+          accept=".xlsx,.xls,.pdf,.docx,.doc"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              await handleTestDocumentUpload(file);
+              // Reset input value to allow re-uploading same file
+              e.target.value = '';
+            }
+          }}
+        />
+        <Button
+          onClick={() => document.getElementById('test-document-upload')?.click()}
+          className="bg-gray-600 hover:bg-gray-700 text-white"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Test Document
+        </Button>
+      </div>
+      
       <div className="flex flex-col items-center">
         {/* Start dot and arrow */}
         {steps.length > 0 && (
