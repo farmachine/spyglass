@@ -645,8 +645,17 @@ export default function DefineData({
                 }
 
                 console.log("🧪 Running Test Workflow");
+                console.log("🔍 Selected Test Items:", Array.from(selectedTestItems));
+                console.log("📄 Available Test Documents:", testDocuments);
                 console.log("📄 Selected Documents:", selectedDocs);
                 console.log("🔧 Selected Values:", selectedValues);
+                
+                // Check if any items are selected
+                if (selectedDocs.length === 0 || selectedValues.length === 0) {
+                  console.warn("⚠️ No documents or values selected for testing!");
+                  console.log("Please select at least one document and one value to test.");
+                  return;
+                }
 
                 // Process each document through each selected value
                 for (const doc of selectedDocs) {
