@@ -754,10 +754,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       
       // Always process the uploaded document for extraction
       const param = inputParameters.find(p => p.id === paramId);
+      console.log('📄 Processing document upload:', {
+        paramName: param?.name,
+        paramId,
+        editingFunctionId: editingFunction?.id,
+        fileURL
+      });
+      
       if (param) {
         try {
           // Use a temporary ID for new functions or the existing ID for edits
           const functionId = editingFunction?.id || `temp-${Date.now()}`;
+          console.log('📄 Using function ID for extraction:', functionId);
           
           const processResponse = await fetch("/api/sample-documents/process", {
             method: "POST",
