@@ -656,17 +656,26 @@ export default function DefineData({
                     console.log(`  ⚙️ Running ${value.stepName} > ${value.valueName}`);
                     
                     try {
+                      // Prepare the request body
+                      const requestBody = {
+                        documentId: doc.id,
+                        documentContent: doc.extracted_content || doc.extractedContent,
+                        valueConfig: value
+                      };
+                      
+                      console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2));
+                      
                       // Call the test endpoint
                       const response = await apiRequest(`/api/projects/${project.id}/test-workflow`, {
                         method: 'POST',
-                        body: JSON.stringify({
-                          documentId: doc.id,
-                          documentContent: doc.extracted_content || doc.extractedContent,
-                          valueConfig: value
-                        })
+                        body: JSON.stringify(requestBody)
                       });
                       
-                      console.log(`  ✅ Result:`, response.result);
+                      console.log("📥 Complete Response:", JSON.stringify(response, null, 2));
+                      
+                      if (response.result?.results) {
+                        console.log(`  ✅ Extracted ${response.result.results.length} items`);
+                      }
                     } catch (error) {
                       console.error(`  ❌ Error:`, error);
                     }
