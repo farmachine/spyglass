@@ -271,9 +271,19 @@ export class ToolEngine {
    * Test tool with given inputs
    */
   async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
-    // Prepare inputs by fetching document content if needed
-    const forAI = tool.toolType === "AI_ONLY";
-    const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
+    // Check if inputs already contain string content (for testing)
+    let preparedInputs = inputs;
+    
+    // Only prepare inputs if they're not already strings (test data)
+    const hasStringContent = Object.values(inputs).some(v => typeof v === 'string' && v.includes('Sheet:'));
+    
+    if (!hasStringContent) {
+      // Prepare inputs by fetching document content if needed
+      const forAI = tool.toolType === "AI_ONLY";
+      preparedInputs = await this.prepareInputs(tool, inputs, forAI);
+    } else {
+      console.log('📝 Using pre-formatted test data, skipping extraction');
+    }
     
     if (tool.toolType === "AI_ONLY") {
       return this.testAITool(tool, preparedInputs);
@@ -554,6 +564,7 @@ ${formattedInputs}`;
         .replace(/\bnull\b/g, 'None');
     };
     
+    console.log('🐍 Building Python test script with inputs:', Object.keys(inputs));
     const inputsPython = toPythonLiteral(inputs);
     const parametersPython = toPythonLiteral(tool.inputParameters);
     const outputType = tool.outputType || 'single';
@@ -586,6 +597,17 @@ try:
     
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
+    
+    # Debug print inputs
+    print(f"DEBUG: Inputs received: {list(inputs.keys())}", file=sys.stderr)
+    print(f"DEBUG: Parameters expected: {[p['name'] for p in parameters]}", file=sys.stderr)
+    
+    # Print first 500 chars of each input to debug
+    for key, value in inputs.items():
+        if isinstance(value, str):
+            print(f"DEBUG: Input '{key}' preview: {value[:500] if len(value) > 500 else value}", file=sys.stderr)
+        else:
+            print(f"DEBUG: Input '{key}' type: {type(value)}", file=sys.stderr)
     
     # Check if we should iterate over sample data
     data_params = [p for p in parameters if p.get('type') == 'data']
@@ -651,6 +673,20 @@ try:
             param_name = param['name']
             if param_name in inputs:
                 args.append(inputs[param_name])
+            else:
+                # Try case-insensitive match
+                for key in inputs:
+                    if key.lower() == param_name.lower():
+                        args.append(inputs[key])
+                        break
+                else:
+                    # If no match and it's a document type, use the first input
+                    if param.get('type') == 'document' and inputs:
+                        args.append(list(inputs.values())[0])
+        
+        print(f"DEBUG: Calling function with {len(args)} arguments", file=sys.stderr)
+        if args:
+            print(f"DEBUG: First arg preview: {str(args[0])[:200] if args[0] else 'None'}", file=sys.stderr)
         
         # Execute function once
         result = func_to_call(*args)
@@ -737,7 +773,9 @@ except Exception as e:
       });
       
       python.stderr.on('data', (data) => {
-        stderr += data.toString();
+        const stderrChunk = data.toString();
+        stderr += stderrChunk;
+        console.error('🐍 Python stderr:', stderrChunk);
       });
       
       python.on('close', (code) => {
