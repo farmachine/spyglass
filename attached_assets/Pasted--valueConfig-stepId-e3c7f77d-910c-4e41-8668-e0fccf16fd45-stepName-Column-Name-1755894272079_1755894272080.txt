@@ -1,0 +1,2618 @@
+ "valueConfig": {
+    "stepId": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+    "stepName": "Column Name Mapping",
+    "stepType": "list",
+    "valueId": "84b299ee-f57f-4373-b967-cc36b219b083",
+    "valueName": "Worksheet Name",
+    "toolId": "f1689b16-0ea4-4422-bc8a-8e724930f058",
+    "inputValues": {
+      "0.em9e3ppfap": "@Column Names",
+      "0.e2e4q7okb0q": [
+        "user_document"
+      ]
+    }
+  },
+  "previousResults": {
+    "Column Name Mapping.Column Names": [
+      {
+        "extractedValue": "Old Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 3"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 4"
+      },
+      {
+        "extractedValue": "Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 5"
+      },
+      {
+        "extractedValue": "Date Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 6"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 7"
+      },
+      {
+        "extractedValue": "Type Of Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 8"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 9"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 10"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 11"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 12"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 13"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 14"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 15"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 16"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 17"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 18"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 19"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 20"
+      },
+      {
+        "extractedValue": "Date Of Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 21"
+      },
+      {
+        "extractedValue": "Code For Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 22"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 23"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 24"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 25"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 26"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 27"
+      },
+      {
+        "extractedValue": "Non-increasing pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 28"
+      },
+      {
+        "extractedValue": "Non-increasing TV-in pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 29"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 30"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 31"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 32"
+      },
+      {
+        "extractedValue": "Tax Free Cash taken at Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 33"
+      },
+      {
+        "extractedValue": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 34"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 35"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 36"
+      },
+      {
+        "extractedValue": "Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 37"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 38"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 3"
+      },
+      {
+        "extractedValue": "Benefits Scale Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 4"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 5"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 6"
+      },
+      {
+        "extractedValue": "Date Pensionable Service Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 7"
+      },
+      {
+        "extractedValue": "Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 8"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 9"
+      },
+      {
+        "extractedValue": "Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 12"
+      },
+      {
+        "extractedValue": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 13"
+      },
+      {
+        "extractedValue": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 14"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 15"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 16"
+      },
+      {
+        "extractedValue": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 17"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Deferred Member Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 18"
+      },
+      {
+        "extractedValue": "Code For Exit From Active Deferred Member Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 19"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 20"
+      },
+      {
+        "extractedValue": "Early Vesting Age",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 21"
+      },
+      {
+        "extractedValue": "Contingent Spouse's Benefit Marker",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 22"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 23"
+      },
+      {
+        "extractedValue": "Spouse's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 24"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 25"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 26"
+      },
+      {
+        "extractedValue": "New Pension Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 27"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 28"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 29"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 30"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 31"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 32"
+      },
+      {
+        "extractedValue": "Date Of Buy-Out Of SBO Terms",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 33"
+      },
+      {
+        "extractedValue": "Deferred Pension For Service To Buy-Out at this valuation date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 34"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 35"
+      },
+      {
+        "extractedValue": "Final salary: Final Pensionable Salary At Exit From Active Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 36"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 3"
+      },
+      {
+        "extractedValue": "Benefits Scale Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 4"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 5"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 6"
+      },
+      {
+        "extractedValue": "Date Pensionable Service Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 7"
+      },
+      {
+        "extractedValue": "Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 8"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 9"
+      },
+      {
+        "extractedValue": "Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 12"
+      },
+      {
+        "extractedValue": "Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 13"
+      },
+      {
+        "extractedValue": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 14"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Not Subject To Statutory Revaluation In Deferment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 15"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 16"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment (or fixed 5% in deferment and CPI capped at 5% pa in payment for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 17"
+      },
+      {
+        "extractedValue": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 18"
+      },
+      {
+        "extractedValue": "Date Of Exit From Deferred Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 19"
+      },
+      {
+        "extractedValue": "Code For Exit From Deferred Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 20"
+      },
+      {
+        "extractedValue": "VSS Current Pension Including GMP",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 21"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 22"
+      },
+      {
+        "extractedValue": "Early Vesting Age",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 23"
+      },
+      {
+        "extractedValue": "Contingent Spouse's Benefit Marker",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 24"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 25"
+      },
+      {
+        "extractedValue": "Spouse's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 26"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 27"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 28"
+      },
+      {
+        "extractedValue": "New Pension Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 29"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 30"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 31"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 32"
+      },
+      {
+        "extractedValue": "Section B indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 33"
+      },
+      {
+        "extractedValue": "TV-in fixed Paid Up Pension at Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 34"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 35"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 36"
+      },
+      {
+        "extractedValue": "Salary at date of leaving pensionable service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 37"
+      },
+      {
+        "extractedValue": "Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 38"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 1"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 2"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 3"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 4"
+      },
+      {
+        "extractedValue": "Date Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 5"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 6"
+      },
+      {
+        "extractedValue": "Type Of Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 7"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 8"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 9"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 12"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 13"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 14"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 15"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 16"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 17"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 18"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 19"
+      },
+      {
+        "extractedValue": "Date Of Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 20"
+      },
+      {
+        "extractedValue": "Code For Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 21"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 22"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 23"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 24"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 25"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 26"
+      },
+      {
+        "extractedValue": "Non-increasing pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 27"
+      },
+      {
+        "extractedValue": "Non-increasing TV-in pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 28"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 29"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 30"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 31"
+      },
+      {
+        "extractedValue": "Tax Free Cash taken at Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 32"
+      },
+      {
+        "extractedValue": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 33"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 34"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 35"
+      },
+      {
+        "extractedValue": "Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 36"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 37"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 1"
+      },
+      {
+        "extractedValue": "Widow(er)'s Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 2"
+      },
+      {
+        "extractedValue": "Deceased Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 3"
+      },
+      {
+        "extractedValue": "Beneficiary's Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 4"
+      },
+      {
+        "extractedValue": "Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 5"
+      },
+      {
+        "extractedValue": "Date Became Widow(er) Beneficiary",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 6"
+      },
+      {
+        "extractedValue": "Code For Previous Status Of Deceased Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 7"
+      },
+      {
+        "extractedValue": "Date Deceased Member Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 8"
+      },
+      {
+        "extractedValue": "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 9"
+      },
+      {
+        "extractedValue": "Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 10"
+      },
+      {
+        "extractedValue": "Total Widow(er)'s Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 11"
+      },
+      {
+        "extractedValue": "Total Widow(er)'s Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 12"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 13"
+      },
+      {
+        "extractedValue": "Date Of Exit From Widow(er) Beneficiary Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 14"
+      },
+      {
+        "extractedValue": "Code For Exit From Widow(er) Beneficiary Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 15"
+      },
+      {
+        "extractedValue": "Widow's Allotment At Valuation Date Included In Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 16"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 17"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 18"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 19"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 20"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 21"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 22"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 1"
+      },
+      {
+        "extractedValue": "Child's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 2"
+      },
+      {
+        "extractedValue": "Deceased members reference no",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 3"
+      },
+      {
+        "extractedValue": "Child's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 4"
+      },
+      {
+        "extractedValue": "Date Child'sPension Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 5"
+      },
+      {
+        "extractedValue": "Code For Previous Status Of Deceased Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 6"
+      },
+      {
+        "extractedValue": "Child's Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 7"
+      },
+      {
+        "extractedValue": "Component Of Child's Pension At This Valuation Subject To RPI capped at 5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 8"
+      },
+      {
+        "extractedValue": "Date Child's Pension Is To Cease Or Has Ceased",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 9"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 10"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 11"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 12"
+      },
+      {
+        "extractedValue": "Component Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 13"
+      },
+      {
+        "extractedValue": "Component of Child’s Pension At This Valuation Subject to CPI capped at 2_5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 14"
+      }
+    ],
+    "Column Names": [
+      {
+        "extractedValue": "Old Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 3"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 4"
+      },
+      {
+        "extractedValue": "Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 5"
+      },
+      {
+        "extractedValue": "Date Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 6"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 7"
+      },
+      {
+        "extractedValue": "Type Of Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 8"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 9"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 10"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 11"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 12"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 13"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 14"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 15"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 16"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 17"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 18"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 19"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 20"
+      },
+      {
+        "extractedValue": "Date Of Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 21"
+      },
+      {
+        "extractedValue": "Code For Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 22"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 23"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 24"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 25"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 26"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 27"
+      },
+      {
+        "extractedValue": "Non-increasing pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 28"
+      },
+      {
+        "extractedValue": "Non-increasing TV-in pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 29"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 30"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 31"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 32"
+      },
+      {
+        "extractedValue": "Tax Free Cash taken at Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 33"
+      },
+      {
+        "extractedValue": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 34"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 35"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 36"
+      },
+      {
+        "extractedValue": "Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 37"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'New_Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: New_Pensioners, Column 38"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 3"
+      },
+      {
+        "extractedValue": "Benefits Scale Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 4"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 5"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 6"
+      },
+      {
+        "extractedValue": "Date Pensionable Service Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 7"
+      },
+      {
+        "extractedValue": "Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 8"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 9"
+      },
+      {
+        "extractedValue": "Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 12"
+      },
+      {
+        "extractedValue": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 13"
+      },
+      {
+        "extractedValue": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 14"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 15"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 16"
+      },
+      {
+        "extractedValue": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 17"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Deferred Member Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 18"
+      },
+      {
+        "extractedValue": "Code For Exit From Active Deferred Member Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 19"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 20"
+      },
+      {
+        "extractedValue": "Early Vesting Age",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 21"
+      },
+      {
+        "extractedValue": "Contingent Spouse's Benefit Marker",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 22"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 23"
+      },
+      {
+        "extractedValue": "Spouse's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 24"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 25"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 26"
+      },
+      {
+        "extractedValue": "New Pension Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 27"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 28"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 29"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 30"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 31"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 32"
+      },
+      {
+        "extractedValue": "Date Of Buy-Out Of SBO Terms",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 33"
+      },
+      {
+        "extractedValue": "Deferred Pension For Service To Buy-Out at this valuation date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 34"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 35"
+      },
+      {
+        "extractedValue": "Final salary: Final Pensionable Salary At Exit From Active Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Active deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Active deferreds, Column 36"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 1"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 2"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 3"
+      },
+      {
+        "extractedValue": "Benefits Scale Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 4"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 5"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 6"
+      },
+      {
+        "extractedValue": "Date Pensionable Service Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 7"
+      },
+      {
+        "extractedValue": "Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 8"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 9"
+      },
+      {
+        "extractedValue": "Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 12"
+      },
+      {
+        "extractedValue": "Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 13"
+      },
+      {
+        "extractedValue": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 14"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Not Subject To Statutory Revaluation In Deferment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 15"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 16"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment (or fixed 5% in deferment and CPI capped at 5% pa in payment for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 17"
+      },
+      {
+        "extractedValue": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 18"
+      },
+      {
+        "extractedValue": "Date Of Exit From Deferred Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 19"
+      },
+      {
+        "extractedValue": "Code For Exit From Deferred Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 20"
+      },
+      {
+        "extractedValue": "VSS Current Pension Including GMP",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 21"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 22"
+      },
+      {
+        "extractedValue": "Early Vesting Age",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 23"
+      },
+      {
+        "extractedValue": "Contingent Spouse's Benefit Marker",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 24"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 25"
+      },
+      {
+        "extractedValue": "Spouse's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 26"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 27"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 28"
+      },
+      {
+        "extractedValue": "New Pension Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 29"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 30"
+      },
+      {
+        "extractedValue": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 31"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Deferred Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 32"
+      },
+      {
+        "extractedValue": "Section B indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 33"
+      },
+      {
+        "extractedValue": "TV-in fixed Paid Up Pension at Normal Retirement Date",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 34"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 35"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 36"
+      },
+      {
+        "extractedValue": "Salary at date of leaving pensionable service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 37"
+      },
+      {
+        "extractedValue": "Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Deferreds'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Deferreds, Column 38"
+      },
+      {
+        "extractedValue": "Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 1"
+      },
+      {
+        "extractedValue": "Employer Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 2"
+      },
+      {
+        "extractedValue": "Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 3"
+      },
+      {
+        "extractedValue": "Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 4"
+      },
+      {
+        "extractedValue": "Date Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 5"
+      },
+      {
+        "extractedValue": "Code For Previous Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 6"
+      },
+      {
+        "extractedValue": "Type Of Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 7"
+      },
+      {
+        "extractedValue": "Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 8"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 9"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 10"
+      },
+      {
+        "extractedValue": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 11"
+      },
+      {
+        "extractedValue": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 12"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 13"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 14"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 15"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Sex Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 16"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 17"
+      },
+      {
+        "extractedValue": "Contingent Widow(er)'s Pension At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 18"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 19"
+      },
+      {
+        "extractedValue": "Date Of Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 20"
+      },
+      {
+        "extractedValue": "Code For Exit From Pensioner Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 21"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 22"
+      },
+      {
+        "extractedValue": "Married Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 23"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 24"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 25"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 26"
+      },
+      {
+        "extractedValue": "Non-increasing pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 27"
+      },
+      {
+        "extractedValue": "Non-increasing TV-in pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 28"
+      },
+      {
+        "extractedValue": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 29"
+      },
+      {
+        "extractedValue": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 30"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 31"
+      },
+      {
+        "extractedValue": "Tax Free Cash taken at Retirement",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 32"
+      },
+      {
+        "extractedValue": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 33"
+      },
+      {
+        "extractedValue": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 34"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 35"
+      },
+      {
+        "extractedValue": "Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 36"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Pensioners'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Pensioners, Column 37"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 1"
+      },
+      {
+        "extractedValue": "Widow(er)'s Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 2"
+      },
+      {
+        "extractedValue": "Deceased Member's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 3"
+      },
+      {
+        "extractedValue": "Beneficiary's Code",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 4"
+      },
+      {
+        "extractedValue": "Widow(er)'s Date Of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 5"
+      },
+      {
+        "extractedValue": "Date Became Widow(er) Beneficiary",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 6"
+      },
+      {
+        "extractedValue": "Code For Previous Status Of Deceased Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 7"
+      },
+      {
+        "extractedValue": "Date Deceased Member Became Pensioner",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 8"
+      },
+      {
+        "extractedValue": "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 9"
+      },
+      {
+        "extractedValue": "Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 10"
+      },
+      {
+        "extractedValue": "Total Widow(er)'s Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 11"
+      },
+      {
+        "extractedValue": "Total Widow(er)'s Pension Payable From Scheme At Last Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 12"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 13"
+      },
+      {
+        "extractedValue": "Date Of Exit From Widow(er) Beneficiary Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 14"
+      },
+      {
+        "extractedValue": "Code For Exit From Widow(er) Beneficiary Status",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 15"
+      },
+      {
+        "extractedValue": "Widow's Allotment At Valuation Date Included In Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 16"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 17"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 18"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 19"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 20"
+      },
+      {
+        "extractedValue": "Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 21"
+      },
+      {
+        "extractedValue": "Postcode",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Widows'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Widows, Column 22"
+      },
+      {
+        "extractedValue": "Valuation Record Type",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 1"
+      },
+      {
+        "extractedValue": "Child's Reference No",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 2"
+      },
+      {
+        "extractedValue": "Deceased members reference no",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 3"
+      },
+      {
+        "extractedValue": "Child's Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 4"
+      },
+      {
+        "extractedValue": "Date Child'sPension Commenced",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 5"
+      },
+      {
+        "extractedValue": "Code For Previous Status Of Deceased Member",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 6"
+      },
+      {
+        "extractedValue": "Child's Pension Payable From Scheme At This Valuation",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 7"
+      },
+      {
+        "extractedValue": "Component Of Child's Pension At This Valuation Subject To RPI capped at 5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 8"
+      },
+      {
+        "extractedValue": "Date Child's Pension Is To Cease Or Has Ceased",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 9"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 10"
+      },
+      {
+        "extractedValue": "Old Supplementary Fund Pension",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 11"
+      },
+      {
+        "extractedValue": "Section B Indicator",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 12"
+      },
+      {
+        "extractedValue": "Component Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 13"
+      },
+      {
+        "extractedValue": "Component of Child’s Pension At This Valuation Subject to CPI capped at 2_5% pa",
+        "validationStatus": "valid",
+        "aiReasoning": "Column from sheet 'Children'",
+        "confidenceScore": 100,
+        "documentSource": "Sheet: Children, Column 14"
+      }
+    ]
+  }
+}
+main.tsx:17 📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "[\n  {\n    \"extractedValue\": \"New_Pensioners\",\n    \"validationStatus\": \"valid\",\n    \"aiReasoning\": \"Located column 'Old Member's Reference No' in worksheet 'New_Pensioners'\",\n    \"confidenceScore\": 100,\n    \"documentSource\": \"Sheet: New_Pensioners\"\n  },\n  {\n    \"extractedValue\": \"New_Pensioners\",\n    \"validationStatus\": \"valid\",\n    \"aiReasoning\": \"Located column 'Date of Birth' in worksheet 'New_Pensioners'\",\n    \"confidenceScore\": 100,\n    \"documentSource\": \"Sheet: New_Pensioners\"\n  }\n]\n[{\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unknown\"}, {\"extractedValue\": [], \"validationStatus\": \"valid\", \"aiReasoning\": \"Extracted for record unknown\", \"confidenceScore\": 95, \"documentSource\": \"RECORD_unkn
+main.tsx:17   ✅ Extracted 1 items
