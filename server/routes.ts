@@ -6092,19 +6092,41 @@ def extract_function(Column_Name, Excel_File):
             python.on('close', (code) => {
               if (code === 0 && stdoutData) {
                 try {
-                  const result = JSON.parse(stdoutData);
+                  // Handle debug output - extract only the JSON part
+                  let jsonStr = stdoutData;
+                  const jsonMatch = stdoutData.match(/\{[\s\S]*\}(?!.*\{)/);
+                  if (jsonMatch) {
+                    jsonStr = jsonMatch[0];
+                  }
+                  
+                  const result = JSON.parse(jsonStr);
                   console.log('  Extraction Result:', result);
+                  
+                  // Extract the actual results from the response
+                  let extractedData = null;
+                  if (result.results) {
+                    extractedData = result.results;
+                  } else if (result.output) {
+                    extractedData = result.output;
+                  } else if (result.extracted_data) {
+                    extractedData = result.extracted_data;
+                  } else {
+                    extractedData = result;
+                  }
+                  
                   res.json({ 
                     success: true, 
-                    result: result,
+                    result: extractedData,
                     valueName: valueConfig.valueName,
                     stepName: valueConfig.stepName
                   });
                 } catch (parseError) {
                   console.error('  Parse Error:', parseError);
+                  console.error('  Raw output:', stdoutData);
                   res.json({ 
                     success: false, 
                     error: 'Failed to parse extraction result',
+                    rawOutput: stdoutData,
                     valueName: valueConfig.valueName,
                     stepName: valueConfig.stepName
                   });
