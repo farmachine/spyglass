@@ -3433,6 +3433,10 @@ Thank you for your assistance.`;
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => {
+                                            // Check if this is the identifier (first column)
+                                            if (index === 0) {
+                                              console.log('clicked on identifier');
+                                            }
                                             console.log(`Run tool ${value.toolId} for ${value.valueName}`);
                                             openDocumentSelectionModal(value.toolId, value.valueName, value.inputValues);
                                           }}
