@@ -675,7 +675,10 @@ try:
             result = func_to_call(*args)
             
             # Process result (could be single or multiple values)
-            if isinstance(result, str):
+            if isinstance(result, dict) and 'extractedValue' in result and 'validationStatus' in result:
+                # Result is already a field validation object - use it directly
+                all_results.append(result)
+            elif isinstance(result, str):
                 try:
                     parsed = json.loads(result)
                     if isinstance(parsed, list):
