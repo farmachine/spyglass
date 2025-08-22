@@ -1318,25 +1318,16 @@ export default function SessionView() {
   const executeTool = async (toolId: string, valueName: string, inputValues: any, selectedDocument: any) => {
     try {
       
-      // Prepare inputs - for the column extraction function, we need to pass the content directly
-      // The function expects a single parameter: excel_file_content
+      // Simply pass the document content directly
       const preparedInputs: Record<string, any> = {};
       
-      // For this specific function, we just pass the extracted content
-      // The key should match what the function expects
-      if (selectedDocument.extractedContent) {
-        // Pass with the key that the tool configuration expects
-        if (inputValues) {
-          for (const [key, value] of Object.entries(inputValues)) {
-            // Use the configured key, but pass the document content
-            preparedInputs[key] = selectedDocument.extractedContent;
-          }
-        }
-      }
+      // The function expects Excel_Document parameter
+      preparedInputs['Excel_Document'] = selectedDocument.extractedContent || '';
 
       console.log(`🚀 Executing tool ${toolId} for ${valueName}`);
       console.log('📄 Using document:', selectedDocument.fileName);
-      console.log('📊 Prepared inputs:', preparedInputs);
+      console.log('📊 Document content length:', selectedDocument.extractedContent?.length || 0);
+      console.log('📊 Passing as parameter Excel_Document');
 
       // Call the test endpoint using apiRequest which handles auth properly
       const result = await apiRequest('/api/excel-functions/test', {
