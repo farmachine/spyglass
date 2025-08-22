@@ -664,15 +664,21 @@ export default function DefineData({
                 for (const doc of selectedDocs) {
                   console.log(`\n📊 Processing document: ${doc.file_name || doc.fileName}`);
                   
+                  // Track results from previous steps for sequential execution
+                  const previousResults: { [key: string]: any } = {};
+                  
+                  // Sort values to ensure dependencies are processed first
+                  // (In a real implementation, we'd do topological sort based on @-references)
                   for (const value of selectedValues) {
                     console.log(`  ⚙️ Running ${value.stepName} > ${value.valueName}`);
                     
                     try {
-                      // Prepare the request body
+                      // Prepare the request body with previous results
                       const requestBody = {
                         documentId: doc.id,
                         documentContent: doc.extracted_content || doc.extractedContent,
-                        valueConfig: value
+                        valueConfig: value,
+                        previousResults: previousResults // Pass accumulated results
                       };
                       
                       console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2));
@@ -687,6 +693,14 @@ export default function DefineData({
                       
                       if (response.result?.results) {
                         console.log(`  ✅ Extracted ${response.result.results.length} items`);
+                        
+                        // Store the results for use by subsequent steps
+                        // Use both step.value format and just value name for flexibility
+                        const resultKey = `${value.stepName}.${value.valueName}`;
+                        previousResults[resultKey] = response.result.results;
+                        previousResults[value.valueName] = response.result.results;
+                        
+                        console.log(`  💾 Stored results as "${resultKey}" and "${value.valueName}" for subsequent steps`);
                       }
                     } catch (error) {
                       console.error(`  ❌ Error:`, error);

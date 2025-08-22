@@ -6082,13 +6082,14 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/projects/:projectId/test-workflow", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
-      const { documentId, documentContent, valueConfig } = req.body;
+      const { documentId, documentContent, valueConfig, previousResults } = req.body;
       
       console.log('🧪 Test Workflow Request:');
       console.log('  Project:', projectId);
       console.log('  Document:', documentId);
       console.log('  Document Content Length:', documentContent?.length || 0);
       console.log('  Value Config:', valueConfig);
+      console.log('  Previous Results Available:', previousResults ? Object.keys(previousResults).length : 0);
       
       // If there's a toolId, we need to execute the tool/function
       if (valueConfig.toolId) {
@@ -6102,6 +6103,22 @@ def extract_function(Column_Name, Excel_File):
           
           // Prepare input values, replacing document parameters with test document content
           const preparedInputValues = { ...valueConfig.inputValues };
+          
+          // Check for @-references in input values and replace with previous results
+          for (const [key, value] of Object.entries(preparedInputValues)) {
+            if (typeof value === 'string' && value.startsWith('@')) {
+              const referencePath = value.slice(1); // Remove @ prefix
+              console.log(`  Found reference: ${value} -> Looking for ${referencePath} in previous results`);
+              
+              // Check if we have previous results for this reference
+              if (previousResults && previousResults[referencePath]) {
+                console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousResults[referencePath].length} items)`);
+                preparedInputValues[key] = previousResults[referencePath];
+              } else {
+                console.log(`  ⚠️ No previous results found for ${referencePath}`);
+              }
+            }
+          }
           
           // Check if any parameters are document type and replace with test document content
           if (excelFunction.inputParameters) {
@@ -6117,8 +6134,8 @@ def extract_function(Column_Name, Excel_File):
           try {
             const { toolEngine } = await import('./toolEngine');
             
-            console.log('📝 Executing tool with test document content');
-            console.log('  Input values:', JSON.stringify(preparedInputValues, null, 2));
+            console.log('📝 Executing tool with prepared inputs');
+            console.log('  Input values:', JSON.stringify(preparedInputValues, null, 2).slice(0, 500) + '...');
             
             // Execute using toolEngine's testTool method
             const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
@@ -6129,7 +6146,7 @@ def extract_function(Column_Name, Excel_File):
               success: true
             };
             
-            console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2));
+            console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2).slice(0, 500) + '...');
             
             // Log to console for visibility
             console.log('');
@@ -6139,6 +6156,9 @@ def extract_function(Column_Name, Excel_File):
             console.log('Tool:', excelFunction.functionName);
             console.log('Test Document:', documentId);
             console.log('Results:', toolResults?.length || 0, 'items extracted');
+            if (previousResults) {
+              console.log('Used Previous Results:', Object.keys(previousResults).join(', '));
+            }
             console.log('=========================================');
             console.log('');
             
