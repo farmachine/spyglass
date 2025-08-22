@@ -5944,6 +5944,16 @@ def extract_function(Column_Name, Excel_File):
               const extractedData = JSON.parse(stdoutData);
               console.log('📊 Extraction results:', extractedData);
               
+              // Get the extracted content from the first result
+              let extractedContent = '';
+              if (Array.isArray(extractedData) && extractedData.length > 0) {
+                extractedContent = extractedData[0].extracted_content || '';
+              } else if (extractedData.extracted_content) {
+                extractedContent = extractedData.extracted_content;
+              }
+              
+              console.log('📝 Extracted content length:', extractedContent.length);
+              
               // Save to test_documents table
               const testDoc = await storage.createTestDocument({
                 projectId,
@@ -5951,7 +5961,7 @@ def extract_function(Column_Name, Excel_File):
                 fileSize: fileBuffer.length,
                 mimeType,
                 filePath: fileURL,
-                extractedContent: extractedData.extracted_content || ''
+                extractedContent: extractedContent
               });
 
               // Console log all saved data
