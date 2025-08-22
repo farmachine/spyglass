@@ -157,7 +157,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             }));
 
             const infoPageStep: WorkflowStep = {
-              id: 'schema-page',
+              id: uuidv4(), // Generate proper UUID
               type: 'page',
               name: 'Info Page',
               description: 'Main data extraction fields',
@@ -234,7 +234,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           }));
 
           workflowSteps.push({
-            id: 'schema-page',
+            id: uuidv4(), // Generate proper UUID
             type: 'page',
             name: 'Data Fields',
             description: 'Main data extraction fields',
