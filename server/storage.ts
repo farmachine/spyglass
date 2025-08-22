@@ -17,7 +17,6 @@ import {
   excelWizardryFunctions,
   extractionIdentifierReferences,
   sampleDocuments,
-  testDocuments,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -57,9 +56,7 @@ import {
   type ExtractionIdentifierReference,
   type InsertExtractionIdentifierReference,
   type SampleDocument,
-  type InsertSampleDocument,
-  type TestDocument,
-  type InsertTestDocument
+  type InsertSampleDocument
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -193,13 +190,6 @@ export interface IStorage {
   deleteSampleDocument(id: string): Promise<boolean>;
   deleteSampleDocumentsByParameter(functionId: string, parameterName: string): Promise<boolean>;
 
-  // Test Documents
-  getTestDocuments(stepId: string): Promise<TestDocument[]>;
-  createTestDocument(document: InsertTestDocument): Promise<TestDocument>;
-  updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined>;
-  deleteTestDocument(id: string): Promise<boolean>;
-  deleteTestDocumentsByStep(stepId: string): Promise<boolean>;
-
   // Workflow Steps
   getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>;
   getWorkflowStep(id: string): Promise<WorkflowStep | undefined>;
@@ -233,7 +223,6 @@ export class MemStorage implements IStorage {
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
   private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
   private sampleDocuments: Map<string, SampleDocument>;
-  private testDocuments: Map<string, TestDocument>;
 
   constructor() {
     this.organizations = new Map();
@@ -252,7 +241,6 @@ export class MemStorage implements IStorage {
     this.excelWizardryFunctions = new Map();
     this.extractionIdentifierReferences = new Map();
     this.sampleDocuments = new Map();
-    this.testDocuments = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
@@ -1847,45 +1835,6 @@ export class MemStorage implements IStorage {
     }
     return deletedCount > 0;
   }
-
-  // Test Documents
-  async getTestDocuments(stepId: string): Promise<TestDocument[]> {
-    return Array.from(this.testDocuments.values()).filter(doc => doc.stepId === stepId);
-  }
-
-  async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
-    const testDocument: TestDocument = {
-      id: this.generateUUID(),
-      ...document,
-      createdAt: new Date()
-    };
-    this.testDocuments.set(testDocument.id, testDocument);
-    return testDocument;
-  }
-
-  async updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined> {
-    const existing = this.testDocuments.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...document };
-    this.testDocuments.set(id, updated);
-    return updated;
-  }
-
-  async deleteTestDocument(id: string): Promise<boolean> {
-    return this.testDocuments.delete(id);
-  }
-
-  async deleteTestDocumentsByStep(stepId: string): Promise<boolean> {
-    let deletedCount = 0;
-    for (const [id, doc] of this.testDocuments.entries()) {
-      if (doc.stepId === stepId) {
-        this.testDocuments.delete(id);
-        deletedCount++;
-      }
-    }
-    return deletedCount > 0;
-  }
 }
 
 // PostgreSQL Storage Implementation
@@ -3349,41 +3298,6 @@ class PostgreSQLStorage implements IStorage {
           eq(sampleDocuments.parameterName, parameterName)
         )
       );
-      return result.rowCount > 0;
-    });
-  }
-
-  // Test Documents
-  async getTestDocuments(stepId: string): Promise<TestDocument[]> {
-    return this.retryOperation(async () => {
-      return await this.db.select().from(testDocuments).where(eq(testDocuments.stepId, stepId));
-    });
-  }
-
-  async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.insert(testDocuments).values(document).returning();
-      return result;
-    });
-  }
-
-  async updateTestDocument(id: string, document: Partial<InsertTestDocument>): Promise<TestDocument | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.update(testDocuments).set(document).where(eq(testDocuments.id, id)).returning();
-      return result;
-    });
-  }
-
-  async deleteTestDocument(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db.delete(testDocuments).where(eq(testDocuments.id, id));
-      return result.rowCount > 0;
-    });
-  }
-
-  async deleteTestDocumentsByStep(stepId: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db.delete(testDocuments).where(eq(testDocuments.stepId, stepId));
       return result.rowCount > 0;
     });
   }

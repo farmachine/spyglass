@@ -151,9 +151,9 @@ export class ToolEngine {
               const extractionData = {
                 step: "extract_text_only",
                 documents: [{
-                  file_name: param.sampleFile || 'document',
-                  mime_type: mimeType,
-                  file_content: dataURL
+                  fileName: param.sampleFile || 'document',
+                  mimeType: mimeType,
+                  dataURL: dataURL
                 }]
               };
               
@@ -186,12 +186,9 @@ export class ToolEngine {
               });
               
               const result = JSON.parse(output);
-              console.log('📋 Extraction result:', JSON.stringify(result, null, 2));
-              
-              const extractedText = result.extracted_texts?.[0]?.text_content || result.extracted_texts?.[0] || '';
+              const extractedText = result.extracted_texts?.[0] || '';
               
               console.log(`✅ Extracted ${extractedText.length} characters from ${param.sampleFile}`);
-              console.log('📄 First 500 chars of extracted text:', extractedText.substring(0, 500));
               preparedInputs[param.name] = extractedText;
               
             } catch (extractError) {
@@ -274,12 +271,6 @@ export class ToolEngine {
    * Test tool with given inputs
    */
   async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
-    // For CODE tools with document inputs already provided, skip prepareInputs
-    if (tool.toolType === "CODE" && inputs['document']) {
-      console.log('📝 Using provided document content directly for CODE tool');
-      return this.testCodeTool(tool, inputs);
-    }
-    
     // Prepare inputs by fetching document content if needed
     const forAI = tool.toolType === "AI_ONLY";
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
@@ -375,8 +366,6 @@ export class ToolEngine {
       const tempFile = path.join(tempDir, `test_function_${Date.now()}.py`);
       
       const testScript = this.buildCodeTestScript(tool, inputs);
-      console.log('📝 Writing test script to:', tempFile);
-      console.log('📝 Inputs being passed:', JSON.stringify(inputs).substring(0, 200));
       await fs.writeFile(tempFile, testScript);
       
       try {
@@ -598,11 +587,6 @@ try:
     # Map inputs to function arguments
     func_to_call = globals()[function_name]
     
-    # Debug: Print what we have
-    print(f"DEBUG: Function name: {function_name}", file=sys.stderr)
-    print(f"DEBUG: Inputs received: {inputs}", file=sys.stderr)
-    print(f"DEBUG: Parameters expected: {parameters}", file=sys.stderr)
-    
     # Check if we should iterate over sample data
     data_params = [p for p in parameters if p.get('type') == 'data']
     has_sample_data = False
@@ -661,18 +645,12 @@ try:
         
         result = all_results
     else:
-        # Single execution mode - SIMPLIFIED: just pass all input values as args
-        args = list(inputs.values())
-        
-        print(f"DEBUG: inputs dict = {inputs}", file=sys.stderr)
-        print(f"DEBUG: inputs keys = {list(inputs.keys())}", file=sys.stderr)
-        print(f"DEBUG: Calling function with {len(args)} arguments", file=sys.stderr)
-        if args:
-            print(f"DEBUG: First arg type: {type(args[0])}", file=sys.stderr)
-            print(f"DEBUG: First arg length: {len(str(args[0]))}", file=sys.stderr)
-            print(f"DEBUG: First arg preview: {str(args[0])[:500]}", file=sys.stderr)
-        else:
-            print(f"DEBUG: NO ARGS - empty inputs!", file=sys.stderr)
+        # Single execution mode
+        args = []
+        for param in parameters:
+            param_name = param['name']
+            if param_name in inputs:
+                args.append(inputs[param_name])
         
         # Execute function once
         result = func_to_call(*args)

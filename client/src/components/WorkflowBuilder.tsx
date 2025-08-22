@@ -30,8 +30,7 @@ import {
   Hash,
   Calendar,
   ToggleLeft,
-  Edit2,
-  Upload
+  Edit2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -99,8 +98,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
-  const [uploadingTestDoc, setUploadingTestDoc] = useState<string | null>(null); // stepId being uploaded to
-  const [testDocuments, setTestDocuments] = useState<Record<string, any[]>>({}); // stepId -> documents
   const { toast } = useToast();
 
   // Function to load workflow from server
@@ -143,41 +140,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     }
     return false; // Failed to load or no data
   };
-
-  // Load test documents for all steps
-  const loadTestDocuments = async () => {
-    if (steps.length === 0) return;
-    
-    const allTestDocs: Record<string, any[]> = {};
-    
-    for (const step of steps) {
-      try {
-        const response = await fetch(`/api/steps/${step.id}/test-documents`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
-        });
-        
-        if (response.ok) {
-          const docs = await response.json();
-          if (docs && docs.length > 0) {
-            allTestDocs[step.id] = docs;
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to load test documents for step ${step.id}:`, error);
-      }
-    }
-    
-    setTestDocuments(allTestDocs);
-  };
-
-  // Load test documents when steps change
-  useEffect(() => {
-    if (steps.length > 0) {
-      loadTestDocuments();
-    }
-  }, [steps.length]);
 
   // Convert existing data to workflow steps on mount
   useEffect(() => {
@@ -368,89 +330,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       isExpanded: false
     }));
     setSteps(collapsedSteps);
-  };
-
-  const handleTestDocumentUpload = (stepId: string) => {
-    // Create a file input element
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.multiple = true;
-    fileInput.accept = '.pdf,.doc,.docx,.xls,.xlsx,.txt';
-    
-    fileInput.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (!files || files.length === 0) return;
-      
-      setUploadingTestDoc(stepId);
-      
-      for (const file of files) {
-        try {
-          console.log(`\n===== UPLOADING TEST DOCUMENT (CLIENT) =====`);
-          console.log('File Name:', file.name);
-          console.log('File Type:', file.type);
-          console.log('File Size:', file.size, 'bytes');
-          console.log('Step ID:', stepId);
-          
-          // Convert file to base64
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const base64String = (reader.result as string).split(',')[1];
-              resolve(base64String);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-          
-          console.log('Base64 Length:', base64.length);
-          console.log('First 100 chars of base64:', base64.substring(0, 100) + '...');
-          
-          // Upload to server
-          const response = await fetch(`/api/steps/${stepId}/test-documents`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileContent: base64,
-              mimeType: file.type
-            })
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('Test document uploaded:', result);
-            
-            // Update local state
-            setTestDocuments(prev => ({
-              ...prev,
-              [stepId]: [...(prev[stepId] || []), result.testDocument]
-            }));
-            
-            toast({
-              title: "Document Uploaded",
-              description: `${file.name} has been uploaded successfully`,
-            });
-          } else {
-            throw new Error('Upload failed');
-          }
-        } catch (error) {
-          console.error('Error uploading test document:', error);
-          toast({
-            title: "Upload Failed",
-            description: `Failed to upload ${file.name}`,
-            variant: "destructive"
-          });
-        }
-      }
-      
-      setUploadingTestDoc(null);
-    };
-    
-    // Trigger file selection
-    fileInput.click();
   };
 
   const saveCurrentStep = async (stepId?: string) => {
@@ -648,19 +527,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Controls - Top right corner */}
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                   <button
-                    onClick={() => handleTestDocumentUpload(step.id)}
-                    className="p-1 hover:bg-gray-200 rounded relative"
-                    title="Upload test documents"
-                  >
-                    <Upload className="h-4 w-4 text-gray-600" />
-                    {testDocuments[step.id]?.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                        {testDocuments[step.id].length}
-                      </span>
-                    )}
-                  </button>
-                  
-                  <button
                     onClick={() => toggleStepExpanded(step.id)}
                     className="p-1 hover:bg-gray-200 rounded"
                   >
@@ -801,67 +667,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     Save Step
                   </Button>
                 </div>
-
-                {/* Test Documents Section */}
-                {testDocuments[step.id]?.length > 0 && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="text-sm font-medium text-gray-700">Test Documents</h5>
-                      <Badge variant="secondary" className="text-xs">
-                        {testDocuments[step.id].length} document{testDocuments[step.id].length > 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {testDocuments[step.id].map((doc: any) => (
-                        <div key={doc.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
-                          <div className="flex items-center gap-2 flex-1">
-                            <FileText className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm text-gray-700 truncate">{doc.fileName}</span>
-                            {doc.extractedContent && (
-                              <span className="text-xs text-gray-500">
-                                ({doc.extractedContent.length} chars)
-                              </span>
-                            )}
-                          </div>
-                          <button
-                            onClick={async () => {
-                              // Delete test document
-                              try {
-                                const response = await fetch(`/api/test-documents/${doc.id}`, {
-                                  method: 'DELETE',
-                                  headers: {
-                                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                                  }
-                                });
-                                if (response.ok) {
-                                  // Update local state
-                                  setTestDocuments(prev => ({
-                                    ...prev,
-                                    [step.id]: prev[step.id].filter((d: any) => d.id !== doc.id)
-                                  }));
-                                  toast({
-                                    title: "Document Removed",
-                                    description: `${doc.fileName} has been removed`,
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('Error deleting test document:', error);
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to remove document",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                            className="p-1 hover:bg-gray-100 rounded"
-                          >
-                            <X className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Description Section with dot format */}
                 <div className="mt-6 p-4 bg-white rounded-lg group relative">

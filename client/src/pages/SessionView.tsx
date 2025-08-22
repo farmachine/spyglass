@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, File as FileIcon, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
@@ -14,17 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -49,7 +39,6 @@ import type {
   ValidationStatus 
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { toast } from "@/hooks/use-toast";
 
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
@@ -1061,14 +1050,6 @@ export default function SessionView() {
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
   
-  // Document selection modal for tool execution
-  const [documentSelectionModal, setDocumentSelectionModal] = useState<{
-    open: boolean;
-    toolId: string;
-    valueName: string;
-    inputValues: any;
-  }>({ open: false, toolId: '', valueName: '', inputValues: null });
-  
   // AI extraction modal state
   const [aiExtractionModal, setAiExtractionModal] = useState<{
     open: boolean;
@@ -1295,137 +1276,6 @@ export default function SessionView() {
     }
   }, [resizing]);
 
-  // Open document selection modal
-  const openDocumentSelectionModal = (toolId: string, valueName: string, inputValues: any) => {
-    if (!sessionDocuments || sessionDocuments.length === 0) {
-      toast({
-        title: "No documents",
-        description: "Please upload a document first",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setDocumentSelectionModal({
-      open: true,
-      toolId,
-      valueName,
-      inputValues
-    });
-  };
-
-  // Execute tool function for individual values with selected document
-  const executeTool = async (toolId: string, valueName: string, inputValues: any, selectedDocument: any) => {
-    try {
-      
-      // Simply pass the document content as a single parameter
-      const preparedInputs: Record<string, any> = {
-        'document': selectedDocument.extractedContent || ''
-      };
-
-      console.log(`🚀 Executing tool ${toolId} for ${valueName}`);
-      console.log('📄 Using document:', selectedDocument.fileName);
-      console.log('📊 Document content length:', selectedDocument.extractedContent?.length || 0);
-      console.log('📊 Passing as parameter Excel_Document');
-
-      // Call the test endpoint using apiRequest which handles auth properly
-      const result = await apiRequest('/api/excel-functions/test', {
-        method: 'POST',
-        body: JSON.stringify({
-          functionId: toolId,
-          inputs: preparedInputs
-        })
-      });
-      console.log('✅ Tool execution result:', result);
-      console.log('📊 Results array:', result.results);
-      
-      if (result.success && result.results && result.results.length > 0) {
-        // Check if this is an identifier extraction (returns multiple values)
-        if (valueName === "Coiumn Names" || valueName === "Column Names") {
-          // This is the identifier extraction - it returns multiple column names
-          console.log(`📊 Identifier extraction returned ${result.results.length} column names`);
-          
-          // For identifier extraction, show all extracted column names
-          const columnNames = result.results.map((r: any) => r.extractedValue).filter(Boolean);
-          console.log('📋 Extracted column names:', columnNames);
-          
-          // Save all column names as field_validation records
-          try {
-            // Find the parent collection/step - look for the step containing the "Coiumn Names" value
-            const step = workflowSteps?.find((s: any) => 
-              s.values?.some((v: any) => v.valueName === valueName)
-            );
-            
-            if (step) {
-              console.log('📝 Found step:', step.stepName);
-              console.log(`💾 Saving ${columnNames.length} columns to collection`);
-              
-              // Use the special column extraction endpoint
-              const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  isColumnExtraction: true,
-                  columns: columnNames,
-                  collectionName: step.stepName
-                })
-              });
-              
-              console.log('✅ Save response:', response);
-              
-              // Refresh validations and collections
-              await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'collections'] });
-              
-              toast({
-                title: "Columns Populated",
-                description: `Successfully added ${columnNames.length} columns to the data table`,
-              });
-            } else {
-              console.log('❌ Could not find step for value:', valueName);
-              toast({
-                title: "Warning",
-                description: "Extracted columns but could not save to database",
-                variant: "destructive"
-              });
-            }
-          } catch (error) {
-            console.error('Error saving columns:', error);
-            toast({
-              title: "Save Failed",
-              description: "Could not save extracted columns",
-              variant: "destructive"
-            });
-          }
-        } else {
-          // Regular single value extraction
-          const extractedValue = result.results[0].extractedValue;
-          console.log('✨ Extracted value:', extractedValue);
-          
-          toast({
-            title: "Extraction Complete",
-            description: `${valueName}: ${extractedValue || 'No value extracted'}`,
-          });
-        }
-      } else {
-        console.log('❌ No results extracted');
-        toast({
-          title: "Extraction Failed",
-          description: "No value could be extracted",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error executing tool:', error);
-      toast({
-        title: "Execution Error",
-        description: error.message || "Failed to execute extraction",
-        variant: "destructive"
-      });
-    }
-  };
-
   // Sort data function
   const sortCollectionData = (itemsWithIndices: any[], collection: any, sortConfig: any) => {
     if (!sortConfig || sortConfig.collectionId !== collection.id) return itemsWithIndices;
@@ -1505,31 +1355,6 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
     enabled: !!sessionId,
   });
-
-  // Fetch workflow steps for the project
-  const { data: workflowData, isLoading: workflowLoading } = useQuery({
-    queryKey: ['/api/projects', projectId, 'workflow'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/workflow`),
-    enabled: !!projectId,
-    refetchOnWindowFocus: false
-  });
-  
-  const workflowSteps = workflowData?.steps || [];
-  
-  // Initialize active tab with first workflow step when loaded
-  useEffect(() => {
-    if (workflowSteps.length > 0) {
-      console.log('Workflow steps loaded:', workflowSteps);
-      console.log('Current active tab:', activeTab);
-      
-      // If active tab is the default "info" or doesn't match any workflow step, set to first workflow step
-      const isValidWorkflowTab = workflowSteps.some(step => step.id === activeTab) || activeTab === 'documents';
-      if (!isValidWorkflowTab && workflowSteps.length > 0) {
-        console.log('Setting active tab to first workflow step:', workflowSteps[0].id);
-        setActiveTab(workflowSteps[0].id);
-      }
-    }
-  }, [workflowSteps]);
 
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
@@ -1660,41 +1485,6 @@ export default function SessionView() {
   // Batch validation removed - validation now occurs only during extraction process
 
   // Document action handlers
-  const [documentToDelete, setDocumentToDelete] = useState<{ id: string, name: string } | null>(null);
-
-  const handleDeleteDocument = async () => {
-    if (!documentToDelete) return;
-    
-    try {
-      const response = await fetch(`/api/sessions/documents/${documentToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete document');
-      }
-
-      // Refresh the documents list - use the correct query key format
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
-      toast({
-        title: "Success",
-        description: "Document deleted successfully"
-      });
-      setDocumentToDelete(null);
-    } catch (error) {
-      console.error('Error deleting document:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete document",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleDownloadDocument = async (documentId: string, fileName: string) => {
     try {
       const response = await fetch(`/api/sessions/documents/${documentId}/download?sessionId=${sessionId}`, {
@@ -1723,9 +1513,26 @@ export default function SessionView() {
     }
   };
 
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      return apiRequest(`/api/sessions/documents/${documentId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      // Invalidate and refetch session documents
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete document:', error);
+    }
+  });
 
-
-
+  const handleDeleteDocument = (documentId: string) => {
+    if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      deleteDocumentMutation.mutate(documentId);
+    }
+  };
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
@@ -2135,7 +1942,7 @@ export default function SessionView() {
 
   // Auto-validation removed - validation now occurs only during extraction process
 
-  if (projectLoading || sessionLoading || validationsLoading || workflowLoading) {
+  if (projectLoading || sessionLoading || validationsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -2144,7 +1951,6 @@ export default function SessionView() {
             {projectLoading && "Loading project..."}
             {sessionLoading && "Loading session..."}
             {validationsLoading && "Loading validation data..."}
-            {workflowLoading && "Loading workflow..."}
           </p>
         </div>
       </div>
@@ -3083,20 +2889,10 @@ Thank you for your assistance.`;
           
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 p-4 flex-1">
-            <div className="space-y-3">
-              {/* Documents Section - Session-specific */}
-              <div className="relative flex items-center">
-                {/* Logo dot for Documents */}
-                <div className="relative z-10 flex items-center justify-center mr-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activeTab === 'documents' ? 'bg-[#4F63A4]' : 'bg-slate-400'
-                  }`}></div>
-                </div>
-                
-                {/* Connecting line for active tab */}
-                {activeTab === 'documents' && (
-                  <div className="absolute left-1 w-4 h-0.5 bg-[#4F63A4]" style={{ left: '8px' }}></div>
-                )}
+            {/* Documents Section - Session-specific */}
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <Folder className="h-5 w-5 text-slate-600 mr-3" />
                 
                 {/* Tab button */}
                 <button
@@ -3110,76 +2906,119 @@ Thank you for your assistance.`;
                   <div className="truncate">Documents</div>
                 </button>
               </div>
+            </div>
             
-              {/* Workflow steps with vertical line */}
-              <div className="relative">
-                {/* Vertical connecting line - only between steps, starts at first step */}
-                {workflowSteps.length > 1 && (
-                  <div className="absolute left-1 top-4 w-0.5 bg-slate-300" style={{ 
-                    height: `${(workflowSteps.length - 1) * 48}px` 
-                  }}></div>
-                )}
+            <div className="mb-4">
+              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
+            </div>
+            <div className="relative">
+              {/* Vertical connecting line - stops at last collection */}
+              <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
+                height: `${project.collections.length * 48 + 12}px` 
+              }}></div>
               
-                <div className="space-y-3">
-                  {/* Workflow Steps as Tabs */}
-                  {workflowSteps
-                  .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                  .map((step, index) => {
-                    // Get validations for this step - depends on whether it's Data Table or Info Page
-                    const stepValidations = step.stepType === 'DATA_TABLE' 
-                      ? validations.filter(v => {
-                          // For Data Tables, match by step name as collection name
-                          return v.collectionName === step.stepName || 
-                            (v.fieldName && v.fieldName.startsWith(step.stepName + '.'));
-                        })
-                      : validations.filter(v => {
-                          // For Info Pages, match by value names (like schema fields)
-                          return step.values?.some(value => 
-                            v.fieldName === value.valueName && !v.collectionName
-                          );
-                        });
-                    
-                    const verifiedCount = stepValidations.filter(v => 
-                      v.validationStatus === 'verified' || 
-                      (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                    ).length;
-                    const totalCount = stepValidations.length;
-                    
-                    return (
-                      <div key={step.id} className="relative flex items-center">
-                        {/* Logo dot - solid slate blue */}
-                        <div className="relative z-10 flex items-center justify-center">
-                          {totalCount > 0 && verifiedCount === totalCount ? (
-                            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
-                              <Check className="w-4 h-4 text-white" />
-                            </div>
-                          ) : (
-                            <div className={`w-2 h-2 rounded-full ${
-                              activeTab === step.id ? 'bg-[#4F63A4]' : 'bg-slate-400'
-                            }`}></div>
-                          )}
-                        </div>
-                        
-                        {/* Connecting line for active tab */}
-                        {activeTab === step.id && (
-                          <div className="absolute left-1 w-6 h-0.5 bg-[#4F63A4]" style={{ left: '8px' }}></div>
+              <div className="space-y-3">
+                {/* General Information Tab */}
+                <div className="relative flex items-center">
+                  {/* Circular icon */}
+                  <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                    (() => {
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                      const verifiedCount = infoValidations.filter(v => 
+                        v.validationStatus === 'verified' || 
+                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                      ).length;
+                      const totalCount = infoValidations.length;
+                      
+                      if (totalCount > 0 && verifiedCount === totalCount) {
+                        return 'bg-white border-green-600';
+                      } else {
+                        return activeTab === 'info' 
+                          ? 'bg-primary border-primary' 
+                          : 'bg-white border-slate-300';
+                      }
+                    })()
+                  }`}>
+                    {(() => {
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                      const verifiedCount = infoValidations.filter(v => 
+                        v.validationStatus === 'verified' || 
+                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                      ).length;
+                      const totalCount = infoValidations.length;
+                      
+                      if (totalCount > 0 && verifiedCount === totalCount) {
+                        return <Check className="w-4 h-4 text-green-600" />;
+                      } else {
+                        return <div className={`w-3 h-3 rounded-full ${
+                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400'
+                        }`}></div>;
+                      }
+                    })()}
+                  </div>
+                  
+                  {/* Tab button */}
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === 'info' 
+                        ? 'bg-primary text-white font-medium shadow-sm' 
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                    }`}
+                  >
+                    <div className="truncate">General Information</div>
+                  </button>
+                </div>
+                
+                {/* Collection Tabs */}
+                {project.collections.map((collection, index) => {
+                  const collectionValidations = validations.filter(v => 
+                    v.collectionName === collection.collectionName || 
+                    (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
+                  );
+                  const validationIndices = collectionValidations.length > 0 ? 
+                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                  
+                  const verifiedCount = collectionValidations.filter(v => 
+                    v.validationStatus === 'verified' || 
+                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                  ).length;
+                  const totalCount = collectionValidations.length;
+                  
+                  return (
+                    <div key={collection.id} className="relative flex items-center">
+                      {/* Circular icon */}
+                      <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                        totalCount > 0 && verifiedCount === totalCount
+                          ? 'bg-white border-green-600'
+                          : (activeTab === collection.collectionName 
+                              ? 'bg-primary border-primary' 
+                              : 'bg-white border-slate-300')
+                      }`}>
+                        {totalCount > 0 && verifiedCount === totalCount ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <div className={`w-3 h-3 rounded-full ${
+                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400'
+                          }`}></div>
                         )}
-                        
-                        {/* Tab button */}
-                        <button
-                          onClick={() => setActiveTab(step.id)}
-                          className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                            activeTab === step.id 
-                              ? 'bg-primary text-white font-medium shadow-sm' 
-                              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                      </div>
+                      
+                      {/* Tab button */}
+                      <button
+                        onClick={() => setActiveTab(collection.collectionName)}
+                        className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                          activeTab === collection.collectionName 
+                            ? 'bg-primary text-white font-medium shadow-sm' 
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
                         }`}
                       >
-                        <div className="truncate">{step.stepName}</div>
+                        <div className="truncate">{collection.collectionName}</div>
                       </button>
                     </div>
                   );
                 })}
-                </div>
               </div>
             </div>
           </div>
@@ -3234,10 +3073,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h2 className="text-3xl font-bold flex items-center gap-2">
-                          <span className="w-2 h-2 bg-[#4F63A4] rounded-full"></span>
-                          {session?.sessionName}
-                        </h2>
+                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -3317,274 +3153,890 @@ Thank you for your assistance.`;
               </div>
             </div>
 
-            {/* Session Data Content - Now controlled by workflow steps */}
+            {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full">
-              {/* Documents Tab */}
-              {activeTab === 'documents' && (
+              {/* Info Tab Content - Single Object View */}
+              {activeTab === 'info' && (
                 <Card className="border-t-0 rounded-tl-none ml-0">
                   <CardHeader>
-                    <CardTitle>Documents</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">General Information</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenAIExtraction(
+                          'General Information',
+                          project?.schemaFields?.map(field => ({
+                            id: field.id,
+                            name: field.fieldName,
+                            type: field.fieldType
+                          })) || []
+                        )}
+                        className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
+                      >
+                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                      </Button>
+                    </CardTitle>
                     <p className="text-sm text-gray-600">
-                      Documents uploaded to this session for data extraction.
+                      Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
                     </p>
                   </CardHeader>
                   <CardContent>
-                    {sessionDocuments.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        No documents uploaded yet
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {sessionDocuments.map((doc) => (
-                          <div key={doc.id} className="p-3 border rounded-lg hover:bg-gray-50">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <FileIcon className="h-5 w-5 text-gray-400" />
-                                <span className="text-sm font-medium">{doc.fileName}</span>
-                              </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {project.schemaFields
+                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                        .map((field) => {
+                        const originalValue = extractedData[field.fieldName];
+                        const validation = getValidation(field.fieldName);
+                        
+                        // Show field if it has a value OR if there's a validation for it
+                        if (originalValue !== undefined || validation) {
+                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                          if (displayValue === "null" || displayValue === "undefined") {
+                            displayValue = null;
+                          }
+                          
+                          return (
+                            <div key={field.id} className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500">
-                                  {new Date(doc.uploadedAt).toLocaleDateString()}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDocumentToDelete({ id: doc.id, name: doc.fileName })}
-                                  className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
-                                  title="Delete document"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {(() => {
+                                  const fieldName = field.fieldName;
+                                  const validation = getValidation(fieldName);
+                                  const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                  const wasManuallyUpdated = validation && validation.manuallyUpdated;
+                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                  const score = Math.round(validation?.confidenceScore || 0);
+
+
+
+                                  // Render confidence indicator/verification status to the left of field name
+                                  if (wasManuallyUpdated) {
+                                    // Show blue user icon for manually updated fields - highest priority
+                                    
+                                    return (
+                                      <div className="w-3 h-3 flex items-center justify-center">
+                                        <User className="h-3 w-3 text-slate-700" />
+                                      </div>
+                                    );
+                                  } else if (isVerified) {
+                                    // Show green tick when verified - clicking unverifies
+                                    return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={() => handleFieldVerification(fieldName, false)}
+                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                              aria-label="Click to unverify"
+                                            >
+                                              <span className="text-xs font-bold">✓</span>
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Verified with {score}% confidence
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  } else if (hasValue && validation) {
+                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
+                                    const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                    
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          if (validation.aiReasoning) {
+                                            setSelectedReasoning({
+                                              reasoning: validation.aiReasoning,
+                                              fieldName: getFieldDisplayName(fieldName),
+                                              confidenceScore: validation.confidenceScore || 0,
+                                              getFieldDisplayName,
+                                              validation,
+                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
+                                            });
+                                          }
+                                        }}
+                                        className={`w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
+                                        title={`${score}% confidence - Click for AI analysis`}
+                                      />
+                                    );
+                                  } else if (!hasValue) {
+                                    // Show red exclamation mark for missing fields
+                                    return (
+                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                        !
+                                      </div>
+                                    );
+                                  }
+                                  // Return empty div to maintain consistent spacing
+                                  return <div className="w-3 h-3 flex-shrink-0"></div>;
+                                })()}
+                                <Label className="text-sm font-medium text-gray-700">
+                                  {field.fieldName}
+                                </Label>
+                              </div>
+                              <div>
+                                {(() => {
+                                  const validation = getValidation(field.fieldName);
+                                  const isEditing = editingField === field.fieldName;
+                                  const fieldType = field.fieldType;
+                                  
+                                  if (isEditing) {
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        {fieldType === 'DATE' ? (
+                                          <Input
+                                            type="date"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="flex-1"
+                                          />
+                                        ) : fieldType === 'NUMBER' ? (
+                                          <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="flex-1"
+                                          />
+                                        ) : fieldType === 'BOOLEAN' ? (
+                                          <Select value={editValue} onValueChange={setEditValue}>
+                                            <SelectTrigger className="flex-1">
+                                              <SelectValue placeholder="Select value" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="true">True</SelectItem>
+                                              <SelectItem value="false">False</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : fieldType === 'TEXTAREA' ? (
+                                          <textarea
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows={4}
+                                          />
+                                        ) : (
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="flex-1"
+                                          />
+                                        )}
+                                        <Button size="sm" onClick={() => handleSave(field.fieldName)}>
+                                          Save
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                          {fieldType === 'TEXTAREA' ? (
+                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
+                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                                              {formatValueForDisplay(displayValue, fieldType)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            const validation = getValidation(field.fieldName);
+                                            if (validation) {
+                                              handleEditField(validation);
+                                            }
+                                          }}
+                                          className="h-6 px-2"
+                                        >
+                                          <Edit3 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    );
+                                  }
+                                })()}
+                              </div>
+                              
+                              {field.description && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {field.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+
+
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Documents Tab Content */}
+              {activeTab === 'documents' && (
+                <Card className="border-t-0 rounded-tl-none ml-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">Documents</span>
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Documents uploaded and processed for this session.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {sessionDocuments && sessionDocuments.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {sessionDocuments.map((doc: any, index: number) => (
+                          <div 
+                            key={doc.id || index} 
+                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
+                                  <FileText className="w-8 h-8 text-green-600" />
+                                ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
+                                  <FileText className="w-8 h-8 text-blue-600" />
+                                ) : doc.mimeType?.includes('pdf') ? (
+                                  <FileText className="w-8 h-8 text-red-600" />
+                                ) : (
+                                  <FileText className="w-8 h-8 text-gray-600" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between">
+                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
+                                    {doc.fileName}
+                                  </h4>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                      title="Download extracted content"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteDocument(doc.id)}
+                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="Delete document"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-xs text-gray-500">
+                                    Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
+                                  </p>
+                                  {doc.extractedAt && (
+                                    <p className="text-xs text-gray-500">
+                                      Processed: {new Date(doc.extractedAt).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            {doc.extractedContent && (
-                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 font-mono">
-                                <div className="font-semibold text-gray-700 mb-1">Content Preview:</div>
-                                <div className="whitespace-pre-wrap break-words line-clamp-3">
-                                  {doc.extractedContent.substring(0, 300)}
-                                  {doc.extractedContent.length > 300 && '...'}
-                                </div>
-                                {doc.extractedContent.length > 300 && (
-                                  <div className="text-gray-500 mt-1">
-                                    ({doc.extractedContent.length.toLocaleString()} characters extracted)
-                                  </div>
-                                )}
+                            {doc.extractedContent && doc.extractedContent.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-600 line-clamp-2">
+                                  {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
+                                </p>
                               </div>
                             )}
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No documents uploaded yet</p>
+                        <p className="text-sm text-gray-400 mt-1">Upload documents using the upload button above</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               )}
 
-              {/* Render workflow step content - simplified approach */}
-              {workflowSteps.map(step => {
-                if (activeTab !== step.id) return null;
-                
-                // Check the actual step type from the logs - it's 'list' or 'single'
-                const isDataTable = step.stepType === 'list' || step.stepType === 'DATA_TABLE';
-                const isInfoPage = step.stepType === 'single' || step.stepType === 'INFO_PAGE';
-                
-                console.log(`🔍 Rendering step:`, {
-                  id: step.id,
-                  name: step.stepName,
-                  type: step.stepType,
-                  isDataTable,
-                  isInfoPage,
-                  values: step.values
-                });
-                
-                // Render Info Page (single values as individual fields)
-                if (isInfoPage) {
-                  return (
-                    <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
-                      <CardHeader>
-                        <CardTitle>{step.stepName}</CardTitle>
-                        <p className="text-sm text-gray-600">
-                          {step.description || `Information fields`}
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {step.values?.map((value) => (
-                            <div key={value.id} className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Label className="text-sm font-medium text-gray-700">
-                                  {value.valueName}
-                                </Label>
-                                {value.toolId && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      console.log(`Run tool ${value.toolId} for ${value.valueName}`);
-                                      openDocumentSelectionModal(value.toolId, value.valueName, value.inputValues);
-                                    }}
-                                    className="h-5 w-5 p-0"
-                                  >
-                                    <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                  </Button>
-                                )}
-                              </div>
-                              <div className="p-2 border rounded bg-gray-50">
-                                <span className="text-gray-400">No value</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                }
-                
-                // Render Data Table (values as columns)
-                if (isDataTable) {
-                  console.log(`📊 Rendering Data Table with ${step.values?.length} columns`);
-                  
-                  if (!step.values || step.values.length === 0) {
-                    return (
-                      <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
-                        <CardHeader>
-                          <CardTitle>{step.stepName}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-gray-500">No values defined for this data table</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  }
-                  
-                  return (
-                    <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
-                      <CardHeader>
-                        <CardTitle>{step.stepName}</CardTitle>
-                        <p className="text-sm text-gray-600">
-                          {step.description || `Data table with ${step.values.length} columns`}
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                {step.values.map((value: any, index: number) => (
-                                  <th 
-                                    key={value.id || index} 
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span>{value.valueName || `Column ${index + 1}`}</span>
-                                      {value.toolId && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => {
-                                            // Log the complete value metadata for the clicked column
-                                            console.log('Clicked on column value metadata:', value);
-                                            
-                                            // Check if this is the identifier (first column)
-                                            if (index === 0) {
-                                              console.log(`Clicked On Identifier... here is the identifier ID = ${value.id}`);
-                                            }
-                                            console.log(`Run tool ${value.toolId} for ${value.valueName}`);
-                                            openDocumentSelectionModal(value.toolId, value.valueName, value.inputValues);
-                                          }}
-                                          className="h-4 w-4 p-0"
-                                        >
-                                          <Wand2 className="h-3 w-3 text-[#4F63A4]" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              <tr>
-                                {step.values.map((value: any, index: number) => {
-                                  // Try to get any existing data
-                                  const validation = validations?.find(v => v.fieldName === value.valueName);
-                                  const extractedValue = validation?.extractedValue || extractedData[value.valueName];
-                                  
-                                  return (
-                                    <td key={value.id || index} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                      {extractedValue ? (
-                                        <span>{extractedValue}</span>
-                                      ) : (
-                                        <span className="text-gray-400 italic">Empty</span>
-                                      )}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                }
-                
-                // Default: show as info page if type not recognized
-                return (
-                  <Card key={step.id} className="border-t-0 rounded-tl-none ml-0">
-                    <CardHeader>
-                      <CardTitle>{step.stepName}</CardTitle>
-                      <p className="text-sm text-gray-600">Unknown step type: {step.stepType}</p>
-                    </CardHeader>
-                  </Card>
+              {/* Individual Collection Tabs */}
+              {project.collections.map((collection) => {
+                const collectionData = extractedData[collection.collectionName];
+                const collectionValidations = validations.filter(v => 
+                  v.collectionName === collection.collectionName || 
+                  (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
                 );
+                
+                console.log(`Collection ${collection.collectionName} - found ${collectionValidations.length} validations:`, 
+                  collectionValidations.map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, collectionName: v.collectionName })));
+                
+                const validationIndices = collectionValidations.length > 0 ? 
+                  collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
+                
+                console.log(`Collection ${collection.collectionName} - uniqueIndices:`, uniqueIndices);
+                
+                // Always show the table even when there are no records, so headers remain visible
+
+                return activeTab === collection.collectionName ? (
+                  <div key={collection.id} className="mt-0 px-0 ml-0">
+                    <Card className="border-t-0 rounded-tl-none ml-0">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {collection.collectionName}
+                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                              {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAIExtraction(
+                              collection.collectionName,
+                              collection.properties?.map(prop => ({
+                                id: prop.id,
+                                name: prop.propertyName,
+                                type: prop.propertyType
+                              })) || []
+                            )}
+                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                          >
+                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                          </Button>
+                        </CardTitle>
+                        <p className="text-sm text-gray-600">{collection.description}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <Table className="session-table">
+                          <TableHeader>
+                            <TableRow>
+
+                              {collection.properties
+                                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                .map((property) => (
+                                <TableHead 
+                                  key={property.id} 
+                                  className="relative border-r border-gray-300"
+                                  style={{ 
+                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                      property.fieldType === 'TEXTAREA' ? 400 : 
+                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                      property.fieldType === 'TEXT' ? 120 : 
+                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                      property.propertyName.toLowerCase().includes('status') ? 100 :
+                                      100
+                                    )}px`,
+                                    minWidth: '80px'
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between group">
+                                    <button
+                                      onClick={() => handleSort(property.propertyName, collection.id)}
+                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
+                                    >
+                                      <span className="truncate">{property.propertyName}</span>
+                                      {getSortIcon(property.propertyName, collection.id)}
+                                    </button>
+                                    <div
+                                      className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
+                                    />
+                                  </div>
+                                </TableHead>
+                              ))}
+                              <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                                <div className="flex items-center justify-center gap-1 px-2">
+                                  {(() => {
+                                    // Handle empty collections
+                                    if (uniqueIndices.length === 0) {
+                                      return (
+                                        <button
+                                          disabled
+                                          className="flex items-center justify-center px-2 py-1 rounded transition-colors opacity-50 cursor-not-allowed"
+                                          title="No items to verify"
+                                        >
+                                          <CheckCircle className="h-5 w-5 text-gray-400" />
+                                        </button>
+                                      );
+                                    }
+                                    
+                                    // Calculate if all items in this collection are verified (only for existing indices)
+                                    const allItemsVerified = uniqueIndices.every(index => {
+                                      const itemValidations = collection.properties.map(property => {
+                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
+                                        return getValidation(fieldName);
+                                      }).filter(Boolean);
+                                      
+                                      return itemValidations.length > 0 && 
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                    });
+                                    
+                                    return (
+                                      <button
+                                        onClick={() => handleVerifyAllCollectionItems(collection.collectionName, !allItemsVerified)}
+                                        className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                        title={allItemsVerified ? "Click to mark all items as unverified" : "Click to mark all items as verified"}
+                                      >
+                                        <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
+                                      </button>
+                                    );
+                                  })()}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
+                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    title="Add new item"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                        title="More actions"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete all data
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(() => {
+                              // Handle empty collections by showing a placeholder row
+                              if (uniqueIndices.length === 0) {
+                                return (
+                                  <TableRow className="border-b border-gray-300">
+                                    <TableCell 
+                                      colSpan={collection.properties.length + 1} 
+                                      className="text-center text-gray-500 py-8 italic"
+                                    >
+                                      No items yet. Click the + button to add the first item.
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                              
+                              // Create array of items only for indices that actually exist
+                              const itemsWithIndices = uniqueIndices.map(index => ({
+                                item: collectionData?.[index] || {},
+                                originalIndex: index
+                              }));
+                              
+                              // Apply sorting if configured, but reverse to show newest (highest index) first
+                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
+                                ? sortCollectionData(itemsWithIndices, collection, sortConfig)
+                                : itemsWithIndices.reverse(); // Show newest items first
+                              
+                              return sortedItems.map(({ item, originalIndex }) => (
+                                <TableRow key={originalIndex} className="border-b border-gray-300">
+                                  {collection.properties
+                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                    .map((property) => {
+                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                    const validation = getValidation(fieldName);
+                                    
+                                    // Try multiple possible property name mappings for extracted data
+                                    const possibleKeys = [
+                                      property.propertyName,
+                                      property.propertyName.toLowerCase(),
+                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
+                                    ];
+                                    
+                                    let originalValue = undefined;
+                                    for (const key of possibleKeys) {
+                                      if (item[key] !== undefined) {
+                                        originalValue = item[key];
+                                        break;
+                                      }
+                                    }
+                                    
+                                    let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                    if (displayValue === "null" || displayValue === "undefined") {
+                                      displayValue = null;
+                                    }
+                                    
+                                    return (
+                                      <TableCell 
+                                        key={property.id} 
+                                        className="relative border-r border-gray-300"
+                                        style={{ 
+                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
+                                            property.fieldType === 'TEXTAREA' ? 400 : 
+                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
+                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
+                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
+                                            property.fieldType === 'TEXT' ? 120 : 
+                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
+                                            property.propertyName.toLowerCase().includes('status') ? 100 :
+                                            100
+                                          )}px`,
+                                          minWidth: '80px'
+                                        }}
+                                      >
+                                        <div className="relative w-full">
+                                          {/* Content */}
+                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
+                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                              {formatValueForDisplay(displayValue, property.fieldType)}
+                                            </span>
+                                            
+                                            {/* Edit button */}
+                                            {validation && (
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => handleEditField(validation)}
+                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Edit field value"
+                                              >
+                                                <Edit3 className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Combined confidence/verification indicator on top-left corner */}
+                                          {validation && (
+                                            <>
+                                              {(() => {
+                                                const wasManuallyUpdated = validation.manuallyUpdated;
+                                                const hasValue = validation.extractedValue !== null && 
+                                                               validation.extractedValue !== undefined && 
+                                                               validation.extractedValue !== "" && 
+                                                               validation.extractedValue !== "null" && 
+                                                               validation.extractedValue !== "undefined";
+                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                const score = Math.round(validation.confidenceScore || 0);
+
+                                                if (wasManuallyUpdated) {
+                                                  return (
+                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
+                                                      <User className="h-3 w-3 text-slate-700" />
+                                                    </div>
+                                                  );
+                                                } else if (isVerified) {
+                                                  // Show green tick when verified
+                                                  return (
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            aria-label="Click to unverify"
+                                                          >
+                                                            <span className="text-xs font-bold">✓</span>
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          Verified with {score}% confidence
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  );
+                                                } else if (hasValue && validation.confidenceScore) {
+                                                  // Show colored confidence dot when not verified
+                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        if (validation.aiReasoning) {
+                                                          setSelectedReasoning({
+                                                            reasoning: validation.aiReasoning,
+                                                            fieldName,
+                                                            confidenceScore: validation.confidenceScore || 0
+                                                          });
+                                                        }
+                                                      }}
+                                                      className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                    />
+                                                  );
+                                                } else if (!hasValue) {
+                                                  // Show red exclamation mark for missing fields
+                                                  return (
+                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
+                                                      <span className="text-red-500 text-xs font-bold leading-none">!</span>
+                                                    </div>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
+                                            </>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    );
+                                  })}
+                                  <TableCell className="border-r border-gray-300">
+                                    <div className="flex items-center justify-center gap-3 px-2">
+                                      {(() => {
+                                        // Calculate verification status for this item using improved filtering
+                                        const itemValidations = validations.filter(v => {
+                                          // Primary approach: match by collectionName and recordIndex
+                                          if (v.collectionName === collection.collectionName && v.recordIndex === originalIndex) {
+                                            return true;
+                                          }
+                                          
+                                          // Fallback approach: match by fieldName pattern for records with null collectionName
+                                          if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${originalIndex}]`)) {
+                                            // Check if fieldName starts with the collection name
+                                            return v.fieldName.startsWith(`${collection.collectionName}.`);
+                                          }
+                                          
+                                          return false;
+                                        });
+                                        
+                                        const allVerified = itemValidations.length > 0 && 
+                                          itemValidations.every(v => 
+                                            v?.validationStatus === 'valid' || 
+                                            v?.validationStatus === 'verified' || 
+                                            (v?.validationStatus === 'manual' && v?.manuallyVerified)
+                                          );
+                                        
+                                        console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
+                                          itemValidations: itemValidations.length,
+                                          allVerified,
+                                          validations: itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, status: v.validationStatus }))
+                                        });
+                                        
+                                        return (
+                                          <button
+                                            onClick={() => {
+                                              console.log(`Button clicked for ${collection.collectionName}[${originalIndex}], currently verified: ${allVerified}`);
+                                              handleItemVerification(collection.collectionName, originalIndex, !allVerified);
+                                            }}
+                                            className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                                            title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
+                                          >
+                                            {allVerified ? (
+                                              <CheckCircle className="h-5 w-5 text-green-600" />
+                                            ) : (
+                                              <CheckCircle className="h-5 w-5 text-gray-400" />
+                                            )}
+                                          </button>
+                                        );
+                                      })()}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteCollectionItem(collection.collectionName, originalIndex)}
+                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        title="Delete this item"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ));
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : null;
               })}
             </div>
           </div>
         </div>
       </div>
-      
-      {/* AI Reasoning Dialog */}
+      {/* AI Reasoning Modal */}
+      {selectedReasoning && (
+        <Dialog open={!!selectedReasoning} onOpenChange={() => setSelectedReasoning(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI Analysis - {getFieldDisplayName(selectedReasoning.fieldName)}
+              </DialogTitle>
+              <DialogDescription>
+                Confidence: {Math.round(selectedReasoning.confidenceScore)}%
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label className="text-sm font-medium">AI Reasoning</Label>
+                <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                  {selectedReasoning.reasoning}
+                </div>
+              </div>
+              
+              {(() => {
+                const validation = getValidation(selectedReasoning.fieldName);
+                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                
+                return (
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => {
+                          handleFieldVerification(selectedReasoning.fieldName, !isVerified);
+                          // Short delay to let user see the visual feedback before closing
+                          setTimeout(() => {
+                            setSelectedReasoning(null);
+                          }, 300);
+                        }}
+                        className="flex items-center justify-center hover:bg-gray-100 px-3 py-2 rounded transition-colors"
+                        title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
+                      >
+                        {isVerified ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <CheckCircle className="h-6 w-6 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                    <Button
+                      onClick={() => setSelectedReasoning(null)}
+                      variant="outline"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      {/* Data Report Dialog */}
       <Dialog open={showReasoningDialog} onOpenChange={setShowReasoningDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-[#4F63A4]" />
-              Session AI Analysis Summary
+              <AlertCircle className="h-5 w-5 text-blue-600" />
+              Request More Info Draft
             </DialogTitle>
+            <DialogDescription>
+              Email-ready report for requesting missing information from data providers
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 mt-4">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <h3 className="font-semibold mb-2">Overview</h3>
-              <p className="text-sm text-gray-700">
-                This session contains AI-powered extraction and validation for {getAllProjectFields().length} fields.
-                Fields marked with confidence scores have been analyzed by AI, while manually entered data shows user icons.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="font-semibold">Field Analysis Details</h3>
-              {validations?.filter(v => v.aiReasoning).map((validation) => (
-                <div key={validation.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">
-                      {getFieldDisplayName(validation.fieldName)}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      Confidence: {Math.round(validation.confidenceScore || 0)}%
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                    {validation.aiReasoning}
-                  </div>
-                </div>
-              ))}
-            </div>
+          
+          <div className="mt-4">
+            <Label htmlFor="report-text" className="text-sm font-medium">
+              Report Content (ready to copy and paste into email)
+            </Label>
+            <textarea
+              id="report-text"
+              value={generateDataReport()}
+              readOnly
+              className="w-full h-80 mt-2 p-3 border rounded-md bg-gray-50 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-          <DialogFooter>
-            <Button onClick={() => setShowReasoningDialog(false)}>Close</Button>
-          </DialogFooter>
+          
+          <div className="flex justify-between mt-6 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(generateDataReport());
+                } catch (error) {
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+            <Button onClick={() => setShowReasoningDialog(false)}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
-
+      {/* Validation processing dialog removed - validation now occurs during extraction */}
+      {/* Edit Field Value Dialog */}
+      {editFieldDialog.validation && (
+        <EditFieldValueDialog
+          open={editFieldDialog.open}
+          validation={editFieldDialog.validation}
+          onClose={() => setEditFieldDialog({ open: false, validation: null })}
+          onSave={handleSaveFieldEdit}
+          schemaField={findSchemaField(editFieldDialog.validation)}
+          collectionProperty={findCollectionProperty(editFieldDialog.validation)}
+        />
+      )}
+      {/* Add Documents Modal */}
+      <AddDocumentsModal
+        open={addDocumentsModalOpen}
+        onClose={() => setAddDocumentsModalOpen(false)}
+        sessionId={sessionId!}
+        projectId={projectId!}
+        onSuccess={() => {
+          // Refresh session data and validations after successful document upload
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        }}
+      />
+      {/* Document Upload Modal (upload only, no AI processing) */}
+      <DocumentUploadModal
+        open={documentUploadModalOpen}
+        onClose={() => setDocumentUploadModalOpen(false)}
+        sessionId={sessionId!}
+        projectId={projectId!}
+        onSuccess={() => {
+          // Refresh session documents after successful upload
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+        }}
+      />
+      {/* AI Extraction Modal */}
+      <AIExtractionModal
+        isOpen={aiExtractionModal.open}
+        onClose={handleCloseAIExtraction}
+        sectionName={aiExtractionModal.sectionName}
+        availableFields={aiExtractionModal.availableFields}
+        sessionDocuments={sessionDocuments || []}
+        verifiedFields={getVerifiedFields()}
+        allProjectFields={getAllProjectFields()}
+        sessionId={sessionId}
+        project={project}
+      />
       {/* Session Chat */}
       {session && validations && (
         <SessionChat
@@ -3593,98 +4045,6 @@ Thank you for your assistance.`;
           validations={validations}
         />
       )}
-
-      {/* Delete Document Confirmation */}
-      <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{documentToDelete?.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDocumentToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDocument} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Document Upload Modal */}
-      <DocumentUploadModal
-        open={documentUploadModalOpen}
-        onClose={() => setDocumentUploadModalOpen(false)}
-        sessionId={sessionId}
-        projectId={projectId}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
-          setDocumentUploadModalOpen(false);
-        }}
-      />
-
-      {/* Document Selection Modal for Tool Execution */}
-      <Dialog 
-        open={documentSelectionModal.open} 
-        onOpenChange={(open) => !open && setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null })}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Select Document for {documentSelectionModal.valueName}</DialogTitle>
-            <DialogDescription>
-              Choose a document to extract data from
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {sessionDocuments?.map((doc) => (
-              <div
-                key={doc.id}
-                onClick={async () => {
-                  setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null });
-                  await executeTool(
-                    documentSelectionModal.toolId, 
-                    documentSelectionModal.valueName, 
-                    documentSelectionModal.inputValues,
-                    doc
-                  );
-                }}
-                className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-sm">{doc.fileName}</p>
-                      <p className="text-xs text-gray-500">
-                        Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {doc.mimeType?.split('/').pop()?.toUpperCase() || 'Unknown'}
-                  </span>
-                </div>
-                {doc.extractedContent && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded">
-                    <p className="text-xs text-gray-600 line-clamp-2">
-                      {doc.extractedContent.substring(0, 200)}...
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDocumentSelectionModal({ open: false, toolId: '', valueName: '', inputValues: null })}
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
