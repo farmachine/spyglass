@@ -6097,8 +6097,9 @@ def extract_function(Column_Name, Excel_File):
         const excelFunction = await storage.getExcelWizardryFunction(valueConfig.toolId);
         
         if (excelFunction) {
-          console.log('  Tool Found:', excelFunction.functionName);
+          console.log('  Tool Found:', excelFunction.name || excelFunction.functionName);
           console.log('  Tool Type:', excelFunction.toolType);
+          console.log('  Tool Properties:', Object.keys(excelFunction));
           console.log('  Using workflow test document instead of tool sample document');
           
           // Prepare input values, replacing document parameters with test document content
@@ -6212,7 +6213,7 @@ def extract_function(Column_Name, Excel_File):
             console.log('=== WORKFLOW TEST EXECUTION COMPLETE ===');
             console.log('Step:', valueConfig.stepName);
             console.log('Value:', valueConfig.valueName);
-            console.log('Tool:', excelFunction.functionName);
+            console.log('Tool:', excelFunction.name || excelFunction.functionName);
             console.log('Test Document:', documentId);
             console.log('Results:', toolResults?.length || 0, 'items extracted');
             if (previousResults) {
