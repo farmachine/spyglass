@@ -763,6 +763,9 @@ export default function DefineData({
                   return;
                 }
 
+                // Track all test results for display
+                const allTestResults: any[] = [];
+                
                 // Process each document through each selected value
                 for (const doc of selectedDocs) {
                   console.log(`\n📊 Processing document: ${doc.file_name || doc.fileName}`);
@@ -893,30 +896,35 @@ export default function DefineData({
                             console.log(`    Last item:`, response.result.results[response.result.results.length - 1]);
                           }
                         }
+                        
+                        // Add to test results for display
+                        allTestResults.push({
+                          stepName: value.stepName,
+                          valueName: value.valueName,
+                          success: true,
+                          count: response.result.results.length,
+                          data: response.result.results
+                        });
                       }
                     } catch (error) {
                       console.error(`  ❌ Error:`, error);
+                      
+                      // Add failed result
+                      allTestResults.push({
+                        stepName: value.stepName,
+                        valueName: value.valueName,
+                        success: false,
+                        count: 0,
+                        error: error
+                      });
                     }
                   }
                 }
                 
                 console.log("\n✨ Test completed!");
                 
-                // Store test results for display
-                const collectedResults: any[] = [];
-                for (const [key, value] of Object.entries(previousResults)) {
-                  if (key.includes('.')) {
-                    const [stepName, valueName] = key.split('.');
-                    collectedResults.push({
-                      stepName,
-                      valueName,
-                      success: Array.isArray(value) && value.length > 0,
-                      count: Array.isArray(value) ? value.length : 0,
-                      data: value
-                    });
-                  }
-                }
-                setTestResults(collectedResults);
+                // Update the test results display
+                setTestResults(allTestResults);
                 
                 // Don't close modal - show results instead
               }}
