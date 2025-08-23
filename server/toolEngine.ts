@@ -495,14 +495,14 @@ export class ToolEngine {
       const parsed = JSON.parse(result);
       let results = Array.isArray(parsed) ? parsed : [parsed];
       
-      // Check if we have data type parameters with arrays
-      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
+      // Check if we have data type parameters with arrays (reuse from batching check)
+      const dataInputsCheck = Object.entries(inputs).filter(([key, value]) => {
         const param = tool.inputParameters.find(p => p.id === key || p.name === key);
         return param?.type === 'data' && Array.isArray(value);
       });
       
-      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
-        const expectedCount = dataInputs.reduce((sum, [, value]) => 
+      if (dataInputsCheck.length > 0 && tool.outputType === 'multiple') {
+        const expectedCount = dataInputsCheck.reduce((sum, [, value]) => 
           sum + (Array.isArray(value) ? value.length : 0), 0);
         
         console.log(`⚠️ Expected ${expectedCount} results, got ${results.length}`);
