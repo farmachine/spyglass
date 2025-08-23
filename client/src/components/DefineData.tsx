@@ -945,11 +945,18 @@ export default function DefineData({
                 }
                 console.log(`📊 Total selected values: ${selectedValues.length}`);
 
-                console.log("🧪 Running Test Workflow");
+                console.log("\n🧪 RUNNING TEST WORKFLOW");
+                console.log("=".repeat(50));
+                console.log("🔍 Selected Test Items Set Size:", selectedTestItems.size);
                 console.log("🔍 Selected Test Items:", Array.from(selectedTestItems));
-                console.log("📄 Available Test Documents:", testDocuments);
-                console.log("📄 Selected Documents:", selectedDocs);
-                console.log("🔧 Selected Values:", selectedValues);
+                console.log("📄 Available Test Documents:", testDocuments.length, "documents");
+                console.log("📄 Selected Documents:", selectedDocs.length, "documents selected");
+                console.log("🔧 Selected Values Count:", selectedValues.length);
+                console.log("🔧 Selected Values Details:");
+                selectedValues.forEach((v: any) => {
+                  console.log(`  - ${v.stepName} > ${v.valueName} (Tool: ${v.toolId})`);
+                });
+                console.log("=".repeat(50));
                 
                 // Check if any items are selected
                 if (selectedDocs.length === 0 || selectedValues.length === 0) {
