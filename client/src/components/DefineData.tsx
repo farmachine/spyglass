@@ -509,26 +509,42 @@ export default function DefineData({
                 ) : (
                   testDocuments.map((doc: any) => (
                     <div key={doc.id} className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`test-doc-${doc.id}`}
-                          checked={selectedTestItems.has(`test-doc-${doc.id}`)}
-                          onCheckedChange={(checked) => {
+                      <div className="flex items-center space-x-3">
+                        {/* Circular checkbox replacement */}
+                        <button
+                          onClick={() => {
                             const newSet = new Set(selectedTestItems);
-                            if (checked) {
-                              newSet.add(`test-doc-${doc.id}`);
-                            } else {
+                            if (selectedTestItems.has(`test-doc-${doc.id}`)) {
                               newSet.delete(`test-doc-${doc.id}`);
+                            } else {
+                              newSet.add(`test-doc-${doc.id}`);
                             }
                             setSelectedTestItems(newSet);
                           }}
-                        />
-                        <label htmlFor={`test-doc-${doc.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
+                          className="relative w-4 h-4 rounded-full border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 dark:hover:border-gray-400 transition-colors"
+                        >
+                          {selectedTestItems.has(`test-doc-${doc.id}`) && (
+                            <div className="absolute inset-0.5 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+                          )}
+                        </button>
+                        
+                        <label 
+                          onClick={() => {
+                            const newSet = new Set(selectedTestItems);
+                            if (selectedTestItems.has(`test-doc-${doc.id}`)) {
+                              newSet.delete(`test-doc-${doc.id}`);
+                            } else {
+                              newSet.add(`test-doc-${doc.id}`);
+                            }
+                            setSelectedTestItems(newSet);
+                          }}
+                          className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer select-none"
+                        >
                           {doc.fileName || doc.file_name || "Unnamed Document"}
                         </label>
                       </div>
                       {(doc.extractedContent || doc.extracted_content) && (
-                        <div className="ml-6 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                        <div className="ml-7 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
                           <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
                             {typeof (doc.extractedContent || doc.extracted_content) === 'string' 
                               ? (doc.extractedContent || doc.extracted_content).substring(0, 200) + ((doc.extractedContent || doc.extracted_content).length > 200 ? '...' : '')
@@ -551,61 +567,108 @@ export default function DefineData({
               <div className="space-y-2">
                 {/* Show workflow steps from database in order */}
                 {workflowData?.steps ? (
-                  workflowData.steps.map((step: any) => (
-                    <div key={step.id} className="space-y-1">
-                      <div className="flex items-center space-x-2 pl-2">
-                        <Checkbox 
-                          id={`step-${step.id}`}
-                          checked={selectedTestItems.has(`step-${step.id}`)}
-                          onCheckedChange={(checked) => {
+                  workflowData.steps.map((step: any, stepIndex: number) => (
+                    <div key={step.id} className="relative">
+                      <div className="flex items-center space-x-3 pl-2">
+                        {/* Circular checkbox replacement */}
+                        <button
+                          onClick={() => {
                             const newSet = new Set(selectedTestItems);
-                            if (checked) {
-                              newSet.add(`step-${step.id}`);
-                              // Also select all values when step is selected
-                              step.values?.forEach((value: any) => {
-                                newSet.add(`value-${value.id}`);
-                              });
-                            } else {
+                            if (selectedTestItems.has(`step-${step.id}`)) {
                               newSet.delete(`step-${step.id}`);
                               // Also deselect all values
                               step.values?.forEach((value: any) => {
                                 newSet.delete(`value-${value.id}`);
                               });
+                            } else {
+                              newSet.add(`step-${step.id}`);
+                              // Also select all values when step is selected
+                              step.values?.forEach((value: any) => {
+                                newSet.add(`value-${value.id}`);
+                              });
                             }
                             setSelectedTestItems(newSet);
                           }}
-                        />
+                          className="relative w-4 h-4 rounded-full border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 dark:hover:border-gray-400 transition-colors"
+                        >
+                          {selectedTestItems.has(`step-${step.id}`) && (
+                            <div className="absolute inset-0.5 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+                          )}
+                        </button>
+                        
                         {step.stepType === 'page' ? (
                           <Layers className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         ) : (
                           <List className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         )}
-                        <label htmlFor={`step-${step.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
+                        <label 
+                          onClick={() => {
+                            const newSet = new Set(selectedTestItems);
+                            if (selectedTestItems.has(`step-${step.id}`)) {
+                              newSet.delete(`step-${step.id}`);
+                              step.values?.forEach((value: any) => {
+                                newSet.delete(`value-${value.id}`);
+                              });
+                            } else {
+                              newSet.add(`step-${step.id}`);
+                              step.values?.forEach((value: any) => {
+                                newSet.add(`value-${value.id}`);
+                              });
+                            }
+                            setSelectedTestItems(newSet);
+                          }}
+                          className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer select-none"
+                        >
                           {step.stepName || "Unnamed Step"}
                         </label>
                       </div>
+                      
                       {step.values && step.values.length > 0 && (
-                        <div className="space-y-1 pl-10">
-                          {step.values.map((value: any) => (
-                            <div key={value.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`value-${value.id}`}
-                                checked={selectedTestItems.has(`value-${value.id}`)}
-                                onCheckedChange={(checked) => {
-                                  const newSet = new Set(selectedTestItems);
-                                  if (checked) {
-                                    newSet.add(`value-${value.id}`);
-                                  } else {
-                                    newSet.delete(`value-${value.id}`);
-                                  }
-                                  setSelectedTestItems(newSet);
-                                }}
-                              />
-                              <label htmlFor={`value-${value.id}`} className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
-                                {value.name || value.valueName || "Unnamed Value"}
-                              </label>
-                            </div>
-                          ))}
+                        <div className="relative">
+                          {/* Vertical line connecting to values */}
+                          <div className="absolute left-[18px] top-2 bottom-0 w-px bg-gray-300 dark:bg-gray-600"></div>
+                          
+                          <div className="space-y-2 pl-10 pt-2">
+                            {step.values.map((value: any, valueIndex: number) => (
+                              <div key={value.id} className="relative flex items-center space-x-3">
+                                {/* Horizontal line from vertical line to dot */}
+                                <div className="absolute left-[-22px] top-2 w-4 h-px bg-gray-300 dark:bg-gray-600"></div>
+                                
+                                {/* Circular checkbox for values */}
+                                <button
+                                  onClick={() => {
+                                    const newSet = new Set(selectedTestItems);
+                                    if (selectedTestItems.has(`value-${value.id}`)) {
+                                      newSet.delete(`value-${value.id}`);
+                                    } else {
+                                      newSet.add(`value-${value.id}`);
+                                    }
+                                    setSelectedTestItems(newSet);
+                                  }}
+                                  className="relative w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 dark:hover:border-gray-400 transition-colors"
+                                >
+                                  {selectedTestItems.has(`value-${value.id}`) && (
+                                    <div className="absolute inset-0.5 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+                                  )}
+                                </button>
+                                
+                                <label 
+                                  onClick={() => {
+                                    const newSet = new Set(selectedTestItems);
+                                    if (selectedTestItems.has(`value-${value.id}`)) {
+                                      newSet.delete(`value-${value.id}`);
+                                    } else {
+                                      newSet.add(`value-${value.id}`);
+                                    }
+                                    setSelectedTestItems(newSet);
+                                  }}
+                                  className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer select-none"
+                                >
+                                  {value.name || value.valueName || "Unnamed Value"}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
