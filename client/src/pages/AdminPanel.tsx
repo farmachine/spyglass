@@ -1,6 +1,7 @@
 import { Settings, Home, Users, Building2, Shield } from "lucide-react";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
+import DarkModeToggle from "@/components/DarkModeToggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -71,8 +72,11 @@ export default function AdminPanel() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <ExtraplLogo />
-            <UserProfile />
+            <ExtraplLogo showAdmin={true} />
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>

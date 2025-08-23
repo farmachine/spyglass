@@ -19,6 +19,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import Breadcrumb from "@/components/Breadcrumb";
+import DarkModeToggle from "@/components/DarkModeToggle";
+import ExtraplLogo from "@/components/ExtraplLogo";
+import UserProfile from "@/components/UserProfile";
 import React from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -249,8 +252,21 @@ export default function OrganizationConfig() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+      {/* Top Header with Logo */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <ExtraplLogo showAdmin={true} />
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <UserProfile />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Breadcrumb Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex flex-col space-y-4">
             <Breadcrumb 
