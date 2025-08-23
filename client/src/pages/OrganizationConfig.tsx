@@ -220,9 +220,9 @@ export default function OrganizationConfig() {
   // Show loading state while fetching organizations
   if (!organizations) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-medium text-gray-600">Loading...</h2>
+          <h2 className="text-xl font-medium text-gray-600 dark:text-gray-400">Loading...</h2>
         </div>
       </div>
     );
@@ -232,10 +232,10 @@ export default function OrganizationConfig() {
   const selectedOrg = organizations?.find((org: any) => org.id === organizationId);
   if (!selectedOrg && organizations) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Organization not found</h2>
-          <p className="text-gray-500">The organization you're looking for doesn't exist.</p>
+          <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Organization not found</h2>
+          <p className="text-gray-500 dark:text-gray-400">The organization you're looking for doesn't exist.</p>
           <Button 
             onClick={() => navigate("/admin")} 
             className="mt-4"
@@ -248,9 +248,9 @@ export default function OrganizationConfig() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex flex-col space-y-4">
             <Breadcrumb 
@@ -260,10 +260,10 @@ export default function OrganizationConfig() {
               ]} 
             />
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {selectedOrg?.name || "Organization"}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Organization configuration
               </p>
             </div>
@@ -473,11 +473,11 @@ export default function OrganizationConfig() {
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
-                  <div className="text-center py-8">Loading users...</div>
+                  <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading users...</div>
                 ) : (
                   <div className="space-y-0">
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 items-center p-4 border-b bg-gray-50 font-medium text-sm text-gray-700">
+                    <div className="grid grid-cols-12 gap-4 items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 font-medium text-sm text-gray-700 dark:text-gray-300">
                       <div className="col-span-4">User</div>
                       <div className="col-span-2">Role</div>
                       <div className="col-span-2">Status</div>
@@ -486,13 +486,13 @@ export default function OrganizationConfig() {
                     {users?.map((user: any) => (
                       <div
                         key={user.id}
-                        className="grid grid-cols-12 gap-4 items-center p-4 border-b hover:bg-gray-50"
+                        className="grid grid-cols-12 gap-4 items-center p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
                         {/* User Info - Takes up 4 columns */}
                         <div className="col-span-4">
                           <div className="flex flex-col">
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-sm text-gray-600">{user.email}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{user.email}</span>
                           </div>
                         </div>
                         
@@ -509,7 +509,7 @@ export default function OrganizationConfig() {
                         {/* Status - Takes up 2 columns */}
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600">Active</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Active</span>
                             <Switch
                               checked={user.isActive}
                               onCheckedChange={(checked) =>

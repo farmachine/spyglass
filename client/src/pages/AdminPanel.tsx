@@ -66,9 +66,9 @@ export default function AdminPanel() {
   const totalUsers = organizations?.reduce((sum: number, org: any) => sum + (org.userCount || 0), 0) || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <ExtraplLogo />
@@ -84,7 +84,7 @@ export default function AdminPanel() {
           <div className="py-6">
             <div className="flex items-center space-x-3">
               <Shield className="h-8 w-8 text-primary" />
-              <h2 className="text-3xl font-bold">Admin</h2>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Admin</h2>
             </div>
           </div>
           
@@ -180,7 +180,7 @@ export default function AdminPanel() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
             ) : (
               <div className="space-y-4">
                 {organizations
@@ -193,27 +193,27 @@ export default function AdminPanel() {
                   ?.map((org: any) => (
                   <div
                     key={org.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`p-2 rounded-lg ${
                         org.type === 'primary' 
-                          ? 'bg-gray-100' 
-                          : 'bg-blue-100'
+                          ? 'bg-gray-100 dark:bg-gray-700' 
+                          : 'bg-blue-100 dark:bg-blue-900'
                       }`}>
                         <Building2 className={`h-5 w-5 ${
                           org.type === 'primary' 
-                            ? 'text-black' 
-                            : 'text-blue-600'
+                            ? 'text-black dark:text-white' 
+                            : 'text-blue-600 dark:text-blue-400'
                         }`} />
                       </div>
                       <div>
-                        <h3 className="font-medium">{org.name}</h3>
-                        <p className="text-sm text-gray-600">{org.description}</p>
+                        <h3 className="font-medium text-gray-900 dark:text-white">{org.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{org.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
                         {org.userCount || 0} users
                       </span>
                       <Button
