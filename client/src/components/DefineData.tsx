@@ -964,9 +964,58 @@ export default function DefineData({
                   // Sort values to ensure dependencies are processed first
                   // (In a real implementation, we'd do topological sort based on @-references)
                   for (const value of selectedValues) {
-                    console.log(`  ⚙️ Running ${value.stepName} > ${value.valueName}`);
+                    console.log(`\n  ⚙️ Running ${value.stepName} > ${value.valueName}`);
+                    console.log(`  ═══════════════════════════════════════════`);
                     
                     try {
+                      // Log detailed input parameters for this step
+                      console.log(`  📋 STEP CONFIGURATION:`);
+                      console.log(`    • Tool ID: ${value.toolId}`);
+                      console.log(`    • Step ID: ${value.stepId}`);
+                      console.log(`    • Value ID: ${value.valueId}`);
+                      console.log(`    • Input Values:`, value.inputValues);
+                      
+                      // Log what data is available from previous steps
+                      console.log(`  📊 AVAILABLE DATA FROM PREVIOUS STEPS:`);
+                      if (Object.keys(previousResults).length === 0) {
+                        console.log(`    (No previous results - this is the first step)`);
+                      } else {
+                        Object.entries(previousResults).forEach(([key, data]: [string, any]) => {
+                          if (Array.isArray(data)) {
+                            console.log(`    • "${key}": Array with ${data.length} items`);
+                            if (data.length > 0) {
+                              console.log(`      First item structure:`, Object.keys(data[0]));
+                              console.log(`      Sample data:`, data[0]);
+                            }
+                          } else {
+                            console.log(`    • "${key}": Single value (${typeof data})`);
+                          }
+                        });
+                      }
+                      
+                      // Log resolved @-references
+                      if (value.inputValues) {
+                        console.log(`  🎯 RESOLVED INPUT PARAMETERS:`);
+                        Object.entries(value.inputValues).forEach(([param, val]: [string, any]) => {
+                          if (typeof val === 'string' && val.startsWith('@')) {
+                            const refKey = val.substring(1);
+                            const resolvedData = previousResults[refKey];
+                            if (resolvedData) {
+                              if (Array.isArray(resolvedData)) {
+                                console.log(`    • ${param}: @${refKey} → Resolved to array with ${resolvedData.length} items`);
+                              } else {
+                                console.log(`    • ${param}: @${refKey} → Resolved to single value`);
+                              }
+                            } else {
+                              console.log(`    • ${param}: @${refKey} → ⚠️ WARNING: Reference not found in previous results!`);
+                              console.log(`      Available keys: ${Object.keys(previousResults).join(', ')}`);
+                            }
+                          } else {
+                            console.log(`    • ${param}: Direct value = "${val}"`);
+                          }
+                        });
+                      }
+                      
                       // Prepare the request body with previous results
                       const requestBody = {
                         documentId: doc.id,
@@ -975,14 +1024,10 @@ export default function DefineData({
                         previousResults: previousResults // Pass accumulated results
                       };
                       
-                      // Log critical info about previousResults
-                      console.log("📤 Previous Results Summary:");
-                      for (const [key, val] of Object.entries(previousResults)) {
-                        if (Array.isArray(val)) {
-                          console.log(`    ${key}: ${val.length} items`);
-                        }
-                      }
-                      console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2).slice(0, 2000) + "...");
+                      console.log(`  📤 REQUEST SUMMARY:`);
+                      console.log(`    • Document ID: ${requestBody.documentId}`);
+                      console.log(`    • Document content length: ${requestBody.documentContent?.length || 0} chars`);
+                      console.log(`    • Previous results keys: [${Object.keys(previousResults).join(', ')}]`);
                       
                       // Check if this will need async processing (large arrays)
                       const hasLargeArrays = Object.values(previousResults).some((v: any) => 
@@ -1052,8 +1097,13 @@ export default function DefineData({
                               previousResults[resultKey] = results;
                               previousResults[value.valueName] = results;
                               
-                              console.log(`  💾 Stored results as "${resultKey}" and "${value.valueName}" for subsequent steps`);
-                              console.log(`  📊 Stored array has ${results.length} items`);
+                              console.log(`  💾 STORING RESULTS FOR NEXT STEPS:`);
+                              console.log(`    • Stored as "${resultKey}": ${results.length} items`);
+                              console.log(`    • Also stored as "${value.valueName}": ${results.length} items`);
+                              if (results.length > 0) {
+                                console.log(`    • First item keys:`, Object.keys(results[0]));
+                                console.log(`    • Sample item:`, results[0]);
+                              }
                             }
                           } else if (jobStatus.job?.status === 'failed') {
                             jobComplete = true;
@@ -1066,7 +1116,7 @@ export default function DefineData({
                         }
                       } else if (response.result?.results) {
                         // Synchronous response
-                        console.log(`  ✅ Extracted ${response.result.results.length} items`);
+                        console.log(`  ✅ Extracted ${response.result.results.length} items (synchronous)`);
                         
                         // Store the results for use by subsequent steps
                         // Use both step.value format and just value name for flexibility
@@ -1074,14 +1124,16 @@ export default function DefineData({
                         previousResults[resultKey] = response.result.results;
                         previousResults[value.valueName] = response.result.results;
                         
-                        console.log(`  💾 Stored results as "${resultKey}" and "${value.valueName}" for subsequent steps`);
+                        console.log(`  💾 STORING RESULTS FOR NEXT STEPS:`);
+                        console.log(`    • Stored as "${resultKey}": ${response.result.results.length} items`);
+                        console.log(`    • Also stored as "${value.valueName}": ${response.result.results.length} items`);
                         
                         // Debug: Log what we're storing
-                        console.log(`  📊 Stored array has ${response.result.results.length} items`);
                         if (response.result.results.length > 0) {
-                          console.log(`    First item:`, response.result.results[0]);
+                          console.log(`    • First item keys:`, Object.keys(response.result.results[0]));
+                          console.log(`    • Sample data (first):`, response.result.results[0]);
                           if (response.result.results.length > 1) {
-                            console.log(`    Last item:`, response.result.results[response.result.results.length - 1]);
+                            console.log(`    • Sample data (last):`, response.result.results[response.result.results.length - 1]);
                           }
                         }
                         
