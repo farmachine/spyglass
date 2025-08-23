@@ -343,7 +343,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       </div>
 
       {/* Page Title */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
@@ -381,7 +381,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2 flex-1 group">
-                      <h2 className="text-3xl font-bold">{project.name}</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{project.name}</h2>
                       {canEditProject && (
                         <Button
                           size="sm"
@@ -432,11 +432,11 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                   ) : (
                     <div className="flex items-start space-x-2 flex-1 group">
                       {project.description ? (
-                        <p className="text-sm text-gray-600">{project.description}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{project.description}</p>
                       ) : canEditProject ? (
-                        <p className="text-sm text-gray-400 italic">Click to add description</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">Click to add description</p>
                       ) : (
-                        <p className="text-sm text-gray-400">No description</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
                       )}
                       {canEditProject && (
                         <Button
@@ -457,21 +457,21 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             {/* Statistics Cards */}
             {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700" />
-                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-400" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {verificationStats.in_progress + verificationStats.pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {verificationStats.verified}
                   </span>
                 </div>
