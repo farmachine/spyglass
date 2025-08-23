@@ -373,11 +373,36 @@ export class ToolEngine {
    */
   private async testAITool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
     try {
+      console.log('🔍 testAITool - Inputs received:', Object.keys(inputs));
+      console.log('🔍 testAITool - Tool output type:', tool.outputType);
+      
+      // Log each input to understand what we're working with
+      for (const [key, value] of Object.entries(inputs)) {
+        if (Array.isArray(value)) {
+          console.log(`  📊 Input "${key}" is an array with ${value.length} items`);
+          if (value.length > 0) {
+            console.log(`    First item type: ${typeof value[0]}`);
+            if (typeof value[0] === 'object') {
+              console.log(`    First item structure:`, Object.keys(value[0]));
+            }
+          }
+        } else if (typeof value === 'string') {
+          console.log(`  📝 Input "${key}" is a string (${value.length} chars)`);
+        } else {
+          console.log(`  🔢 Input "${key}" is type: ${typeof value}`);
+        }
+      }
+      
       // Check if we need to batch large arrays
       const dataInputs = Object.entries(inputs).filter(([key, value]) => {
         const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-        return param?.type === 'data' && Array.isArray(value);
+        const isDataParam = param?.type === 'data';
+        const isArray = Array.isArray(value);
+        console.log(`  Checking "${key}": param type="${param?.type}", isArray=${isArray}, isDataParam=${isDataParam}`);
+        return isDataParam && isArray;
       });
+      
+      console.log(`🔍 Found ${dataInputs.length} data inputs that are arrays`);
       
       // For AI tools, use smaller batch size to ensure complete processing
       // Lowered threshold from 20 to 5 to trigger batching for all multi-item arrays
