@@ -86,6 +86,12 @@ async function processWorkflowTestAsync(
     clearInterval(progressInterval);
     
     // Complete the job with results (no need to save test results in DB for async jobs)
+    console.log(`📊 Async job ${jobId} results:`, {
+      resultCount: Array.isArray(result?.results) ? result.results.length : 'not an array',
+      success: result?.success,
+      firstItem: result?.results?.[0]
+    });
+    
     const { jobManager: jm } = await import('./jobManager');
     jm.completeJob(jobId, {
       results: result,

@@ -797,10 +797,28 @@ export default function DefineData({
                           
                           if (jobStatus.job?.status === 'completed') {
                             jobComplete = true;
-                            const results = jobStatus.job.result?.results;
+                            // Debug the structure
+                            console.log('  📦 Job result structure:', jobStatus.job.result);
                             
-                            if (results) {
+                            // Try different paths to find the results
+                            const results = jobStatus.job.result?.results?.results || 
+                                          jobStatus.job.result?.results || 
+                                          jobStatus.job.result || 
+                                          [];
+                            
+                            if (results && Array.isArray(results)) {
                               console.log(`  ✅ Extracted ${results.length} items`);
+                              
+                              // Log first few results for debugging
+                              if (results.length > 0) {
+                                console.log(`  📋 Sample results:`);
+                                results.slice(0, 3).forEach((item: any, idx: number) => {
+                                  console.log(`    Item ${idx + 1}:`, item);
+                                });
+                                if (results.length > 3) {
+                                  console.log(`    ... and ${results.length - 3} more items`);
+                                }
+                              }
                               
                               // Store the results for use by subsequent steps
                               const resultKey = `${value.stepName}.${value.valueName}`;
