@@ -1,0 +1,62 @@
+📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item 'Annual Pre-6.4.1988 GMP Component At Date Of This Valuation' does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item 'Date Of Exit From Active Service' does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Date of birth, birth date, DOB, DateOfBirth, Member Birth Date",
+        "validationStatus": "valid",
+        "aiReasoning": "The column 'DoB' is described as 'The date of birth of the scheme member' and has the synonyms 'Date of birth, birth date, DOB, DateOfBirth, Member Birth Date'.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item 'Date Pensionable Service Commenced' does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item 'Code For Previous Status' does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      }
+    ],
+    "success": true
+  },
+  "valueName": "Standard Equivalent",
+  "stepName": "Column Name Mapping"
+}
+main.tsx:17   ✅ Extracted 5 items
+main.tsx:17   💾 Stored results as "Column Name Mapping.Standard Equivalent" and "Standard Equivalent" for subsequent steps
+main.tsx:17   📊 Stored array has 5 items
+main.tsx:17     First item: {extractedValue: 'Not Found', validationStatus: 'invalid', aiReasoning: "The item 'Annual Pre-6.4.1988 GMP Component At Dat…ation' does not appear in the reference document.", confidenceScore: 100, documentSource: 'Reference Document', …}
+main.tsx:17     Last item: {extractedValue: 'Not Found', validationStatus: 'invalid', aiReasoning: "The item 'Code For Previous Status' does not appear in the reference document.", confidenceScore: 100, documentSource: 'Reference Document', …}aiReasoning: "The item 'Code For Previous Status' does not appear in the reference document."confidenceScore: 100documentSource: "Reference Document"extractedValue: "Not Found"step_id: "e3c7f77d-910c-4e41-8668-e0fccf16fd45"validationStatus: "invalid"value_id: "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"[[Prototype]]: Object
+main.tsx:17 
+✨ Test completed!

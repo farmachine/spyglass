@@ -6229,6 +6229,18 @@ def extract_function(Column_Name, Excel_File):
             // Execute using toolEngine's testTool method
             const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
             
+            console.log(`📊 TOOL EXECUTION COMPLETE: ${excelFunction.name}`);
+            console.log(`  Results returned: ${toolResults?.length || 0} items`);
+            if (toolResults && toolResults.length > 0) {
+              console.log(`  First result:`, toolResults[0]);
+              if (toolResults.length > 1) {
+                console.log(`  Last result:`, toolResults[toolResults.length - 1]);
+              }
+              if (toolResults.length > 10) {
+                console.log(`  Total of ${toolResults.length} results returned`);
+              }
+            }
+            
             // Add step_id and value_id to each result
             const enhancedResults = toolResults?.map((item: any) => ({
               ...item,
