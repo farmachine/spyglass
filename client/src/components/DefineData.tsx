@@ -692,65 +692,127 @@ export default function DefineData({
               {testResults.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">No test results yet. Run the test to see results here.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Step
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Value
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Count
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Sample Data
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                      {testResults.map((result: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            {result.stepName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            {result.valueName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-center">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              result.success 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }`}>
-                              {result.success ? '✓ Success' : '✗ Failed'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                            {result.count || 0}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                            <div className="max-w-xs truncate">
-                              {result.data && Array.isArray(result.data) && result.data.length > 0 ? (
-                                <span title={JSON.stringify(result.data[0])}>
-                                  {typeof result.data[0] === 'object' 
-                                    ? result.data[0].extractedValue || JSON.stringify(result.data[0]).substring(0, 50) + '...'
-                                    : String(result.data[0]).substring(0, 50) + (String(result.data[0]).length > 50 ? '...' : '')}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 dark:text-gray-500 italic">No data</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div>
+                  {/* Show results for each step */}
+                  {testResults.map((result: any, stepIndex: number) => (
+                    <div key={stepIndex} className="mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {result.stepName}
+                        </h4>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                          result.success 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        }`}>
+                          {result.count || 0} items
+                        </span>
+                      </div>
+                      
+                      {result.data && Array.isArray(result.data) && result.data.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                              <tr>
+                                {/* Dynamic headers based on the first data item */}
+                                {(() => {
+                                  // For Column Name Mapping, show the appropriate columns
+                                  if (result.stepName === 'Column Name Mapping') {
+                                    return (
+                                      <>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                          Column Names
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                          Worksheet Name
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                          Standard Equivalent
+                                        </th>
+                                      </>
+                                    );
+                                  }
+                                  // Generic headers for other steps
+                                  const firstItem = result.data[0];
+                                  if (typeof firstItem === 'object' && firstItem !== null) {
+                                    return Object.keys(firstItem).slice(0, 5).map((key) => (
+                                      <th key={key} className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                                      </th>
+                                    ));
+                                  }
+                                  return (
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                      Value
+                                    </th>
+                                  );
+                                })()}
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                              {result.data.slice(0, 10).map((item: any, itemIndex: number) => (
+                                <tr key={itemIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  {(() => {
+                                    // For Column Name Mapping, show the specific data
+                                    if (result.stepName === 'Column Name Mapping') {
+                                      // Handle the structure based on what's in the data
+                                      if (typeof item === 'object' && item !== null) {
+                                        // If item has identifierId and name (Column Names)
+                                        const columnName = item.name || item.identifierId || item.columnName || 'Unknown';
+                                        // Get worksheet name from previousResults if available
+                                        const worksheetName = item.worksheetName || 'Pending';
+                                        // Get standard equivalent
+                                        const standardEquivalent = item.extractedValue || item.standardEquivalent || 'Not Found';
+                                        
+                                        return (
+                                          <>
+                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                              {columnName}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                              {worksheetName}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                              <div className="max-w-xs truncate" title={standardEquivalent}>
+                                                {standardEquivalent}
+                                              </div>
+                                            </td>
+                                          </>
+                                        );
+                                      }
+                                    }
+                                    
+                                    // Generic display for other data types
+                                    if (typeof item === 'object' && item !== null) {
+                                      return Object.values(item).slice(0, 5).map((value: any, i: number) => (
+                                        <td key={i} className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                          <div className="max-w-xs truncate" title={String(value)}>
+                                            {String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}
+                                          </div>
+                                        </td>
+                                      ));
+                                    }
+                                    return (
+                                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                        {String(item)}
+                                      </td>
+                                    );
+                                  })()}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {result.data.length > 10 && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                              Showing 10 of {result.data.length} items
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">No data extracted</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
