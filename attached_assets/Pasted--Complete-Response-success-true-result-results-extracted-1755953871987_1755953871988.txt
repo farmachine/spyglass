@@ -1,0 +1,56 @@
+📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Date of birth, birth date, DOB, DateOfBirth, Member Birth Date",
+        "validationStatus": "valid",
+        "aiReasoning": "The 'Date of Birth' column is listed in the reference document with the synonyms 'Date of birth, birth date, DOB, DateOfBirth, Member Birth Date'.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      },
+      {
+        "extractedValue": "Not Found",
+        "validationStatus": "invalid",
+        "aiReasoning": "The item does not appear in the reference document.",
+        "confidenceScore": 100,
+        "documentSource": "Reference Document",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+      }
+    ],
+    "success": true
+  },
+  "valueName": "Standard Equivalent",
+  "stepName": "Column Name Mapping"
+}
+main.tsx:17   ✅ Extracted 5 items

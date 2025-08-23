@@ -379,19 +379,23 @@ export class ToolEngine {
         return param?.type === 'data' && Array.isArray(value);
       });
       
+      // For AI tools, use smaller batch size to ensure complete processing
+      // Lowered threshold from 20 to 5 to trigger batching for all multi-item arrays
+      const AI_BATCH_THRESHOLD = 5;
+      const AI_BATCH_SIZE = 5; // Process only 5 items at a time for AI tools
+      
       // If we have large arrays, process in batches
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
         const [dataKey, dataArray] = dataInputs[0];
-        if (Array.isArray(dataArray) && dataArray.length > 20) {
-          console.log(`📦 Large array detected (${dataArray.length} items). Processing in batches...`);
+        if (Array.isArray(dataArray) && dataArray.length > AI_BATCH_THRESHOLD) {
+          console.log(`📦 AI Tool: Array detected (${dataArray.length} items). Processing in small batches of ${AI_BATCH_SIZE}...`);
           
-          const BATCH_SIZE = 20; // Process 20 items at a time
           const allResults: ToolResult[] = [];
           
-          for (let i = 0; i < dataArray.length; i += BATCH_SIZE) {
-            const batch = dataArray.slice(i, Math.min(i + BATCH_SIZE, dataArray.length));
-            const batchEnd = Math.min(i + BATCH_SIZE, dataArray.length);
-            console.log(`  Processing batch ${Math.floor(i / BATCH_SIZE) + 1}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
+          for (let i = 0; i < dataArray.length; i += AI_BATCH_SIZE) {
+            const batch = dataArray.slice(i, Math.min(i + AI_BATCH_SIZE, dataArray.length));
+            const batchEnd = Math.min(i + AI_BATCH_SIZE, dataArray.length);
+            console.log(`  Processing batch ${Math.floor(i / AI_BATCH_SIZE) + 1}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
             
             // Create inputs for this batch
             const batchInputs = { ...inputs };
@@ -399,6 +403,11 @@ export class ToolEngine {
             
             // Process batch
             const batchPrompt = this.buildTestPrompt(tool, batchInputs);
+            
+            // Add a small delay between batches to avoid rate limiting
+            if (i > 0) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
             
             const response = await genAI.models.generateContent({
               model: tool.llmModel || "gemini-2.0-flash",
@@ -418,6 +427,22 @@ export class ToolEngine {
             try {
               const parsed = JSON.parse(batchResult);
               const results = Array.isArray(parsed) ? parsed : [parsed];
+              
+              // Validate that we got the expected number of results
+              if (results.length !== batch.length) {
+                console.warn(`    ⚠️ Batch returned ${results.length} results but expected ${batch.length}`);
+                // Pad with "Not Found" results if needed
+                while (results.length < batch.length) {
+                  results.push({
+                    extractedValue: "Not Found",
+                    validationStatus: "invalid",
+                    aiReasoning: "AI did not return a result for this item",
+                    confidenceScore: 0,
+                    documentSource: "Missing Result"
+                  });
+                }
+              }
+              
               allResults.push(...results);
               console.log(`    ✅ Batch processed: ${results.length} results`);
             } catch (e) {
