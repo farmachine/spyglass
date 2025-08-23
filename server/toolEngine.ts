@@ -629,6 +629,13 @@ export class ToolEngine {
       
       try {
         const result = await this.executePythonFile(tempFile);
+        console.log(`🐍 CODE TOOL RESULTS: ${result?.length || 0} items returned`);
+        if (result && result.length > 0) {
+          console.log(`  First item:`, result[0]);
+          if (result.length > 10) {
+            console.log(`  ... total of ${result.length} items`);
+          }
+        }
         await fs.unlink(tempFile); // Clean up
         return result;
       } catch (error) {
