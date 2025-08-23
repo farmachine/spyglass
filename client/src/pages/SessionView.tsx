@@ -3107,9 +3107,9 @@ Thank you for your assistance.`;
                 
                 <Link href={`/sessions/${sessionId}/debug`}>
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="sm"
-                    className="flex items-center gap-2 px-3 py-2"
+                    className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                     title="View AI debugging data"
                   >
                     <Bug className="h-4 w-4" />
@@ -3119,26 +3119,28 @@ Thank you for your assistance.`;
                 
                 <Button 
                   onClick={() => setShowReasoningDialog(true)} 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm"
-                  className="px-3 py-2"
+                  className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                  title="View extraction reasoning"
                 >
                   <Info className="h-4 w-4" />
                 </Button>
                 <Button
                   onClick={() => setDocumentUploadModalOpen(true)}
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="px-3 py-2"
+                  className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   title="Add documents to session"
                 >
                   <FilePlus className="h-4 w-4" />
                 </Button>
                 <Button
                   onClick={handleExportToExcel}
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="px-3 py-2"
+                  className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                  title="Export to Excel"
                 >
                   <Download className="h-4 w-4" />
                 </Button>
