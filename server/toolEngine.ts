@@ -964,8 +964,14 @@ try:
         # Get the first data parameter's sample data
         for param in data_params:
             param_name = param['name']
+            param_id = param.get('id', param_name)
+            # Check both by name and by ID
             if param_name in inputs and isinstance(inputs[param_name], list):
                 sample_data_records = inputs[param_name]
+                has_sample_data = True
+                break
+            elif param_id in inputs and isinstance(inputs[param_id], list):
+                sample_data_records = inputs[param_id]
                 has_sample_data = True
                 break
     
@@ -996,8 +1002,11 @@ try:
             for i, arg in enumerate(args):
                 if i < len(parameters):
                     param_info = parameters[i]
-                    arg_preview = str(arg)[:100] if arg else "None"
-                    print(f"  Arg {i} ({param_info['name']}): {arg_preview}", file=sys.stderr)
+                    if arg is None:
+                        print(f"  Arg {i} ({param_info['name']}): None - MISSING INPUT!", file=sys.stderr)
+                    else:
+                        arg_preview = str(arg)[:100] if arg else "None"
+                        print(f"  Arg {i} ({param_info['name']}): {arg_preview}", file=sys.stderr)
             
             # Execute function for this record
             result = func_to_call(*args)
