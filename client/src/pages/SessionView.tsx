@@ -2924,6 +2924,11 @@ Thank you for your assistance.`;
               <div className="space-y-3">
                 {/* General Information Tab */}
                 <div className="relative flex items-center">
+                  {/* Horizontal connecting line when selected */}
+                  {activeTab === 'info' && (
+                    <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
+                  )}
+                  
                   {/* Circular icon - solid dot without border */}
                   <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                     {(() => {
@@ -2975,6 +2980,11 @@ Thank you for your assistance.`;
                   
                   return (
                     <div key={collection.id} className="relative flex items-center">
+                      {/* Horizontal connecting line when selected */}
+                      {activeTab === collection.collectionName && (
+                        <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
+                      )}
+                      
                       {/* Circular icon - solid dot without border */}
                       <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                         {totalCount > 0 && verifiedCount === totalCount ? (
