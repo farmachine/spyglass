@@ -26,6 +26,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
@@ -2811,7 +2812,10 @@ Thank you for your assistance.`;
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtraplLogo />
-            <UserProfile />
+            <div className="flex items-center gap-4">
+              <DarkModeToggle />
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>
