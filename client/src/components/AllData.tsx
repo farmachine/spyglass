@@ -181,7 +181,7 @@ export default function AllData({ project }: AllDataProps) {
 
     return (
       <TableHead 
-        className={`${className} cursor-pointer hover:bg-gray-50 select-none`}
+        className={`${className} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none`}
         onClick={() => handleSort(field)}
       >
         <div className="flex items-center gap-1">
@@ -247,7 +247,7 @@ export default function AllData({ project }: AllDataProps) {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-foreground">{project.mainObjectName || "Session"}s</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Collect, validate & manage all {project.mainObjectName || "session"} documents & data.
             </p>
           </div>
@@ -312,8 +312,8 @@ export default function AllData({ project }: AllDataProps) {
           {project.sessions.length === 0 ? (
             <div className="text-center py-8 px-6">
               <Database className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No {(project.mainObjectName || "session").toLowerCase()} extractions</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Click "New {project.mainObjectName || "Session"}" to create your first extraction session
               </p>
               <div className="mt-4 flex justify-center">
@@ -394,7 +394,7 @@ export default function AllData({ project }: AllDataProps) {
                   const verificationStatus = getVerificationStatus(session.id);
                   
                   return (
-                    <TableRow key={session.id} className="hover:bg-gray-50">
+                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
@@ -412,7 +412,7 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                          <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                             <div 
                               className={`h-2.5 rounded-full transition-all duration-300 ${
                                 progress.percentage === 100 ? 'bg-green-600' : 
@@ -421,7 +421,7 @@ export default function AllData({ project }: AllDataProps) {
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 min-w-[32px]">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[32px]">
                             {progress.percentage}%
                           </span>
                         </div>

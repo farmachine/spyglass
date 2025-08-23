@@ -578,25 +578,25 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {/* Start dot and arrow */}
         {steps.length > 0 && (
           <>
-            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+            <div className="w-3 h-3 rounded-full bg-gray-600 dark:bg-gray-400"></div>
             <div className="flex flex-col items-center">
-              <div className="w-0.5 h-8 bg-gray-300"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
             </div>
           </>
         )}
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+            <Card className="relative w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
             <CardHeader className="pb-4 relative">
               <div className="flex flex-col items-center">
                 {/* Icon and Title - Centered */}
                 <div className="flex items-center gap-2 mb-2">
                   {step.type === 'list' ? (
-                    <List className="h-5 w-5 text-gray-700" />
+                    <List className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                   ) : (
-                    <Layers className="h-5 w-5 text-gray-700" />
+                    <Layers className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                   )}
                   
                   {editingStepId === step.id ? (
@@ -610,7 +610,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     />
                   ) : (
                     <CardTitle 
-                      className="text-lg cursor-pointer text-gray-900 hover:text-gray-700"
+                      className="text-lg cursor-pointer text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300"
                       onClick={() => setEditingStepId(step.id)}
                     >
                       {step.name || 'Unnamed'}
@@ -623,8 +623,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Description and Dot - Centered (collapsed only) */}
                 {!step.isExpanded && step.description && (
                   <div className="flex flex-col items-center">
-                    <p className="text-sm text-gray-600 text-center">{step.description}</p>
-                    <div className="mt-2 w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{step.description}</p>
+                    <div className="mt-2 w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
                   </div>
                 )}
 
@@ -632,26 +632,26 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
-                    className="p-1 hover:bg-gray-200 rounded"
+                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                   >
                     {step.isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-gray-600" />
+                      <ChevronUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     ) : (
-                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                      <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     )}
                   </button>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-1 hover:bg-gray-200 rounded">
-                        <MoreVertical className="h-4 w-4 text-gray-600" />
+                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
+                        <MoreVertical className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-white">
+                    <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800">
                       <DropdownMenuItem 
                         onClick={() => moveStep(stepIndex, 'up')}
                         disabled={stepIndex === 0}
-                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                        className="text-gray-700 dark:text-gray-300 focus:text-gray-900 dark:focus:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700"
                       >
                         <ArrowUp className="h-4 w-4 mr-2" />
                         Move Up
@@ -659,15 +659,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       <DropdownMenuItem 
                         onClick={() => moveStep(stepIndex, 'down')}
                         disabled={stepIndex === steps.length - 1}
-                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                        className="text-gray-700 dark:text-gray-300 focus:text-gray-900 dark:focus:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700"
                       >
                         <ArrowDown className="h-4 w-4 mr-2" />
                         Move Down
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-gray-200" />
+                      <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
                       <DropdownMenuItem 
                         onClick={() => deleteStep(step.id)}
-                        className="text-gray-700 focus:text-gray-900 focus:bg-gray-100"
+                        className="text-gray-700 dark:text-gray-300 focus:text-gray-900 dark:focus:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -945,17 +945,17 @@ function ValueEditor({
   const getValueIcon = () => {
     if (selectedTool) {
       if (selectedTool.toolType === "AI_ONLY") {
-        return <Brain className="h-4 w-4 text-gray-600" />;
+        return <Brain className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
       } else {
-        return <Code className="h-4 w-4 text-gray-500" />;
+        return <Code className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
       }
     }
     // Default dot when no tool selected
-    return <div className="w-2 h-2 bg-gray-500 rounded-full" />;
+    return <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full" />;
   };
 
   return (
-    <div className="border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white relative">
+    <div className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-gray-900 relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
@@ -963,14 +963,14 @@ function ValueEditor({
           {getValueIcon()}
           
           {/* Name Display Only */}
-          <div className="font-medium text-gray-900">
+          <div className="font-medium text-gray-900 dark:text-gray-100">
             {value.name || "Untitled Value"}
           </div>
         </div>
 
         {/* Description - Centered when collapsed */}
         {!isExpanded && value.description && (
-          <p className="text-sm text-gray-600 text-center">{value.description}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{value.description}</p>
         )}
 
         {/* Controls - Top right corner */}
