@@ -357,13 +357,22 @@ export class ToolEngine {
    * Test tool with given inputs
    */
   async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+    console.log('🚀 ToolEngine.testTool called');
+    console.log('  Tool Name:', tool.name);
+    console.log('  Tool Type:', tool.toolType);
+    console.log('  Output Type:', tool.outputType);
+    
     // Prepare inputs by fetching document content if needed
     const forAI = tool.toolType === "AI_ONLY";
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
     
+    console.log('  Prepared inputs keys:', Object.keys(preparedInputs));
+    
     if (tool.toolType === "AI_ONLY") {
+      console.log('  → Calling testAITool');
       return this.testAITool(tool, preparedInputs);
     } else {
+      console.log('  → Calling testCodeTool');
       return this.testCodeTool(tool, preparedInputs);
     }
   }
