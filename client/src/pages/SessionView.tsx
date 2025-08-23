@@ -2924,25 +2924,8 @@ Thank you for your assistance.`;
               <div className="space-y-3">
                 {/* General Information Tab */}
                 <div className="relative flex items-center">
-                  {/* Circular icon */}
-                  <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                    (() => {
-                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
-                      const verifiedCount = infoValidations.filter(v => 
-                        v.validationStatus === 'verified' || 
-                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                      ).length;
-                      const totalCount = infoValidations.length;
-                      
-                      if (totalCount > 0 && verifiedCount === totalCount) {
-                        return 'bg-white dark:bg-gray-800 border-green-600 dark:border-green-500';
-                      } else {
-                        return activeTab === 'info' 
-                          ? 'bg-primary border-primary' 
-                          : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600';
-                      }
-                    })()
-                  }`}>
+                  {/* Circular icon - solid dot without border */}
+                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                     {(() => {
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
                       const verifiedCount = infoValidations.filter(v => 
@@ -2952,10 +2935,10 @@ Thank you for your assistance.`;
                       const totalCount = infoValidations.length;
                       
                       if (totalCount > 0 && verifiedCount === totalCount) {
-                        return <Check className="w-4 h-4 text-green-600 dark:text-green-500" />;
+                        return <Check className="w-5 h-5 text-green-600 dark:text-green-500" />;
                       } else {
-                        return <div className={`w-3 h-3 rounded-full ${
-                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400 dark:bg-gray-500'
+                        return <div className={`w-2 h-2 rounded-full ${
+                          activeTab === 'info' ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
                         }`}></div>;
                       }
                     })()}
@@ -2992,19 +2975,13 @@ Thank you for your assistance.`;
                   
                   return (
                     <div key={collection.id} className="relative flex items-center">
-                      {/* Circular icon */}
-                      <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                        totalCount > 0 && verifiedCount === totalCount
-                          ? 'bg-white dark:bg-gray-800 border-green-600 dark:border-green-500'
-                          : (activeTab === collection.collectionName 
-                              ? 'bg-primary border-primary' 
-                              : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600')
-                      }`}>
+                      {/* Circular icon - solid dot without border */}
+                      <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                         {totalCount > 0 && verifiedCount === totalCount ? (
-                          <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
+                          <Check className="w-5 h-5 text-green-600 dark:text-green-500" />
                         ) : (
-                          <div className={`w-3 h-3 rounded-full ${
-                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400 dark:bg-gray-500'
+                          <div className={`w-2 h-2 rounded-full ${
+                            activeTab === collection.collectionName ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
                           }`}></div>
                         )}
                       </div>
