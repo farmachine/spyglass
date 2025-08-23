@@ -986,6 +986,18 @@ try:
                 elif param_name in inputs:
                     # Pass other inputs by name
                     args.append(inputs[param_name])
+                else:
+                    # Handle missing parameter - provide None to maintain argument count
+                    print(f"WARNING: No input found for parameter '{param_name}' (id: {param_id})", file=sys.stderr)
+                    args.append(None)
+            
+            # Debug log the arguments
+            print(f"DEBUG: Calling {function_name} with {len(args)} args", file=sys.stderr)
+            for i, arg in enumerate(args):
+                if i < len(parameters):
+                    param_info = parameters[i]
+                    arg_preview = str(arg)[:100] if arg else "None"
+                    print(f"  Arg {i} ({param_info['name']}): {arg_preview}", file=sys.stderr)
             
             # Execute function for this record
             result = func_to_call(*args)
