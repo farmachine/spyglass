@@ -60,7 +60,9 @@ async function processWorkflowTestAsync(
         // Special handling for @user_document - replace with test document content
         if (referencePath === 'user_document') {
           console.log(`  ✅ Replacing ${key} with test document content (${documentContent?.length || 0} chars)`);
+          console.log(`  📄 Document content preview: ${documentContent?.substring(0, 200)}...`);
           preparedInputValues[key] = documentContent || '';
+          console.log(`  ✅ Successfully set ${key} to document content`);
         }
         else if (previousResults && previousResults[referencePath]) {
           preparedInputValues[key] = previousResults[referencePath];
@@ -6277,7 +6279,9 @@ def extract_function(Column_Name, Excel_File):
               // Special handling for @user_document - replace with test document content
               if (referencePath === 'user_document') {
                 console.log(`  ✅ Replacing ${key} with test document content (${documentContent?.length || 0} chars)`);
+                console.log(`  📄 Document content preview: ${documentContent?.substring(0, 200)}...`);
                 preparedInputValues[key] = documentContent || '';
+                console.log(`  ✅ Successfully set ${key} to document content`);
               }
               // Check if we have previous results for this reference
               else if (previousResults && previousResults[referencePath]) {
