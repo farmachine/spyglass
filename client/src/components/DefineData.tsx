@@ -646,11 +646,16 @@ export default function DefineData({
                                 <button
                                   onClick={() => {
                                     const newSet = new Set(selectedTestItems);
-                                    if (selectedTestItems.has(`value-${value.id}`)) {
-                                      newSet.delete(`value-${value.id}`);
+                                    const itemKey = `value-${value.id}`;
+                                    if (selectedTestItems.has(itemKey)) {
+                                      newSet.delete(itemKey);
+                                      console.log(`❌ DESELECTED: ${step.stepName} > ${value.name || value.valueName} (${itemKey})`);
                                     } else {
-                                      newSet.add(`value-${value.id}`);
+                                      newSet.add(itemKey);
+                                      console.log(`✅ SELECTED: ${step.stepName} > ${value.name || value.valueName} (${itemKey})`);
                                     }
+                                    console.log(`  Current selections: ${newSet.size} items total`);
+                                    console.log(`  All selected:`, Array.from(newSet).filter(s => s.startsWith('value-')));
                                     setSelectedTestItems(newSet);
                                   }}
                                   className="relative w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 dark:hover:border-gray-400 transition-colors"
@@ -663,11 +668,16 @@ export default function DefineData({
                                 <label 
                                   onClick={() => {
                                     const newSet = new Set(selectedTestItems);
-                                    if (selectedTestItems.has(`value-${value.id}`)) {
-                                      newSet.delete(`value-${value.id}`);
+                                    const itemKey = `value-${value.id}`;
+                                    if (selectedTestItems.has(itemKey)) {
+                                      newSet.delete(itemKey);
+                                      console.log(`❌ DESELECTED (label): ${step.stepName} > ${value.name || value.valueName} (${itemKey})`);
                                     } else {
-                                      newSet.add(`value-${value.id}`);
+                                      newSet.add(itemKey);
+                                      console.log(`✅ SELECTED (label): ${step.stepName} > ${value.name || value.valueName} (${itemKey})`);
                                     }
+                                    console.log(`  Current selections: ${newSet.size} items total`);
+                                    console.log(`  All selected:`, Array.from(newSet).filter(s => s.startsWith('value-')));
                                     setSelectedTestItems(newSet);
                                   }}
                                   className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer select-none"
