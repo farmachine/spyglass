@@ -3028,7 +3028,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8 dark:bg-gray-900">
+        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-[#0f172a]">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
