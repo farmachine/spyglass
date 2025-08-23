@@ -703,19 +703,43 @@ export default function DefineData({
                       return <p className="text-sm text-gray-500 dark:text-gray-400 italic">No data extracted</p>;
                     }
                     
-                    // Combine all data from all results
+                    // For Column Name Mapping, merge results by index
                     const allData: any[] = [];
-                    testResults.forEach((result: any) => {
-                      if (result.data && Array.isArray(result.data)) {
-                        result.data.forEach((item: any) => {
-                          allData.push({
-                            ...item,
-                            _stepName: result.stepName,
-                            _valueName: result.valueName
-                          });
+                    
+                    if (firstResultWithData.stepName === 'Column Name Mapping') {
+                      // Get results for each value type
+                      const columnNamesResult = testResults.find((r: any) => r.valueName === 'Column Names');
+                      const worksheetResult = testResults.find((r: any) => r.valueName === 'Worksheet Name');
+                      const standardResult = testResults.find((r: any) => r.valueName === 'Standard Equivalent');
+                      
+                      const columnData = columnNamesResult?.data || [];
+                      const worksheetData = worksheetResult?.data || [];
+                      const standardData = standardResult?.data || [];
+                      
+                      // Merge by index
+                      const maxLength = Math.max(columnData.length, worksheetData.length, standardData.length);
+                      for (let i = 0; i < maxLength; i++) {
+                        allData.push({
+                          _stepName: 'Column Name Mapping',
+                          columnName: columnData[i]?.extractedValue || 'Unknown',
+                          worksheetName: worksheetData[i]?.extractedValue || 'Pending',
+                          standardEquivalent: standardData[i]?.extractedValue || 'Not Found'
                         });
                       }
-                    });
+                    } else {
+                      // For other steps, just combine normally
+                      testResults.forEach((result: any) => {
+                        if (result.data && Array.isArray(result.data)) {
+                          result.data.forEach((item: any) => {
+                            allData.push({
+                              ...item,
+                              _stepName: result.stepName,
+                              _valueName: result.valueName
+                            });
+                          });
+                        }
+                      });
+                    }
                     
                     // Pagination logic using component state
                     const itemsPerPage = 20;
@@ -794,11 +818,9 @@ export default function DefineData({
                                   {(() => {
                                     // For Column Name Mapping
                                     if (item._stepName === 'Column Name Mapping') {
-                                      // For Column Names value, use extractedValue from the first step
-                                      const columnName = item.extractedValue || item.name || item.identifierId || item.columnName || 'Unknown';
-                                      // For Worksheet Name, check if it exists in the workflow results
-                                      const worksheetName = item.worksheetName || item.worksheet || 'Pending';
-                                      // For Standard Equivalent, it's typically the third value
+                                      // Use the merged data structure
+                                      const columnName = item.columnName || 'Unknown';
+                                      const worksheetName = item.worksheetName || 'Pending';
                                       const standardEquivalent = item.standardEquivalent || 'Not Found';
                                       
                                       return (
