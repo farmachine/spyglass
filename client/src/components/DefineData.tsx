@@ -712,6 +712,12 @@ export default function DefineData({
                       const worksheetResult = testResults.find((r: any) => r.valueName === 'Worksheet Name');
                       const standardResult = testResults.find((r: any) => r.valueName === 'Standard Equivalent');
                       
+                      console.log('🔍 Merging Column Name Mapping results:', {
+                        columnNamesResult: columnNamesResult ? `${columnNamesResult.data?.length} items` : 'not found',
+                        worksheetResult: worksheetResult ? `${worksheetResult.data?.length} items` : 'not found',
+                        standardResult: standardResult ? `${standardResult.data?.length} items` : 'not found'
+                      });
+                      
                       const columnData = columnNamesResult?.data || [];
                       const worksheetData = worksheetResult?.data || [];
                       const standardData = standardResult?.data || [];
@@ -1086,6 +1092,14 @@ export default function DefineData({
                           success: true,
                           count: response.result.results.length,
                           data: response.result.results
+                        });
+                        
+                        // Debug: Log what we're adding to test results
+                        console.log(`  📦 Added to test results:`, {
+                          stepName: value.stepName,
+                          valueName: value.valueName,
+                          dataLength: response.result.results.length,
+                          firstItem: response.result.results[0]
                         });
                       }
                     } catch (error) {
