@@ -507,7 +507,7 @@ export default function DefineData({
           
           <div className="flex-1 flex gap-4 overflow-hidden">
             {/* Left Panel - Test Configuration */}
-            <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-4">
+            <div className="w-80 overflow-y-auto space-y-4 py-4 pr-4">
             {/* Test Documents Section */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Test Documents</h3>
@@ -552,12 +552,10 @@ export default function DefineData({
                         </label>
                       </div>
                       {(doc.extractedContent || doc.extracted_content) && (
-                        <div className="ml-7 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
-                            {typeof (doc.extractedContent || doc.extracted_content) === 'string' 
-                              ? (doc.extractedContent || doc.extracted_content).substring(0, 200) + ((doc.extractedContent || doc.extracted_content).length > 200 ? '...' : '')
-                              : JSON.stringify(doc.extractedContent || doc.extracted_content).substring(0, 200) + '...'}
-                          </p>
+                        <div className="ml-7 text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {typeof (doc.extractedContent || doc.extracted_content) === 'string' 
+                            ? (doc.extractedContent || doc.extracted_content).split('\n')[0].substring(0, 50) + '...'
+                            : 'Document content available'}
                         </div>
                       )}
                     </div>
@@ -689,28 +687,70 @@ export default function DefineData({
             </div>
             
             {/* Right Panel - Test Results */}
-            <div className="w-96 border-l border-gray-200 dark:border-gray-700 overflow-y-auto p-4">
+            <div className="flex-1 border-l border-gray-200 dark:border-gray-700 overflow-auto p-4">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Test Results</h3>
               {testResults.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">No test results yet. Run the test to see results here.</p>
               ) : (
-                <div className="space-y-3">
-                  {testResults.map((result: any, index: number) => (
-                    <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.stepName}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{result.valueName}</div>
-                      <div className="mt-2 text-xs">
-                        <span className={`px-2 py-1 rounded ${result.success ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-                          {result.success ? '✓ Success' : '✗ Failed'}
-                        </span>
-                        {result.count && (
-                          <span className="ml-2 text-gray-600 dark:text-gray-400">
-                            {result.count} items extracted
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Step
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Value
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Count
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Sample Data
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      {testResults.map((result: any, index: number) => (
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {result.stepName}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {result.valueName}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              result.success 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
+                              {result.success ? '✓ Success' : '✗ Failed'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
+                            {result.count || 0}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="max-w-xs truncate">
+                              {result.data && Array.isArray(result.data) && result.data.length > 0 ? (
+                                <span title={JSON.stringify(result.data[0])}>
+                                  {typeof result.data[0] === 'object' 
+                                    ? result.data[0].extractedValue || JSON.stringify(result.data[0]).substring(0, 50) + '...'
+                                    : String(result.data[0]).substring(0, 50) + (String(result.data[0]).length > 50 ? '...' : '')}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-500 italic">No data</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
