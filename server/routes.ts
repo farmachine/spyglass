@@ -6225,6 +6225,11 @@ def extract_function(Column_Name, Excel_File):
         Array.isArray(v) && v.length > 50
       ));
       
+      console.log('🔍 ASYNC CHECK:');
+      console.log('  useAsync flag:', useAsync);
+      console.log('  Has large arrays:', previousResults && Object.values(previousResults).some((v: any) => Array.isArray(v) && v.length > 50));
+      console.log('  Should use async:', shouldUseAsync);
+      
       if (shouldUseAsync) {
         console.log('📦 Using async processing for large dataset');
         const jobId = jobManager.createJob(projectId);
