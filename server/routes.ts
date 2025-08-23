@@ -6192,6 +6192,24 @@ def extract_function(Column_Name, Excel_File):
               }
             }
             
+            // Log the actual data being sent to the AI tool
+            console.log('🚀 CRITICAL: About to call AI tool with:');
+            for (const [key, value] of Object.entries(preparedInputValues)) {
+              if (Array.isArray(value)) {
+                console.log(`  📊 ${key}: Array with ${value.length} items`);
+                if (value.length > 0) {
+                  console.log(`    First 3 items:`, value.slice(0, 3));
+                  if (value.length > 3) {
+                    console.log(`    Last 2 items:`, value.slice(-2));
+                  }
+                }
+              } else if (typeof value === 'string' && value.length > 100) {
+                console.log(`  📝 ${key}: String (${value.length} chars)`);
+              } else {
+                console.log(`  📝 ${key}:`, JSON.stringify(value).slice(0, 200));
+              }
+            }
+            
             // Execute using toolEngine's testTool method
             const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
             
