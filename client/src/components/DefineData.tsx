@@ -920,10 +920,16 @@ export default function DefineData({
                 );
                 
                 const selectedValues: any[] = [];
+                console.log("📋 Building selected values list from workflow data:");
+                console.log("  Available workflow steps:", workflowData?.steps?.length || 0);
                 if (workflowData?.steps) {
                   workflowData.steps.forEach((step: any) => {
+                    console.log(`  Checking step "${step.stepName}" with ${step.values?.length || 0} values`);
                     step.values?.forEach((value: any) => {
-                      if (selectedTestItems.has(`value-${value.id}`)) {
+                      const valueKey = `value-${value.id}`;
+                      const isSelected = selectedTestItems.has(valueKey);
+                      console.log(`    - Value "${value.name || value.valueName}" (${valueKey}): ${isSelected ? '✅ SELECTED' : '❌ NOT SELECTED'}`);
+                      if (isSelected) {
                         selectedValues.push({
                           stepId: step.id,
                           stepName: step.stepName,
@@ -937,6 +943,7 @@ export default function DefineData({
                     });
                   });
                 }
+                console.log(`📊 Total selected values: ${selectedValues.length}`);
 
                 console.log("🧪 Running Test Workflow");
                 console.log("🔍 Selected Test Items:", Array.from(selectedTestItems));
