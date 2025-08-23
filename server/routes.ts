@@ -6155,9 +6155,11 @@ def extract_function(Column_Name, Excel_File):
                       }
                       // Replace with just the extracted values for data inputs
                       preparedInputValues[key] = extractedValues;
+                      console.log(`    ✨ Successfully set ${key} to ${extractedValues.length} extracted values`);
                     } else {
                       // Keep the full objects if no extractedValue
                       preparedInputValues[key] = previousData;
+                      console.log(`    ⚠️ No extractedValue found, keeping ${previousData.length} full objects`);
                     }
                   }
                 } else {
@@ -6209,10 +6211,12 @@ def extract_function(Column_Name, Excel_File):
             }
             
             // Log the actual data being sent to the AI tool
-            console.log('🚀 CRITICAL: About to call AI tool with:');
+            console.log('🚀 CRITICAL: About to call tool with:');
+            console.log(`  Tool Name: ${excelFunction.name}`);
+            console.log(`  Tool Type: ${excelFunction.toolType}`);
             for (const [key, value] of Object.entries(preparedInputValues)) {
               if (Array.isArray(value)) {
-                console.log(`  📊 ${key}: Array with ${value.length} items`);
+                console.log(`  📊 Input "${key}": Array with ${value.length} items`);
                 if (value.length > 0) {
                   console.log(`    First 3 items:`, value.slice(0, 3));
                   if (value.length > 3) {
@@ -6220,9 +6224,9 @@ def extract_function(Column_Name, Excel_File):
                   }
                 }
               } else if (typeof value === 'string' && value.length > 100) {
-                console.log(`  📝 ${key}: String (${value.length} chars)`);
+                console.log(`  📝 Input "${key}": String (${value.length} chars)`);
               } else {
-                console.log(`  📝 ${key}:`, JSON.stringify(value).slice(0, 200));
+                console.log(`  📝 Input "${key}":`, JSON.stringify(value).slice(0, 200));
               }
             }
             
