@@ -113,6 +113,7 @@ export default function DefineData({
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedTestItems, setSelectedTestItems] = useState<Set<string>>(new Set());
   const [testResults, setTestResults] = useState<any[]>([]);
+  const [testResultsPage, setTestResultsPage] = useState(1);
   const [testDocumentsModalOpen, setTestDocumentsModalOpen] = useState(false);
   const [processingDocument, setProcessingDocument] = useState<string | null>(null);
 
@@ -495,6 +496,7 @@ export default function DefineData({
         setTestModalOpen(open);
         if (!open) {
           setTestResults([]); // Clear results when closing
+          setTestResultsPage(1); // Reset pagination
         }
       }}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-900">
@@ -687,110 +689,144 @@ export default function DefineData({
             </div>
             
             {/* Right Panel - Test Results */}
-            <div className="flex-1 border-l border-gray-200 dark:border-gray-700 overflow-auto p-4">
+            <div className="flex-1 border-l border-gray-200 dark:border-gray-700 flex flex-col p-4">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Test Results</h3>
               {testResults.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">No test results yet. Run the test to see results here.</p>
               ) : (
-                <div>
-                  {/* Show results for each step */}
-                  {testResults.map((result: any, stepIndex: number) => (
-                    <div key={stepIndex} className="mb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {result.stepName}
-                        </h4>
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          result.success 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {result.count || 0} items
-                        </span>
-                      </div>
-                      
-                      {result.data && Array.isArray(result.data) && result.data.length > 0 ? (
-                        <div className="overflow-x-auto">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Show combined results in single table */}
+                  {(() => {
+                    // Get the first result with data to determine structure
+                    const firstResultWithData = testResults.find((r: any) => r.data && r.data.length > 0);
+                    if (!firstResultWithData) {
+                      return <p className="text-sm text-gray-500 dark:text-gray-400 italic">No data extracted</p>;
+                    }
+                    
+                    // Combine all data from all results
+                    const allData: any[] = [];
+                    testResults.forEach((result: any) => {
+                      if (result.data && Array.isArray(result.data)) {
+                        result.data.forEach((item: any) => {
+                          allData.push({
+                            ...item,
+                            _stepName: result.stepName,
+                            _valueName: result.valueName
+                          });
+                        });
+                      }
+                    });
+                    
+                    // Pagination logic using component state
+                    const itemsPerPage = 20;
+                    const totalPages = Math.ceil(allData.length / itemsPerPage);
+                    const startIndex = (testResultsPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const currentData = allData.slice(startIndex, endIndex);
+                    
+                    return (
+                      <>
+                        {/* Summary */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {testResults.map((result: any, idx: number) => (
+                              <span key={idx} className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                result.success 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              }`}>
+                                {result.stepName}: {result.count || 0}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Total: {allData.length} records
+                          </span>
+                        </div>
+                        
+                        {/* Scrollable table container */}
+                        <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                            <thead className="bg-gray-50 dark:bg-gray-800">
+                            <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
                               <tr>
-                                {/* Dynamic headers based on the first data item */}
-                                {(() => {
-                                  // For Column Name Mapping, show the appropriate columns
-                                  if (result.stepName === 'Column Name Mapping') {
-                                    return (
-                                      <>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                          Column Names
-                                        </th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                          Worksheet Name
-                                        </th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                          Standard Equivalent
-                                        </th>
-                                      </>
-                                    );
-                                  }
-                                  // Generic headers for other steps
-                                  const firstItem = result.data[0];
-                                  if (typeof firstItem === 'object' && firstItem !== null) {
-                                    return Object.keys(firstItem).slice(0, 5).map((key) => (
-                                      <th key={key} className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                                      </th>
-                                    ));
-                                  }
-                                  return (
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                  #
+                                </th>
+                                {/* For Column Name Mapping specific headers */}
+                                {firstResultWithData.stepName === 'Column Name Mapping' ? (
+                                  <>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                      Value
+                                      Column Names
                                     </th>
-                                  );
-                                })()}
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                      Worksheet Name
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                      Standard Equivalent
+                                    </th>
+                                  </>
+                                ) : (
+                                  // Generic headers
+                                  (() => {
+                                    const firstItem = firstResultWithData.data[0];
+                                    if (typeof firstItem === 'object' && firstItem !== null) {
+                                      return Object.keys(firstItem).filter(k => !k.startsWith('_')).slice(0, 5).map((key) => (
+                                        <th key={key} className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </th>
+                                      ));
+                                    }
+                                    return (
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Value
+                                      </th>
+                                    );
+                                  })()
+                                )}
                               </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                              {result.data.slice(0, 10).map((item: any, itemIndex: number) => (
+                              {currentData.map((item: any, itemIndex: number) => (
                                 <tr key={itemIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                  <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                    {startIndex + itemIndex + 1}
+                                  </td>
                                   {(() => {
-                                    // For Column Name Mapping, show the specific data
-                                    if (result.stepName === 'Column Name Mapping') {
-                                      // Handle the structure based on what's in the data
-                                      if (typeof item === 'object' && item !== null) {
-                                        // If item has identifierId and name (Column Names)
-                                        const columnName = item.name || item.identifierId || item.columnName || 'Unknown';
-                                        // Get worksheet name from previousResults if available
-                                        const worksheetName = item.worksheetName || 'Pending';
-                                        // Get standard equivalent
-                                        const standardEquivalent = item.extractedValue || item.standardEquivalent || 'Not Found';
-                                        
-                                        return (
-                                          <>
-                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                              {columnName}
-                                            </td>
-                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                              {worksheetName}
-                                            </td>
-                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                              <div className="max-w-xs truncate" title={standardEquivalent}>
-                                                {standardEquivalent}
-                                              </div>
-                                            </td>
-                                          </>
-                                        );
-                                      }
+                                    // For Column Name Mapping
+                                    if (item._stepName === 'Column Name Mapping') {
+                                      const columnName = item.name || item.identifierId || item.columnName || 'Unknown';
+                                      const worksheetName = item.worksheetName || 'Pending';
+                                      const standardEquivalent = item.extractedValue || item.standardEquivalent || 'Not Found';
+                                      
+                                      return (
+                                        <>
+                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                            {columnName}
+                                          </td>
+                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                            {worksheetName}
+                                          </td>
+                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                            <div className="max-w-xs truncate" title={standardEquivalent}>
+                                              {standardEquivalent}
+                                            </div>
+                                          </td>
+                                        </>
+                                      );
                                     }
                                     
-                                    // Generic display for other data types
+                                    // Generic display
                                     if (typeof item === 'object' && item !== null) {
-                                      return Object.values(item).slice(0, 5).map((value: any, i: number) => (
-                                        <td key={i} className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                          <div className="max-w-xs truncate" title={String(value)}>
-                                            {String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}
-                                          </div>
-                                        </td>
-                                      ));
+                                      return Object.entries(item)
+                                        .filter(([key]) => !key.startsWith('_'))
+                                        .slice(0, 5)
+                                        .map(([key, value]: [string, any], i: number) => (
+                                          <td key={i} className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                            <div className="max-w-xs truncate" title={String(value)}>
+                                              {String(value).substring(0, 50)}{String(value).length > 50 ? '...' : ''}
+                                            </div>
+                                          </td>
+                                        ));
                                     }
                                     return (
                                       <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
@@ -802,17 +838,36 @@ export default function DefineData({
                               ))}
                             </tbody>
                           </table>
-                          {result.data.length > 10 && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
-                              Showing 10 of {result.data.length} items
-                            </p>
-                          )}
                         </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">No data extracted</p>
-                      )}
-                    </div>
-                  ))}
+                        
+                        {/* Pagination controls */}
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            Showing {startIndex + 1} to {Math.min(endIndex, allData.length)} of {allData.length} results
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setTestResultsPage(Math.max(1, testResultsPage - 1))}
+                              disabled={testResultsPage === 1}
+                              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Previous
+                            </button>
+                            <span className="px-3 py-1 text-sm">
+                              Page {testResultsPage} of {totalPages}
+                            </span>
+                            <button
+                              onClick={() => setTestResultsPage(Math.min(totalPages, testResultsPage + 1))}
+                              disabled={testResultsPage === totalPages}
+                              className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1027,6 +1082,7 @@ export default function DefineData({
                 
                 // Update the test results display
                 setTestResults(allTestResults);
+                setTestResultsPage(1); // Reset to first page when new results come in
                 
                 // Don't close modal - show results instead
               }}
