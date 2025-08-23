@@ -530,7 +530,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             {canAccessConfigTabs && (
               <div className="absolute bottom-4 left-4 right-4">
                 <button
-                  onClick={() => setLocation(`/projects/${project.id}/admin`)}
+                  onClick={() => setLocation(`/projects/${project.id}/configure`)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200"
                   title="Configure Settings"
                 >
@@ -551,7 +551,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
           {activeTab === 'data' && canAccessConfigTabs && (
             <div className="fixed bottom-6 left-6 z-10">
               <button
-                onClick={() => setLocation(`/projects/${project.id}/admin`)}
+                onClick={() => setLocation(`/projects/${project.id}/configure`)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-all duration-200"
                 title="Configure"
               >

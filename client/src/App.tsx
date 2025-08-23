@@ -35,7 +35,7 @@ function Router() {
           <ProjectView />
         </ProtectedRoute>
       </Route>
-      <Route path="/projects/:id/admin">
+      <Route path="/projects/:id/configure">
         <ProtectedRoute>
           <ProjectAdminView />
         </ProtectedRoute>
