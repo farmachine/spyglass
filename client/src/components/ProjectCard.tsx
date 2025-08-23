@@ -214,7 +214,7 @@ export default function ProjectCard({
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-5 w-5 text-primary flex-shrink-0" />
-                <CardTitle className="text-lg font-bold transition-colors line-clamp-1 dark:text-gray-100" style={{ color: '#071d54' }}>
+                <CardTitle className="text-lg font-bold transition-colors line-clamp-1 text-[#071d54] dark:text-white">
                   {project.name}
                 </CardTitle>
               </div>
