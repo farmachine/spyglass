@@ -686,6 +686,7 @@ export default function DefineData({
                 )}
               </div>
             </div>
+            </div>
             
             {/* Right Panel - Test Results */}
             <div className="w-96 border-l border-gray-200 dark:border-gray-700 overflow-y-auto p-4">
