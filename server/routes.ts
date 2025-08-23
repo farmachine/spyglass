@@ -6135,6 +6135,11 @@ def extract_function(Column_Name, Excel_File):
                       if (extractedValues.length > 5) {
                         console.log(`    ... and ${extractedValues.length - 5} more values`);
                       }
+                      // Replace with just the extracted values for data inputs
+                      preparedInputValues[key] = extractedValues;
+                    } else {
+                      // Keep the full objects if no extractedValue
+                      preparedInputValues[key] = previousData;
                     }
                   }
                 }

@@ -1,0 +1,113 @@
+🤖 Using LLM Model from tool configuration: gemini-2.0-flash
+🎉 GEMINI TEST RESPONSE:
+--------------------------------------------------------------------------------
+```json
+[
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Annual Pre-6.4.1988 GMP Component At Date Of This Valuation' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Date Of Exit From Active Service' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Date of birth, birth date, DOB, DateOfBirth, Member Birth Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The 'Date Of Birth' column is mapped to 'DoB' which has the synonyms 'Date of birth, birth date, DOB, DateOfBirth, Member Birth Date'.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReason...
+--------------------------------------------------------------------------------
+
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+[
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Annual Pre-6.4.1988 GMP Component At Date Of This Valuation' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Date Of Exit From Active Service' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Date of birth, birth date, DOB, DateOfBirth, Member Birth Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The 'Date Of Birth' column is mapped to 'DoB' which has the synonyms 'Date of birth, birth date, DOB, DateOfBirth, Member Birth Date'.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Date Pensionable Service Commenced' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The item 'Code For Previous Status' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  }
+]
+--------------------------------------------------------------------------------
+✅ Test Execution Result: {
+  "results": [
+    {
+      "extractedValue": "Not Found",
+      "validationStatus": "invalid",
+      "aiReasoning": "The item 'Annual Pre-6.4.1988 GMP Component At Date Of This Valuation' does not appear in the reference document.",
+      "confidenceScore": 100,
+      "documentSource": "Reference Document",
+      "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+      "value_id": "2521fe2e-ed63-46f5-b2bb-ac2f46ab999c"
+    },
+    {
+      "extractedValue": "Not Found",
+      "validationStatus":...
+
+=== WORKFLOW TEST EXECUTION COMPLETE ===
+Step: Column Name Mapping
+Value: Standard Equivalent
+Tool: undefined
+Test Document: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+Results: 5 items extracted
+Used Previous Results: Column Name Mapping.Column Names, Column Names, Column Name Mapping.Worksheet Name, Worksheet Name
+=========================================
+
+1:07:39 PM [express] POST /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/test-workflow 200 in 2869ms :: [JSON response - 1851 chars]
+1:07:39 PM [browser] 📝 📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "Not Found",
+        "validationStatus"...
+1:07:39 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:07:40 PM [browser] 📝   ✅ Extracted 5 items
+1:07:40 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:07:40 PM [browser] 📝   💾 Stored results as "Column Name Mapping.Standard Equivalent" and "Standard Equivalent" for subsequent steps
+1:07:40 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:07:40 PM [browser] 📝 
+✨ Test completed!
+1:07:40 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:07:40 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/workflow 304 in 73ms
