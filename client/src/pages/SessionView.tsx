@@ -2806,7 +2806,7 @@ Thank you for your assistance.`;
   ];
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="h-screen bg-gray-50 dark:bg-slate-950 flex flex-col">
       {/* Header - Match ProjectLayout exactly */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
@@ -3028,7 +3028,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-[#0f172a]">
+        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-slate-950">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
