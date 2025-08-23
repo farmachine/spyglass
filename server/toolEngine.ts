@@ -500,6 +500,23 @@ export class ToolEngine {
       }
       
       // Normal processing for small arrays or non-array inputs
+      // But first check if we have input arrays that need tracking
+      let inputArrayLength = 0;
+      let inputIdentifiers: any[] = [];
+      
+      // Check for array inputs to track expected output count
+      for (const [key, value] of Object.entries(inputs)) {
+        if (Array.isArray(value) && value.length > 0) {
+          const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+          if (param?.type === 'data') {
+            inputArrayLength = value.length;
+            inputIdentifiers = value;
+            console.log(`📊 Found input array "${key}" with ${inputArrayLength} items`);
+            break;
+          }
+        }
+      }
+      
       const prompt = this.buildTestPrompt(tool, inputs);
       
       console.log('🧪 GEMINI AI PROMPT FOR TOOL TESTING');
