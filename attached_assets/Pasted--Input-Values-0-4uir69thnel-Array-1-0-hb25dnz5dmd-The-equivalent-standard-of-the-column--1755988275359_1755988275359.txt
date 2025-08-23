@@ -1,0 +1,42 @@
+    • Input Values: {0.4uir69thnel: Array(1), 0.hb25dnz5dmd: "The equivalent standard of the column name as desc… 'Not Found' if no mappings exist for the column.", 0.0qv7jjabq7on: '@Column Name Mapping.Column Names'}
+main.tsx:17   📊 AVAILABLE DATA FROM PREVIOUS STEPS:
+main.tsx:17     • "Column Name Mapping.Column Names": Array with 187 items
+main.tsx:17       First item structure: (7) ['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource', 'step_id', 'value_id']
+main.tsx:17       Sample data: {extractedValue: 'Title', validationStatus: 'valid', aiReasoning: 'Standard Excel column 1', confidenceScore: 100, documentSource: 'Column 1', …}
+main.tsx:17     • "Column Names": Array with 187 items
+main.tsx:17       First item structure: (7) ['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource', 'step_id', 'value_id']
+main.tsx:17       Sample data: {extractedValue: 'Title', validationStatus: 'valid', aiReasoning: 'Standard Excel column 1', confidenceScore: 100, documentSource: 'Column 1', …}
+main.tsx:17     • "Column Name Mapping.Worksheet Name": Array with 187 items
+main.tsx:17       First item structure: (5) ['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource']
+main.tsx:17       Sample data: {extractedValue: null, validationStatus: 'invalid', aiReasoning: "Column 'Title' not found in any worksheet", confidenceScore: 0, documentSource: 'Not found'}
+main.tsx:17     • "Worksheet Name": Array with 187 items
+main.tsx:17       First item structure: (5) ['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource']
+main.tsx:17       Sample data: {extractedValue: null, validationStatus: 'invalid', aiReasoning: "Column 'Title' not found in any worksheet", confidenceScore: 0, documentSource: 'Not found'}
+main.tsx:17   🎯 RESOLVED INPUT PARAMETERS:
+main.tsx:17     • 0.4uir69thnel: Direct value = "37dbd483-c91b-4470-a728-aec645b1ad5e"
+main.tsx:17     • 0.hb25dnz5dmd: Direct value = "The equivalent standard of the column name as described in the mappings document. Say 'Not Found' if no mappings exist for the column."
+main.tsx:17     • 0.0qv7jjabq7on: @Column Name Mapping.Column Names → Resolved to array with 187 items
+main.tsx:17   📤 REQUEST SUMMARY:
+main.tsx:17     • Document ID: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+main.tsx:17     • Document content length: 12925 chars
+main.tsx:17     • Previous results keys: [Column Name Mapping.Column Names, Column Names, Column Name Mapping.Worksheet Name, Worksheet Name]
+main.tsx:17 📥 Complete Response: {
+  "success": true,
+  "jobId": "24bcb9c5-86ed-427e-a93a-9387a059bf6d",
+  "message": "Test started in background"
+}
+main.tsx:17   ⏳ Job started: 24bcb9c5-86ed-427e-a93a-9387a059bf6d
+main.tsx:17   ⏳ Processing 187 items asynchronously...
+main.tsx:17   ⏳ Progress: 0/187 - Processing batch 1 of 19
+main.tsx:17   📦 Job result structure: {results: Array(1), stepName: 'Column Name Mapping', valueName: 'Standard Equivalent'}
+main.tsx:17   ✅ Extracted 1 items
+main.tsx:17   📋 Sample results:
+main.tsx:17     Item 1: {extractedValue: null, validationStatus: 'invalid', aiReasoning: 'AI processing failed: {"error":{"code":429,"messag….com/google.rpc.RetryInfo","retryDelay":"12s"}]}}', confidenceScore: 0, documentSource: 'AI_ERROR'}
+main.tsx:17   💾 STORING RESULTS FOR NEXT STEPS:
+main.tsx:17     • Stored as "Column Name Mapping.Standard Equivalent": 1 items
+main.tsx:17     • Also stored as "Standard Equivalent": 1 items
+main.tsx:17     • First item keys: (5) ['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource']
+main.tsx:17     • Sample item: {extractedValue: null, validationStatus: 'invalid', aiReasoning: 'AI processing failed: {"error":{"code":429,"messag….com/google.rpc.RetryInfo","retryDelay":"12s"}]}}', confidenceScore: 0, documentSource: 'AI_ERROR'}
+main.tsx:17 
+✨ Test completed!
+main.tsx:17 🔍 Merging Column Name Mapping results: {columnNamesResult: '187 items', worksheetResult: 'not found', standardResult: 'not found'}
