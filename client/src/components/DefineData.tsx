@@ -988,14 +988,16 @@ export default function DefineData({
                 // Process each document through each selected value
                 for (const doc of selectedDocs) {
                   console.log(`\n📊 Processing document: ${doc.file_name || doc.fileName}`);
+                  console.log(`📊 Will process ${selectedValues.length} values for this document`);
                   
                   // Track results from previous steps for sequential execution
                   const previousResults: { [key: string]: any } = {};
                   
                   // Sort values to ensure dependencies are processed first
                   // (In a real implementation, we'd do topological sort based on @-references)
-                  for (const value of selectedValues) {
-                    console.log(`\n  ⚙️ Running ${value.stepName} > ${value.valueName}`);
+                  for (let valueIndex = 0; valueIndex < selectedValues.length; valueIndex++) {
+                    const value = selectedValues[valueIndex];
+                    console.log(`\n  ⚙️ Running value ${valueIndex + 1} of ${selectedValues.length}: ${value.stepName} > ${value.valueName}`);
                     console.log(`  ═══════════════════════════════════════════`);
                     
                     try {
@@ -1111,6 +1113,15 @@ export default function DefineData({
                             
                             if (results && Array.isArray(results)) {
                               console.log(`  ✅ Extracted ${results.length} items`);
+                              
+                              // Add to test results for display (was missing for async path!)
+                              allTestResults.push({
+                                stepName: value.stepName,
+                                valueName: value.valueName,
+                                success: true,
+                                count: results.length,
+                                data: results
+                              });
                               
                               // Log first few results for debugging
                               if (results.length > 0) {
