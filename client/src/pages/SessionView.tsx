@@ -3151,9 +3151,9 @@ Thank you for your assistance.`;
             <div className="w-full">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
+                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-[#1e293b] border-gray-200 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between dark:text-white">
+                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">General Information</span>
                       <Button
                         variant="ghost"
@@ -3171,7 +3171,7 @@ Thank you for your assistance.`;
                         <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                       </Button>
                     </CardTitle>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
                     </p>
                   </CardHeader>
@@ -3268,7 +3268,7 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
-                                <Label className="text-sm font-medium text-gray-700">
+                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   {field.fieldName}
                                 </Label>
                               </div>
@@ -3333,13 +3333,13 @@ Thank you for your assistance.`;
                                       <div className="flex items-center gap-2">
                                         <div className="flex-1">
                                           {fieldType === 'TEXTAREA' ? (
-                                            <div className="whitespace-pre-wrap text-sm text-gray-900 p-2 bg-gray-50 border rounded-md min-h-[60px]">
-                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                            <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
+                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
                                                 {formatValueForDisplay(displayValue, fieldType)}
                                               </span>
                                             </div>
                                           ) : (
-                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
                                               {formatValueForDisplay(displayValue, fieldType)}
                                             </span>
                                           )}
@@ -3364,7 +3364,7 @@ Thank you for your assistance.`;
                               </div>
                               
                               {field.description && (
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   {field.description}
                                 </p>
                               )}
@@ -3382,12 +3382,12 @@ Thank you for your assistance.`;
 
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
+                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-[#1e293b] border-gray-200 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between dark:text-white">
+                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">Documents</span>
                     </CardTitle>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       Documents uploaded and processed for this session.
                     </p>
                   </CardHeader>
@@ -3397,7 +3397,7 @@ Thank you for your assistance.`;
                         {sessionDocuments.map((doc: any, index: number) => (
                           <div 
                             key={doc.id || index} 
-                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors group"
+                            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors group"
                           >
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
@@ -3413,7 +3413,7 @@ Thank you for your assistance.`;
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between">
-                                  <h4 className="font-medium text-gray-900 text-sm truncate" title={doc.fileName}>
+                                  <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate" title={doc.fileName}>
                                     {doc.fileName}
                                   </h4>
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
@@ -3495,12 +3495,12 @@ Thank you for your assistance.`;
 
                 return activeTab === collection.collectionName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
+                    <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-[#1e293b] border-gray-200 dark:border-gray-700">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between dark:text-white">
+                        <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                           <div className="flex items-center gap-2">
                             {collection.collectionName}
-                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
@@ -3515,12 +3515,12 @@ Thank you for your assistance.`;
                                 type: prop.propertyType
                               })) || []
                             )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                            className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-gray-700"
                           >
                             <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                           </Button>
                         </CardTitle>
-                        <p className="text-sm text-gray-600">{collection.description}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
                       <CardContent>
                         <Table className="session-table">
