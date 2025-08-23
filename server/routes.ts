@@ -57,7 +57,12 @@ async function processWorkflowTestAsync(
     for (const [key, value] of Object.entries(preparedInputValues)) {
       if (typeof value === 'string' && value.startsWith('@')) {
         const referencePath = value.slice(1);
-        if (previousResults && previousResults[referencePath]) {
+        // Special handling for @user_document - replace with test document content
+        if (referencePath === 'user_document') {
+          console.log(`  ✅ Replacing ${key} with test document content (${documentContent?.length || 0} chars)`);
+          preparedInputValues[key] = documentContent || '';
+        }
+        else if (previousResults && previousResults[referencePath]) {
           preparedInputValues[key] = previousResults[referencePath];
         }
       }
@@ -6267,10 +6272,15 @@ def extract_function(Column_Name, Excel_File):
           for (const [key, value] of Object.entries(preparedInputValues)) {
             if (typeof value === 'string' && value.startsWith('@')) {
               const referencePath = value.slice(1); // Remove @ prefix
-              console.log(`  Found reference: ${value} -> Looking for ${referencePath} in previous results`);
+              console.log(`  Found reference: ${value} -> Looking for ${referencePath}`);
               
+              // Special handling for @user_document - replace with test document content
+              if (referencePath === 'user_document') {
+                console.log(`  ✅ Replacing ${key} with test document content (${documentContent?.length || 0} chars)`);
+                preparedInputValues[key] = documentContent || '';
+              }
               // Check if we have previous results for this reference
-              if (previousResults && previousResults[referencePath]) {
+              else if (previousResults && previousResults[referencePath]) {
                 const previousData = previousResults[referencePath];
                 console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousData.length} items)`);
                 
