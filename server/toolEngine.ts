@@ -356,7 +356,13 @@ export class ToolEngine {
   /**
    * Test tool with given inputs
    */
-  async testTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+  async testTool(
+    tool: Tool, 
+    inputs: Record<string, any>,
+    documentContent?: string,
+    knowledgeDocuments?: any,
+    progressCallback?: (current: number, total: number, message?: string) => void
+  ): Promise<ToolResult[]> {
     console.log('🚀 ToolEngine.testTool called');
     console.log('  Tool Name:', tool.name);
     console.log('  Tool Type:', tool.toolType);
@@ -425,11 +431,20 @@ export class ToolEngine {
           console.log(`📦 AI Tool: Array detected (${dataArray.length} items). Processing in small batches of ${AI_BATCH_SIZE}...`);
           
           const allResults: ToolResult[] = [];
+          const totalBatches = Math.ceil(dataArray.length / AI_BATCH_SIZE);
           
           for (let i = 0; i < dataArray.length; i += AI_BATCH_SIZE) {
             const batch = dataArray.slice(i, Math.min(i + AI_BATCH_SIZE, dataArray.length));
             const batchEnd = Math.min(i + AI_BATCH_SIZE, dataArray.length);
-            console.log(`  Processing batch ${Math.floor(i / AI_BATCH_SIZE) + 1}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
+            const batchNumber = Math.floor(i / AI_BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(dataArray.length / AI_BATCH_SIZE);
+            
+            console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
+            
+            // Report progress if callback provided
+            if (progressCallback) {
+              progressCallback(i, dataArray.length, `Processing batch ${batchNumber} of ${totalBatches}`);
+            }
             
             // Create inputs for this batch
             const batchInputs = { ...inputs };
@@ -482,6 +497,12 @@ export class ToolEngine {
               
               allResults.push(...results);
               console.log(`    ✅ Batch processed: ${results.length} results`);
+              
+              // Report progress after batch completes
+              if (progressCallback) {
+                const itemsProcessed = Math.min(i + batch.length, dataArray.length);
+                progressCallback(itemsProcessed, dataArray.length, `Completed batch ${batchNumber} of ${totalBatches}`);
+              }
               
               // Log the actual results from this batch
               console.log(`    📋 Batch Results:`);

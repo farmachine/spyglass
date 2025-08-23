@@ -26,6 +26,89 @@ import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPa
 import { UserRole } from "@shared/schema";
 import { log } from "./vite";
 
+// Async workflow test processing function
+async function processWorkflowTestAsync(
+  jobId: string,
+  projectId: string,
+  documentId: string,
+  documentContent: string,
+  valueConfig: any,
+  previousResults: any
+) {
+  try {
+    const { jobManager } = await import('./jobManager');
+    const { toolEngine } = await import('./toolEngine');
+    
+    jobManager.updateJob(jobId, { status: 'running' });
+    
+    // Get the tool/function details
+    const storage = (await import('./storage')).storage;
+    const excelFunction = await storage.getExcelWizardryFunction(valueConfig.toolId);
+    
+    if (!excelFunction) {
+      jobManager.failJob(jobId, 'Tool not found');
+      return;
+    }
+    
+    // Prepare input values
+    const preparedInputValues = { ...valueConfig.inputValues };
+    
+    // Process @-references
+    for (const [key, value] of Object.entries(preparedInputValues)) {
+      if (typeof value === 'string' && value.startsWith('@')) {
+        const referencePath = value.slice(1);
+        if (previousResults && previousResults[referencePath]) {
+          preparedInputValues[key] = previousResults[referencePath];
+        }
+      }
+    }
+    
+    // Update progress periodically
+    const progressInterval = setInterval(() => {
+      const job = jobManager.getJob(jobId);
+      if (job && job.status === 'running' && job.progress) {
+        console.log(`Job ${jobId}: ${job.progress.current}/${job.progress.total} items processed`);
+      }
+    }, 5000);
+    
+    // Execute the tool with progress tracking
+    const result = await toolEngine.testTool(
+      excelFunction,
+      preparedInputValues,
+      documentContent,
+      null,
+      // Progress callback
+      (current: number, total: number, message?: string) => {
+        jobManager.updateProgress(jobId, current, total, message);
+      }
+    );
+    
+    clearInterval(progressInterval);
+    
+    // Save results
+    const testResults = await storage.createWorkflowTestResult({
+      stepId: valueConfig.stepId,
+      valueId: valueConfig.valueId || null,
+      toolId: valueConfig.toolId,
+      testDocumentId: documentId,
+      results: JSON.stringify(result),
+      executedAt: new Date()
+    });
+    
+    jobManager.completeJob(jobId, {
+      results: result,
+      testResultId: testResults.id,
+      stepName: valueConfig.stepName,
+      valueName: valueConfig.valueName
+    });
+    
+    console.log(`✅ Async job ${jobId} completed successfully`);
+  } catch (error) {
+    console.error(`❌ Async job ${jobId} failed:`, error);
+    jobManager.failJob(jobId, error.message || 'Unknown error');
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
 
@@ -6078,11 +6161,47 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Get workflow test job status
+  app.get("/api/projects/:projectId/test-workflow/job/:jobId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { jobId } = req.params;
+      const { jobManager } = await import('./jobManager');
+      
+      const job = jobManager.getJob(jobId);
+      
+      if (!job) {
+        return res.status(404).json({
+          success: false,
+          error: 'Job not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        job: {
+          id: job.id,
+          status: job.status,
+          progress: job.progress,
+          result: job.result,
+          error: job.error,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt
+        }
+      });
+    } catch (error) {
+      console.error('Error getting job status:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get job status'
+      });
+    }
+  });
+  
   // Test workflow endpoint
   app.post("/api/projects/:projectId/test-workflow", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
-      const { documentId, documentContent, valueConfig, previousResults } = req.body;
+      const { documentId, documentContent, valueConfig, previousResults, async: useAsync } = req.body;
       
       console.log('🧪 Test Workflow Request:');
       console.log('  Project:', projectId);
@@ -6090,6 +6209,29 @@ def extract_function(Column_Name, Excel_File):
       console.log('  Document Content Length:', documentContent?.length || 0);
       console.log('  Value Config:', valueConfig);
       console.log('  Previous Results Available:', previousResults ? Object.keys(previousResults).length : 0);
+      console.log('  Async Mode:', useAsync || false);
+      
+      // Import jobManager dynamically
+      const { jobManager } = await import('./jobManager');
+      
+      // Check if we should process asynchronously (for large datasets)
+      const shouldUseAsync = useAsync || (previousResults && Object.values(previousResults).some((v: any) => 
+        Array.isArray(v) && v.length > 50
+      ));
+      
+      if (shouldUseAsync) {
+        console.log('📦 Using async processing for large dataset');
+        const jobId = jobManager.createJob(projectId);
+        
+        // Start async processing
+        processWorkflowTestAsync(jobId, projectId, documentId, documentContent, valueConfig, previousResults);
+        
+        return res.json({
+          success: true,
+          jobId,
+          message: 'Test started in background'
+        });
+      }
       
       // Debug: Log the actual previous results
       if (previousResults) {

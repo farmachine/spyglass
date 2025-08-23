@@ -757,15 +757,70 @@ export default function DefineData({
                       }
                       console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2).slice(0, 2000) + "...");
                       
+                      // Check if this will need async processing (large arrays)
+                      const hasLargeArrays = Object.values(previousResults).some((v: any) => 
+                        Array.isArray(v) && v.length > 50
+                      );
+                      
                       // Call the test endpoint
                       const response = await apiRequest(`/api/projects/${project.id}/test-workflow`, {
                         method: 'POST',
-                        body: JSON.stringify(requestBody)
+                        body: JSON.stringify({
+                          ...requestBody,
+                          async: hasLargeArrays
+                        })
                       });
                       
                       console.log("📥 Complete Response:", JSON.stringify(response, null, 2));
                       
-                      if (response.result?.results) {
+                      // Handle async job response
+                      if (response.jobId) {
+                        console.log(`  ⏳ Job started: ${response.jobId}`);
+                        console.log(`  ⏳ Processing ${Array.isArray(previousResults[Object.keys(previousResults)[0]]) ? previousResults[Object.keys(previousResults)[0]].length : 0} items asynchronously...`);
+                        
+                        // Poll for job completion
+                        let jobComplete = false;
+                        let pollAttempts = 0;
+                        const maxPolls = 60; // Max 5 minutes (60 * 5 seconds)
+                        
+                        while (!jobComplete && pollAttempts < maxPolls) {
+                          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                          pollAttempts++;
+                          
+                          const jobStatus = await apiRequest(`/api/projects/${project.id}/test-workflow/job/${response.jobId}`, {
+                            method: 'GET'
+                          });
+                          
+                          if (jobStatus.job?.progress) {
+                            console.log(`  ⏳ Progress: ${jobStatus.job.progress.current}/${jobStatus.job.progress.total} - ${jobStatus.job.progress.message || ''}`);
+                          }
+                          
+                          if (jobStatus.job?.status === 'completed') {
+                            jobComplete = true;
+                            const results = jobStatus.job.result?.results;
+                            
+                            if (results) {
+                              console.log(`  ✅ Extracted ${results.length} items`);
+                              
+                              // Store the results for use by subsequent steps
+                              const resultKey = `${value.stepName}.${value.valueName}`;
+                              previousResults[resultKey] = results;
+                              previousResults[value.valueName] = results;
+                              
+                              console.log(`  💾 Stored results as "${resultKey}" and "${value.valueName}" for subsequent steps`);
+                              console.log(`  📊 Stored array has ${results.length} items`);
+                            }
+                          } else if (jobStatus.job?.status === 'failed') {
+                            jobComplete = true;
+                            console.error(`  ❌ Job failed: ${jobStatus.job.error}`);
+                          }
+                        }
+                        
+                        if (!jobComplete) {
+                          console.error(`  ❌ Job timed out after ${maxPolls * 5} seconds`);
+                        }
+                      } else if (response.result?.results) {
+                        // Synchronous response
                         console.log(`  ✅ Extracted ${response.result.results.length} items`);
                         
                         // Store the results for use by subsequent steps
