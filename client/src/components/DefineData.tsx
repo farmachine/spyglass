@@ -944,6 +944,10 @@ export default function DefineData({
                   });
                 }
                 console.log(`📊 Total selected values: ${selectedValues.length}`);
+                console.log("📋 Selected values details:");
+                selectedValues.forEach((v: any, idx: number) => {
+                  console.log(`  ${idx + 1}. ${v.stepName} > ${v.valueName} (toolId: ${v.toolId})`);
+                });
 
                 console.log("\n🧪 RUNNING TEST WORKFLOW");
                 console.log("=".repeat(50));
@@ -1184,6 +1188,10 @@ export default function DefineData({
                 }
                 
                 console.log("\n✨ Test completed!");
+                console.log("📊 Final test results summary:");
+                allTestResults.forEach((result: any) => {
+                  console.log(`  - ${result.stepName} > ${result.valueName}: ${result.success ? `✅ ${result.count} items` : '❌ Failed'}`);
+                });
                 
                 // Update the test results display
                 setTestResults(allTestResults);
