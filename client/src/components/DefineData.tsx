@@ -112,6 +112,7 @@ export default function DefineData({
 
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedTestItems, setSelectedTestItems] = useState<Set<string>>(new Set());
+  const [testResults, setTestResults] = useState<any[]>([]);
   const [testDocumentsModalOpen, setTestDocumentsModalOpen] = useState(false);
   const [processingDocument, setProcessingDocument] = useState<string | null>(null);
 
@@ -490,8 +491,13 @@ export default function DefineData({
       />
 
       {/* Test Modal */}
-      <Dialog open={testModalOpen} onOpenChange={setTestModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col bg-white dark:bg-gray-900">
+      <Dialog open={testModalOpen} onOpenChange={(open) => {
+        setTestModalOpen(open);
+        if (!open) {
+          setTestResults([]); // Clear results when closing
+        }
+      }}>
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-900">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">Test Workflow</DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-300">
@@ -499,7 +505,9 @@ export default function DefineData({
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto space-y-4 py-4">
+          <div className="flex-1 flex gap-4 overflow-hidden">
+            {/* Left Panel - Test Configuration */}
+            <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-4">
             {/* Test Documents Section */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Test Documents</h3>
@@ -677,6 +685,33 @@ export default function DefineData({
                   <p className="text-sm text-gray-500 dark:text-gray-400 italic pl-2">No workflow steps defined</p>
                 )}
               </div>
+            </div>
+            
+            {/* Right Panel - Test Results */}
+            <div className="w-96 border-l border-gray-200 dark:border-gray-700 overflow-y-auto p-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Test Results</h3>
+              {testResults.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">No test results yet. Run the test to see results here.</p>
+              ) : (
+                <div className="space-y-3">
+                  {testResults.map((result: any, index: number) => (
+                    <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.stepName}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{result.valueName}</div>
+                      <div className="mt-2 text-xs">
+                        <span className={`px-2 py-1 rounded ${result.success ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                          {result.success ? '✓ Success' : '✗ Failed'}
+                        </span>
+                        {result.count && (
+                          <span className="ml-2 text-gray-600 dark:text-gray-400">
+                            {result.count} items extracted
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -865,7 +900,24 @@ export default function DefineData({
                 }
                 
                 console.log("\n✨ Test completed!");
-                setTestModalOpen(false);
+                
+                // Store test results for display
+                const collectedResults: any[] = [];
+                for (const [key, value] of Object.entries(previousResults)) {
+                  if (key.includes('.')) {
+                    const [stepName, valueName] = key.split('.');
+                    collectedResults.push({
+                      stepName,
+                      valueName,
+                      success: Array.isArray(value) && value.length > 0,
+                      count: Array.isArray(value) ? value.length : 0,
+                      data: value
+                    });
+                  }
+                }
+                setTestResults(collectedResults);
+                
+                // Don't close modal - show results instead
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white"
             >
