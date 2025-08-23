@@ -6221,13 +6221,14 @@ def extract_function(Column_Name, Excel_File):
       const { jobManager } = await import('./jobManager');
       
       // Check if we should process asynchronously (for large datasets)
+      // Increased threshold to 500 items to ensure sequential processing for most workflows
       const shouldUseAsync = useAsync || (previousResults && Object.values(previousResults).some((v: any) => 
-        Array.isArray(v) && v.length > 50
+        Array.isArray(v) && v.length > 500
       ));
       
       console.log('🔍 ASYNC CHECK:');
       console.log('  useAsync flag:', useAsync);
-      console.log('  Has large arrays:', previousResults && Object.values(previousResults).some((v: any) => Array.isArray(v) && v.length > 50));
+      console.log('  Has large arrays (>500):', previousResults && Object.values(previousResults).some((v: any) => Array.isArray(v) && v.length > 500));
       console.log('  Should use async:', shouldUseAsync);
       
       if (shouldUseAsync) {
