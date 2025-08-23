@@ -482,6 +482,15 @@ export class ToolEngine {
               
               allResults.push(...results);
               console.log(`    ✅ Batch processed: ${results.length} results`);
+              
+              // Log the actual results from this batch
+              console.log(`    📋 Batch Results:`);
+              results.forEach((result: any, idx: number) => {
+                const itemIndex = i + idx;
+                const inputItem = batch[idx];
+                const extractedValue = result.extractedValue || result.result || 'no result';
+                console.log(`      • Item ${itemIndex + 1}: "${inputItem}" → "${extractedValue}"`);
+              });
             } catch (e) {
               console.error(`    ❌ Failed to parse batch results:`, e);
               // Add placeholder results for failed batch
