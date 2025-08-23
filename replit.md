@@ -40,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Terminology**: "Extraction Sessions" renamed to "Overview" for clarity. "Data" tab renamed to "Flow" in Project Admin interface (January 2025).
 - **Flow Interface Updates** (January 2025): Simplified workflow builder with type selector as top-right dropdown (Data Table/Info Page), removed "Step" prefix from labels, non-editable value names when collapsed, data type icons (T for text, # for number, etc.), tool filtering by outputType, minimal output display with centered dot and description.
 - **Dynamic Page Titles**: Comprehensive system using `usePageTitle` hook for contextual titles.
-- **Dark Mode Enhancement** (January 2025): Added comprehensive dark mode theming to admin pages (AdminPanel, OrganizationConfig) with light/dark mode toggle. Logo displays "extrapl • Admin" in admin interfaces for clear context identification.
+- **Dark Mode Enhancement** (January 2025): Added comprehensive dark mode theming to admin pages (AdminPanel, OrganizationConfig) with light/dark mode toggle. Logo displays "extrapl • Admin" only in system admin interfaces (AdminPanel, OrganizationConfig), while project pages show just "extrapl •".
 
 ### Technical Implementations
 - **Document Processing**: Supports PDF, DOCX, DOC, XLSX, XLS with intelligent chunking and Python-based Excel processing.
