@@ -374,13 +374,13 @@ export function SchemaFieldDialogNew({
                             <SelectItem 
                               key={tool.id} 
                               value={tool.id}
-                              className={tool.toolType === "AI_ONLY" ? "focus:bg-gray-100" : ""}
+                              className="focus:bg-gray-700 dark:focus:bg-gray-700"
                             >
                               <div className="flex items-center gap-2">
                                 {tool.toolType === "AI_ONLY" ? (
-                                  <Brain className="h-4 w-4 text-gray-600" />
+                                  <Brain className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                 ) : (
-                                  <Settings className="h-4 w-4 text-gray-500" />
+                                  <Settings className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 )}
                                 <span>{tool.name}</span>
                                 <Badge variant="outline" className="ml-2 text-xs">
