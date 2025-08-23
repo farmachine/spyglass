@@ -438,9 +438,11 @@ export class ToolEngine {
             // Process batch
             const batchPrompt = this.buildTestPrompt(tool, batchInputs);
             
-            // Add a small delay between batches to avoid rate limiting
+            // Add delay between batches to respect Gemini API rate limits (15 requests/minute)
+            // With 15 requests/minute limit, we need at least 4 seconds between requests
             if (i > 0) {
-              await new Promise(resolve => setTimeout(resolve, 500));
+              console.log(`  ⏳ Waiting 4.5 seconds before next batch to avoid rate limits...`);
+              await new Promise(resolve => setTimeout(resolve, 4500)); // 4.5 seconds between batches
             }
             
             const response = await genAI.models.generateContent({
