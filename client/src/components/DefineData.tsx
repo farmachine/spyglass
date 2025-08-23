@@ -491,10 +491,10 @@ export default function DefineData({
 
       {/* Test Modal */}
       <Dialog open={testModalOpen} onOpenChange={setTestModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col bg-white dark:bg-gray-900">
           <DialogHeader>
-            <DialogTitle>Test Workflow</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Test Workflow</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-300">
               Select test documents and workflow steps to test extraction
             </DialogDescription>
           </DialogHeader>
@@ -502,10 +502,10 @@ export default function DefineData({
           <div className="flex-1 overflow-y-auto space-y-4 py-4">
             {/* Test Documents Section */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700">Test Documents</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Test Documents</h3>
               <div className="space-y-3 pl-4">
                 {testDocuments.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">No test documents uploaded</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">No test documents uploaded</p>
                 ) : (
                   testDocuments.map((doc: any) => (
                     <div key={doc.id} className="space-y-1">
@@ -523,13 +523,13 @@ export default function DefineData({
                             setSelectedTestItems(newSet);
                           }}
                         />
-                        <label htmlFor={`test-doc-${doc.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        <label htmlFor={`test-doc-${doc.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
                           {doc.fileName || doc.file_name || "Unnamed Document"}
                         </label>
                       </div>
                       {(doc.extractedContent || doc.extracted_content) && (
-                        <div className="ml-6 p-2 bg-gray-50 rounded-md border border-gray-200">
-                          <p className="text-xs text-gray-600 line-clamp-3">
+                        <div className="ml-6 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
                             {typeof (doc.extractedContent || doc.extracted_content) === 'string' 
                               ? (doc.extractedContent || doc.extracted_content).substring(0, 200) + ((doc.extractedContent || doc.extracted_content).length > 200 ? '...' : '')
                               : JSON.stringify(doc.extractedContent || doc.extracted_content).substring(0, 200) + '...'}
@@ -546,7 +546,7 @@ export default function DefineData({
 
             {/* Workflow Steps Section */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700">Workflow Steps</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Workflow Steps</h3>
               
               <div className="space-y-2">
                 {/* Show workflow steps from database in order */}
@@ -576,11 +576,11 @@ export default function DefineData({
                           }}
                         />
                         {step.stepType === 'page' ? (
-                          <Layers className="h-4 w-4 text-gray-500" />
+                          <Layers className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         ) : (
-                          <List className="h-4 w-4 text-gray-500" />
+                          <List className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         )}
-                        <label htmlFor={`step-${step.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        <label htmlFor={`step-${step.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
                           {step.stepName || "Unnamed Step"}
                         </label>
                       </div>
@@ -601,7 +601,7 @@ export default function DefineData({
                                   setSelectedTestItems(newSet);
                                 }}
                               />
-                              <label htmlFor={`value-${value.id}`} className="text-sm text-gray-500 cursor-pointer">
+                              <label htmlFor={`value-${value.id}`} className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
                                 {value.name || value.valueName || "Unnamed Value"}
                               </label>
                             </div>
@@ -611,16 +611,17 @@ export default function DefineData({
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500 italic pl-2">No workflow steps defined</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic pl-2">No workflow steps defined</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
               variant="outline"
               onClick={() => setTestModalOpen(false)}
+              className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               Cancel
             </Button>
