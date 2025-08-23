@@ -589,6 +589,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
             <Card className="relative w-full bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
+            {/* Logo dot in top left corner */}
+            <div className="absolute top-4 left-4 w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
+            
             <CardHeader className="pb-4 relative">
               <div className="flex flex-col items-center">
                 {/* Icon and Title - Centered */}
@@ -620,11 +623,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
 
 
-                {/* Description and Dot - Centered (collapsed only) */}
+                {/* Description - Centered (collapsed only) */}
                 {!step.isExpanded && step.description && (
                   <div className="flex flex-col items-center">
                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{step.description}</p>
-                    <div className="mt-2 w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full"></div>
                   </div>
                 )}
 
