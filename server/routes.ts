@@ -6091,6 +6091,22 @@ def extract_function(Column_Name, Excel_File):
       console.log('  Value Config:', valueConfig);
       console.log('  Previous Results Available:', previousResults ? Object.keys(previousResults).length : 0);
       
+      // Debug: Log the actual previous results
+      if (previousResults) {
+        console.log('\n📋 PREVIOUS RESULTS DETAILS:');
+        for (const [key, value] of Object.entries(previousResults)) {
+          if (Array.isArray(value)) {
+            console.log(`  ${key}: Array with ${value.length} items`);
+            if (value.length > 0 && value[0]) {
+              console.log(`    Sample: ${JSON.stringify(value[0]).slice(0, 100)}...`);
+            }
+          } else {
+            console.log(`  ${key}: ${typeof value}`);
+          }
+        }
+        console.log('');
+      }
+      
       // If there's a toolId, we need to execute the tool/function
       if (valueConfig.toolId) {
         console.log('🔍 DEBUG: Getting tool with ID:', valueConfig.toolId);
