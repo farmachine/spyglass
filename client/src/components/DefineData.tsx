@@ -961,6 +961,9 @@ export default function DefineData({
 
                 console.log("\n🧪 RUNNING TEST WORKFLOW");
                 console.log("=".repeat(50));
+                console.log("📌 Current selected items before test:");
+                console.log("  Selected test items set:", Array.from(selectedTestItems));
+                console.log("  Set size:", selectedTestItems.size);
                 console.log("🔍 Selected Test Items Set Size:", selectedTestItems.size);
                 console.log("🔍 Selected Test Items:", Array.from(selectedTestItems));
                 console.log("📄 Available Test Documents:", testDocuments.length, "documents");
