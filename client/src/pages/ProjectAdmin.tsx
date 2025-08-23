@@ -158,8 +158,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
             <div className="flex items-center space-x-3">
               <Settings className="h-8 w-8 text-gray-700 dark:text-gray-300" />
               <div>
-                <h2 className="text-3xl font-bold text-gray-700 dark:text-gray-100">{project.name}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Project Configuration</p>
+                <h2 className="text-3xl font-bold text-gray-700 dark:text-white">{project.name}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-100">Project Configuration</p>
               </div>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
           {renderActiveContent()}
         </div>
       </div>
