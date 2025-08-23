@@ -1,0 +1,80 @@
+📤 Previous Results Summary:
+main.tsx:17 📤 Request Body: {
+  "documentId": "886a3797-03d6-4cf6-a6da-8a71459bdf39",
+  "documentContent": "=== Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code\tDate of Birth\tDate Became Pensioner\tCode For Previous Status\tType Of Retirement\tDate Of Exit From Active Service\tAnnual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service\tAnnual Post-5.4.1988 GMP Component At Date Of Exit From Active Service\tAnnual Pre-6.4.1988 GMP Component At Date Of This Valuation\tAnnual Post-5.4.1988 GMP Component At Date Of This Valuation\tTotal Pension Payable From Scheme At Last Valuation\tTotal Pension Payable From Scheme At This Valuation\tComponent Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)\tContingent Widow(er)'s Sex Code\tContingent Widow(er)'s Date Of Birth\tContingent Widow(er)'s Pension At This Valuation\tComponent Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)\tDate Of Exit From Pensioner Status\tCode For Exit From Pensioner Status\tOld Supplementary Fund Indicator\tMarried Indicator\tOld Supplementary Fund Pension\tComponent Of Pension At This Valuation Subject To RPI capped at 2.5% pa\tComponent Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa\tNon-increasing pension\tNon-increasing TV-in pension\tComponent Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)\tComponent Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)\tTotal Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash\tTax Free Cash taken at Retirement\tPension Commuted At Retirement in Exchange for Tax Free Cash\tTotal Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash\tPostcode\tStatus\tSection B Indicator\...
+main.tsx:17 📥 Complete Response: {
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "extractedValue": "Title",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 1",
+        "confidenceScore": 100,
+        "documentSource": "Column 1",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "ID",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 2",
+        "confidenceScore": 100,
+        "documentSource": "Column 2",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "Surname",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 3",
+        "confidenceScore": 100,
+        "documentSource": "Column 3",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "First Name",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 4",
+        "confidenceScore": 100,
+        "documentSource": "Column 4",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "Sex",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 5",
+        "confidenceScore": 100,
+        "documentSource": "Column 5",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "Date of Birth",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 6",
+        "confidenceScore": 100,
+        "documentSource": "Column 6",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "Date Joined Fund",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 7",
+        "confidenceScore": 100,
+        "documentSource": "Column 7",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },
+      {
+        "extractedValue": "Date Left Service",
+        "validationStatus": "valid",
+        "aiReasoning": "Standard Excel column 8",
+        "confidenceScore": 100,
+        "documentSource": "Column 8",
+        "step_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+        "value_id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf"
+      },

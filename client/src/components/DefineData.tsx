@@ -794,9 +794,12 @@ export default function DefineData({
                                   {(() => {
                                     // For Column Name Mapping
                                     if (item._stepName === 'Column Name Mapping') {
-                                      const columnName = item.name || item.identifierId || item.columnName || 'Unknown';
-                                      const worksheetName = item.worksheetName || 'Pending';
-                                      const standardEquivalent = item.extractedValue || item.standardEquivalent || 'Not Found';
+                                      // For Column Names value, use extractedValue from the first step
+                                      const columnName = item.extractedValue || item.name || item.identifierId || item.columnName || 'Unknown';
+                                      // For Worksheet Name, check if it exists in the workflow results
+                                      const worksheetName = item.worksheetName || item.worksheet || 'Pending';
+                                      // For Standard Equivalent, it's typically the third value
+                                      const standardEquivalent = item.standardEquivalent || 'Not Found';
                                       
                                       return (
                                         <>
