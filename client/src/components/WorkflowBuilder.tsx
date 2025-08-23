@@ -588,7 +588,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
+            <Card className="relative w-full bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
             <CardHeader className="pb-4 relative">
               <div className="flex flex-col items-center">
                 {/* Icon and Title - Centered */}
@@ -955,7 +955,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-gray-900 relative">
+    <div className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-slate-950 relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
