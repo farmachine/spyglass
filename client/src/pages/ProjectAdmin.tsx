@@ -142,7 +142,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <ExtraplLogo showAdmin={true} />
+            <ExtraplLogo showConfigure={true} />
             <div className="flex items-center gap-2">
               <DarkModeToggle />
               <UserProfile />

@@ -5,9 +5,10 @@ interface ExtraplLogoProps {
   showText?: boolean;
   size?: number;
   showAdmin?: boolean;
+  showConfigure?: boolean;
 }
 
-export default function ExtraplLogo({ className = "", showText = true, size = 60, showAdmin = false }: ExtraplLogoProps) {
+export default function ExtraplLogo({ className = "", showText = true, size = 60, showAdmin = false, showConfigure = false }: ExtraplLogoProps) {
   const [, setLocation] = useLocation();
 
   const handleClick = () => {
@@ -26,6 +27,9 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
           {showAdmin && (
             <span className="text-sm font-bold text-slate-700">Admin</span>
           )}
+          {showConfigure && (
+            <span className="text-sm font-bold text-slate-700">Configure</span>
+          )}
         </div>
       </div>
     );
@@ -43,6 +47,9 @@ export default function ExtraplLogo({ className = "", showText = true, size = 60
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
         {showAdmin && (
           <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">Admin</span>
+        )}
+        {showConfigure && (
+          <span className="text-3xl font-bold dark:text-slate-300 text-[#071e54]">Configure</span>
         )}
       </div>
     </button>
