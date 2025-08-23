@@ -6177,7 +6177,17 @@ def extract_function(Column_Name, Excel_File):
             const { toolEngine } = await import('./toolEngine');
             
             console.log('📝 Executing tool with prepared inputs');
-            console.log('  Input values:', JSON.stringify(preparedInputValues, null, 2).slice(0, 500) + '...');
+            console.log('  Input values keys:', Object.keys(preparedInputValues));
+            for (const [key, value] of Object.entries(preparedInputValues)) {
+              if (Array.isArray(value)) {
+                console.log(`  📊 Input "${key}" is array with ${value.length} items`);
+                if (value.length > 0) {
+                  console.log(`    Sample items:`, value.slice(0, 3));
+                }
+              } else if (typeof value === 'string') {
+                console.log(`  📝 Input "${key}" is string (${value.length} chars)`);
+              }
+            }
             
             // Execute using toolEngine's testTool method
             const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
