@@ -2579,9 +2579,9 @@ Thank you for your assistance.`;
     const borderClass = isSchemaField ? "border-l-4 border-l-blue-500" : "";
     
     return (
-      <div key={fieldName} className={`flex items-center gap-3 p-3 border rounded-lg bg-white ${borderClass}`}>
+      <div key={fieldName} className={`flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 ${borderClass}`}>
         <div className="flex-1">
-          <Label className="text-sm font-medium text-gray-700 mb-1 block">{displayName}</Label>
+          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">{displayName}</Label>
           {isEditing ? (
             <div className="flex items-center gap-2 mt-1">
               {fieldType === 'DATE' ? (
@@ -2625,7 +2625,7 @@ Thank you for your assistance.`;
             </div>
           ) : (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-gray-900 dark:text-gray-100">
                 {formatValueForDisplay(value, fieldType)}
               </span>
               <Button
@@ -2737,10 +2737,10 @@ Thank you for your assistance.`;
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white hover:bg-gray-50 transition-colors border border-gray-200"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
                       title="Revert to original AI extracted value"
                     >
-                      <RotateCcw className="h-3 w-3 text-black" />
+                      <RotateCcw className="h-3 w-3 text-black dark:text-white" />
                     </button>
                   )}
                 </div>
@@ -2749,14 +2749,14 @@ Thank you for your assistance.`;
               // Show green checkmark for verified manually updated fields
               return (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-500" />
                   {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
                     <button
                       onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white hover:bg-gray-50 transition-colors border border-gray-200"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
                       title="Revert to original AI extracted value"
                     >
-                      <RotateCcw className="h-3 w-3 text-black" />
+                      <RotateCcw className="h-3 w-3 text-black dark:text-white" />
                     </button>
                   )}
                 </div>
@@ -2805,9 +2805,9 @@ Thank you for your assistance.`;
   ];
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Header - Match ProjectLayout exactly */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtraplLogo />
@@ -2816,20 +2816,20 @@ Thank you for your assistance.`;
         </div>
       </div>
       {/* Page Title - Match ProjectLayout exactly */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold">{project.name}</h2>
+                  <h2 className="text-3xl font-bold dark:text-white">{project.name}</h2>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
-                    <p className="text-sm text-gray-600">{project.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{project.description}</p>
                   ) : (
-                    <p className="text-sm text-gray-400">No description</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
                   )}
                 </div>
               </div>
@@ -2838,21 +2838,21 @@ Thank you for your assistance.`;
             {/* Statistics Cards - Match ProjectLayout exactly */}
             {project.sessions.length > 0 && (
               <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700" />
-                  <span className="text-xl font-bold text-gray-900">{project.sessions.length}</span>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <Database className="h-6 w-6 text-slate-700 dark:text-gray-400" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {verificationStats.in_progress + verificationStats.pending}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {verificationStats.verified}
                   </span>
                 </div>
@@ -2863,7 +2863,7 @@ Thank you for your assistance.`;
       </div>
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
+        <div className="w-80 bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -2876,7 +2876,7 @@ Thank you for your assistance.`;
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
                           ? "bg-primary text-white font-medium shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                          : "text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal"
                       }`}
                     >
                       {item.label}
@@ -2888,11 +2888,11 @@ Thank you for your assistance.`;
           </div>
           
           {/* Session Navigation - Only visible in session view */}
-          <div className="border-t border-slate-200 p-4 flex-1">
+          <div className="border-t border-slate-200 dark:border-gray-700 p-4 flex-1">
             {/* Documents Section - Session-specific */}
             <div className="mb-6">
               <div className="flex items-center mb-3">
-                <Folder className="h-5 w-5 text-slate-600 mr-3" />
+                <Folder className="h-5 w-5 text-slate-600 dark:text-gray-400 mr-3" />
                 
                 {/* Tab button */}
                 <button
@@ -2900,7 +2900,7 @@ Thank you for your assistance.`;
                   className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                     activeTab === 'documents' 
                       ? 'bg-primary text-white font-medium shadow-sm' 
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                   }`}
                 >
                   <div className="truncate">Documents</div>
@@ -2909,11 +2909,11 @@ Thank you for your assistance.`;
             </div>
             
             <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
+              <h3 className="text-xs font-medium text-slate-700 dark:text-gray-400 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
               {/* Vertical connecting line - stops at last collection */}
-              <div className="absolute left-4 top-4 w-0.5 bg-slate-300" style={{ 
+              <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
                 height: `${project.collections.length * 48 + 12}px` 
               }}></div>
               
@@ -2931,11 +2931,11 @@ Thank you for your assistance.`;
                       const totalCount = infoValidations.length;
                       
                       if (totalCount > 0 && verifiedCount === totalCount) {
-                        return 'bg-white border-green-600';
+                        return 'bg-white dark:bg-gray-800 border-green-600 dark:border-green-500';
                       } else {
                         return activeTab === 'info' 
                           ? 'bg-primary border-primary' 
-                          : 'bg-white border-slate-300';
+                          : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600';
                       }
                     })()
                   }`}>
@@ -2948,10 +2948,10 @@ Thank you for your assistance.`;
                       const totalCount = infoValidations.length;
                       
                       if (totalCount > 0 && verifiedCount === totalCount) {
-                        return <Check className="w-4 h-4 text-green-600" />;
+                        return <Check className="w-4 h-4 text-green-600 dark:text-green-500" />;
                       } else {
                         return <div className={`w-3 h-3 rounded-full ${
-                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400'
+                          activeTab === 'info' ? 'bg-white' : 'bg-slate-400 dark:bg-gray-500'
                         }`}></div>;
                       }
                     })()}
@@ -2963,7 +2963,7 @@ Thank you for your assistance.`;
                     className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'info' 
                         ? 'bg-primary text-white font-medium shadow-sm' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
                   >
                     <div className="truncate">General Information</div>
@@ -2991,16 +2991,16 @@ Thank you for your assistance.`;
                       {/* Circular icon */}
                       <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
                         totalCount > 0 && verifiedCount === totalCount
-                          ? 'bg-white border-green-600'
+                          ? 'bg-white dark:bg-gray-800 border-green-600 dark:border-green-500'
                           : (activeTab === collection.collectionName 
                               ? 'bg-primary border-primary' 
-                              : 'bg-white border-slate-300')
+                              : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600')
                       }`}>
                         {totalCount > 0 && verifiedCount === totalCount ? (
-                          <Check className="w-4 h-4 text-green-600" />
+                          <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
                         ) : (
                           <div className={`w-3 h-3 rounded-full ${
-                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400'
+                            activeTab === collection.collectionName ? 'bg-white' : 'bg-slate-400 dark:bg-gray-500'
                           }`}></div>
                         )}
                       </div>
@@ -3011,7 +3011,7 @@ Thank you for your assistance.`;
                         className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                           activeTab === collection.collectionName 
                             ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal'
+                            : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                         }`}
                       >
                         <div className="truncate">{collection.collectionName}</div>
@@ -3025,9 +3025,9 @@ Thank you for your assistance.`;
           
           {/* Settings Button - Always at the bottom */}
           {canAccessConfigTabs && (
-            <div className="p-4 border-t border-slate-200">
+            <div className="p-4 border-t border-slate-200 dark:border-gray-700">
               <Link href={`/projects/${projectId}/admin`}>
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-700 transition-all duration-200 border border-slate-200">
+                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-600 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100 transition-all duration-200 border border-slate-200 dark:border-gray-600">
                   <Settings className="h-4 w-4" />
                   Project Configuration
                 </button>
@@ -3037,7 +3037,7 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-8 dark:bg-gray-900">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-8">
@@ -3073,7 +3073,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <h2 className="text-3xl font-bold">{session?.sessionName}</h2>
+                        <h2 className="text-3xl font-bold dark:text-white">{session?.sessionName}</h2>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -3099,16 +3099,16 @@ Thank you for your assistance.`;
                 
                 {/* Session Verification Progress */}
                 <div className="flex items-center gap-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                  <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${
-                        getVerificationProgress().percentage === 100 ? 'bg-green-600' : 
-                        getVerificationProgress().percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                        getVerificationProgress().percentage === 100 ? 'bg-green-600 dark:bg-green-500' : 
+                        getVerificationProgress().percentage > 0 ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-400 dark:bg-gray-600'
                       }`}
                       style={{ width: `${getVerificationProgress().percentage}%` }}
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 min-w-[28px]">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[28px]">
                     {getVerificationProgress().percentage}%
                   </span>
                 </div>
@@ -3157,9 +3157,9 @@ Thank you for your assistance.`;
             <div className="w-full">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
-                <Card className="border-t-0 rounded-tl-none ml-0">
+                <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex items-center justify-between dark:text-white">
                       <span className="flex items-center gap-2">General Information</span>
                       <Button
                         variant="ghost"
@@ -3172,7 +3172,7 @@ Thank you for your assistance.`;
                             type: field.fieldType
                           })) || []
                         )}
-                        className="h-8 w-8 p-0 hover:bg-slate-100 text-[#5065a6]"
+                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 text-[#5065a6] dark:text-blue-400"
                       >
                         <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                       </Button>
