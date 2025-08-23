@@ -685,7 +685,14 @@ export default function DefineData({
                         previousResults: previousResults // Pass accumulated results
                       };
                       
-                      console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2));
+                      // Log critical info about previousResults
+                      console.log("📤 Previous Results Summary:");
+                      for (const [key, val] of Object.entries(previousResults)) {
+                        if (Array.isArray(val)) {
+                          console.log(`    ${key}: ${val.length} items`);
+                        }
+                      }
+                      console.log("📤 Request Body:", JSON.stringify(requestBody, null, 2).slice(0, 2000) + "...");
                       
                       // Call the test endpoint
                       const response = await apiRequest(`/api/projects/${project.id}/test-workflow`, {
@@ -705,6 +712,15 @@ export default function DefineData({
                         previousResults[value.valueName] = response.result.results;
                         
                         console.log(`  💾 Stored results as "${resultKey}" and "${value.valueName}" for subsequent steps`);
+                        
+                        // Debug: Log what we're storing
+                        console.log(`  📊 Stored array has ${response.result.results.length} items`);
+                        if (response.result.results.length > 0) {
+                          console.log(`    First item:`, response.result.results[0]);
+                          if (response.result.results.length > 1) {
+                            console.log(`    Last item:`, response.result.results[response.result.results.length - 1]);
+                          }
+                        }
                       }
                     } catch (error) {
                       console.error(`  ❌ Error:`, error);
