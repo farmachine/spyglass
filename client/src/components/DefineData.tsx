@@ -728,6 +728,12 @@ export default function DefineData({
                         standardResult: standardResult ? `${standardResult.data?.length} items` : 'not found'
                       });
                       
+                      // Debug: Log full test results structure
+                      console.log('📦 Full test results:', testResults);
+                      if (worksheetResult && worksheetResult.data && worksheetResult.data.length > 0) {
+                        console.log('🔍 Worksheet Result Sample:', worksheetResult.data[0]);
+                      }
+                      
                       const columnData = columnNamesResult?.data || [];
                       const worksheetData = worksheetResult?.data || [];
                       const standardData = standardResult?.data || [];
@@ -735,6 +741,14 @@ export default function DefineData({
                       // Merge by index
                       const maxLength = Math.max(columnData.length, worksheetData.length, standardData.length);
                       for (let i = 0; i < maxLength; i++) {
+                        // Debug logging to see what data we have
+                        if (i === 0) {
+                          console.log('🔍 First item debug:');
+                          console.log('  Column data[0]:', columnData[0]);
+                          console.log('  Worksheet data[0]:', worksheetData[0]);
+                          console.log('  Standard data[0]:', standardData[0]);
+                        }
+                        
                         allData.push({
                           _stepName: 'Column Name Mapping',
                           columnName: columnData[i]?.extractedValue || 'Unknown',
