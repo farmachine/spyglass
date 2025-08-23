@@ -85,19 +85,10 @@ async function processWorkflowTestAsync(
     
     clearInterval(progressInterval);
     
-    // Save results
-    const testResults = await storage.createWorkflowTestResult({
-      stepId: valueConfig.stepId,
-      valueId: valueConfig.valueId || null,
-      toolId: valueConfig.toolId,
-      testDocumentId: documentId,
-      results: JSON.stringify(result),
-      executedAt: new Date()
-    });
-    
-    jobManager.completeJob(jobId, {
+    // Complete the job with results (no need to save test results in DB for async jobs)
+    const { jobManager: jm } = await import('./jobManager');
+    jm.completeJob(jobId, {
       results: result,
-      testResultId: testResults.id,
       stepName: valueConfig.stepName,
       valueName: valueConfig.valueName
     });
@@ -105,7 +96,8 @@ async function processWorkflowTestAsync(
     console.log(`✅ Async job ${jobId} completed successfully`);
   } catch (error) {
     console.error(`❌ Async job ${jobId} failed:`, error);
-    jobManager.failJob(jobId, error.message || 'Unknown error');
+    const { jobManager: jm } = await import('./jobManager');
+    jm.failJob(jobId, error.message || 'Unknown error');
   }
 }
 
