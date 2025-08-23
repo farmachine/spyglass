@@ -203,7 +203,7 @@ export default function ProjectCard({
 
   return (
     <>
-      <Card className={`bg-white text-black rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
+      <Card className={`bg-white dark:bg-gray-800 text-black dark:text-gray-100 rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`} style={{
         border: '1px solid #5065a5',
@@ -214,12 +214,12 @@ export default function ProjectCard({
             <div className="flex-1 flex flex-col" onClick={() => setLocation(`/projects/${project.id}`)}>
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-5 w-5 text-primary flex-shrink-0" />
-                <CardTitle className="text-lg font-bold transition-colors line-clamp-1" style={{ color: '#071d54' }}>
+                <CardTitle className="text-lg font-bold transition-colors line-clamp-1 dark:text-gray-100" style={{ color: '#071d54' }}>
                   {project.name}
                 </CardTitle>
               </div>
               {project.description && (
-                <p className="text-xs font-normal text-black/70 leading-tight whitespace-pre-wrap break-words">
+                <p className="text-xs font-normal text-black/70 dark:text-gray-400 leading-tight whitespace-pre-wrap break-words">
                   {project.description}
                 </p>
               )}
@@ -230,7 +230,7 @@ export default function ProjectCard({
               {user?.role === 'admin' && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black hover:bg-black/10 flex-shrink-0">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-black dark:text-gray-300 hover:bg-black/10 dark:hover:bg-gray-700 flex-shrink-0">
                       <Settings className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -297,9 +297,9 @@ export default function ProjectCard({
         <div className="flex-1" onClick={() => setLocation(`/projects/${project.id}`)} />
         
         {/* Fixed bottom area */}
-        <CardContent className="pb-4 flex-shrink-0 relative bg-white" onClick={() => setLocation(`/projects/${project.id}`)}>
+        <CardContent className="pb-4 flex-shrink-0 relative bg-white dark:bg-gray-800" onClick={() => setLocation(`/projects/${project.id}`)}>
           {/* Created date - positioned above stats */}
-          <div className="text-xs font-medium text-black/60 mb-2 space-y-0.5 italic">
+          <div className="text-xs font-medium text-black/60 dark:text-gray-400 mb-2 space-y-0.5 italic">
             <div><span className="font-bold">Author:</span> {project.creatorName || 'Unknown'}</div>
             <div><span className="font-bold">Organization:</span> {project.creatorOrganizationName || 'Unknown'}</div>
             <div><span className="font-bold">Created:</span> {formatDate(project.createdAt)}</div>
@@ -311,23 +311,23 @@ export default function ProjectCard({
             <div className="flex items-center gap-3">
               {/* Total Sessions */}
               <div className="flex items-center gap-1">
-                <Database className="h-3.5 w-3.5 text-black/70" />
-                <span className="text-sm font-medium text-black">{verificationStats.total}</span>
+                <Database className="h-3.5 w-3.5 text-black/70 dark:text-gray-400" />
+                <span className="text-sm font-medium text-black dark:text-gray-200">{verificationStats.total}</span>
               </div>
               
               {/* Verified Sessions */}
               {verificationStats.verified > 0 && (
                 <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                  <span className="text-sm font-medium text-black">{verificationStats.verified}</span>
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
+                  <span className="text-sm font-medium text-black dark:text-gray-200">{verificationStats.verified}</span>
                 </div>
               )}
               
               {/* Unverified Sessions */}
               {verificationStats.unverified > 0 && (
                 <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="text-sm font-medium text-black">{verificationStats.unverified}</span>
+                  <CheckCircle className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-sm font-medium text-black dark:text-gray-200">{verificationStats.unverified}</span>
                 </div>
               )}
             </div>
@@ -360,7 +360,7 @@ export default function ProjectCard({
                     </Badge>
                   ))
               ) : (
-                <div className="text-xs font-medium text-black/50 italic">
+                <div className="text-xs font-medium text-black/50 dark:text-gray-500 italic">
                   Not published
                 </div>
               )
@@ -369,7 +369,7 @@ export default function ProjectCard({
         </CardContent>
         
         {/* Fade to white gradient overlay at the bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/50 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/50 dark:from-gray-800/50 to-transparent pointer-events-none" />
         
         {/* Deactivated overlay */}
         {project.status === "inactive" && (
