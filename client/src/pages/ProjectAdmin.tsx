@@ -159,7 +159,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
               <Settings className="h-8 w-8 text-gray-700 dark:text-gray-300" />
               <div>
                 <h2 className="text-3xl font-bold text-gray-700 dark:text-white">{project.name}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-100">Project Configuration</p>
+                <p className="text-sm text-gray-600 dark:text-gray-100">Configure</p>
               </div>
             </div>
           </div>

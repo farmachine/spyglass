@@ -3020,7 +3020,7 @@ Thank you for your assistance.`;
               <Link href={`/projects/${projectId}/admin`}>
                 <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-600 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100 transition-all duration-200 border border-slate-200 dark:border-gray-600">
                   <Settings className="h-4 w-4" />
-                  Project Configuration
+                  Configure
                 </button>
               </Link>
             </div>

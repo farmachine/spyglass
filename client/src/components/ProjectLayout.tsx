@@ -333,7 +333,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
-            <ExtraplLogo />
+            <ExtraplLogo showAdmin={true} />
             <div className="flex items-center gap-2">
               <DarkModeToggle />
               <UserProfile />
@@ -532,10 +532,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 <button
                   onClick={() => setLocation(`/projects/${project.id}/admin`)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200"
-                  title="Project Configuration Settings"
+                  title="Configure Settings"
                 >
                   <Settings className="h-4 w-4" />
-                  Project Configuration
+                  Configure
                 </button>
               </div>
             )}
@@ -553,10 +553,10 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               <button
                 onClick={() => setLocation(`/projects/${project.id}/admin`)}
                 className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-all duration-200"
-                title="Project Configuration"
+                title="Configure"
               >
                 <Settings className="h-4 w-4" />
-                <span className="text-sm font-medium">Project Configuration</span>
+                <span className="text-sm font-medium">Configure</span>
               </button>
             </div>
           )}
