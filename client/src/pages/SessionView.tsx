@@ -3064,6 +3064,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
                         <h2 className="text-3xl font-bold dark:text-white">{session?.sessionName}</h2>
                         <Button
                           size="sm"
@@ -3379,9 +3380,9 @@ Thank you for your assistance.`;
 
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
-                <Card className="border-t-0 rounded-tl-none ml-0">
+                <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex items-center justify-between dark:text-white">
                       <span className="flex items-center gap-2">Documents</span>
                     </CardTitle>
                     <p className="text-sm text-gray-600">
@@ -3492,9 +3493,9 @@ Thank you for your assistance.`;
 
                 return activeTab === collection.collectionName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="border-t-0 rounded-tl-none ml-0">
+                    <Card className="border-t-0 rounded-tl-none ml-0 dark:bg-gray-800 dark:border-gray-700">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
+                        <CardTitle className="flex items-center justify-between dark:text-white">
                           <div className="flex items-center gap-2">
                             {collection.collectionName}
                             <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
