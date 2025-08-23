@@ -72,15 +72,16 @@ async function processWorkflowTestAsync(
     }, 5000);
     
     // Execute the tool with progress tracking
+    const progressCallback = (current: number, total: number, message?: string) => {
+      jobManager.updateProgress(jobId, current, total, message);
+    };
+    
     const result = await toolEngine.testTool(
       excelFunction,
       preparedInputValues,
       documentContent,
       null,
-      // Progress callback
-      (current: number, total: number, message?: string) => {
-        jobManager.updateProgress(jobId, current, total, message);
-      }
+      progressCallback
     );
     
     clearInterval(progressInterval);
