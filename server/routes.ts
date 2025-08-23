@@ -6093,6 +6093,7 @@ def extract_function(Column_Name, Excel_File):
       
       // If there's a toolId, we need to execute the tool/function
       if (valueConfig.toolId) {
+        console.log('🔍 DEBUG: Getting tool with ID:', valueConfig.toolId);
         // Get the tool/function details
         const excelFunction = await storage.getExcelWizardryFunction(valueConfig.toolId);
         
@@ -6143,9 +6144,10 @@ def extract_function(Column_Name, Excel_File):
                       preparedInputValues[key] = previousData;
                     }
                   }
+                } else {
+                  // Not an array, just use the data as-is
+                  preparedInputValues[key] = previousData;
                 }
-                
-                preparedInputValues[key] = previousData;
               } else {
                 console.log(`  ⚠️ No previous results found for ${referencePath}`);
               }
