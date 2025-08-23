@@ -407,13 +407,16 @@ export default function DefineData({
           <div className="flex gap-2">
             <Button
               onClick={() => setTestDocumentsModalOpen(true)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
+              variant="ghost"
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
+              <FileText className="h-4 w-4 mr-2" />
               Test Documents
             </Button>
             <Button
               onClick={() => setTestModalOpen(true)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-600"
+              variant="ghost"
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               title="Test Workflow"
             >
               <Play className="h-4 w-4 mr-2" />
@@ -426,7 +429,7 @@ export default function DefineData({
                   workflowRef.current.saveFlow();
                 }
               }}
-              className="bg-gray-700 hover:bg-gray-800 text-white"
+              className="bg-gray-700 hover:bg-gray-800 text-white border border-gray-600"
             >
               Save Flow
             </Button>
