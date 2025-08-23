@@ -376,7 +376,7 @@ export class ToolEngine {
     
     if (tool.toolType === "AI_ONLY") {
       console.log('  → Calling testAITool');
-      return this.testAITool(tool, preparedInputs);
+      return this.testAITool(tool, preparedInputs, progressCallback);
     } else {
       console.log('  → Calling testCodeTool');
       return this.testCodeTool(tool, preparedInputs);
@@ -386,7 +386,11 @@ export class ToolEngine {
   /**
    * Test AI-based tool
    */
-  private async testAITool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+  private async testAITool(
+    tool: Tool, 
+    inputs: Record<string, any>,
+    progressCallback?: (current: number, total: number, message?: string) => void
+  ): Promise<ToolResult[]> {
     try {
       console.log('🔍 testAITool - Inputs received:', Object.keys(inputs));
       console.log('🔍 testAITool - Tool output type:', tool.outputType);
