@@ -65,7 +65,19 @@ async function processWorkflowTestAsync(
           console.log(`  ✅ Successfully set ${key} to document content`);
         }
         else if (previousResults && previousResults[referencePath]) {
-          preparedInputValues[key] = previousResults[referencePath];
+          const previousData = previousResults[referencePath];
+          
+          // Extract just the values if these are result objects
+          if (Array.isArray(previousData) && previousData.length > 0 && previousData[0].extractedValue !== undefined) {
+            const extractedValues = previousData.map((item: any) => item.extractedValue);
+            console.log(`  ✅ Replacing ${key} with ${extractedValues.length} extracted values from ${referencePath}`);
+            preparedInputValues[key] = extractedValues;
+          } else {
+            console.log(`  ✅ Replacing ${key} with data from ${referencePath}`);
+            preparedInputValues[key] = previousData;
+          }
+        } else {
+          console.log(`  ⚠️ Reference ${referencePath} not found in previous results`);
         }
       }
     }
