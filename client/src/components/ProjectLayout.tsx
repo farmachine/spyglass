@@ -531,7 +531,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
               <div className="absolute bottom-4 left-4 right-4">
                 <button
                   onClick={() => setLocation(`/projects/${project.id}/admin`)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-all duration-200"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 transition-all duration-200"
                   title="Project Configuration Settings"
                 >
                   <Settings className="h-4 w-4" />
@@ -552,7 +552,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
             <div className="fixed bottom-6 left-6 z-10">
               <button
                 onClick={() => setLocation(`/projects/${project.id}/admin`)}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 rounded-lg transition-all duration-200"
+                className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-all duration-200"
                 title="Project Configuration"
               >
                 <Settings className="h-4 w-4" />

@@ -714,7 +714,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             {step.isExpanded && (
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-sm text-gray-700">Values</h4>
+                  <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">Values</h4>
                 </div>
 
                 {step.values.map((value, valueIndex) => (
@@ -732,14 +732,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     {/* Grey line between values */}
                     {valueIndex < step.values.length - 1 && (
                       <div className="flex justify-center py-1">
-                        <div className="w-0.5 h-4 bg-gray-300"></div>
+                        <div className="w-0.5 h-4 bg-gray-300 dark:bg-gray-600"></div>
                       </div>
                     )}
                   </div>
                 ))}
 
                 {step.values.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                     No values defined. Click "Add Value" to create one.
                   </div>
                 )}
@@ -747,7 +747,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Dotted line to Add Value button */}
                 {step.values.length > 0 && (
                   <div className="flex justify-center py-1">
-                    <div className="w-0.5 h-4 border-l-2 border-dashed border-gray-300"></div>
+                    <div className="w-0.5 h-4 border-l-2 border-dashed border-gray-300 dark:border-gray-600"></div>
                   </div>
                 )}
 
@@ -765,7 +765,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 </div>
 
                 {/* Description Section with dot format */}
-                <div className="mt-6 p-4 bg-white rounded-lg group relative">
+                <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg group relative">
                   <div className="flex flex-col items-center">
                     {editingDescription === step.id ? (
                       <Textarea
@@ -773,24 +773,24 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         onChange={(e) => updateStep(step.id, { description: e.target.value })}
                         onBlur={() => setEditingDescription(null)}
                         placeholder="Describe what this extracts..."
-                        className="text-sm text-gray-800 text-center resize-none w-full mb-3"
+                        className="text-sm text-gray-800 dark:text-gray-200 text-center resize-none w-full mb-3 bg-transparent"
                         rows={2}
                         autoFocus
                       />
                     ) : (
                       <>
-                        <p className="text-sm text-gray-800 text-center w-full mb-3">
+                        <p className="text-sm text-gray-800 dark:text-gray-200 text-center w-full mb-3">
                           {step.description || "Click to add description..."}
                         </p>
                         <button
                           onClick={() => setEditingDescription(step.id)}
-                          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200"
+                          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700"
                         >
-                          <Edit2 className="h-4 w-4 text-gray-600" />
+                          <Edit2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </button>
                       </>
                     )}
-                    <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+                    <div className="w-3 h-3 rounded-full bg-gray-600 dark:bg-gray-400"></div>
                   </div>
                 </div>
               </CardContent>
@@ -800,8 +800,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           {/* Arrow between steps */}
           {stepIndex < steps.length - 1 && (
             <div className="flex flex-col items-center py-2">
-              <div className="w-0.5 h-8 bg-gray-300"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
             </div>
           )}
           </div>
@@ -810,18 +810,18 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {steps.length === 0 ? (
           <>
             {/* Start dot for empty state */}
-            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+            <div className="w-3 h-3 rounded-full bg-gray-600 dark:bg-gray-400"></div>
             <div className="flex flex-col items-center">
-              <div className="w-0.5 h-8 bg-gray-300"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
             </div>
             
-            <Card className="p-12 w-3/4 bg-gray-50 border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all">
+            <Card className="p-12 w-3/4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
               <div className="text-center">
-                <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No workflow steps yet</h3>
-                <p className="text-gray-600 mb-4">Start building your workflow by adding a step</p>
-                <Button onClick={addStep} className="gap-2 bg-gray-700 hover:bg-gray-800">
+                <Layers className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No workflow steps yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Start building your workflow by adding a step</p>
+                <Button onClick={addStep} className="gap-2 bg-gray-700 dark:bg-primary hover:bg-gray-800 dark:hover:bg-primary/90">
                   <Plus className="h-4 w-4" />
                   Add First Step
                 </Button>
@@ -832,14 +832,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           <>
             {/* Dotted line from last card */}
             <div className="flex flex-col items-center py-2">
-              <div className="w-0.5 h-8 border-l-2 border-dashed border-gray-400"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 -mt-1" />
+              <div className="w-0.5 h-8 border-l-2 border-dashed border-gray-400 dark:border-gray-600"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
             </div>
             
             {/* Add Step button */}
             <Button 
               onClick={addStep} 
-              className="gap-2 bg-gray-700 hover:bg-gray-800"
+              className="gap-2 bg-gray-700 dark:bg-primary hover:bg-gray-800 dark:hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               Add Step
@@ -977,12 +977,12 @@ function ValueEditor({
         <div className="absolute top-4 right-4 flex items-center gap-1">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-200 rounded"
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             )}
           </button>
 
@@ -990,7 +990,7 @@ function ValueEditor({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -1002,7 +1002,7 @@ function ValueEditor({
           {/* Name and Data Type on same row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Name</Label>
+              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Name</Label>
               <Input
                 value={value.name}
                 onChange={(e) => onUpdate({ name: e.target.value })}
@@ -1010,7 +1010,7 @@ function ValueEditor({
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1">Data Type</Label>
+              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Data Type</Label>
               <Select
                 value={value.dataType}
                 onValueChange={(val) => onUpdate({ dataType: val as WorkflowValue['dataType'] })}

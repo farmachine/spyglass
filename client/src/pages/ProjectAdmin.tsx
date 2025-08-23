@@ -12,6 +12,7 @@ import DefineData from "@/components/DefineData";
 import Publishing from "@/components/Publishing";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
+import DarkModeToggle from "@/components/DarkModeToggle";
 import Tools from "@/components/Tools";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -40,12 +41,12 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-lg font-semibold text-red-600 mb-2">Error Loading Project</h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Failed to load project details. Please try again later.
               </p>
               <Button onClick={() => setLocation("/")} variant="outline">
@@ -60,8 +61,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center gap-4">
               <Skeleton className="h-8 w-8" />
@@ -70,7 +71,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
           </div>
         </div>
         <div className="flex h-[calc(100vh-80px)]">
-          <div className="w-64 bg-white border-r border-gray-200 p-6">
+          <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6">
             <div className="space-y-4">
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-10 w-full" />
@@ -88,12 +89,12 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Project Not Found</h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Project Not Found</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 The requested project could not be found.
               </p>
               <Button onClick={() => setLocation("/")} variant="outline">
@@ -136,26 +137,29 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <ExtraplLogo showAdmin={true} />
-            <UserProfile />
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Page Title */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
         <div className="w-full px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Settings className="h-8 w-8 text-gray-700" />
+              <Settings className="h-8 w-8 text-gray-700 dark:text-gray-300" />
               <div>
-                <h2 className="text-3xl font-bold text-gray-700">{project.name}</h2>
-                <p className="text-sm text-gray-600">Project Configuration</p>
+                <h2 className="text-3xl font-bold text-gray-700 dark:text-gray-100">{project.name}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Project Configuration</p>
               </div>
             </div>
           </div>
@@ -165,15 +169,15 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
-        <div className="w-72 bg-slate-50 border-r border-slate-200">
+        <div className="w-72 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
           <div className="p-4">
             {/* Back to Project Link */}
-            <div className="mb-4 pb-4 border-b border-slate-200">
+            <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation(`/projects/${projectId}`)}
-                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
@@ -197,14 +201,14 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                     disabled={isDisabled}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                       isDisabled
-                        ? "text-slate-400 cursor-not-allowed opacity-50 font-normal"
+                        ? "text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50 font-normal"
                         : isActive
-                        ? "bg-gray-700 text-white font-medium shadow-sm"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-700 font-normal"
+                        ? "bg-gray-700 dark:bg-primary text-white font-medium shadow-sm"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
-                      isDisabled ? "text-slate-300" : isActive ? "text-white" : "text-slate-500"
+                      isDisabled ? "text-slate-300 dark:text-slate-600" : isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
                     }`} />
                     {item.label}
                   </button>
