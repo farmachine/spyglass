@@ -121,10 +121,11 @@ export class ToolEngine {
               if (knowledgeDocs.length > 0) {
                 // Combine content from all selected knowledge documents
                 const combinedContent = knowledgeDocs
-                  .map(doc => `=== ${doc.title} ===\n${doc.content || 'No content'}`)
+                  .map(doc => `=== ${doc.displayName || doc.fileName} ===\n${doc.content || 'No content'}`)
                   .join('\n\n');
                 
                 console.log(`📄 Using knowledge document content for ${param.name} (${combinedContent.length} chars)`);
+                console.log(`📄 First 500 chars of content: ${combinedContent.substring(0, 500)}`);
                 preparedInputs[param.name] = combinedContent;
               } else {
                 console.log(`⚠️ No knowledge documents found for IDs: ${inputValue.join(', ')}`);

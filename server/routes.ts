@@ -2247,6 +2247,19 @@ except Exception as e:
               const result = toolResults[i];
               // Use the actual value name from the workflow step
               const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`;
+              
+              // Use identifierId from the result to map to existing records
+              const identifierId = result.identifierId || null;
+              
+              // If we have an identifierId, check if a validation already exists for it
+              let existingValidation = null;
+              if (identifierId) {
+                existingValidation = existingValidations.find((v: any) => 
+                  v.identifierId === identifierId && 
+                  v.valueId === value_id
+                );
+              }
+              
               const validation = {
                 sessionId,
                 fieldId: value_id,
@@ -2255,16 +2268,22 @@ except Exception as e:
                 validationStatus: result.validationStatus || 'extracted',
                 validationType: 'collection_property',
                 collectionName: workflowStep.stepName,
-                recordIndex: currentRecordIndex + i,
+                recordIndex: existingValidation ? existingValidation.recordIndex : (currentRecordIndex + i),
                 confidenceScore: result.confidenceScore || 0.9,
                 aiReasoning: result.aiReasoning || 'Extracted via tool engine',
                 dataType: 'text',  // Add required data_type field
                 stepId: step_id,   // Add step_id for workflow tracking
                 valueId: value_id,  // Add value_id for workflow tracking
-                identifierId: workflowStep.identifierId  // Add identifier for reference chaining
+                identifierId: identifierId  // Use the identifierId from the result for proper mapping
               };
               
-              await storage.createFieldValidation(validation);
+              if (existingValidation) {
+                // Update existing validation
+                await storage.updateFieldValidation(existingValidation.id, validation);
+              } else {
+                // Create new validation
+                await storage.createFieldValidation(validation);
+              }
             }
             
             // Update session status

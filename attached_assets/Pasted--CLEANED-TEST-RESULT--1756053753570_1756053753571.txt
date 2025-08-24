@@ -1,0 +1,537 @@
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+```json
+[
+  {
+    "identifierId": "6d1f82ec-c92b-4f90-af48-f49fb1f84bcc",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Old Member's Reference No' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "6a2577fa-1181-40ec-85dd-5e7a573ad34f",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Member's Reference No' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "dd39cdb5-5849-4e28-a062-27992c933379",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Employer Code' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "f24ec120-ca12-4597-a9b4-06eb292fb2ed",
+    "extractedValue": "Gender",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Sex Code' is a synonym for 'Gender' in the reference document.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "7ac82afd-425c-46b0-83ed-cb6d7cfc7bb2",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "dc1644f3-809d-4cd3-b67d-ad8b7ba377cc",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Post-5.4.1988 GMP Component At Date Of This Valuation' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "199157a6-16c8-4066-9b9c-05b2473bfd44",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Total Pension Payable From Scheme At This Valuation' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "57945ad0-b8ab-44a2-a48d-cc8a687ea631",
+    "extractedValue": "Gender Spouse",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Contingent Widow(er)'s Sex Code' maps to 'Gender Spouse' in the reference document.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "68b29efe-3cea-40d4-a362-7d29f5b9bfc6",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Pre-6.4.1988 GMP Component At Date Of This Valuation' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "6e262825-f977-4d21-ae22-8506eb11c125",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Total Pension Payable From Scheme At Last Valuation' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "0f68cf70-ba6b-49e6-835c-0193039c1c2d",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "6957cd3f-eb2f-4907-9efc-e2c5e9ba498b",
+    "extractedValue": "DoB Spouse",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Contingent Widow(er)'s Date Of Birth' maps to 'DoB Spouse' in the reference document.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "a93e9687-ad65-4d25-962e-a7b22e36c4df",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "542ba510-d7c6-464d-b5fa-da580af02e91",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Code For Exit From Pensioner Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "3b3ef7cf-bec0-423c-b88f-7fc03cb3b5fa",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "bf9f806b-5c28-43b0-a976-ed5b876293ad",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Non-increasing pension' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "1b776f57-4ea1-4aaf-be4f-d47a639d83bd",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "9caba088-965e-4212-b422-c84e95e59e7f",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Non-increasing TV-in pension' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "5baec2e5-f3d4-4078-941a-3c165636b83d",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "ca417315-0519-4323-8477-1f29d792df37",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Tax Free Cash taken at Retirement' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "4f45ba5c-45f9-466b-94a6-ca1f1620b5de",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "e7041935-d266-4d2b-ae3e-416d7378ee54",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "c5057bbe-983a-4e84-856e-41a4df0ea756",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'MNM' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "81ed45d4-4979-4b2b-a360-f32010eb2972",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'D' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "ed233fc3-ab25-440f-bc5f-19919c656e7f",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'PN' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "08824e0f-9d2a-483e-a3fa-dd80ddd1b959",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Y' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "0d4a6c95-add3-4ef5-89e6-3531dd33fc8d",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Valuation Record Type' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "2f376f2f-c93c-49e6-80e2-2bc867780d70",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Date Pensionable Service Commenced' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "33fcd555-a42a-4768-b11b-134bbe9b01a3",
+    "extractedValue": "Retirement Age or Retirement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Normal Retirement Date' is a synonym for 'Retirement Age or Retirement Date' in the reference document.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "9e1c3f97-aed8-47ca-b8ba-379422d8b618",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "8b553501-386c-4bed-88b2-668bd87b7bf8",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "2c5a7339-abbc-49cb-88f5-711dca36c6de",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "b6d602ae-6e70-4e4f-9676-e43a4e719d60",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Date Of Exit From Active Deferred Member Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "b05e3743-6dc8-4d92-a911-8337a546089e",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "8c0329b7-a140-491a-8203-8f51f44477bc",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Code For Exit From Active Deferred Member Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "d9d0a358-500b-4abd-b23a-7fefe29b4cca",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'New Pension Date' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "e43abe9a-8ae8-4275-9431-4b9988a5017e",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "3e412da5-f72e-47dc-83b2-d6709d9ee701",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "b8f88fac-63a9-42d6-9ed0-5705ad91e0b9",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Date Of Buy-Out Of SBO Terms' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "a3c07819-6f99-40ac-8f2b-cfcda4c65533",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "9f3d1a66-2bea-4152-a8a1-4098273e6e29",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "d97c30c6-fc07-4f7b-8c2a-b1d025614188",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name '1986-04-01 00:00:00' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "74761976-4831-4feb-890b-bab622237d73",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name '2020-11-11 00:00:00' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "b300acb0-e7eb-4f86-a101-a28c4c7018b6",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "d4481512-1dc4-4af2-a7ca-1d1e6af32805",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "83a20932-9beb-436e-999d-f6143537899a",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "5be258a6-ecd7-4ed3-9ce2-f17514bbcf51",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Date Of Exit From Deferred Pensioner Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "504759d9-a52c-44c9-8c75-331db203b9e7",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'VSS Current Pension Including GMP' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "7013b92a-9d6e-4435-8d95-02843a078afe",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "e53147eb-0946-4d86-9591-df3e2c9700e5",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Code For Exit From Deferred Pensioner Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "34f8e4a0-5a8e-47b8-9b3e-b5d6388f8fc7",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "4d3253ee-1075-4502-bb8b-070aa5afe90b",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "16c13626-db58-4adf-a4bd-6aff33f7d09c",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Salary at date of leaving pensionable service' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "8a8eec65-02af-4634-8cd9-1f6a3e1e1668",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name '1995-08-31 00:00:00' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "4edfcd3b-1b7e-4543-9d0c-e32e6f235d84",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Widow(er)'s Reference No' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "6e537a18-0f8b-4ed0-8bc4-64a968cd9856",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Beneficiary's Code' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "e9888ea4-69e2-4b31-9bc6-ce598359925c",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Deceased Member's Reference No' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "a713e480-5e94-49e0-9025-a6d161349425",
+    "extractedValue": "DoB Spouse",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Widow(er)'s Date Of Birth' maps to 'DoB Spouse' in the reference document.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "146cdd0d-8ced-43dc-8ed2-87bf4b7ebe47",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Code For Previous Status Of Deceased Member' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "0210c160-1e82-4caf-93e0-d20861d9854c",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Date Of Exit From Widow(er) Beneficiary Status' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "4b5390c1-0c95-4ed6-a2f8-69bc903ac090",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Widow's Allotment At Valuation Date Included In Pension' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "55b332e1-1893-416f-9b0d-15dc4d374b7f",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "ee6d7e49-dd48-44c6-b892-1fa78d2f95a3",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "a09201ef-8fb1-4a1d-840f-dc9f825169cb",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Child's Reference No' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "7537530b-3a05-4096-aae8-d33afcc7d1c0",
+    "extractedValue": "DoB Dependant",
+    "validationStatus": "valid",
+    "aiReasoning": "The column name 'Child's Date of Birth' maps to 'DoB Dependant' in the reference document.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "d172c727-9b17-4e34-96ac-06f142ee326d",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "The column name 'Deceased members reference no' does not appear in the provided reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  },
+  {
+    "identifierId": "572766c5-186b-4d46-97a5-1a7c93c08797",
+    "extractedValue": "Not Found",
+
+--------------------------------------------------------------------------------
