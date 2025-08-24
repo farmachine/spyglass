@@ -6281,7 +6281,8 @@ def extract_function(Column_Name, Excel_File):
                 }
                 
                 console.log(`📊 Combined ${combinedData.length} records from multiple references`);
-                console.log(`  Sample combined record:`, combinedData[0]);
+                console.log(`  Sample combined records:`, combinedData.slice(0, 3));
+                console.log(`  Last combined record:`, combinedData[combinedData.length - 1]);
                 toolInputs[paramName] = combinedData;
               } else {
                 // Single reference - format data with identifierId
