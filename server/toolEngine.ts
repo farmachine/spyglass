@@ -963,39 +963,53 @@ try:
     has_sample_data = False
     sample_data_records = []
     
+    print(f"DEBUG: output_type={output_type}, data_params count={len(data_params)}", file=sys.stderr)
+    
     if output_type == 'multiple' and data_params:
         # Get the first data parameter's sample data
         for param in data_params:
             param_name = param['name']
             param_id = param.get('id', param_name)
+            print(f"DEBUG: Checking param '{param_name}' (id={param_id}) for sample data", file=sys.stderr)
+            
             # Check both by name and by ID
             if param_name in inputs:
                 input_data = inputs[param_name]
+                print(f"DEBUG: Found input for '{param_name}', type={type(input_data).__name__}", file=sys.stderr)
                 # Handle data structure with 'rows' property
                 if isinstance(input_data, dict) and 'rows' in input_data:
                     sample_data_records = input_data['rows']
                     has_sample_data = True
+                    print(f"DEBUG: Found {len(sample_data_records)} rows in data structure", file=sys.stderr)
                     break
                 elif isinstance(input_data, list):
                     sample_data_records = input_data
                     has_sample_data = True
+                    print(f"DEBUG: Found list with {len(sample_data_records)} items", file=sys.stderr)
                     break
             elif param_id in inputs:
                 input_data = inputs[param_id]
+                print(f"DEBUG: Found input for id '{param_id}', type={type(input_data).__name__}", file=sys.stderr)
                 # Handle data structure with 'rows' property
                 if isinstance(input_data, dict) and 'rows' in input_data:
                     sample_data_records = input_data['rows']
                     has_sample_data = True
+                    print(f"DEBUG: Found {len(sample_data_records)} rows in data structure", file=sys.stderr)
                     break
                 elif isinstance(input_data, list):
                     sample_data_records = input_data
                     has_sample_data = True
+                    print(f"DEBUG: Found list with {len(sample_data_records)} items", file=sys.stderr)
                     break
+    
+    print(f"DEBUG: has_sample_data={has_sample_data}, records to process={len(sample_data_records)}", file=sys.stderr)
     
     if has_sample_data and output_type == 'multiple':
         # Iterate over each record in sample data
+        print(f"DEBUG: Iterating over {len(sample_data_records)} records", file=sys.stderr)
         all_results = []
-        for record in sample_data_records:
+        for i, record in enumerate(sample_data_records):
+            print(f"DEBUG: Processing record {i+1}/{len(sample_data_records)}: {str(record)[:100]}...", file=sys.stderr)
             args = []
             for param in parameters:
                 param_name = param['name']
