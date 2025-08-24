@@ -472,6 +472,9 @@ export class ToolEngine {
               const sampleItem = batch[0];
               const fieldNames = Object.keys(sampleItem);
               
+              console.log(`    🔄 Processing merged data with fields: ${fieldNames.join(', ')}`);
+              console.log(`    📊 First item:`, JSON.stringify(sampleItem, null, 2));
+              
               batchPrompt = `${tool.aiPrompt || ''}
 
 You are processing ${batch.length} merged data items. Each item contains multiple related fields that should be processed together.
@@ -590,7 +593,9 @@ Process each item and return the complete array of results.`;
                 const itemIndex = i + idx;
                 const inputItem = batch[idx];
                 const extractedValue = result.extractedValue || result.result || 'no result';
-                console.log(`      • Item ${itemIndex + 1}: "${inputItem}" → "${extractedValue}"`);
+                // Format the input item properly for logging
+                const inputDisplay = typeof inputItem === 'object' ? JSON.stringify(inputItem) : inputItem;
+                console.log(`      • Item ${itemIndex + 1}: ${inputDisplay} → "${extractedValue}"`);
               });
             } catch (e) {
               console.error(`    ❌ Failed to parse batch results:`, e);
