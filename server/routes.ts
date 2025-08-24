@@ -2239,52 +2239,82 @@ except Exception as e:
             );
             
             console.log(`Tool execution completed, got ${toolResults.length} results`);
+            console.log(`First result has identifierId: ${toolResults[0]?.identifierId}`);
+            console.log(`Last result has identifierId: ${toolResults[toolResults.length - 1]?.identifierId}`);
             
             // Save results as field validations
             const currentRecordIndex = collectionRecordCounts[workflowStep.stepName] || 0;
+            let savedCount = 0;
+            let updatedCount = 0;
             
             for (let i = 0; i < toolResults.length; i++) {
-              const result = toolResults[i];
-              // Use the actual value name from the workflow step
-              const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`;
-              
-              // Use identifierId from the result to map to existing records
-              const identifierId = result.identifierId || null;
-              
-              // If we have an identifierId, check if a validation already exists for it
-              let existingValidation = null;
-              if (identifierId) {
-                existingValidation = existingValidations.find((v: any) => 
-                  v.identifierId === identifierId && 
-                  v.valueId === value_id
-                );
-              }
-              
-              const validation = {
-                sessionId,
-                fieldId: value_id,
-                fieldName: fieldName,  // This will be used for display purposes even though not stored
-                extractedValue: result.extractedValue,
-                validationStatus: result.validationStatus || 'extracted',
-                validationType: 'collection_property',
-                collectionName: workflowStep.stepName,
-                recordIndex: existingValidation ? existingValidation.recordIndex : (currentRecordIndex + i),
-                confidenceScore: result.confidenceScore || 0.9,
-                aiReasoning: result.aiReasoning || 'Extracted via tool engine',
-                dataType: 'text',  // Add required data_type field
-                stepId: step_id,   // Add step_id for workflow tracking
-                valueId: value_id,  // Add value_id for workflow tracking
-                identifierId: identifierId  // Use the identifierId from the result for proper mapping
-              };
-              
-              if (existingValidation) {
-                // Update existing validation
-                await storage.updateFieldValidation(existingValidation.id, validation);
-              } else {
-                // Create new validation
-                await storage.createFieldValidation(validation);
+              try {
+                const result = toolResults[i];
+                // Use the actual value name from the workflow step
+                const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`;
+                
+                // Use identifierId from the result to map to existing records
+                const identifierId = result.identifierId || null;
+                
+                // If we have an identifierId, check if a validation already exists for it
+                // Look for existing validation with same identifierId OR same record index
+                let existingValidation = null;
+                if (identifierId) {
+                  // First try to find by identifierId and valueId
+                  existingValidation = existingValidations.find((v: any) => 
+                    v.identifierId === identifierId && 
+                    v.valueId === value_id
+                  );
+                  
+                  // If not found, try to find by identifierId and collectionName for this specific value
+                  if (!existingValidation) {
+                    existingValidation = existingValidations.find((v: any) => 
+                      v.identifierId === identifierId && 
+                      v.collectionName === workflowStep.stepName &&
+                      v.fieldId === value_id
+                    );
+                  }
+                }
+                
+                const validation = {
+                  sessionId,
+                  fieldId: value_id,
+                  fieldName: fieldName,  // This will be used for display purposes even though not stored
+                  extractedValue: result.extractedValue || '',
+                  validationStatus: result.validationStatus || 'extracted',
+                  validationType: 'collection_property',
+                  collectionName: workflowStep.stepName,
+                  recordIndex: existingValidation ? existingValidation.recordIndex : (currentRecordIndex + i),
+                  confidenceScore: result.confidenceScore || 0.9,
+                  aiReasoning: result.aiReasoning || 'Extracted via tool engine',
+                  dataType: 'text',  // Add required data_type field
+                  stepId: step_id,   // Add step_id for workflow tracking
+                  valueId: value_id,  // Add value_id for workflow tracking
+                  identifierId: identifierId  // Use the identifierId from the result for proper mapping
+                };
+                
+                if (existingValidation) {
+                  // Update existing validation
+                  await storage.updateFieldValidation(existingValidation.id, validation);
+                  updatedCount++;
+                  if (i % 10 === 0) {
+                    console.log(`Updated ${i + 1}/${toolResults.length} validations...`);
+                  }
+                } else {
+                  // Create new validation
+                  await storage.createFieldValidation(validation);
+                  savedCount++;
+                  if (i % 10 === 0) {
+                    console.log(`Saved ${i + 1}/${toolResults.length} validations...`);
+                  }
+                }
+              } catch (error) {
+                console.error(`Error saving validation ${i + 1}:`, error);
+                // Continue with next validation
               }
             }
+            
+            console.log(`Saved ${savedCount} new validations, updated ${updatedCount} existing validations`);
             
             // Update session status
             await storage.updateExtractionSession(sessionId, {
