@@ -3822,10 +3822,10 @@ Thank you for your assistance.`;
                                     </button>
                                     <button
                                       onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                      className="p-1 hover:bg-blue-100 rounded transition-colors"
+                                      className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
                                       title={`Run extraction for ${columnName}`}
                                     >
-                                      <Wand2 className="h-4 w-4 text-blue-600 hover:text-blue-700" />
+                                      <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                                     </button>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
