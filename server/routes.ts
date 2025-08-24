@@ -2364,24 +2364,55 @@ except Exception as e:
             
             console.log(`✅ Tool execution completed. Results count: ${toolResults.length}`);
             
-            // Log sample results to check mapping
-            console.log('🔍 CHECKING RESULT MAPPINGS:');
-            const sampleIndices = [0, 1, 99, 100];
-            for (const idx of sampleIndices) {
-              if (toolResults[idx]) {
-                const inputItem = mergedData?.[idx];
-                console.log(`  [${idx}] Input: "${inputItem?.['Column Names']?.substring(0, 50)}..." -> Output: "${toolResults[idx].extractedValue}"`);
+            // CRITICAL FIX: Map results back to inputs using identifierId
+            console.log('🔍 MAPPING RESULTS BACK TO INPUTS:');
+            
+            // Create a map of identifierId to input index
+            const inputMap = new Map();
+            mergedData?.forEach((item: any, index: number) => {
+              inputMap.set(item.identifierId, index);
+            });
+            
+            // Create properly ordered results array
+            const orderedResults = new Array(mergedData?.length || 0);
+            let mappingErrors = 0;
+            
+            for (const result of toolResults) {
+              const inputIndex = inputMap.get(result.identifierId);
+              if (inputIndex !== undefined) {
+                orderedResults[inputIndex] = result;
+              } else {
+                console.error(`⚠️ No input found for result identifierId: ${result.identifierId}`);
+                mappingErrors++;
               }
             }
+            
+            // Log sample mappings to verify
+            const sampleIndices = [0, 1, 99, 100];
+            for (const idx of sampleIndices) {
+              if (orderedResults[idx] && mergedData?.[idx]) {
+                const input = mergedData[idx];
+                const output = orderedResults[idx];
+                console.log(`  [${idx}] "${input['Column Names']?.substring(0, 40)}..." -> "${output.extractedValue}"`);
+              }
+            }
+            
+            if (mappingErrors > 0) {
+              console.error(`❌ ${mappingErrors} results could not be mapped back to inputs!`);
+            }
+            
+            // Use orderedResults instead of toolResults for saving
+            const resultsToSave = orderedResults;
             
             // Save results as field validations
             const currentRecordIndex = collectionRecordCounts[workflowStep.stepName] || 0;
             let savedCount = 0;
             let updatedCount = 0;
             
-            for (let i = 0; i < toolResults.length; i++) {
+            for (let i = 0; i < resultsToSave.length; i++) {
               try {
-                const result = toolResults[i];
+                const result = resultsToSave[i];
+                if (!result) continue; // Skip if no result for this index
                 // Use the actual value name from the workflow step
                 const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`;
                 
