@@ -6388,21 +6388,74 @@ def extract_function(Column_Name, Excel_File):
           
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
-            // Handle array of references (like ["@Column Name Mapping.Worksheet Name"])
-            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('@')) {
-              const referencePath = value[0].slice(1); // Remove @ prefix from first element
-              console.log(`  Found array reference: ${value[0]} -> Looking for ${referencePath}`);
+            // Handle array of references (can be multiple like ["@Step.Value1", "@Step.Value2"])
+            if (Array.isArray(value) && value.length > 0) {
+              // Check if all elements are references
+              const allReferences = value.filter(v => typeof v === 'string' && v.startsWith('@'));
               
-              if (previousResults && previousResults[referencePath]) {
-                const previousData = previousResults[referencePath];
-                console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousData.length} items)`);
+              if (allReferences.length > 0) {
+                console.log(`  Found ${allReferences.length} references in array for ${key}`);
                 
-                // For array references, we pass the actual data
-                if (Array.isArray(previousData)) {
-                  console.log(`    📊 Array contains ${previousData.length} items`);
-                  if (previousData.length > 0) {
-                    console.log(`    First item: ${JSON.stringify(previousData[0]).slice(0, 100)}...`);
+                // Collect all referenced data
+                const allReferencedData: any[] = [];
+                const referenceMap: {[key: string]: any[]} = {};
+                
+                for (const ref of allReferences) {
+                  const referencePath = ref.slice(1); // Remove @ prefix
+                  console.log(`    Processing reference: ${ref} -> ${referencePath}`);
+                  
+                  if (previousResults && previousResults[referencePath]) {
+                    const previousData = previousResults[referencePath];
+                    referenceMap[referencePath] = previousData;
+                    console.log(`      ✅ Found ${Array.isArray(previousData) ? previousData.length : 1} items for ${referencePath}`);
+                  } else {
+                    console.log(`      ⚠️ No previous results found for ${referencePath}`);
+                  }
+                }
+                
+                // If we have multiple references, we need to merge them by index
+                if (Object.keys(referenceMap).length > 1) {
+                  console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results by index`);
+                  
+                  // Get the maximum length across all arrays
+                  const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
+                    Array.isArray(arr) ? arr.length : 1
+                  ));
+                  
+                  // Create merged objects
+                  for (let i = 0; i < maxLength; i++) {
+                    const mergedItem: any = {};
                     
+                    for (const [refPath, data] of Object.entries(referenceMap)) {
+                      // Extract the value name from the reference path (e.g., "Column Names" from "Column Name Mapping.Column Names")
+                      const valueName = refPath.split('.').pop() || refPath;
+                      
+                      if (Array.isArray(data) && data[i]) {
+                        // Extract the value from the result object
+                        const item = data[i];
+                        const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
+                        mergedItem[valueName] = extractedValue;
+                      }
+                    }
+                    
+                    if (Object.keys(mergedItem).length > 0) {
+                      allReferencedData.push(mergedItem);
+                    }
+                  }
+                  
+                  console.log(`    ✨ Created ${allReferencedData.length} merged items`);
+                  if (allReferencedData.length > 0) {
+                    console.log(`    First merged item:`, JSON.stringify(allReferencedData[0], null, 2));
+                  }
+                  
+                  preparedInputValues[key] = allReferencedData;
+                }
+                // Single reference - handle as before
+                else if (Object.keys(referenceMap).length === 1) {
+                  const [referencePath, previousData] = Object.entries(referenceMap)[0];
+                  console.log(`  ✅ Single reference: ${referencePath} with ${Array.isArray(previousData) ? previousData.length : 1} items`);
+                  
+                  if (Array.isArray(previousData)) {
                     // Check if these are result objects with extractedValue
                     const extractedValues = previousData
                       .filter(item => item && typeof item === 'object' && 'extractedValue' in item)
@@ -6410,21 +6463,14 @@ def extract_function(Column_Name, Excel_File):
                     
                     if (extractedValues.length > 0) {
                       console.log(`    📝 Extracted values count: ${extractedValues.length}`);
-                      console.log(`    First 5 values: ${extractedValues.slice(0, 5).join(', ')}`);
-                      // Replace with just the extracted values for data inputs
                       preparedInputValues[key] = extractedValues;
-                      console.log(`    ✨ Successfully set ${key} to ${extractedValues.length} extracted values`);
                     } else {
-                      // Keep the full objects if no extractedValue
                       preparedInputValues[key] = previousData;
-                      console.log(`    ⚠️ No extractedValue found, keeping ${previousData.length} full objects`);
                     }
+                  } else {
+                    preparedInputValues[key] = previousData;
                   }
-                } else {
-                  preparedInputValues[key] = previousData;
                 }
-              } else {
-                console.log(`  ⚠️ No previous results found for ${referencePath}`);
               }
             }
             // Handle single string references
