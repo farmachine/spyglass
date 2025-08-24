@@ -1215,29 +1215,34 @@ function ValueEditor({
                   ) : param.type === 'document' ? (
                     <div className="mt-1 space-y-2">
                       {/* Selected badges */}
-                      {value.inputValues[param.id]?.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {value.inputValues[param.id].map((docId: string) => {
-                            const docName = docId === 'user_document' 
-                              ? 'User uploaded document'
-                              : knowledgeDocuments.find(d => d.id === docId)?.displayName || 'Unknown document';
-                            return (
-                              <Badge key={docId} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
-                                {docName}
-                                <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
-                                  onClick={() => {
-                                    const updatedDocs = value.inputValues[param.id].filter((d: string) => d !== docId);
-                                    onUpdate({
-                                      inputValues: { ...value.inputValues, [param.id]: updatedDocs }
-                                    });
-                                  }}
-                                />
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {(() => {
+                        const docs = Array.isArray(value.inputValues[param.id]) 
+                          ? value.inputValues[param.id] 
+                          : (value.inputValues[param.id] ? [value.inputValues[param.id]] : []);
+                        return docs.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {docs.map((docId: string) => {
+                              const docName = docId === 'user_document' 
+                                ? 'User uploaded document'
+                                : knowledgeDocuments.find(d => d.id === docId)?.displayName || 'Unknown document';
+                              return (
+                                <Badge key={docId} className="flex items-center gap-1.5 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
+                                  {docName}
+                                  <X 
+                                    className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
+                                    onClick={() => {
+                                      const updatedDocs = docs.filter((d: string) => d !== docId);
+                                      onUpdate({
+                                        inputValues: { ...value.inputValues, [param.id]: updatedDocs }
+                                      });
+                                    }}
+                                  />
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       
                       {/* Dropdown - Filter by document type if specified */}
                       <Select
