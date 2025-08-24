@@ -6482,12 +6482,19 @@ def extract_function(Column_Name, Excel_File):
                       referencePath.split('.').pop() || referencePath,  // Try just the value name
                     ];
                     
+                    let found = false;
                     for (const altKey of alternateKeys) {
                       if (previousResults && previousResults[altKey]) {
-                        console.log(`        ✅ Found data with alternate key: "${altKey}"`);
+                        console.log(`        ✅ Found data with alternate key: "${altKey}" - ${Array.isArray(previousResults[altKey]) ? previousResults[altKey].length : 1} items`);
                         referenceMap[referencePath] = previousResults[altKey];
+                        found = true;
                         break;
                       }
+                    }
+                    
+                    if (!found) {
+                      console.log(`        ❌ Could not resolve reference "${referencePath}"`);
+                      console.log(`        Available keys in previousResults:`, previousResults ? Object.keys(previousResults) : 'No previousResults');
                     }
                   }
                 }
@@ -6532,6 +6539,15 @@ def extract_function(Column_Name, Excel_File):
                     Array.isArray(preparedInputValues[key]) ? 
                       `Array[${preparedInputValues[key].length}]` : 
                       typeof preparedInputValues[key]);
+                } else {
+                  console.log(`    ❌ CRITICAL ERROR: No references could be resolved!`);
+                  console.log(`    ❌ The AI will receive unresolved reference strings instead of data`);
+                  console.log(`    ❌ Input value was:`, value);
+                  // Don't pass unresolved references to AI tools
+                  if (excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY') {
+                    console.log(`    ❌ Removing unresolved references for AI tool to prevent confusion`);
+                    delete preparedInputValues[key];
+                  }
                 }
               }
             }
@@ -6587,12 +6603,18 @@ def extract_function(Column_Name, Excel_File):
                         referencePath.split('.').pop() || referencePath,
                       ];
                       
+                      let found = false;
                       for (const altKey of alternateKeys) {
                         if (previousResults && previousResults[altKey]) {
-                          console.log(`        ✅ Found with alternate key: "${altKey}"`);
+                          console.log(`        ✅ Found with alternate key: "${altKey}" - ${Array.isArray(previousResults[altKey]) ? previousResults[altKey].length : 1} items`);
                           referenceMap[referencePath] = previousResults[altKey];
+                          found = true;
                           break;
                         }
+                      }
+                      
+                      if (!found) {
+                        console.log(`        ❌ Could not resolve reference "${referencePath}" in array`);
                       }
                     }
                   }
