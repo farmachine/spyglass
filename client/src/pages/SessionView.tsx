@@ -1474,6 +1474,9 @@ export default function SessionView() {
     queryKey: ['/api/sessions', sessionId, 'documents'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
     enabled: !!sessionId,
+    onSuccess: (data) => {
+      console.log('Session documents loaded:', data);
+    }
   });
 
   // Fetch project-level validations for statistics cards
@@ -1944,9 +1947,12 @@ export default function SessionView() {
       needsDocument
     });
     
+    console.log('Session documents available:', sessionDocuments);
+    
     // If documents exist, pre-select the primary document
     const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
     if (primaryDoc) {
+      console.log('Pre-selecting document:', primaryDoc);
       setSelectedExtractionDoc(primaryDoc.id);
     }
   };
@@ -4345,21 +4351,27 @@ Thank you for your assistance.`;
             
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
               {/* Document Selection */}
-              {columnExtractionModal.needsDocument && sessionDocuments && sessionDocuments.length > 0 && (
+              {columnExtractionModal.needsDocument && (
                 <div className="space-y-2">
                   <Label>Select Document</Label>
-                  <Select value={selectedExtractionDoc} onValueChange={setSelectedExtractionDoc}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a document" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sessionDocuments.map(doc => (
-                        <SelectItem key={doc.id} value={doc.id}>
-                          {doc.isPrimary && "📎 "}{doc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {sessionDocuments && sessionDocuments.length > 0 ? (
+                    <Select value={selectedExtractionDoc} onValueChange={setSelectedExtractionDoc}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a document" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sessionDocuments.map(doc => (
+                          <SelectItem key={doc.id} value={doc.id}>
+                            {doc.isPrimary && "📎 "}{doc.fileName || doc.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      No documents available. Please upload documents to the session first.
+                    </div>
+                  )}
                 </div>
               )}
               
