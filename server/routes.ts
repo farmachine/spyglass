@@ -2338,6 +2338,21 @@ except Exception as e:
             }
           }
           
+          // Log what we're sending to the tool
+          console.log('🎯 CALLING TOOL WITH INPUTS:');
+          for (const [key, val] of Object.entries(toolInputs)) {
+            if (typeof val === 'string') {
+              console.log(`  - ${key}: String with ${val.length} chars`);
+              if (key === 'Reference Document' && val.length > 0) {
+                console.log(`    📚 Reference doc preview: ${val.substring(0, 100)}...`);
+              }
+            } else if (Array.isArray(val)) {
+              console.log(`  - ${key}: Array with ${val.length} items`);
+            } else {
+              console.log(`  - ${key}: ${typeof val}`);
+            }
+          }
+          
           try {
             // Run the tool
             const toolResults = await runToolForExtraction(
