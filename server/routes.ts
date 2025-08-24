@@ -2114,28 +2114,53 @@ except Exception as e:
         }
       }
 
+      // Handle workflow step extraction differently
+      let projectSchema;
+      if (is_workflow_step && target_fields && target_fields.length > 0) {
+        console.log(`WORKFLOW STEP EXTRACTION: Processing step ${step_id}, value ${value_id}`);
+        console.log(`WORKFLOW STEP: Target fields:`, target_fields.map((f: any) => f.propertyName || f.fieldName || f.valueName));
+        
+        // For workflow steps, use only the specific target fields passed
+        const workflowSchemaFields = target_fields.filter((f: any) => f.fieldName);
+        const workflowCollections = target_fields.filter((f: any) => f.collectionId).map((f: any) => ({
+          id: f.collectionId,
+          collectionName: f.collectionName || 'Column Name Mapping',
+          properties: [f]
+        }));
+        
+        projectSchema = {
+          schema_fields: workflowSchemaFields,
+          collections: workflowCollections
+        };
+      } else {
+        projectSchema = {
+          schema_fields: project_data?.schemaFields || [],
+          collections: project_data?.collections || []
+        };
+      }
+
       // Prepare data for Python extraction script
       const extractionData = {
         step: "extract",
         session_id: sessionId,
         files: convertedFiles,
-        project_schema: {
-          schema_fields: project_data?.schemaFields || [],
-          collections: project_data?.collections || []
-        },
+        project_schema: projectSchema,
         extraction_rules: extractionRules,
         knowledge_documents: knowledgeDocuments,
         session_name: project_data?.mainObjectName || "contract",
         validated_data_context: verifiedDataContext,
-        is_subsequent_upload: Object.keys(verifiedDataContext).length > 0
+        is_subsequent_upload: Object.keys(verifiedDataContext).length > 0,
+        is_workflow_step: is_workflow_step || false,
+        step_id: step_id,
+        value_id: value_id
       };
       
       console.log(`STEP 1: Extracting from ${files?.length || 0} documents with ${extractionRules.length} extraction rules`);
       
       // Classify extraction task: Excel Column Extraction vs Current AI Extraction
-      const collections = project_data?.collections || [];
-      const schemaFields = project_data?.schemaFields || [];
-      const targetCollections = collections.map((c: any) => c.name);
+      const collections = is_workflow_step ? projectSchema.collections : (project_data?.collections || []);
+      const schemaFields = is_workflow_step ? projectSchema.schema_fields : (project_data?.schemaFields || []);
+      const targetCollections = collections.map((c: any) => c.collectionName || c.name);
       const targetSchemaFields = schemaFields.map((f: any) => f.fieldName);
       const allTargetFields = [...targetCollections, ...targetSchemaFields];
       
