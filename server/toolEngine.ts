@@ -519,9 +519,7 @@ export class ToolEngine {
 
 Input Data:
 List Item (${formattedData.length} items total - PROCESS ALL ${formattedData.length} ITEMS):
-${formattedData.map((item, idx) => 
-  `Item ${idx + 1}: ${JSON.stringify(item)}`
-).join('\n')}`;
+${JSON.stringify(formattedData, null, 2)}`;
             } else {
               // Standard prompt for simple data
               // Check if items have identifierId
