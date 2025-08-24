@@ -6454,9 +6454,13 @@ def extract_function(Column_Name, Excel_File):
                   console.log(`    ✨ Created ${allReferencedData.length} merged items`);
                   if (allReferencedData.length > 0) {
                     console.log(`    First merged item:`, JSON.stringify(allReferencedData[0], null, 2));
+                    if (allReferencedData.length > 1) {
+                      console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1], null, 2));
+                    }
                   }
                   
                   preparedInputValues[key] = allReferencedData;
+                  console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items`);
                 }
                 // Single reference - handle as before
                 else if (Object.keys(referenceMap).length === 1) {

@@ -429,7 +429,7 @@ export class ToolEngine {
       // For AI tools, use larger batch size to complete faster
       // Process more items per batch to reduce total number of API calls
       const AI_BATCH_THRESHOLD = 10;
-      const AI_BATCH_SIZE = 5; // Process 5 items at a time for AI tools (smaller batches for better accuracy)
+      const AI_BATCH_SIZE = 3; // Process 3 items at a time for AI tools (optimal for accuracy and context)
       
       // If we have large arrays, process in batches
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
@@ -458,7 +458,32 @@ export class ToolEngine {
             batchInputs[dataKey] = batch;
             
             // Process batch
-            const batchPrompt = this.buildTestPrompt(tool, batchInputs);
+            // Build a more specific prompt for batch processing
+            const batchPrompt = `${tool.aiPrompt || ''}
+
+You are processing a batch of ${batch.length} items. Each item needs to be processed individually and return results in the field validation schema format.
+
+INPUT DATA (${batch.length} items):
+${JSON.stringify(batch, null, 2)}
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order as the input.
+Each object must follow this exact schema:
+{
+  "extractedValue": "the extracted or mapped value, or 'Not Found' if nothing matches",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "brief explanation of your finding",
+  "confidenceScore": number between 0-100,
+  "documentSource": "source document or reference"
+}
+
+IMPORTANT:
+- Process ALL ${batch.length} items
+- Return exactly ${batch.length} results in the same order as input
+- Each result must have all 5 required fields
+- If no match is found, use extractedValue: "Not Found"
+
+Process each item and return the complete array of results.`;
             
             // Add delay between batches to respect Gemini API rate limits
             // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
