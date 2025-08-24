@@ -3423,7 +3423,7 @@ Thank you for your assistance.`;
             <div className="w-full">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-700">
+                <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">General Information</span>
@@ -3654,7 +3654,7 @@ Thank you for your assistance.`;
 
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
-                <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-700">
+                <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">Documents</span>
@@ -3767,7 +3767,7 @@ Thank you for your assistance.`;
 
                 return activeTab === collection.collectionName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="border-t-0 rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-gray-200 dark:border-gray-700">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]">
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                           <div className="flex items-center gap-2">
