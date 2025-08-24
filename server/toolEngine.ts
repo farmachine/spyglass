@@ -767,6 +767,29 @@ Process each item and return the complete array of results.`;
   }
   
   /**
+   * Run tool for extraction workflow - wrapper for external use
+   */
+  async runToolForExtraction(
+    toolId: string,
+    inputs: Record<string, any>,
+    sessionId: string,
+    projectId: string
+  ): Promise<ToolResult[]> {
+    console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId });
+    
+    // Get the tool from storage
+    const tool = await this.storage.getExcelWizardryFunction(toolId);
+    if (!tool) {
+      throw new Error(`Tool not found: ${toolId}`);
+    }
+    
+    console.log('📦 Tool found:', tool.name);
+    
+    // Execute the tool
+    return this.testTool(tool, inputs);
+  }
+
+  /**
    * Build generation prompt for AI/CODE tools
    */
   private buildGenerationPrompt(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'>): string {
@@ -1313,3 +1336,13 @@ except Exception as e:
 }
 
 export const toolEngine = new ToolEngine();
+
+// Export convenience function for extraction
+export async function runToolForExtraction(
+  toolId: string,
+  inputs: Record<string, any>,
+  sessionId: string,
+  projectId: string
+): Promise<ToolResult[]> {
+  return toolEngine.runToolForExtraction(toolId, inputs, sessionId, projectId);
+}

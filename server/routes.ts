@@ -2194,10 +2194,94 @@ except Exception as e:
       console.log('TASK CLASSIFICATION: Collection record counts:', collectionRecordCounts);
       console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
       
-      if (isExcelColumnExtraction) {
+      if (isExcelColumnExtraction && is_workflow_step && value_id) {
+        console.log('USING TOOL ENGINE FOR WORKFLOW VALUE EXTRACTION');
+        
+        // Get the workflow step and value details
+        const workflowStep = project_data?.workflowSteps?.find((s: any) => s.id === step_id);
+        const workflowValue = workflowStep?.values?.find((v: any) => v.id === value_id);
+        
+        if (workflowValue?.toolId) {
+          console.log(`Using tool ${workflowValue.toolId} for value ${workflowValue.valueName}`);
+          
+          // Import tool engine to execute the tool
+          const { runToolForExtraction } = await import('./toolEngine');
+          
+          // Prepare input for the tool based on inputValues configuration
+          const toolInputs: Record<string, any> = {};
+          
+          // Process input values - replace @references and user_document placeholders
+          if (workflowValue.inputValues) {
+            for (const [key, value] of Object.entries(workflowValue.inputValues)) {
+              if (typeof value === 'object' && value !== null) {
+                // Handle nested input structure
+                for (const [subKey, subValue] of Object.entries(value as Record<string, any>)) {
+                  if (Array.isArray(subValue) && subValue.includes('user_document')) {
+                    // Replace user_document with actual document content
+                    toolInputs[subKey] = convertedFiles.map((f: any) => f.file_content).join('\n\n');
+                  } else {
+                    toolInputs[subKey] = subValue;
+                  }
+                }
+              } else {
+                toolInputs[key] = value;
+              }
+            }
+          }
+          
+          try {
+            // Run the tool
+            const toolResults = await runToolForExtraction(
+              workflowValue.toolId,
+              toolInputs,
+              sessionId,
+              projectId
+            );
+            
+            console.log(`Tool execution completed, got ${toolResults.length} results`);
+            
+            // Save results as field validations
+            const currentRecordIndex = collectionRecordCounts[workflowStep.stepName] || 0;
+            
+            for (let i = 0; i < toolResults.length; i++) {
+              const result = toolResults[i];
+              const validation = {
+                sessionId,
+                fieldId: value_id,
+                fieldName: `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`,
+                extractedValue: result.extractedValue,
+                validationStatus: result.validationStatus || 'extracted',
+                validationType: 'collection_property',
+                collectionName: workflowStep.stepName,
+                recordIndex: currentRecordIndex + i,
+                confidenceScore: result.confidenceScore || 0.9,
+                aiReasoning: result.aiReasoning || 'Extracted via tool engine'
+              };
+              
+              await storage.createFieldValidation(validation);
+            }
+            
+            // Update session status
+            await storage.updateExtractionSession(sessionId, {
+              status: "extracted"
+            });
+            
+            return res.json({ 
+              message: "Tool extraction completed", 
+              extractedCount: toolResults.length
+            });
+          } catch (error) {
+            console.error('Tool execution error:', error);
+            return res.status(500).json({ 
+              message: "Tool extraction failed", 
+              error: error.message 
+            });
+          }
+        }
+      } else if (isExcelColumnExtraction) {
         console.log('USING EXCEL COLUMN EXTRACTION: Direct Excel parsing - no AI needed');
         
-        // Use simple direct extraction for column mapping
+        // Fallback to simple extraction if not a workflow step
         const python = spawn('python3', ['simple_column_extractor.py', (collectionRecordCounts["Column Name Mapping"] || 0).toString()]);
         
         // Pass session data to simple extractor
