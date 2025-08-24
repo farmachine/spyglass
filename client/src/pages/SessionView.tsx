@@ -1865,7 +1865,10 @@ export default function SessionView() {
 
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
-    console.log(`🎯 Wand clicked for column: ${valueName} (${valueId}) in step: ${stepName}`);
+    console.log(`\n🎯🎯🎯 WAND ICON CLICKED 🎯🎯🎯`);
+    console.log(`🎯 Column: ${valueName}`);
+    console.log(`🎯 Value ID: ${valueId}`);
+    console.log(`🎯 Step: ${stepName}`);
     
     // Get the workflow step
     const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
@@ -1968,8 +1971,10 @@ export default function SessionView() {
     
     const { stepName, valueId, valueName, previousData } = columnExtractionModal;
     
-    console.log(`🎯 Running extraction for column: ${valueName} with document: ${selectedExtractionDoc}`);
-    console.log(`🎯 Previous data being sent:`, previousData);
+    console.log(`\n🎯🎯🎯 RUNNING EXTRACTION 🎯🎯🎯`);
+    console.log(`🎯 Column: ${valueName}`);
+    console.log(`🎯 Document: ${selectedExtractionDoc}`);
+    console.log(`🎯 Previous data (${previousData.length} records):`, previousData);
     
     try {
       // Get the workflow step
