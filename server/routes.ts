@@ -2264,14 +2264,26 @@ except Exception as e:
                 continue;
               }
               
-              // Handle Reference Document
-              if (key === 'Reference Document' || key === '0.4uir69thnel') {
+              // Handle Reference Document - check for null, placeholder, or explicit key
+              if ((key === 'Reference Document' || key === '0.4uir69thnel') && 
+                  (value === null || value === '@reference_document' || value === 'Reference Document')) {
+                console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
                 // Get reference documents from session or knowledge base
                 const sessionDocs = await storage.getSessionDocuments(sessionId);
                 const knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
                 
                 console.log(`📚 Found ${sessionDocs.length} session documents`);
                 console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
+                
+                // Log details about each document
+                if (knowledgeDocs.length > 0) {
+                  knowledgeDocs.forEach((doc: any, idx: number) => {
+                    console.log(`  Knowledge Doc ${idx + 1}: ${doc.fileName} (${doc.content?.length || 0} chars)`);
+                    if (doc.content) {
+                      console.log(`    Preview: ${doc.content.substring(0, 100)}...`);
+                    }
+                  });
+                }
                 
                 // Combine document contents
                 const allDocContents = [
@@ -2282,10 +2294,13 @@ except Exception as e:
                 if (allDocContents.length > 0) {
                   const combinedContent = allDocContents.join('\n\n---\n\n');
                   toolInputs[key] = combinedContent;
-                  console.log(`📚 Set reference document content (${combinedContent.length} chars)`);
+                  toolInputs['0.4uir69thnel'] = combinedContent; // Set by ID too
+                  console.log(`📚 ✅ Set reference document content (${combinedContent.length} chars)`);
+                  console.log(`📚 Preview of combined content: ${combinedContent.substring(0, 200)}...`);
                 } else {
                   console.log('⚠️ No reference documents found');
                   toolInputs[key] = '';
+                  toolInputs['0.4uir69thnel'] = '';
                 }
               } else if (typeof value === 'object' && value !== null) {
                 // Handle nested input structure
