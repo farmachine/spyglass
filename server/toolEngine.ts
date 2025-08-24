@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
+import { storage } from './storage';
 
 const genAI = new GoogleGenAI({ 
   apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || "" 
@@ -778,7 +779,7 @@ Process each item and return the complete array of results.`;
     console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId });
     
     // Get the tool from storage
-    const tool = await this.storage.getExcelWizardryFunction(toolId);
+    const tool = await storage.getExcelWizardryFunction(toolId);
     if (!tool) {
       throw new Error(`Tool not found: ${toolId}`);
     }
