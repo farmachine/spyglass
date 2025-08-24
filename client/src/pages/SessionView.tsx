@@ -1880,7 +1880,9 @@ export default function SessionView() {
     
     // Check if this tool needs a document
     const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
-    const needsDocument = tool?.inputParameters?.some(p => 
+    // For "Worksheet Name" column, always require document selection
+    const isWorksheetNameColumn = valueName === "Worksheet Name";
+    const needsDocument = isWorksheetNameColumn || tool?.inputParameters?.some(p => 
       p.name === 'document' || p.name === 'document_content' || p.name === 'user_document'
     ) || false;
     
