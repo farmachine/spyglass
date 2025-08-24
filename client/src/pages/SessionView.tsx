@@ -3736,10 +3736,10 @@ Thank you for your assistance.`;
                                         <div className="relative w-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            property.fieldType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                            columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            <span className={formatValueForDisplay(displayValue, property.fieldType) === 'Empty' ? 'text-gray-400 italic' : ''}>
-                                              {formatValueForDisplay(displayValue, property.fieldType)}
+                                            <span className={formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                              {formatValueForDisplay(displayValue, columnType)}
                                             </span>
                                             
                                             {/* Edit button */}
