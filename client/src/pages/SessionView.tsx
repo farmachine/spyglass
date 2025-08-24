@@ -620,6 +620,15 @@ const AIExtractionModal = ({
     );
     
     try {
+      // Get document content for the selected documents
+      const documentsWithContent = sessionDocuments.filter(doc => 
+        documentIds.includes(doc.id)
+      ).map(doc => ({
+        name: doc.fileName,
+        content: doc.extractedContent || '',
+        type: doc.mimeType || 'text/plain'
+      }));
+      
       if (isWorkflowStep) {
         // Process workflow step values sequentially
         console.log('Processing workflow step values sequentially...');
@@ -630,14 +639,22 @@ const AIExtractionModal = ({
           
           // Get document sources for this specific value
           const fieldSources = fieldDocumentSources[field.id] || [];
-          const documentsToUse = fieldSources.length > 0 
-            ? fieldSources 
-            : sessionDocuments.map(doc => doc.id);
+          const docsForThisField = fieldSources.length > 0 
+            ? documentsWithContent.filter(doc => 
+                fieldSources.includes(sessionDocuments.find(sd => sd.fileName === doc.name)?.id || '')
+              )
+            : documentsWithContent;
           
           // Prepare value-specific request data
           const valueRequestData = {
-            document_ids: documentsToUse,
-            session_id: sessionId,
+            files: docsForThisField,
+            project_data: {
+              id: project?.id,
+              projectId: project?.id,
+              schemaFields: project?.schemaFields || [],
+              collections: project?.collections || [],
+              workflowSteps: project?.workflowSteps || []
+            },
             target_fields: [targetFieldsWithSources.find(tf => tf.id === field.id)],
             step_id: field.stepId,
             value_id: field.valueId,
@@ -670,8 +687,13 @@ const AIExtractionModal = ({
       } else {
         // Original extraction logic for non-workflow steps
         const requestData = {
-          document_ids: documentIds,
-          session_id: sessionId,
+          files: documentsWithContent,
+          project_data: {
+            id: project?.id,
+            projectId: project?.id,
+            schemaFields: project?.schemaFields || [],
+            collections: project?.collections || []
+          },
           target_fields: targetFieldsWithSources
         };
         
