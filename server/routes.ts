@@ -6276,6 +6276,12 @@ def extract_function(Column_Name, Excel_File):
               console.log(`📊 Combined ${combinedData.length} records from multiple references`);
               console.log(`  First 3 combined records:`, combinedData.slice(0, 3));
               console.log(`  Last combined record:`, combinedData[combinedData.length - 1]);
+              console.log(`  Sample identifierIds:`, combinedData.slice(0, 5).map(r => r.identifierId));
+              
+              // Verify all records have unique identifierIds
+              const uniqueIds = new Set(combinedData.map(r => r.identifierId));
+              console.log(`  Unique identifierIds: ${uniqueIds.size} out of ${combinedData.length} records`);
+              
               toolInputs[paramName] = combinedData;
             } else {
               // Direct array value (like document IDs)

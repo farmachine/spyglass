@@ -490,40 +490,37 @@ export class ToolEngine {
               console.log(`    📊 Has identifierIds: ${hasIdentifierId}`);
               console.log(`    📊 Sample data:`, batch.slice(0, 3));
               
-              batchPrompt = `${tool.aiPrompt || ''}
+              // Log the actual data being sent
+              console.log(`    📊 Building prompt for ${batch.length} items with merged data`);
+              console.log(`    📊 First item in batch:`, batch[0]);
+              console.log(`    📊 Last item in batch:`, batch[batch.length - 1]);
+              
+              // Override the tool prompt for merged data to ensure proper handling
+              const basePrompt = tool.aiPrompt || '';
+              
+              // Check if the base prompt already has proper structure for batch processing
+              const hasProperBatchStructure = basePrompt.includes('exactly the same number') || 
+                                             basePrompt.includes('exactly the same length');
+              
+              console.log(`    📊 Base prompt has proper batch structure: ${hasProperBatchStructure}`);
+              
+              // Use the base prompt but format the data correctly for it
+              // The base prompt expects a "List Item" parameter, so we need to format our data accordingly
+              const formattedData = batch.map(item => ({
+                identifierId: item.identifierId,
+                "Column Names": item[primaryFieldName],
+                "Worksheet Name": item[contextFieldName]
+              }));
+              
+              console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
+              
+              batchPrompt = `${basePrompt}
 
-You are processing ${batch.length} column names from an Excel file. Each item includes the column name, its worksheet for context, and an identifierId for tracking.
-
-INPUT DATA (${batch.length} items to process):
-${batch.map((item, idx) => {
-  const idStr = hasIdentifierId && item.identifierId ? ` [ID: ${item.identifierId}]` : '';
-  return `Item ${idx + 1}${idStr}: Column Name: "${item[primaryFieldName]}" (from worksheet: "${item[contextFieldName]}")`;
-}).join('\n')}
-
-TASK:
-For each column name above, find its standard mapping or equivalent in the Reference Document. The worksheet name provides context about the type of data.
-
-REQUIRED OUTPUT FORMAT:
-Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
-Each object must follow this schema:
-{
-  "identifierId": "the identifierId from the input item (CRITICAL: copy this exactly from the input data)",
-  "extractedValue": "the standard field name/mapping found in the Reference Document, or 'Not Found' if no match exists",
-  "validationStatus": "valid" if found or "invalid" if not found,
-  "aiReasoning": "brief explanation of the mapping found or why it wasn't found",
-  "confidenceScore": number between 0-100,
-  "documentSource": "the section/page in Reference Document where found, or 'Reference Document' if not found"
-}
-
-IMPORTANT INSTRUCTIONS:
-1. Look up each column name in the Reference Document
-2. Consider the worksheet context when determining the best match
-3. Return exactly ${batch.length} results in the same order as input
-4. Include the EXACT identifierId from each input item in your response
-5. Each result must have all 6 required fields (identifierId, extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource)
-6. Use "Not Found" for items that don't appear in the Reference Document
-
-Process ALL ${batch.length} items and return the complete array of results.`;
+Input Data:
+List Item (${formattedData.length} items total - PROCESS ALL ${formattedData.length} ITEMS):
+${formattedData.map((item, idx) => 
+  `Item ${idx + 1}: ${JSON.stringify(item)}`
+).join('\n')}`;
             } else {
               // Standard prompt for simple data
               // Check if items have identifierId
@@ -587,9 +584,16 @@ Process each item and return the complete array of results.`;
               const parsed = JSON.parse(batchResult);
               const results = Array.isArray(parsed) ? parsed : [parsed];
               
+              console.log(`    🔍 AI returned ${results.length} results`);
+              console.log(`    🔍 First result:`, results[0]);
+              if (results.length > 1) {
+                console.log(`    🔍 Last result:`, results[results.length - 1]);
+              }
+              
               // Validate that we got the expected number of results
               if (results.length !== batch.length) {
-                console.warn(`    ⚠️ Batch returned ${results.length} results but expected ${batch.length}`);
+                console.error(`    ⚠️ CRITICAL: Batch returned ${results.length} results but expected ${batch.length}`);
+                console.error(`    ⚠️ This means AI did not process all items!`);
                 // Pad with "Not Found" results if needed
                 while (results.length < batch.length) {
                   results.push({
