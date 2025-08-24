@@ -6502,22 +6502,29 @@ def extract_function(Column_Name, Excel_File):
                 // Merge the referenced data by index
                 if (Object.keys(referenceMap).length > 0) {
                   console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results`);
+                  console.log(`    Reference keys to merge:`, Object.keys(referenceMap));
                   
                   const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
                     Array.isArray(arr) ? arr.length : 1
                   ));
+                  
+                  console.log(`    Maximum array length: ${maxLength}`);
                   
                   // Create merged objects for AI processing
                   for (let i = 0; i < maxLength; i++) {
                     const mergedItem: any = {};
                     
                     for (const [refPath, data] of Object.entries(referenceMap)) {
-                      const valueName = refPath.split('.').pop() || refPath;
+                      // Use a cleaner key name for the merged object
+                      let keyName = refPath.split('.').pop() || refPath;
+                      // Clean up the key name for better object structure
+                      if (keyName === 'Column Names') keyName = 'Column Name';
+                      if (keyName === 'Worksheet Name') keyName = 'Worksheet Name';
                       
                       if (Array.isArray(data) && data[i]) {
                         const item = data[i];
                         const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
-                        mergedItem[valueName] = extractedValue;
+                        mergedItem[keyName] = extractedValue;
                       }
                     }
                     
@@ -6528,8 +6535,11 @@ def extract_function(Column_Name, Excel_File):
                   
                   console.log(`    ✨ Created ${allReferencedData.length} merged items`);
                   if (allReferencedData.length > 0) {
-                    console.log(`    First merged item:`, allReferencedData[0]);
-                    console.log(`    Last merged item:`, allReferencedData[allReferencedData.length - 1]);
+                    console.log(`    First merged item:`, JSON.stringify(allReferencedData[0]));
+                    if (allReferencedData.length > 1) {
+                      console.log(`    Second merged item:`, JSON.stringify(allReferencedData[1]));
+                    }
+                    console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1]));
                   }
                   
                   // Replace the string with the merged data array
@@ -6539,10 +6549,13 @@ def extract_function(Column_Name, Excel_File):
                     Array.isArray(preparedInputValues[key]) ? 
                       `Array[${preparedInputValues[key].length}]` : 
                       typeof preparedInputValues[key]);
+                  console.log(`    🔍 First 3 items being sent to AI:`, preparedInputValues[key].slice(0, 3));
                 } else {
                   console.log(`    ❌ CRITICAL ERROR: No references could be resolved!`);
                   console.log(`    ❌ The AI will receive unresolved reference strings instead of data`);
                   console.log(`    ❌ Input value was:`, value);
+                  console.log(`    ❌ Available previousResults keys:`, previousResults ? Object.keys(previousResults) : 'None');
+                  
                   // Don't pass unresolved references to AI tools
                   if (excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY') {
                     console.log(`    ❌ Removing unresolved references for AI tool to prevent confusion`);
@@ -6622,21 +6635,28 @@ def extract_function(Column_Name, Excel_File):
                   // Merge the referenced data
                   if (Object.keys(referenceMap).length > 0) {
                     console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results`);
+                    console.log(`    Reference keys to merge:`, Object.keys(referenceMap));
                     
                     const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
                       Array.isArray(arr) ? arr.length : 1
                     ));
                     
+                    console.log(`    Maximum array length: ${maxLength}`);
+                    
                     for (let i = 0; i < maxLength; i++) {
                       const mergedItem: any = {};
                       
                       for (const [refPath, data] of Object.entries(referenceMap)) {
-                        const valueName = refPath.split('.').pop() || refPath;
+                        // Use cleaner key names for the merged object
+                        let keyName = refPath.split('.').pop() || refPath;
+                        // Clean up the key name for better object structure
+                        if (keyName === 'Column Names') keyName = 'Column Name';
+                        if (keyName === 'Worksheet Name') keyName = 'Worksheet Name';
                         
                         if (Array.isArray(data) && data[i]) {
                           const item = data[i];
                           const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
-                          mergedItem[valueName] = extractedValue;
+                          mergedItem[keyName] = extractedValue;
                         }
                       }
                       
@@ -6647,13 +6667,27 @@ def extract_function(Column_Name, Excel_File):
                     
                     console.log(`    ✨ Created ${allReferencedData.length} merged items from array references`);
                     if (allReferencedData.length > 0) {
-                      console.log(`    First merged item:`, allReferencedData[0]);
-                      console.log(`    Last merged item:`, allReferencedData[allReferencedData.length - 1]);
+                      console.log(`    First merged item:`, JSON.stringify(allReferencedData[0]));
+                      if (allReferencedData.length > 1) {
+                        console.log(`    Second merged item:`, JSON.stringify(allReferencedData[1]));
+                      }
+                      console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1]));
                     }
                     
                     // Replace the array with the merged data
                     preparedInputValues[key] = allReferencedData;
                     console.log(`    ✅ REPLACED array parameter "${key}" with ${allReferencedData.length} merged items`);
+                    console.log(`    🔍 First 3 items being sent to AI:`, preparedInputValues[key].slice(0, 3));
+                  } else {
+                    console.log(`    ❌ No references could be resolved from array!`);
+                    console.log(`    ❌ Array value was:`, value);
+                    
+                    // Check if this is an AI tool and we have unresolved references
+                    if ((excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY') && 
+                        allReferences.length > 0) {
+                      console.log(`    ❌ Removing unresolved array references for AI tool`);
+                      delete preparedInputValues[key];
+                    }
                   }
                 }
               } else {
