@@ -6456,12 +6456,16 @@ def extract_function(Column_Name, Excel_File):
                   const referencePath = ref.slice(1); // Remove @ prefix
                   console.log(`    Processing reference: ${ref} -> ${referencePath}`);
                   
+                  // Debug: Log exact key lookup
+                  console.log(`      🔍 Looking for key: "${referencePath}" in previousResults`);
+                  console.log(`      Available keys:`, previousResults ? Object.keys(previousResults) : 'No previousResults');
+                  
                   if (previousResults && previousResults[referencePath]) {
                     const previousData = previousResults[referencePath];
                     referenceMap[referencePath] = previousData;
                     console.log(`      ✅ Found ${Array.isArray(previousData) ? previousData.length : 1} items for ${referencePath}`);
                   } else {
-                    console.log(`      ⚠️ No previous results found for ${referencePath}`);
+                    console.log(`      ⚠️ No previous results found for "${referencePath}"`);
                     
                     // Try alternate key formats  
                     const alternateKeys = [
