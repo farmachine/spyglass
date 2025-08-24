@@ -577,6 +577,16 @@ export default function DefineData({
               
               <div className="space-y-2">
                 {/* Show workflow steps from database in order */}
+                {(() => {
+                  console.log('📋 WORKFLOW DATA IN TEST MODAL:', workflowData);
+                  if (workflowData?.steps) {
+                    console.log('  Steps count:', workflowData.steps.length);
+                    workflowData.steps.forEach((step: any) => {
+                      console.log(`  Step: ${step.stepName}, Values:`, step.values?.map((v: any) => v.valueName || v.name));
+                    });
+                  }
+                  return null;
+                })()}
                 {workflowData?.steps ? (
                   workflowData.steps.map((step: any, stepIndex: number) => (
                     <div key={step.id} className="relative">
