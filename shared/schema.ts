@@ -456,6 +456,9 @@ export type ProjectWithDetails = Project & {
   collections: (ObjectCollection & {
     properties: CollectionProperty[];
   })[];
+  workflowSteps?: (WorkflowStep & {
+    values: StepValue[];
+  })[];
   sessions: ExtractionSession[];
   knowledgeDocuments: KnowledgeDocument[];
   extractionRules: ExtractionRule[];

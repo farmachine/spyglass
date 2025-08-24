@@ -923,6 +923,17 @@ export class MemStorage implements IStorage {
       })
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
+    // Get workflow steps and their values
+    const workflowSteps = Array.from(this.workflowSteps.values())
+      .filter(step => step.projectId === id)
+      .map(step => {
+        const values = Array.from(this.stepValues.values())
+          .filter(value => value.stepId === step.id)
+          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        return { ...step, values };
+      })
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
     const sessions = Array.from(this.extractionSessions.values())
       .filter(session => session.projectId === id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -939,6 +950,7 @@ export class MemStorage implements IStorage {
       ...project,
       schemaFields,
       collections,
+      workflowSteps,
       sessions,
       knowledgeDocuments,
       extractionRules,
