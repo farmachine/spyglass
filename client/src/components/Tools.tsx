@@ -121,10 +121,15 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         if (param.type === 'text') {
           inputs[param.name] = userInput !== undefined ? userInput : (param.sampleText || '');
         } else if (param.type === 'document') {
-          // For document parameters, use sample document IDs if available, otherwise fall back to filename
-          if (param.sampleDocumentIds && param.sampleDocumentIds.length > 0) {
+          // For document parameters, use the extracted content from sample documents
+          const sampleDoc = sampleDocuments.find((doc: any) => doc.parameterName === param.name);
+          if (sampleDoc?.extractedContent) {
+            // Use the actual extracted content
+            inputs[param.name] = sampleDoc.extractedContent;
+          } else if (param.sampleDocumentIds && param.sampleDocumentIds.length > 0) {
             inputs[param.name] = param.sampleDocumentIds;
           } else if (param.sampleFile) {
+            // Fallback to filename (this will trigger extraction on backend)
             inputs[param.name] = param.sampleFile;
           }
         } else if (param.type === 'data' && param.sampleData) {
