@@ -309,8 +309,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     const step = steps.find(s => s.id === stepId);
     if (!step) return;
 
+    const deletedValue = step.values.find(v => v.id === valueId);
+    console.log('🗑️ DELETING VALUE:', deletedValue?.name, 'from step:', step.name);
+    
+    const newValues = step.values.filter(value => value.id !== valueId);
+    console.log('  Remaining values:', newValues.map(v => v.name));
+    
     updateStep(stepId, {
-      values: step.values.filter(value => value.id !== valueId)
+      values: newValues
     });
   };
 
