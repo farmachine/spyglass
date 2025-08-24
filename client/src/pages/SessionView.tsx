@@ -1884,11 +1884,15 @@ export default function SessionView() {
       return;
     }
     
+    // Get the value index to determine if this is the first column
+    const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
+    
     // Check if this tool needs a document
     const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
-    // For "Worksheet Name" column, always require document selection
+    // For ID column (first column with no previous data) or Worksheet Name column, always require document selection
+    const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
-    const needsDocument = isWorksheetNameColumn || tool?.inputParameters?.some(p => 
+    const needsDocument = isFirstColumn || isWorksheetNameColumn || tool?.inputParameters?.some(p => 
       p.name === 'document' || p.name === 'document_content' || p.name === 'user_document'
     ) || false;
     
@@ -1896,7 +1900,6 @@ export default function SessionView() {
     const previousColumnsData: any[] = [];
     
     // If this is not the first column, gather data from previous columns
-    const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
     if (valueIndex > 0 && workflowStep.values) {
       // Get all unique record indices for this collection
       const collectionValidations = validations.filter(v => 
