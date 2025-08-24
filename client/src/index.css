@@ -70,22 +70,22 @@
 }
 
 .dark {
-  --background: hsl(222, 30%, 18%); /* Lighter charcoal background - reduced contrast */
-  --foreground: hsl(0, 0%, 95%); /* Slightly softer white text */
-  --muted: hsl(217, 25%, 23%); /* Lighter muted backgrounds */
-  --muted-foreground: hsl(240, 5%, 70%); /* Lighter muted text */
-  --popover: hsl(222, 30%, 20%); /* Slightly lighter popover */
-  --popover-foreground: hsl(0, 0%, 95%);
-  --card: hsl(222, 30%, 20%); /* Lighter card background */
-  --card-foreground: hsl(0, 0%, 95%);
-  --border: hsl(217, 25%, 27%); /* Lighter borders for better definition */
-  --input: hsl(217, 25%, 27%);
+  --background: hsl(220, 15%, 25%); /* Much lighter gray-blue background */
+  --foreground: hsl(0, 0%, 92%); /* Softer white text for less contrast */
+  --muted: hsl(217, 15%, 30%); /* Lighter muted backgrounds */
+  --muted-foreground: hsl(240, 5%, 75%); /* Lighter muted text */
+  --popover: hsl(220, 15%, 28%); /* Lighter popover */
+  --popover-foreground: hsl(0, 0%, 92%);
+  --card: hsl(220, 15%, 28%); /* Lighter card background */
+  --card-foreground: hsl(0, 0%, 92%);
+  --border: hsl(217, 15%, 35%); /* Lighter borders for better definition */
+  --input: hsl(217, 15%, 35%);
   --primary: hsl(225, 35%, 48%); /* Keep slate blue in dark mode */
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(220, 25%, 25%); /* Lighter secondary */
-  --secondary-foreground: hsl(0, 0%, 95%);
-  --accent: hsl(220, 25%, 25%);
-  --accent-foreground: hsl(0, 0%, 95%);
+  --secondary: hsl(220, 15%, 32%); /* Lighter secondary */
+  --secondary-foreground: hsl(0, 0%, 92%);
+  --accent: hsl(220, 15%, 32%);
+  --accent-foreground: hsl(0, 0%, 92%);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(225, 35%, 48%); /* Slate blue for focus rings */
@@ -96,13 +96,13 @@
   --warning: hsl(25, 95%, 53%);
   
   /* Sidebar color variables for dark mode */
-  --sidebar-background: hsl(222, 35%, 15%); /* Darker sidebar to maintain hierarchy */
-  --sidebar-foreground: hsl(0, 0%, 95%); /* Light text in sidebar */
+  --sidebar-background: hsl(222, 20%, 18%); /* Darker sidebar to maintain hierarchy */
+  --sidebar-foreground: hsl(0, 0%, 92%); /* Light text in sidebar */
   --sidebar-primary: hsl(225, 35%, 48%); /* #4F63A4 */
   --sidebar-primary-foreground: hsl(0, 0%, 100%); /* White */
-  --sidebar-accent: hsl(217, 25%, 20%); /* Dark accent */
-  --sidebar-accent-foreground: hsl(0, 0%, 95%); /* Light text */
-  --sidebar-border: hsl(217, 25%, 27%); /* Lighter border */
+  --sidebar-accent: hsl(217, 15%, 25%); /* Dark accent */
+  --sidebar-accent-foreground: hsl(0, 0%, 92%); /* Light text */
+  --sidebar-border: hsl(217, 15%, 35%); /* Lighter border */
   --sidebar-ring: hsl(225, 35%, 48%); /* Primary blue */
 }
 
