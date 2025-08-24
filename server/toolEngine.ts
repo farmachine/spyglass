@@ -98,7 +98,7 @@ export class ToolEngine {
       const inputValue = rawInputs[paramId] || rawInputs[param.name];
       
       // If this is a document parameter, check for extracted content first
-      if (param.type === 'document' && inputValue) {
+      if (param.type === 'document') {
         try {
           // Check if inputValue is an array of knowledge document IDs
           if (Array.isArray(inputValue) && inputValue.length > 0) {
@@ -134,7 +134,7 @@ export class ToolEngine {
               preparedInputs[param.name] = inputValue;
             }
           } else {
-            // Single value or empty, check sample_documents table for pre-extracted content
+            // Always check sample_documents table for pre-extracted content first
             const [sampleDoc] = await db
               .select()
               .from(sampleDocuments)
@@ -148,6 +148,9 @@ export class ToolEngine {
             if (sampleDoc?.extractedContent) {
               console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
               preparedInputs[param.name] = sampleDoc.extractedContent;
+            } else if (inputValue && typeof inputValue === 'string') {
+              // If we have a non-empty string value, use it
+              preparedInputs[param.name] = inputValue;
             } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
               // Fallback to metadata if available
               const extractedContent = tool.metadata.sampleDocumentContent[param.name];
