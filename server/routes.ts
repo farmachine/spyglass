@@ -6567,6 +6567,7 @@ def extract_function(Column_Name, Excel_File):
             // Handle array that might contain reference strings
             else if (Array.isArray(value) && value.length > 0) {
               console.log(`  📋 Processing array parameter "${key}" with ${value.length} items`);
+              console.log(`    Array contents:`, value);
               
               // Check if the array contains reference strings (either comma-separated or as array elements)
               const hasReferences = value.some(v => typeof v === 'string' && v.includes('@'));
@@ -6577,13 +6578,23 @@ def extract_function(Column_Name, Excel_File):
                 // Handle both cases: single comma-separated string or multiple reference strings
                 let references: string[] = [];
                 if (value.length === 1 && typeof value[0] === 'string' && value[0].includes(',')) {
-                  // Single comma-separated string
-                  console.log(`    Single comma-separated string: "${value[0]}"`);
+                  // Single comma-separated string in array
+                  console.log(`    Single comma-separated string in array: "${value[0]}"`);
                   references = value[0].split(',').map(ref => ref.trim());
-                } else if (value.length === 2 && value.every(v => typeof v === 'string' && v.startsWith('@'))) {
-                  // Array of individual reference strings
-                  console.log(`    Array of ${value.length} reference strings:`, value);
-                  references = value;
+                } else if (value.every(v => typeof v === 'string' && v.includes('@'))) {
+                  // Array of individual reference strings - this is the AI tool case!
+                  console.log(`    🚨 CRITICAL: Array of ${value.length} reference strings (AI tool pattern):`, value);
+                  console.log(`    🚨 These references need to be merged into a single data array!`);
+                  // Check if we have comma-separated references in multiple array elements
+                  const allRefs: string[] = [];
+                  for (const v of value) {
+                    if (typeof v === 'string' && v.includes(',')) {
+                      allRefs.push(...v.split(',').map(r => r.trim()));
+                    } else if (typeof v === 'string') {
+                      allRefs.push(v);
+                    }
+                  }
+                  references = allRefs;
                 } else {
                   // Mixed or other format
                   console.log(`    Mixed format, extracting references from array`);
@@ -6634,58 +6645,74 @@ def extract_function(Column_Name, Excel_File):
                   
                   // Merge the referenced data
                   if (Object.keys(referenceMap).length > 0) {
-                    console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results`);
+                    console.log(`  📊 MERGING ${Object.keys(referenceMap).length} reference results for AI`);
                     console.log(`    Reference keys to merge:`, Object.keys(referenceMap));
                     
+                    // Get the maximum length of any referenced array
                     const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
                       Array.isArray(arr) ? arr.length : 1
                     ));
                     
-                    console.log(`    Maximum array length: ${maxLength}`);
+                    console.log(`    Maximum array length: ${maxLength} items`);
+                    console.log(`    🎯 This will create ${maxLength} merged objects for the AI`);
                     
+                    // Create merged objects, one for each index position
                     for (let i = 0; i < maxLength; i++) {
                       const mergedItem: any = {};
                       
                       for (const [refPath, data] of Object.entries(referenceMap)) {
-                        // Use cleaner key names for the merged object
+                        // Extract clean key names for the merged object
                         let keyName = refPath.split('.').pop() || refPath;
-                        // Clean up the key name for better object structure
-                        if (keyName === 'Column Names') keyName = 'Column Name';
-                        if (keyName === 'Worksheet Name') keyName = 'Worksheet Name';
                         
+                        // Standardize key names for consistency
+                        if (keyName === 'Column Names') {
+                          keyName = 'Column Name';
+                        } else if (keyName === 'Worksheet Name') {
+                          keyName = 'Worksheet Name';
+                        }
+                        
+                        // Extract the value at this index
                         if (Array.isArray(data) && data[i]) {
                           const item = data[i];
-                          const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
-                          mergedItem[keyName] = extractedValue;
+                          // Get the actual value (either extractedValue or the item itself)
+                          const value = item?.extractedValue !== undefined ? item.extractedValue : item;
+                          mergedItem[keyName] = value;
                         }
                       }
                       
+                      // Only add if we have data
                       if (Object.keys(mergedItem).length > 0) {
                         allReferencedData.push(mergedItem);
                       }
                     }
                     
-                    console.log(`    ✨ Created ${allReferencedData.length} merged items from array references`);
+                    console.log(`    ✨ SUCCESSFULLY created ${allReferencedData.length} merged items`);
+                    console.log(`    📊 Each item has format: {"Column Name": "...", "Worksheet Name": "..."}`);
+                    
                     if (allReferencedData.length > 0) {
-                      console.log(`    First merged item:`, JSON.stringify(allReferencedData[0]));
+                      console.log(`    Item #1:`, JSON.stringify(allReferencedData[0]));
                       if (allReferencedData.length > 1) {
-                        console.log(`    Second merged item:`, JSON.stringify(allReferencedData[1]));
+                        console.log(`    Item #2:`, JSON.stringify(allReferencedData[1]));
                       }
-                      console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1]));
+                      if (allReferencedData.length > 2) {
+                        console.log(`    Item #3:`, JSON.stringify(allReferencedData[2]));
+                      }
+                      console.log(`    Last item (#${allReferencedData.length}):`, JSON.stringify(allReferencedData[allReferencedData.length - 1]));
                     }
                     
-                    // Replace the array with the merged data
+                    // CRITICAL: Replace the array parameter with the merged data
                     preparedInputValues[key] = allReferencedData;
-                    console.log(`    ✅ REPLACED array parameter "${key}" with ${allReferencedData.length} merged items`);
-                    console.log(`    🔍 First 3 items being sent to AI:`, preparedInputValues[key].slice(0, 3));
+                    console.log(`    ✅ SUCCESS: Parameter "${key}" now contains ${allReferencedData.length} merged objects`);
+                    console.log(`    🚀 AI will receive array of ${allReferencedData.length} items with Column Name + Worksheet Name`);
                   } else {
-                    console.log(`    ❌ No references could be resolved from array!`);
-                    console.log(`    ❌ Array value was:`, value);
+                    console.log(`    ❌ CRITICAL ERROR: Could not resolve any references!`);
+                    console.log(`    ❌ Array contained:`, value);
+                    console.log(`    ❌ References found:`, allReferences);
                     
-                    // Check if this is an AI tool and we have unresolved references
+                    // For AI tools, we must not pass unresolved references
                     if ((excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY') && 
                         allReferences.length > 0) {
-                      console.log(`    ❌ Removing unresolved array references for AI tool`);
+                      console.log(`    ❌ REMOVING unresolved references to prevent AI confusion`);
                       delete preparedInputValues[key];
                     }
                   }
