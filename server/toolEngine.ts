@@ -1078,6 +1078,20 @@ Return only the Python function code, no explanations.`;
   private buildTestPrompt(tool: Tool, inputs: Record<string, any>): string {
     const aiPrompt = tool.aiPrompt || tool.description;
     
+    // Log what inputs we're receiving
+    console.log('🔍 Building test prompt with inputs:', Object.keys(inputs));
+    for (const [key, val] of Object.entries(inputs)) {
+      if (typeof val === 'string' && val.length > 100) {
+        console.log(`  📄 ${key}: String with ${val.length} chars - Preview: "${val.substring(0, 100)}..."`);
+      } else if (Array.isArray(val)) {
+        console.log(`  📊 ${key}: Array with ${val.length} items`);
+      } else if (typeof val === 'string') {
+        console.log(`  📝 ${key}: "${val}"`);
+      } else {
+        console.log(`  🔢 ${key}: ${typeof val}`);
+      }
+    }
+    
     // Format inputs properly, handling data arrays specially
     const formattedInputs = Object.entries(inputs).map(([key, value]) => {
       // Find the parameter definition by ID or name
@@ -1109,6 +1123,16 @@ ${itemsList}`;
         } else if (param.sampleData?.rows) {
           // Use sample data if available
           return `${param.name}: ${JSON.stringify(param.sampleData.rows, null, 2)}`;
+        }
+      } else if (param?.type === 'document') {
+        // Handle document parameters specially
+        if (typeof value === 'string' && value.length > 0) {
+          console.log(`📚 Including reference document for ${param.name}: ${value.length} chars`);
+          return `${param.name || 'Reference Document'}:
+${value}`;
+        } else {
+          console.log(`⚠️ No reference document content for ${param.name}`);
+          return `${param.name || 'Reference Document'}: [No document provided]`;
         }
       }
       
@@ -1160,10 +1184,23 @@ CRITICAL INSTRUCTION:
     
     // Use the AI prompt as-is since it should already contain the correct format instructions
     // Just provide the input data
-    return `${aiPrompt}
+    const finalPrompt = `${aiPrompt}
 
 Input Data:
 ${formattedInputs}${arrayInstruction}`;
+    
+    // Log if reference document is included
+    if (finalPrompt.includes('Reference Document:')) {
+      const docMatch = finalPrompt.match(/Reference Document:\s*([\s\S]{0,200})/);
+      if (docMatch) {
+        console.log('✅ Reference Document IS included in prompt');
+        console.log('  📄 Document preview:', docMatch[1].substring(0, 100) + '...');
+      }
+    } else {
+      console.log('⚠️ WARNING: No Reference Document found in prompt!');
+    }
+    
+    return finalPrompt;
   }
   
   /**
