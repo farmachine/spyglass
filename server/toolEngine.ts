@@ -459,16 +459,61 @@ export class ToolEngine {
             
             // Process batch
             // Build a more specific prompt for batch processing
-            const batchPrompt = `${tool.aiPrompt || ''}
+            let batchPrompt: string;
+            
+            // Check if this is a merged data batch (has objects with multiple properties)
+            const isMergedData = batch.length > 0 && typeof batch[0] === 'object' && 
+                                 batch[0] !== null && !Array.isArray(batch[0]) && 
+                                 Object.keys(batch[0]).length > 1;
+            
+            if (isMergedData) {
+              // Special prompt for merged data (like Column Names + Worksheet Names)
+              const sampleItem = batch[0];
+              const fieldNames = Object.keys(sampleItem);
+              
+              batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing a batch of ${batch.length} items. Each item needs to be processed individually and return results in the field validation schema format.
+You are processing ${batch.length} merged data items. Each item contains multiple related fields that should be processed together.
+
+INPUT DATA STRUCTURE:
+Each item has these fields: ${fieldNames.join(', ')}
+Total items to process: ${batch.length}
+
+INPUT DATA:
+${JSON.stringify(batch.slice(0, 5), null, 2)}
+${batch.length > 5 ? `... and ${batch.length - 5} more items` : ''}
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
+Each object must follow this schema:
+{
+  "extractedValue": "the result of processing/mapping this item, or 'Not Found' if no match",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "brief explanation of your finding",
+  "confidenceScore": number between 0-100,
+  "documentSource": "source document or reference"
+}
+
+IMPORTANT INSTRUCTIONS:
+1. Process ALL ${batch.length} items - no exceptions
+2. Return exactly ${batch.length} results in the same order as input
+3. Each item should be processed using ALL its fields (${fieldNames.join(', ')})
+4. If processing involves mapping or matching, use all available fields to make the determination
+5. Your response must be a valid JSON array with ${batch.length} objects
+
+Process each item and return the complete array of results.`;
+            } else {
+              // Standard prompt for simple data
+              batchPrompt = `${tool.aiPrompt || ''}
+
+You are processing a batch of ${batch.length} items. Each item needs to be processed individually.
 
 INPUT DATA (${batch.length} items):
 ${JSON.stringify(batch, null, 2)}
 
 REQUIRED OUTPUT FORMAT:
-Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order as the input.
-Each object must follow this exact schema:
+Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
+Each object must follow this schema:
 {
   "extractedValue": "the extracted or mapped value, or 'Not Found' if nothing matches",
   "validationStatus": "valid" or "invalid",
@@ -484,6 +529,7 @@ IMPORTANT:
 - If no match is found, use extractedValue: "Not Found"
 
 Process each item and return the complete array of results.`;
+            }
             
             // Add delay between batches to respect Gemini API rate limits
             // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second

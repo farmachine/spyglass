@@ -6459,14 +6459,17 @@ def extract_function(Column_Name, Excel_File):
                     const alternateKeys = [
                       referencePath.replace('Column Name Mapping.', ''),  // Try without step name
                       `Column Name Mapping.${referencePath}`,  // Try with step name if not present
-                      referencePath.split('.').pop() || referencePath  // Try just the value name
+                      referencePath.split('.').pop() || referencePath,  // Try just the value name
+                      referencePath.replace('.', ' > ')  // Try with > separator
                     ];
                     
                     console.log(`      🔄 Trying alternate key formats:`, alternateKeys);
                     for (const altKey of alternateKeys) {
                       if (previousResults && previousResults[altKey]) {
-                        console.log(`        ✅ Found data with alternate key: "${altKey}"`);
+                        console.log(`        ✅ Found data with alternate key: "${altKey}" - ${Array.isArray(previousResults[altKey]) ? previousResults[altKey].length : 1} items`);
                         referenceMap[referencePath] = previousResults[altKey];
+                        const previousData = previousResults[altKey];
+                        console.log(`        ✅ Mapped ${referencePath} -> ${altKey} with ${Array.isArray(previousData) ? previousData.length : 1} items`);
                         break;
                       }
                     }
@@ -6477,42 +6480,74 @@ def extract_function(Column_Name, Excel_File):
                 if (Object.keys(referenceMap).length > 1) {
                   console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results by index`);
                   
-                  // Get the maximum length across all arrays
-                  const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
-                    Array.isArray(arr) ? arr.length : 1
-                  ));
-                  
-                  // Create merged objects
-                  for (let i = 0; i < maxLength; i++) {
-                    const mergedItem: any = {};
+                  // Special handling for AI tools - pass all data at once
+                  if (excelFunction?.toolType === 'AI') {
+                    console.log(`  🤖 AI Tool detected - preparing merged data for batch processing`);
                     
-                    for (const [refPath, data] of Object.entries(referenceMap)) {
-                      // Extract the value name from the reference path (e.g., "Column Names" from "Column Name Mapping.Column Names")
-                      const valueName = refPath.split('.').pop() || refPath;
+                    // Get the maximum length across all arrays
+                    const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
+                      Array.isArray(arr) ? arr.length : 1
+                    ));
+                    
+                    // Create merged objects with both column names and worksheet names
+                    for (let i = 0; i < maxLength; i++) {
+                      const mergedItem: any = {};
                       
-                      if (Array.isArray(data) && data[i]) {
-                        // Extract the value from the result object
-                        const item = data[i];
-                        const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
-                        mergedItem[valueName] = extractedValue;
+                      for (const [refPath, data] of Object.entries(referenceMap)) {
+                        // Extract the value name from the reference path
+                        const valueName = refPath.split('.').pop() || refPath;
+                        
+                        if (Array.isArray(data) && data[i]) {
+                          // Extract the value from the result object
+                          const item = data[i];
+                          const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
+                          mergedItem[valueName] = extractedValue;
+                        }
+                      }
+                      
+                      if (Object.keys(mergedItem).length > 0) {
+                        allReferencedData.push(mergedItem);
                       }
                     }
                     
-                    if (Object.keys(mergedItem).length > 0) {
-                      allReferencedData.push(mergedItem);
+                    console.log(`    ✨ Created ${allReferencedData.length} merged items for AI processing`);
+                    if (allReferencedData.length > 0) {
+                      console.log(`    First merged item:`, JSON.stringify(allReferencedData[0], null, 2));
+                      if (allReferencedData.length > 1) {
+                        console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1], null, 2));
+                      }
                     }
-                  }
-                  
-                  console.log(`    ✨ Created ${allReferencedData.length} merged items`);
-                  if (allReferencedData.length > 0) {
-                    console.log(`    First merged item:`, JSON.stringify(allReferencedData[0], null, 2));
-                    if (allReferencedData.length > 1) {
-                      console.log(`    Last merged item:`, JSON.stringify(allReferencedData[allReferencedData.length - 1], null, 2));
+                    
+                    // Pass the entire merged array to the AI
+                    preparedInputValues[key] = allReferencedData;
+                    console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items for AI batch processing`);
+                  } else {
+                    // For non-AI tools, keep the original merging logic
+                    const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
+                      Array.isArray(arr) ? arr.length : 1
+                    ));
+                    
+                    for (let i = 0; i < maxLength; i++) {
+                      const mergedItem: any = {};
+                      
+                      for (const [refPath, data] of Object.entries(referenceMap)) {
+                        const valueName = refPath.split('.').pop() || refPath;
+                        
+                        if (Array.isArray(data) && data[i]) {
+                          const item = data[i];
+                          const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
+                          mergedItem[valueName] = extractedValue;
+                        }
+                      }
+                      
+                      if (Object.keys(mergedItem).length > 0) {
+                        allReferencedData.push(mergedItem);
+                      }
                     }
+                    
+                    preparedInputValues[key] = allReferencedData;
+                    console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items`);
                   }
-                  
-                  preparedInputValues[key] = allReferencedData;
-                  console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items`);
                 }
                 // No references found but we have the reference strings
                 else if (allReferences.length > 0 && Object.keys(referenceMap).length === 0) {
