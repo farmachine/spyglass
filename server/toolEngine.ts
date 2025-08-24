@@ -506,7 +506,8 @@ For each column name above, find its standard mapping or equivalent in the Refer
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
-{${hasIdentifierId ? '\n  "identifierId": "the identifierId from the input item (CRITICAL: must match exactly)",' : ''}
+{
+  "identifierId": "the identifierId from the input item (CRITICAL: copy this exactly from the input data)",
   "extractedValue": "the standard field name/mapping found in the Reference Document, or 'Not Found' if no match exists",
   "validationStatus": "valid" if found or "invalid" if not found,
   "aiReasoning": "brief explanation of the mapping found or why it wasn't found",
@@ -517,13 +518,20 @@ Each object must follow this schema:
 IMPORTANT INSTRUCTIONS:
 1. Look up each column name in the Reference Document
 2. Consider the worksheet context when determining the best match
-3. Return exactly ${batch.length} results in the same order as input${hasIdentifierId ? '\n4. Include the correct identifierId for each result (from the input data)' : ''}
-5. Each result must have all required fields
+3. Return exactly ${batch.length} results in the same order as input
+4. Include the EXACT identifierId from each input item in your response
+5. Each result must have all 6 required fields (identifierId, extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource)
 6. Use "Not Found" for items that don't appear in the Reference Document
 
 Process ALL ${batch.length} items and return the complete array of results.`;
             } else {
               // Standard prompt for simple data
+              // Check if items have identifierId
+              const hasIdentifierId = batch.length > 0 && 
+                                     typeof batch[0] === 'object' && 
+                                     batch[0] !== null && 
+                                     'identifierId' in batch[0];
+              
               batchPrompt = `${tool.aiPrompt || ''}
 
 You are processing a batch of ${batch.length} items. Each item needs to be processed individually.
@@ -534,7 +542,7 @@ ${JSON.stringify(batch, null, 2)}
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
-{
+{${hasIdentifierId ? '\n  "identifierId": "the identifierId from the input item (CRITICAL: copy this exactly from the input data)",' : ''}
   "extractedValue": "the extracted or mapped value, or 'Not Found' if nothing matches",
   "validationStatus": "valid" or "invalid",
   "aiReasoning": "brief explanation of your finding",
@@ -545,7 +553,7 @@ Each object must follow this schema:
 IMPORTANT:
 - Process ALL ${batch.length} items
 - Return exactly ${batch.length} results in the same order as input
-- Each result must have all 5 required fields
+- Each result must have all ${hasIdentifierId ? '6' : '5'} required fields${hasIdentifierId ? ' (including identifierId)' : ''}
 - If no match is found, use extractedValue: "Not Found"
 
 Process each item and return the complete array of results.`;
