@@ -6871,6 +6871,36 @@ def extract_function(Column_Name, Excel_File):
             
             console.log('📝 Executing tool with prepared inputs');
             console.log('  Input values keys:', Object.keys(preparedInputValues));
+            
+            // CRITICAL DEBUG: Log exact data being sent to AI tool
+            if (valueConfig.valueName === 'Standard Mapping') {
+              console.log('\n🚨🚨🚨 CRITICAL DEBUG FOR STANDARD MAPPING 🚨🚨🚨');
+              console.log('📊 EXACT DATA BEING SENT TO AI TOOL:');
+              for (const [key, value] of Object.entries(preparedInputValues)) {
+                console.log(`  Parameter ID: "${key}"`);
+                if (Array.isArray(value)) {
+                  console.log(`    Type: Array[${value.length}]`);
+                  if (value.length > 0) {
+                    console.log(`    Item #1:`, JSON.stringify(value[0]));
+                    if (value.length > 1) {
+                      console.log(`    Item #2:`, JSON.stringify(value[1]));
+                    }
+                    if (value.length > 2) {
+                      console.log(`    Item #3:`, JSON.stringify(value[2]));
+                    }
+                    console.log(`    Item #${value.length}:`, JSON.stringify(value[value.length - 1]));
+                  }
+                } else if (typeof value === 'string') {
+                  console.log(`    Type: String[${value.length} chars]`);
+                  console.log(`    Value: "${value.substring(0, 200)}..."`);
+                } else {
+                  console.log(`    Type: ${typeof value}`);
+                  console.log(`    Value:`, value);
+                }
+              }
+              console.log('🚨🚨🚨 END CRITICAL DEBUG 🚨🚨🚨\n');
+            }
+            
             for (const [key, value] of Object.entries(preparedInputValues)) {
               if (Array.isArray(value)) {
                 console.log(`  📊 Input "${key}" is array with ${value.length} items`);
