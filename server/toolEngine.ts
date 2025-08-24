@@ -699,25 +699,39 @@ Process each item and return the complete array of results.`;
       console.log('-'.repeat(80));
       console.log('');
       
+      // Store original for debugging
+      const originalResult = result;
+      
       // Clean markdown if present - handle multiple possible formats
-      if (result.includes('```json')) {
-        // Extract JSON content between markdown blocks
-        const jsonMatch = result.match(/```json\s*([\s\S]*?)```/);
-        if (jsonMatch) {
-          result = jsonMatch[1].trim();
-          console.log('✅ Extracted JSON from markdown code block');
-        }
-      } else if (result.includes('```')) {
-        // Handle generic code blocks
-        const codeMatch = result.match(/```\s*([\s\S]*?)```/);
-        if (codeMatch) {
-          result = codeMatch[1].trim();
-          console.log('✅ Extracted content from generic code block');
+      // First, check if the entire response is wrapped in code blocks
+      if (result.includes('```')) {
+        console.log('🔧 Detected markdown code blocks, attempting to clean...');
+        
+        // Try to match json-specific code blocks first
+        const jsonBlockMatch = result.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+        if (jsonBlockMatch && jsonBlockMatch[1]) {
+          result = jsonBlockMatch[1].trim();
+          console.log('✅ Successfully extracted content from markdown code block');
+        } else {
+          // Fallback: just remove the backticks
+          result = result.replace(/```(?:json)?/g, '').trim();
+          console.log('✅ Removed markdown backticks via replacement');
         }
       }
       
       // Additional cleanup - remove any leading/trailing whitespace or newlines
       result = result.trim();
+      
+      // Double-check: if result still starts with backticks, try one more time
+      if (result.startsWith('```')) {
+        console.log('⚠️ Still has backticks after first pass, doing aggressive cleanup');
+        // Remove everything before the first [ or {
+        const jsonStart = result.search(/[\[\{]/);
+        if (jsonStart > 0) {
+          result = result.substring(jsonStart);
+          console.log('✅ Removed prefix before JSON start');
+        }
+      }
       
       console.log('🧹 CLEANED TEST RESULT:');
       console.log('-'.repeat(80));
@@ -729,21 +743,33 @@ Process each item and return the complete array of results.`;
       // Try to parse the result
       let parsed;
       try {
-        // One more check - if result still starts with backticks, something went wrong
-        if (result.startsWith('```')) {
-          console.error('⚠️ Result still contains markdown after cleaning, attempting manual extraction');
-          // Try a more aggressive extraction
-          const match = result.match(/\[[\s\S]*\]/);
-          if (match) {
-            result = match[0];
-            console.log('✅ Manually extracted JSON array from response');
+        parsed = JSON.parse(result);
+      } catch (parseError) {
+        console.error('⚠️ Initial JSON parsing failed, attempting recovery');
+        console.error('Parse error:', parseError.message);
+        console.log('Result starts with:', result.substring(0, 50));
+        
+        // If still has markdown, try one more extraction
+        if (result.includes('```') || result.startsWith('```')) {
+          console.log('🔧 Found remaining markdown, doing final cleanup');
+          // Extract everything between first [ and last ]
+          const arrayStartIdx = result.indexOf('[');
+          const arrayEndIdx = result.lastIndexOf(']');
+          if (arrayStartIdx >= 0 && arrayEndIdx > arrayStartIdx) {
+            result = result.substring(arrayStartIdx, arrayEndIdx + 1);
+            console.log('✅ Extracted JSON array using index positions');
+            try {
+              parsed = JSON.parse(result);
+              console.log('✅ Successfully parsed after final extraction');
+            } catch (e) {
+              // Will fall through to next recovery attempts
+            }
           }
         }
         
-        parsed = JSON.parse(result);
-      } catch (parseError) {
-        console.error('⚠️ JSON parsing failed, attempting to extract valid JSON from response');
-        console.error('Parse error:', parseError.message);
+        if (!parsed) {
+          console.error('⚠️ JSON parsing still failed, attempting alternative extraction methods');
+        }
         
         // Try to extract a JSON array if it exists in the text
         const arrayMatch = result.match(/\[\s*\{[\s\S]*\}\s*\]/);
