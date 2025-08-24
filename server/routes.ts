@@ -2363,13 +2363,15 @@ except Exception as e:
             );
             
             console.log(`✅ Tool execution completed. Results count: ${toolResults.length}`);
-            if (toolResults.length > 0) {
-              console.log(`First result has identifierId: ${toolResults[0]?.identifierId}`);
-              console.log(`First result extractedValue: ${toolResults[0]?.extractedValue}`);
-            }
-            if (toolResults.length > 1) {
-              console.log(`Last result has identifierId: ${toolResults[toolResults.length - 1]?.identifierId}`);
-              console.log(`Last result extractedValue: ${toolResults[toolResults.length - 1]?.extractedValue}`);
+            
+            // Log sample results to check mapping
+            console.log('🔍 CHECKING RESULT MAPPINGS:');
+            const sampleIndices = [0, 1, 99, 100];
+            for (const idx of sampleIndices) {
+              if (toolResults[idx]) {
+                const inputItem = mergedData?.[idx];
+                console.log(`  [${idx}] Input: "${inputItem?.['Column Names']?.substring(0, 50)}..." -> Output: "${toolResults[idx].extractedValue}"`);
+              }
             }
             
             // Save results as field validations
