@@ -6417,6 +6417,7 @@ def extract_function(Column_Name, Excel_File):
                     console.log(`      ✅ Found ${Array.isArray(previousData) ? previousData.length : 1} items for ${referencePath}`);
                   } else {
                     console.log(`      ⚠️ No previous results found for ${referencePath}`);
+                    console.log(`      Available keys in previousResults:`, previousResults ? Object.keys(previousResults) : 'No previousResults object');
                   }
                 }
                 
