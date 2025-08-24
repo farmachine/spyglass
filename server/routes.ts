@@ -2250,16 +2250,31 @@ except Exception as e:
                 }
               }
             }
-            // For Worksheet Name, we need to get the Column Name data from previous step
+            // For Worksheet Name, we need the Excel document AND the Column Name data
             else if (workflowValue.valueName === 'Worksheet Name') {
-              console.log('📊 Preparing Column Name data for Worksheet Name extraction');
+              console.log('📊 Preparing Excel document and Column Name data for Worksheet Name extraction');
+              
+              // First, set the Excel document (Worksheet Name needs it to find which worksheet each column is from)
+              const excelFile = convertedFiles.find((f: any) => 
+                f.file_type?.includes('excel') || 
+                f.file_type?.includes('spreadsheet') ||
+                f.original_name?.endsWith('.xlsx') ||
+                f.original_name?.endsWith('.xls')
+              );
+              
+              if (excelFile) {
+                console.log(`📊 Found Excel file for worksheet extraction: ${excelFile.original_name}`);
+                // Set the Excel file for the worksheet extraction tool (expects "document" parameter)
+                toolInputs['document'] = excelFile.file_content || '';
+                console.log(`📊 Set Excel file content (${excelFile.file_content?.length || 0} chars)`);
+              }
               
               // Get ID column data from existing validations
               const idValidations = existingValidations.filter((v: any) => 
                 v.valueId === '3a91ea85-ed02-41cf-a607-a8d9a21d6fdf' // ID value
               );
               
-              console.log(`📊 Found ${idValidations.length} ID records`);
+              console.log(`📊 Found ${idValidations.length} ID column records`);
               
               if (idValidations.length > 0) {
                 // Map ID values for the tool
@@ -2272,7 +2287,7 @@ except Exception as e:
                 // The Worksheet Name tool expects column reference "@ID"
                 toolInputs['column'] = columnData;
                 toolInputs['@ID'] = columnData;
-                console.log(`📊 Set ${columnData.length} column names for worksheet extraction`);
+                console.log(`📊 Set ${columnData.length} column names from @ID reference`);
               } else {
                 console.error('❌ No ID column data found for Worksheet Name extraction!');
               }
@@ -2326,8 +2341,37 @@ except Exception as e:
                 continue;
               }
               
+              // Handle @-references to previous step values
+              if (typeof value === 'string' && value.startsWith('@')) {
+                console.log(`📌 Processing reference: ${value}`);
+                
+                // Parse the reference (e.g., "@ID" or "@Column Name Mapping.ID")
+                const refParts = value.substring(1).split('.');
+                let referencedValueName = refParts[refParts.length - 1];
+                
+                // Find the referenced value's data
+                if (referencedValueName === 'ID') {
+                  // Get ID column data
+                  const idValidations = existingValidations.filter((v: any) => 
+                    v.valueId === '3a91ea85-ed02-41cf-a607-a8d9a21d6fdf'
+                  );
+                  
+                  if (idValidations.length > 0) {
+                    const columnData = idValidations.map((v: any) => ({
+                      identifierId: v.identifierId || `record-${v.recordIndex}`,
+                      extractedValue: v.extractedValue || '',
+                      recordIndex: v.recordIndex
+                    }));
+                    toolInputs[key] = columnData;
+                    console.log(`📌 Resolved @ID reference to ${columnData.length} items`);
+                  }
+                } else {
+                  console.log(`⚠️ Unknown reference: ${value}`);
+                  toolInputs[key] = value;
+                }
+              }
               // Handle Reference Document - fetch when key is present OR value is @reference_document
-              if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document') {
+              else if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document') {
                 console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
                 // Get reference documents from session or knowledge base
                 const sessionDocs = await storage.getSessionDocuments(sessionId);
