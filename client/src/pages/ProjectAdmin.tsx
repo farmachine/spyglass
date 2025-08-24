@@ -169,7 +169,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-168px)]">
         {/* Sidebar */}
-        <div className="w-72 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
+        <div className="w-72 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
           <div className="p-4">
             {/* Back to Project Link */}
             <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
@@ -177,7 +177,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation(`/projects/${projectId}`)}
-                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
+                className="w-full justify-start px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
@@ -204,7 +204,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
                         ? "text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50 font-normal"
                         : isActive
                         ? "bg-gray-700 dark:bg-primary text-white font-medium shadow-sm"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 font-normal"
                     }`}
                   >
                     <Icon className={`h-4 w-4 ${
