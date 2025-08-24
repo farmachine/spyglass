@@ -6249,7 +6249,10 @@ def extract_function(Column_Name, Excel_File):
               
               // For each record in previousData
               previousData.forEach((record, idx) => {
-                const combinedRecord: any = {};
+                const combinedRecord: any = {
+                  // Always include the identifierId for tracking
+                  identifierId: record.identifierId
+                };
                 
                 // Process each reference in the array
                 for (const ref of paramValue) {
@@ -6354,22 +6357,45 @@ def extract_function(Column_Name, Excel_File):
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
           
-          // Get the identifier ID from the previous data
+          // Get the identifier ID - prefer from result if AI provided it, otherwise from previous data
           let identifierId: string | null = null;
-          if (previousData && previousData[i]) {
+          let recordIndex = i; // Default to the result index
+          
+          if (result.identifierId) {
+            // AI provided the identifierId directly in the result
+            identifierId = result.identifierId;
+            console.log(`🔗 Using identifierId from AI result: ${identifierId}`);
+            
+            // Find the actual record index for this identifierId from previousData
+            if (previousData) {
+              const matchingRecordIndex = previousData.findIndex(record => record.identifierId === identifierId);
+              if (matchingRecordIndex !== -1) {
+                recordIndex = matchingRecordIndex;
+                console.log(`  Found matching record at index ${recordIndex}`);
+              }
+            }
+          } else if (previousData && previousData[i]) {
+            // Fallback to index-based mapping from previous data
             identifierId = previousData[i].identifierId || null;
-            console.log(`🔗 Mapping result ${i} to identifier: ${identifierId}`);
+            console.log(`🔗 Mapping result ${i} to identifier from previous data: ${identifierId}`);
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
-          const fieldName = `${step.stepName}.${value.valueName}[${i}]`;
+          const fieldName = `${step.stepName}.${value.valueName}[${recordIndex}]`;
           
           // Check if validation already exists for this identifier/record index
-          const existingValidation = existingValidations.find(v => 
-            v.valueId === valueId && 
-            v.recordIndex === i &&
-            v.fieldName === fieldName
-          );
+          // If we have an identifierId, use it to find the exact validation
+          const existingValidation = identifierId 
+            ? existingValidations.find(v => 
+                v.valueId === valueId && 
+                v.identifierId === identifierId &&
+                v.fieldName === fieldName
+              )
+            : existingValidations.find(v => 
+                v.valueId === valueId && 
+                v.recordIndex === i &&
+                v.fieldName === fieldName
+              );
           
           if (existingValidation) {
             // Update existing validation
@@ -6395,7 +6421,7 @@ def extract_function(Column_Name, Excel_File):
               valueId: valueId,
               stepId: stepId,
               fieldName: fieldName, // Add the properly formatted field name
-              recordIndex: i,
+              recordIndex: recordIndex, // Use the correct record index
               identifierId: identifierId, // Add identifier mapping
               extractedValue: result.extractedValue,
               validationType: 'collection_property',

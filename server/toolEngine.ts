@@ -483,15 +483,22 @@ export class ToolEngine {
               const primaryFieldName = fieldNames[0]; // "Column Names"
               const contextFieldName = fieldNames[1]; // "Worksheet Name"
               
+              // Check if we have identifierIds (for tracking which record each item corresponds to)
+              const hasIdentifierId = batch.length > 0 && batch[0].identifierId !== undefined;
+              
               console.log(`    📋 Processing merged data with primary field: "${primaryFieldName}" and context field: "${contextFieldName}"`);
+              console.log(`    📊 Has identifierIds: ${hasIdentifierId}`);
               console.log(`    📊 Sample data:`, batch.slice(0, 3));
               
               batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing ${batch.length} column names from an Excel file. Each item includes both the column name and its worksheet for context.
+You are processing ${batch.length} column names from an Excel file. Each item includes the column name, its worksheet for context, and an identifierId for tracking.
 
 INPUT DATA (${batch.length} items to process):
-${batch.map((item, idx) => `Item ${idx + 1}: Column Name: "${item[primaryFieldName]}" (from worksheet: "${item[contextFieldName]}")`).join('\n')}
+${batch.map((item, idx) => {
+  const idStr = hasIdentifierId && item.identifierId ? ` [ID: ${item.identifierId}]` : '';
+  return `Item ${idx + 1}${idStr}: Column Name: "${item[primaryFieldName]}" (from worksheet: "${item[contextFieldName]}")`;
+}).join('\n')}
 
 TASK:
 For each column name above, find its standard mapping or equivalent in the Reference Document. The worksheet name provides context about the type of data.
@@ -499,7 +506,7 @@ For each column name above, find its standard mapping or equivalent in the Refer
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
-{
+{${hasIdentifierId ? '\n  "identifierId": "the identifierId from the input item (CRITICAL: must match exactly)",' : ''}
   "extractedValue": "the standard field name/mapping found in the Reference Document, or 'Not Found' if no match exists",
   "validationStatus": "valid" if found or "invalid" if not found,
   "aiReasoning": "brief explanation of the mapping found or why it wasn't found",
@@ -510,9 +517,9 @@ Each object must follow this schema:
 IMPORTANT INSTRUCTIONS:
 1. Look up each column name in the Reference Document
 2. Consider the worksheet context when determining the best match
-3. Return exactly ${batch.length} results in the same order as input
-4. Each result must have all 5 required fields
-5. Use "Not Found" for items that don't appear in the Reference Document
+3. Return exactly ${batch.length} results in the same order as input${hasIdentifierId ? '\n4. Include the correct identifierId for each result (from the input data)' : ''}
+5. Each result must have all required fields
+6. Use "Not Found" for items that don't appear in the Reference Document
 
 Process ALL ${batch.length} items and return the complete array of results.`;
             } else {
