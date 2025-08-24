@@ -6162,11 +6162,12 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { sessionId } = req.params;
-      const { stepId, valueId, previousData } = req.body;
+      const { stepId, valueId, previousData, documentId } = req.body;
       
       console.log(`📊 Running individual column extraction for session ${sessionId}`);
       console.log(`   Step ID: ${stepId}, Value ID: ${valueId}`);
       console.log(`   Previous data records: ${previousData?.length || 0}`);
+      console.log(`   Document ID: ${documentId || 'Using default'}`);
       
       // Get the step and value details
       const step = await storage.getWorkflowStep(stepId);
@@ -6194,10 +6195,21 @@ def extract_function(Column_Name, Excel_File):
       }
       
       const sessionDocuments = await storage.getSessionDocuments(sessionId);
-      const primaryDoc = sessionDocuments.find(d => d.isPrimary);
       
-      // If no primary document found, use the first document
-      const documentToUse = primaryDoc || sessionDocuments[0];
+      // Use the specified document ID if provided, otherwise use primary or first document
+      let documentToUse;
+      if (documentId) {
+        documentToUse = sessionDocuments.find(d => d.id === documentId);
+        if (!documentToUse) {
+          console.warn(`Document with ID ${documentId} not found, falling back to primary document`);
+        }
+      }
+      
+      // Fall back to primary or first document if specified document not found
+      if (!documentToUse) {
+        const primaryDoc = sessionDocuments.find(d => d.isPrimary);
+        documentToUse = primaryDoc || sessionDocuments[0];
+      }
       
       // If no extracted content, try to get it from the document content field
       let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;

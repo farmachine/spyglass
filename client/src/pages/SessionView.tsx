@@ -1130,6 +1130,17 @@ export default function SessionView() {
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
   
+  // Column extraction modal state
+  const [columnExtractionModal, setColumnExtractionModal] = useState<{
+    isOpen: boolean;
+    stepName: string;
+    valueId: string;
+    valueName: string;
+    previousData: any[];
+    needsDocument: boolean;
+  } | null>(null);
+  const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
+  
   // AI extraction modal state
   const [aiExtractionModal, setAiExtractionModal] = useState<{
     open: boolean;
@@ -1849,9 +1860,92 @@ export default function SessionView() {
     }
   };
 
-  // Handler for running extraction on a single column
+  // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
-    console.log(`Running extraction for column: ${valueName} (${valueId}) in step: ${stepName}`);
+    console.log(`Preparing extraction for column: ${valueName} (${valueId}) in step: ${stepName}`);
+    
+    // Get the workflow step
+    const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+    if (!workflowStep) {
+      console.error('Workflow step not found:', stepName);
+      return;
+    }
+    
+    // Get the specific value to run
+    const valueToRun = workflowStep.values?.find(v => v.id === valueId);
+    if (!valueToRun) {
+      console.error('Value not found:', valueId);
+      return;
+    }
+    
+    // Check if this tool needs a document
+    const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
+    const needsDocument = tool?.inputParameters?.some(p => 
+      p.name === 'document' || p.name === 'document_content' || p.name === 'user_document'
+    ) || false;
+    
+    // Compile previous column data as input
+    const previousColumnsData: any[] = [];
+    
+    // If this is not the first column, gather data from previous columns
+    const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
+    if (valueIndex > 0 && workflowStep.values) {
+      // Get all unique record indices for this collection
+      const collectionValidations = validations.filter(v => 
+        v.collectionName === stepName || 
+        (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+      );
+      
+      const uniqueIndices = [...new Set(collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null))];
+      
+      // For each record, compile data from previous columns
+      for (const recordIndex of uniqueIndices) {
+        const recordData: any = {};
+        
+        // Iterate through previous columns
+        for (let i = 0; i < valueIndex; i++) {
+          const prevValue = workflowStep.values[i];
+          const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+          const validation = getValidation(fieldName);
+          
+          if (validation && validation.extractedValue) {
+            recordData[prevValue.valueName] = validation.extractedValue;
+          }
+        }
+        
+        // Only add if we have some data
+        if (Object.keys(recordData).length > 0) {
+          previousColumnsData.push(recordData);
+        }
+      }
+    }
+    
+    console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
+    
+    // Open the modal with the prepared data
+    setColumnExtractionModal({
+      isOpen: true,
+      stepName,
+      valueId,
+      valueName,
+      previousData: previousColumnsData,
+      needsDocument
+    });
+    
+    // If documents exist, pre-select the primary document
+    const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+    if (primaryDoc) {
+      setSelectedExtractionDoc(primaryDoc.id);
+    }
+  };
+  
+  // Handler for confirming and running the column extraction
+  const handleConfirmColumnExtraction = async () => {
+    if (!columnExtractionModal) return;
+    
+    const { stepName, valueId, valueName, previousData } = columnExtractionModal;
+    
+    console.log(`Running extraction for column: ${valueName} with document: ${selectedExtractionDoc}`);
     
     try {
       // Get the workflow step
@@ -1861,63 +1955,22 @@ export default function SessionView() {
         return;
       }
       
-      // Get the specific value to run
-      const valueToRun = workflowStep.values?.find(v => v.id === valueId);
-      if (!valueToRun) {
-        console.error('Value not found:', valueId);
-        return;
-      }
-      
-      // Compile previous column data as input
-      // For columns that have already been extracted, use their validated data
-      const previousColumnsData: any[] = [];
-      
-      // If this is not the first column, gather data from previous columns
-      const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
-      if (valueIndex > 0 && workflowStep.values) {
-        // Get all unique record indices for this collection
-        const collectionValidations = validations.filter(v => 
-          v.collectionName === stepName || 
-          (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
-        );
-        
-        const uniqueIndices = [...new Set(collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null))];
-        
-        // For each record, compile data from previous columns
-        for (const recordIndex of uniqueIndices) {
-          const recordData: any = {};
-          
-          // Iterate through previous columns
-          for (let i = 0; i < valueIndex; i++) {
-            const prevValue = workflowStep.values[i];
-            const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
-            const validation = getValidation(fieldName);
-            
-            if (validation && validation.extractedValue) {
-              recordData[prevValue.valueName] = validation.extractedValue;
-            }
-          }
-          
-          // Only add if we have some data
-          if (Object.keys(recordData).length > 0) {
-            previousColumnsData.push(recordData);
-          }
-        }
-      }
-      
-      console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
-      
-      // Call the extraction endpoint for this specific value
+      // Call the extraction endpoint with the selected document
       const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
         method: 'POST',
         body: JSON.stringify({
           stepId: workflowStep.id,
           valueId: valueId,
-          previousData: previousColumnsData
+          previousData: previousData,
+          documentId: selectedExtractionDoc // Pass the selected document ID
         })
       });
       
       console.log('Column extraction response:', response);
+      
+      // Close the modal
+      setColumnExtractionModal(null);
+      setSelectedExtractionDoc("");
       
       // Refresh validations to show the new extracted data
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
@@ -4258,6 +4311,96 @@ Thank you for your assistance.`;
           session={session}
           validations={validations}
         />
+      )}
+      
+      {/* Column Extraction Modal */}
+      {columnExtractionModal && (
+        <Dialog open={columnExtractionModal.isOpen} onOpenChange={(open) => {
+          if (!open) {
+            setColumnExtractionModal(null);
+            setSelectedExtractionDoc("");
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Extract {columnExtractionModal.valueName}</DialogTitle>
+              <DialogDescription>
+                {columnExtractionModal.needsDocument 
+                  ? "Select a document and confirm to run the extraction." 
+                  : "Review the input data and confirm to run the extraction."}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Document Selection */}
+              {columnExtractionModal.needsDocument && sessionDocuments && sessionDocuments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Select Document</Label>
+                  <Select value={selectedExtractionDoc} onValueChange={setSelectedExtractionDoc}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a document" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sessionDocuments.map(doc => (
+                        <SelectItem key={doc.id} value={doc.id}>
+                          {doc.isPrimary && "📎 "}{doc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {/* Input Data Preview */}
+              <div className="space-y-2">
+                <Label>Input Data ({columnExtractionModal.previousData.length} records)</Label>
+                <div className="max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                  {columnExtractionModal.previousData.length > 0 ? (
+                    <div className="space-y-2 text-sm">
+                      {columnExtractionModal.previousData.slice(0, 5).map((record, idx) => (
+                        <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                          <div className="font-mono text-xs">
+                            Record {idx + 1}:
+                          </div>
+                          <pre className="mt-1 text-xs overflow-x-auto">
+                            {JSON.stringify(record, null, 2)}
+                          </pre>
+                        </div>
+                      ))}
+                      {columnExtractionModal.previousData.length > 5 && (
+                        <div className="text-center text-gray-500 dark:text-gray-400 text-xs">
+                          ... and {columnExtractionModal.previousData.length - 5} more records
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 dark:text-gray-400 text-sm">
+                      No previous data available. This will be the first extraction for this step.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setColumnExtractionModal(null);
+                  setSelectedExtractionDoc("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmColumnExtraction}
+                disabled={columnExtractionModal.needsDocument && !selectedExtractionDoc}
+              >
+                Run Extraction
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
