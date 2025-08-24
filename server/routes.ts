@@ -6253,16 +6253,48 @@ def extract_function(Column_Name, Excel_File):
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
               
-              // For the "Get Worksheet from Column" tool, format data with identifierId
-              const columnValues = previousData.map(record => ({
-                identifierId: record.identifierId,
-                name: record[actualColumnName] // Use the extracted column name
-              })).filter(item => item.name !== undefined);
-              
-              console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
-                columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
-              
-              toolInputs[paramName] = columnValues;
+              // Check if this is an array parameter (for List Item in AI tools)
+              if (Array.isArray(paramValue)) {
+                // Handle array of references - combine data from multiple columns
+                const combinedData: any[] = [];
+                
+                for (const ref of paramValue) {
+                  if (typeof ref === 'string' && ref.startsWith('@')) {
+                    const refColumn = ref.substring(1);
+                    let refColumnName = refColumn;
+                    
+                    if (refColumn.includes('.')) {
+                      const parts = refColumn.split('.');
+                      refColumnName = parts[parts.length - 1];
+                    }
+                    
+                    console.log(`  Processing array reference: ${ref} -> ${refColumnName}`);
+                    
+                    // For each record, create an object with the referenced column data
+                    previousData.forEach((record, idx) => {
+                      if (!combinedData[idx]) {
+                        combinedData[idx] = {};
+                      }
+                      combinedData[idx][refColumnName] = record[refColumnName];
+                    });
+                  }
+                }
+                
+                console.log(`📊 Combined ${combinedData.length} records from multiple references`);
+                console.log(`  Sample combined record:`, combinedData[0]);
+                toolInputs[paramName] = combinedData;
+              } else {
+                // Single reference - format data with identifierId
+                const columnValues = previousData.map(record => ({
+                  identifierId: record.identifierId,
+                  name: record[actualColumnName] // Use the extracted column name
+                })).filter(item => item.name !== undefined);
+                
+                console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
+                  columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+                
+                toolInputs[paramName] = columnValues;
+              }
             } else {
               console.log(`⚠️ No previous data available for reference ${paramValue}`);
             }
