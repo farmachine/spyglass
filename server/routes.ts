@@ -6437,57 +6437,68 @@ def extract_function(Column_Name, Excel_File):
               valueConfig.valueName === 'Standard Mapping') {
             console.log('\n🎯 SPECIAL HANDLING FOR STANDARD MAPPING AI TOOL');
             console.log('  This is the critical step that needs merged data!');
+            console.log('  Current preparedInputValues:', JSON.stringify(preparedInputValues, null, 2));
             
             // Look for the List Item parameter that needs merged data
             for (const [key, value] of Object.entries(preparedInputValues)) {
-              if (Array.isArray(value) && value.length === 2 && 
-                  value[0] === '@Column Name Mapping.Column Names' &&
-                  value[1] === '@Column Name Mapping.Worksheet Name') {
+              console.log(`  🔍 Checking parameter "${key}":`, value);
+              
+              // Check if this is the array parameter with references
+              if (Array.isArray(value)) {
+                console.log(`    Array detected with ${value.length} items`);
+                console.log(`    First item:`, value[0]);
+                console.log(`    Second item:`, value.length > 1 ? value[1] : 'N/A');
                 
-                console.log('  📌 FOUND THE LIST ITEM PARAMETER!');
-                console.log('  📌 Need to merge Column Names and Worksheet Name arrays');
+                // Check if it contains the references we're looking for
+                const hasColumnRef = value.some(v => typeof v === 'string' && v.includes('Column Name'));
+                const hasWorksheetRef = value.some(v => typeof v === 'string' && v.includes('Worksheet Name'));
                 
-                // Get the actual data from previousResults
-                const columnNames = previousResults?.['Column Name Mapping.Column Names'] || 
-                                   previousResults?.['Column Names'] || [];
-                const worksheetNames = previousResults?.['Column Name Mapping.Worksheet Name'] || 
-                                      previousResults?.['Worksheet Name'] || [];
-                
-                console.log(`  📊 Column Names: ${columnNames.length} items`);
-                console.log(`  📊 Worksheet Names: ${worksheetNames.length} items`);
-                
-                if (columnNames.length > 0 && worksheetNames.length > 0) {
-                  // Create the merged array
-                  const mergedArray: any[] = [];
-                  const maxLength = Math.min(columnNames.length, worksheetNames.length);
+                if (hasColumnRef && hasWorksheetRef) {
+                  console.log('  📌 FOUND THE LIST ITEM PARAMETER WITH REFERENCES!');
+                  console.log('  📌 Need to merge Column Names and Worksheet Name arrays');
                   
-                  for (let i = 0; i < maxLength; i++) {
-                    const columnItem = columnNames[i];
-                    const worksheetItem = worksheetNames[i];
+                  // Get the actual data from previousResults
+                  const columnNames = previousResults?.['Column Name Mapping.Column Names'] || 
+                                     previousResults?.['Column Names'] || [];
+                  const worksheetNames = previousResults?.['Column Name Mapping.Worksheet Name'] || 
+                                        previousResults?.['Worksheet Name'] || [];
+                  
+                  console.log(`  📊 Column Names: ${columnNames.length} items`);
+                  console.log(`  📊 Worksheet Names: ${worksheetNames.length} items`);
+                  
+                  if (columnNames.length > 0 && worksheetNames.length > 0) {
+                    // Create the merged array
+                    const mergedArray: any[] = [];
+                    const maxLength = Math.min(columnNames.length, worksheetNames.length);
                     
-                    const columnValue = columnItem?.extractedValue !== undefined ? 
-                                       columnItem.extractedValue : columnItem;
-                    const worksheetValue = worksheetItem?.extractedValue !== undefined ? 
-                                          worksheetItem.extractedValue : worksheetItem;
+                    for (let i = 0; i < maxLength; i++) {
+                      const columnItem = columnNames[i];
+                      const worksheetItem = worksheetNames[i];
+                      
+                      const columnValue = columnItem?.extractedValue !== undefined ? 
+                                         columnItem.extractedValue : columnItem;
+                      const worksheetValue = worksheetItem?.extractedValue !== undefined ? 
+                                            worksheetItem.extractedValue : worksheetItem;
+                      
+                      mergedArray.push({
+                        "Column Name": columnValue,
+                        "Worksheet Name": worksheetValue
+                      });
+                    }
                     
-                    mergedArray.push({
-                      "Column Name": columnValue,
-                      "Worksheet Name": worksheetValue
-                    });
+                    console.log(`  ✅ CREATED MERGED ARRAY: ${mergedArray.length} items`);
+                    console.log(`  📊 First item:`, JSON.stringify(mergedArray[0]));
+                    console.log(`  📊 Second item:`, JSON.stringify(mergedArray[1]));
+                    console.log(`  📊 Last item:`, JSON.stringify(mergedArray[mergedArray.length - 1]));
+                    
+                    // Replace the parameter with the merged array
+                    preparedInputValues[key] = mergedArray;
+                    console.log(`  ✅ REPLACED PARAMETER "${key}" WITH MERGED ARRAY`);
+                  } else {
+                    console.log('  ❌ ERROR: Missing data for merging!');
+                    console.log('  ❌ Column Names available:', columnNames.length > 0);
+                    console.log('  ❌ Worksheet Names available:', worksheetNames.length > 0);
                   }
-                  
-                  console.log(`  ✅ CREATED MERGED ARRAY: ${mergedArray.length} items`);
-                  console.log(`  📊 First item:`, JSON.stringify(mergedArray[0]));
-                  console.log(`  📊 Second item:`, JSON.stringify(mergedArray[1]));
-                  console.log(`  📊 Last item:`, JSON.stringify(mergedArray[mergedArray.length - 1]));
-                  
-                  // Replace the parameter with the merged array
-                  preparedInputValues[key] = mergedArray;
-                  console.log(`  ✅ REPLACED PARAMETER "${key}" WITH MERGED ARRAY`);
-                } else {
-                  console.log('  ❌ ERROR: Missing data for merging!');
-                  console.log('  ❌ Column Names available:', columnNames.length > 0);
-                  console.log('  ❌ Worksheet Names available:', worksheetNames.length > 0);
                 }
               }
             }

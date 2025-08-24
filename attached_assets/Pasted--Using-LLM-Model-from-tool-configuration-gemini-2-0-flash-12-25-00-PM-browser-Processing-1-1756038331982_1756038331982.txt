@@ -1,0 +1,71 @@
+ Using LLM Model from tool configuration: gemini-2.0-flash
+12:25:00 PM [browser] 📝   ⏳ Processing 177 items asynchronously...
+12:25:00 PM [express] POST /api/dev/console 200 in 7ms :: {"success":true}
+🎉 GEMINI TEST RESPONSE:
+--------------------------------------------------------------------------------
+```json
+[
+  {
+    "extractedValue": "Column Name",
+    "validationStatus": "valid",
+    "aiReasoning": "The AI identified 'Column Name' as the equivalent for column names in the knowledge document standard fields mapping based on the context provided in the 'Basic Data Items' and 'Main Pension Benefits' sections.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "valid",
+    "aiReasoning": "The item 'Worksheet Name' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  }
+]
+```...
+--------------------------------------------------------------------------------
+
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+[
+  {
+    "extractedValue": "Column Name",
+    "validationStatus": "valid",
+    "aiReasoning": "The AI identified 'Column Name' as the equivalent for column names in the knowledge document standard fields mapping based on the context provided in the 'Basic Data Items' and 'Main Pension Benefits' sections.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Document"
+  },
+  {
+    "extractedValue": "Not Found",
+    "validationStatus": "valid",
+    "aiReasoning": "The item 'Worksheet Name' does not appear in the reference document.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Document"
+  }
+]
+--------------------------------------------------------------------------------
+⚠️ Expected 2 results, got 2
+
+📤 [ASYNC] OUTPUT DATA FROM FUNCTION: AI Query Against Document
+============================================================
+Job ID: c1c14af9-3eef-45b9-bd01-e6f1fbf1dfa2
+Number of outputs: 2
+
+First 3 output items:
+  [0]: {
+  "extractedValue": "Column Name",
+  "validationStatus": "valid",
+  "aiReasoning": "The AI identified 'Column Name' as the equivalent for column names in the knowledge document standard fields mapping based on the context provided in the 'Basic Data Items' and 'Main Pension Benefits' sections.",
+  "confidenceScore": 95,
+  "documentSource": "Reference Document"
+}
+  [1]: {
+  "extractedValue": "Not Found",
+  "validationStatus": "valid",
+  "aiReasoning": "The item 'Worksheet Name' does not appear in the reference document.",
+  "confidenceScore": 100,
+  "documentSource": "Reference Document"
+}
+============================================================
+📊 Async job c1c14af9-3eef-45b9-bd01-e6f1fbf1dfa2 results: {
+  resultCount: 'not an array',
+  success: undefined,
+  firstItem: undefined
