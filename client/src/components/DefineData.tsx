@@ -717,7 +717,7 @@ export default function DefineData({
                     const allData: any[] = [];
                     
                     if (firstResultWithData.stepName === 'Column Name Mapping') {
-                      // Get results for each value type
+                      // Get results for each value type that exists
                       const columnNamesResult = testResults.find((r: any) => r.valueName === 'Column Names');
                       const worksheetResult = testResults.find((r: any) => r.valueName === 'Worksheet Name');
                       const standardResult = testResults.find((r: any) => r.valueName === 'Standard Equivalent');
@@ -749,12 +749,22 @@ export default function DefineData({
                           console.log('  Standard data[0]:', standardData[0]);
                         }
                         
-                        allData.push({
+                        const rowData: any = {
                           _stepName: 'Column Name Mapping',
-                          columnName: columnData[i]?.extractedValue || 'Unknown',
-                          worksheetName: worksheetData[i]?.extractedValue || 'Pending',
-                          standardEquivalent: standardData[i]?.extractedValue || 'Not Found'
-                        });
+                          columnName: columnData[i]?.extractedValue || 'Unknown'
+                        };
+                        
+                        // Only add worksheet name if that result exists
+                        if (worksheetResult) {
+                          rowData.worksheetName = worksheetData[i]?.extractedValue || 'Pending';
+                        }
+                        
+                        // Only add standard equivalent if that result exists  
+                        if (standardResult) {
+                          rowData.standardEquivalent = standardData[i]?.extractedValue || 'Not Found';
+                        }
+                        
+                        allData.push(rowData);
                       }
                     } else {
                       // For other steps, just combine normally
@@ -812,12 +822,16 @@ export default function DefineData({
                                     <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                       Column Names
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                      Worksheet Name
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                      Standard Equivalent
-                                    </th>
+                                    {testResults.find((r: any) => r.valueName === 'Worksheet Name') && (
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Worksheet Name
+                                      </th>
+                                    )}
+                                    {testResults.find((r: any) => r.valueName === 'Standard Equivalent') && (
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Standard Equivalent
+                                      </th>
+                                    )}
                                   </>
                                 ) : (
                                   // Generic headers
@@ -850,22 +864,26 @@ export default function DefineData({
                                     if (item._stepName === 'Column Name Mapping') {
                                       // Use the merged data structure
                                       const columnName = item.columnName || 'Unknown';
-                                      const worksheetName = item.worksheetName || 'Pending';
-                                      const standardEquivalent = item.standardEquivalent || 'Not Found';
+                                      const hasWorksheetName = testResults.find((r: any) => r.valueName === 'Worksheet Name');
+                                      const hasStandardEquivalent = testResults.find((r: any) => r.valueName === 'Standard Equivalent');
                                       
                                       return (
                                         <>
                                           <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                                             {columnName}
                                           </td>
-                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                            {worksheetName}
-                                          </td>
-                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                            <div className="max-w-xs truncate" title={standardEquivalent}>
-                                              {standardEquivalent}
-                                            </div>
-                                          </td>
+                                          {hasWorksheetName && (
+                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                              {item.worksheetName || 'Pending'}
+                                            </td>
+                                          )}
+                                          {hasStandardEquivalent && (
+                                            <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
+                                              <div className="max-w-xs truncate" title={item.standardEquivalent || 'Not Found'}>
+                                                {item.standardEquivalent || 'Not Found'}
+                                              </div>
+                                            </td>
+                                          )}
                                         </>
                                       );
                                     }
