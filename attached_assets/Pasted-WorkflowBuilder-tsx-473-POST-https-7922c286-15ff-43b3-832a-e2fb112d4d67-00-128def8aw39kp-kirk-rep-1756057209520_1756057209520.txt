@@ -1,0 +1,44 @@
+WorkflowBuilder.tsx:473  POST https://7922c286-15ff-43b3-832a-e2fb112d4d67-00-128def8aw39kp.kirk.replit.dev/api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/workflow 500 (Internal Server Error)
+saveFlow @ WorkflowBuilder.tsx:473
+onClick @ DefineData.tsx:431
+callCallback2 @ chunk-RPCDYKBN.js?v=95b528f6:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=95b528f6:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=95b528f6:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=95b528f6:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=95b528f6:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=95b528f6:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=95b528f6:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=95b528f6:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=95b528f6:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=95b528f6:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=95b528f6:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=95b528f6:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=95b528f6:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=95b528f6:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=95b528f6:5449Understand this error
+main.tsx:17 Failed to save workflow
+forwardToServer @ main.tsx:17
+console.error @ main.tsx:36
+saveFlow @ WorkflowBuilder.tsx:495
+await in saveFlow
+onClick @ DefineData.tsx:431
+callCallback2 @ chunk-RPCDYKBN.js?v=95b528f6:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=95b528f6:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=95b528f6:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=95b528f6:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=95b528f6:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=95b528f6:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=95b528f6:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=95b528f6:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=95b528f6:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=95b528f6:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=95b528f6:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=95b528f6:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=95b528f6:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=95b528f6:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=95b528f6:5449Understand this error
+main.tsx:17 📋 WORKFLOW DATA IN TEST MODAL: {steps: Array(3)}
+main.tsx:17   Steps count: 3
+main.tsx:17   Step: Data Fields, Values: []
+main.tsx:17   Step: Column Name Mapping, Values: (3) ['Column Names', 'Worksheet Name', 'Standard Mapping']
+main.tsx:17   Step: Missing Fields, Values: ['Missing Fields ID']

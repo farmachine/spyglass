@@ -3445,6 +3445,11 @@ class PostgreSQLStorage implements IStorage {
           .where(eq(fieldValidations.valueId, value.id));
       }
       
+      // Also update field_validations to remove references to the step itself
+      await this.db.update(fieldValidations)
+        .set({ stepId: null })
+        .where(eq(fieldValidations.stepId, id));
+      
       // Now delete all step values
       await this.db.delete(stepValues).where(eq(stepValues.stepId, id));
       // Then delete the step
@@ -3464,7 +3469,7 @@ class PostgreSQLStorage implements IStorage {
       
       console.log(`Deleting ${existingSteps.length} existing steps...`);
       
-      // First, we need to handle field_validations that reference these values
+      // First, we need to handle field_validations that reference these values and steps
       for (const step of existingSteps) {
         // Get all values for this step
         const values = await this.db.select().from(stepValues).where(eq(stepValues.stepId, step.id));
@@ -3475,6 +3480,11 @@ class PostgreSQLStorage implements IStorage {
             .set({ valueId: null })
             .where(eq(fieldValidations.valueId, value.id));
         }
+        
+        // Also update field_validations to remove references to the step itself
+        await this.db.update(fieldValidations)
+          .set({ stepId: null })
+          .where(eq(fieldValidations.stepId, step.id));
         
         // Now we can safely delete the step values
         await this.db.delete(stepValues).where(eq(stepValues.stepId, step.id));
