@@ -3527,21 +3527,35 @@ Thank you for your assistance.`;
                           <TableHeader>
                             <TableRow>
 
-                              {collection.properties
-                                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                .map((property) => (
-                                <TableHead 
-                                  key={property.id} 
-                                  className="relative border-r border-gray-300"
-                                  style={{ 
-                                    width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                      property.fieldType === 'TEXTAREA' ? 400 : 
-                                      property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                      property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                      property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                      property.fieldType === 'TEXT' ? 120 : 
-                                      property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                      property.propertyName.toLowerCase().includes('status') ? 100 :
+                              {(() => {
+                                // Check if we have workflow steps with values
+                                const workflowStep = project?.workflowSteps?.find(
+                                  step => step.stepName === collection.collectionName
+                                );
+                                
+                                // Use step values if available, otherwise fall back to collection properties
+                                const columnsToDisplay = workflowStep?.values || collection.properties;
+                                
+                                return columnsToDisplay
+                                  .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                  .map((column) => {
+                                    const columnId = column.id;
+                                    const columnName = workflowStep ? column.valueName : (column as any).propertyName;
+                                    const columnType = workflowStep ? column.dataType : (column as any).propertyType;
+                                    
+                                    return (
+                                      <TableHead 
+                                        key={columnId} 
+                                        className="relative border-r border-gray-300"
+                                        style={{ 
+                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
+                                            columnType === 'TEXTAREA' ? 400 : 
+                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                            columnType === 'TEXT' ? 120 : 
+                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
+                                            columnName.toLowerCase().includes('status') ? 100 :
                                       100
                                     )}px`,
                                     minWidth: '80px'
@@ -3549,19 +3563,21 @@ Thank you for your assistance.`;
                                 >
                                   <div className="flex items-center justify-between group">
                                     <button
-                                      onClick={() => handleSort(property.propertyName, collection.id)}
+                                      onClick={() => handleSort(columnName, collection.id)}
                                       className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
                                     >
-                                      <span className="truncate">{property.propertyName}</span>
-                                      {getSortIcon(property.propertyName, collection.id)}
+                                      <span className="truncate">{columnName}</span>
+                                      {getSortIcon(columnName, collection.id)}
                                     </button>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${property.id}`)}
+                                      onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
                                     />
                                   </div>
                                 </TableHead>
-                              ))}
+                                    );
+                                  });
+                              })()}
                               <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
@@ -3635,12 +3651,20 @@ Thank you for your assistance.`;
                           </TableHeader>
                           <TableBody>
                             {(() => {
+                              // Check if we have workflow steps with values
+                              const workflowStep = project?.workflowSteps?.find(
+                                step => step.stepName === collection.collectionName
+                              );
+                              
+                              // Use step values if available, otherwise fall back to collection properties
+                              const columnsToDisplay = workflowStep?.values || collection.properties;
+                              
                               // Handle empty collections by showing a placeholder row
                               if (uniqueIndices.length === 0) {
                                 return (
                                   <TableRow className="border-b border-gray-300">
                                     <TableCell 
-                                      colSpan={collection.properties.length + 1} 
+                                      colSpan={columnsToDisplay.length + 1} 
                                       className="text-center text-gray-500 py-8 italic"
                                     >
                                       No items yet. Click the + button to add the first item.
@@ -3662,17 +3686,20 @@ Thank you for your assistance.`;
                               
                               return sortedItems.map(({ item, originalIndex }) => (
                                 <TableRow key={originalIndex} className="border-b border-gray-300">
-                                  {collection.properties
+                                  {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((property) => {
-                                    const fieldName = `${collection.collectionName}.${property.propertyName}[${originalIndex}]`;
+                                    .map((column) => {
+                                    const columnId = column.id;
+                                    const columnName = workflowStep ? column.valueName : (column as any).propertyName;
+                                    const columnType = workflowStep ? column.dataType : (column as any).propertyType;
+                                    const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                     const validation = getValidation(fieldName);
                                     
                                     // Try multiple possible property name mappings for extracted data
                                     const possibleKeys = [
-                                      property.propertyName,
-                                      property.propertyName.toLowerCase(),
-                                      property.propertyName.charAt(0).toLowerCase() + property.propertyName.slice(1),
+                                      columnName,
+                                      columnName.toLowerCase(),
+                                      columnName.charAt(0).toLowerCase() + columnName.slice(1),
                                     ];
                                     
                                     let originalValue = undefined;
@@ -3690,17 +3717,17 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <TableCell 
-                                        key={property.id} 
+                                        key={columnId} 
                                         className="relative border-r border-gray-300"
                                         style={{ 
-                                          width: `${columnWidths[`${collection.id}-${property.id}`] || (
-                                            property.fieldType === 'TEXTAREA' ? 400 : 
-                                            property.propertyName.toLowerCase().includes('summary') || property.propertyName.toLowerCase().includes('description') ? 300 :
-                                            property.propertyName.toLowerCase().includes('remediation') || property.propertyName.toLowerCase().includes('action') ? 280 :
-                                            property.fieldType === 'TEXT' && (property.propertyName.toLowerCase().includes('title') || property.propertyName.toLowerCase().includes('name')) ? 200 :
-                                            property.fieldType === 'TEXT' ? 120 : 
-                                            property.fieldType === 'NUMBER' || property.fieldType === 'DATE' ? 80 :
-                                            property.propertyName.toLowerCase().includes('status') ? 100 :
+                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
+                                            columnType === 'TEXTAREA' ? 400 : 
+                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                            columnType === 'TEXT' ? 120 : 
+                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
+                                            columnName.toLowerCase().includes('status') ? 100 :
                                             100
                                           )}px`,
                                           minWidth: '80px'

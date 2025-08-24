@@ -231,6 +231,9 @@ export class MemStorage implements IStorage {
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
   private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
   private sampleDocuments: Map<string, SampleDocument>;
+  private workflowSteps: Map<string, WorkflowStep>;
+  private stepValues: Map<string, StepValue>;
+  private testDocuments: Map<string, TestDocument>;
 
   constructor() {
     this.organizations = new Map();
@@ -249,6 +252,9 @@ export class MemStorage implements IStorage {
     this.excelWizardryFunctions = new Map();
     this.extractionIdentifierReferences = new Map();
     this.sampleDocuments = new Map();
+    this.workflowSteps = new Map();
+    this.stepValues = new Map();
+    this.testDocuments = new Map();
     
     // Initialize with sample data for development
     this.initializeSampleData();
