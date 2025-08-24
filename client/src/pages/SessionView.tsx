@@ -3753,15 +3753,10 @@ Thank you for your assistance.`;
                   (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
                 );
                 
-                console.log(`Collection ${collection.collectionName} - found ${collectionValidations.length} validations:`, 
-                  collectionValidations.map(v => ({ fieldName: v.fieldName, recordIndex: v.recordIndex, collectionName: v.collectionName })));
-                
                 const validationIndices = collectionValidations.length > 0 ? 
                   collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                 const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                 const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
-                
-                console.log(`Collection ${collection.collectionName} - uniqueIndices:`, uniqueIndices);
                 
                 // Always show the table even when there are no records, so headers remain visible
 
@@ -3807,6 +3802,8 @@ Thank you for your assistance.`;
                                 
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
+                                
+
                                 
                                 return columnsToDisplay
                                   .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -3973,6 +3970,8 @@ Thank you for your assistance.`;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
                                     const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                     const validation = getValidation(fieldName);
+                                    
+
                                     
                                     // Try multiple possible property name mappings for extracted data
                                     const possibleKeys = [
