@@ -1902,6 +1902,16 @@ export default function SessionView() {
       for (const recordIndex of uniqueIndices) {
         const recordData: any = {};
         
+        // Get the identifier ID for this record
+        const firstColumnValidation = validations.find(v => 
+          v.recordIndex === recordIndex && 
+          (v.collectionName === stepName || v.fieldName?.startsWith(`${stepName}.`))
+        );
+        
+        if (firstColumnValidation?.identifierId) {
+          recordData.identifierId = firstColumnValidation.identifierId;
+        }
+        
         // Iterate through previous columns
         for (let i = 0; i < valueIndex; i++) {
           const prevValue = workflowStep.values[i];
@@ -4321,8 +4331,8 @@ Thank you for your assistance.`;
             setSelectedExtractionDoc("");
           }
         }}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Extract {columnExtractionModal.valueName}</DialogTitle>
               <DialogDescription>
                 {columnExtractionModal.needsDocument 
@@ -4331,7 +4341,7 @@ Thank you for your assistance.`;
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
               {/* Document Selection */}
               {columnExtractionModal.needsDocument && sessionDocuments && sessionDocuments.length > 0 && (
                 <div className="space-y-2">
@@ -4354,27 +4364,41 @@ Thank you for your assistance.`;
               {/* Input Data Preview */}
               <div className="space-y-2">
                 <Label>Input Data ({columnExtractionModal.previousData.length} records)</Label>
-                <div className="max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                <div className="border rounded-lg bg-gray-50 dark:bg-gray-900">
                   {columnExtractionModal.previousData.length > 0 ? (
-                    <div className="space-y-2 text-sm">
-                      {columnExtractionModal.previousData.slice(0, 5).map((record, idx) => (
-                        <div key={idx} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                          <div className="font-mono text-xs">
-                            Record {idx + 1}:
+                    <div className="p-3 space-y-2">
+                      {columnExtractionModal.previousData.slice(0, 5).map((record, idx) => {
+                        // Extract the identifier ID if it exists
+                        const identifierId = record.identifierId || record.id || `record-${idx}`;
+                        
+                        return (
+                          <div key={idx} className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-mono text-xs text-gray-600 dark:text-gray-400">
+                                Record {idx + 1}
+                              </span>
+                              {identifierId && (
+                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                  ID: {identifierId}
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-900 rounded p-2 overflow-x-auto">
+                              <pre className="text-xs font-mono whitespace-pre">
+                                {JSON.stringify(record, null, 2)}
+                              </pre>
+                            </div>
                           </div>
-                          <pre className="mt-1 text-xs overflow-x-auto">
-                            {JSON.stringify(record, null, 2)}
-                          </pre>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {columnExtractionModal.previousData.length > 5 && (
-                        <div className="text-center text-gray-500 dark:text-gray-400 text-xs">
+                        <div className="text-center text-gray-500 dark:text-gray-400 text-xs py-2">
                           ... and {columnExtractionModal.previousData.length - 5} more records
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="text-gray-500 dark:text-gray-400 text-sm">
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
                       No previous data available. This will be the first extraction for this step.
                     </div>
                   )}
@@ -4382,7 +4406,7 @@ Thank you for your assistance.`;
               </div>
             </div>
             
-            <div className="flex justify-end gap-3 mt-4">
+            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 border-t">
               <Button 
                 variant="outline" 
                 onClick={() => {
