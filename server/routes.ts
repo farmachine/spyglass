@@ -2220,9 +2220,65 @@ except Exception as e:
             console.log('📝 Processing input values for tool:', JSON.stringify(workflowValue.inputValues, null, 2));
             console.log('📝 Input value keys:', Object.keys(workflowValue.inputValues));
             
-            // First, check if we need to get data from previous steps
+            // First, check if this is the ID extraction - needs the Excel document
+            if (workflowValue.valueName === 'ID') {
+              console.log('📊 Preparing Excel document for ID extraction');
+              
+              // The ID extraction tool needs the Excel file
+              // Check if we have Excel files in the session
+              const excelFile = convertedFiles.find((f: any) => 
+                f.file_type?.includes('excel') || 
+                f.file_type?.includes('spreadsheet') ||
+                f.original_name?.endsWith('.xlsx') ||
+                f.original_name?.endsWith('.xls')
+              );
+              
+              if (excelFile) {
+                console.log(`📊 Found Excel file: ${excelFile.original_name}`);
+                // Set the Excel file content for the tool
+                // The tool expects the parameter ID "0.my684050njo" for Excel File
+                toolInputs['0.my684050njo'] = excelFile.file_content || '';
+                toolInputs['Excel File'] = excelFile.file_content || '';
+                console.log(`📊 Set Excel file content (${excelFile.file_content?.length || 0} chars)`);
+              } else {
+                console.error('❌ No Excel file found in session documents!');
+                // Try to use any available document content
+                if (convertedFiles.length > 0) {
+                  toolInputs['0.my684050njo'] = convertedFiles[0].file_content || '';
+                  toolInputs['Excel File'] = convertedFiles[0].file_content || '';
+                  console.log('⚠️ Using first available document as fallback');
+                }
+              }
+            }
+            // For Worksheet Name, we need to get the Column Name data from previous step
+            else if (workflowValue.valueName === 'Worksheet Name') {
+              console.log('📊 Preparing Column Name data for Worksheet Name extraction');
+              
+              // Get ID column data from existing validations
+              const idValidations = existingValidations.filter((v: any) => 
+                v.valueId === '3a91ea85-ed02-41cf-a607-a8d9a21d6fdf' // ID value
+              );
+              
+              console.log(`📊 Found ${idValidations.length} ID records`);
+              
+              if (idValidations.length > 0) {
+                // Map ID values for the tool
+                const columnData = idValidations.map((v: any) => ({
+                  identifierId: v.identifierId || `record-${v.recordIndex}`,
+                  extractedValue: v.extractedValue || '',
+                  recordIndex: v.recordIndex
+                }));
+                
+                // The Worksheet Name tool expects column reference "@ID"
+                toolInputs['column'] = columnData;
+                toolInputs['@ID'] = columnData;
+                console.log(`📊 Set ${columnData.length} column names for worksheet extraction`);
+              } else {
+                console.error('❌ No ID column data found for Worksheet Name extraction!');
+              }
+            }
             // For Standard Equivalent, we need to merge Column Name and Worksheet Name data
-            if (workflowValue.valueName === 'Standard Equivalent') {
+            else if (workflowValue.valueName === 'Standard Equivalent') {
               console.log('🔄 Preparing merged data for Standard Equivalent extraction');
               
               // Get Column Name and Worksheet Name data from existing validations
