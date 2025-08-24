@@ -6234,8 +6234,53 @@ def extract_function(Column_Name, Excel_File):
         
         // Look for references to previous columns (e.g., @Column Names)
         for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
-          if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
-            // This is a reference to a previous column
+          // Check if paramValue is an array of references (like ["@Column Name Mapping.Column Names", "@Column Name Mapping.Worksheet Name"])
+          if (Array.isArray(paramValue)) {
+            console.log(`🔄 Processing array parameter ${paramName} with ${paramValue.length} items`);
+            
+            // Check if array contains references
+            const hasReferences = paramValue.some(item => typeof item === 'string' && item.startsWith('@'));
+            
+            if (hasReferences && previousData && previousData.length > 0) {
+              // This is an array of column references - combine data from multiple columns
+              const combinedData: any[] = [];
+              
+              console.log(`📊 Building combined data from ${previousData.length} records`);
+              
+              // For each record in previousData
+              previousData.forEach((record, idx) => {
+                const combinedRecord: any = {};
+                
+                // Process each reference in the array
+                for (const ref of paramValue) {
+                  if (typeof ref === 'string' && ref.startsWith('@')) {
+                    const refColumn = ref.substring(1);
+                    let refColumnName = refColumn;
+                    
+                    if (refColumn.includes('.')) {
+                      const parts = refColumn.split('.');
+                      refColumnName = parts[parts.length - 1];
+                    }
+                    
+                    // Add this column's value to the combined record
+                    combinedRecord[refColumnName] = record[refColumnName];
+                  }
+                }
+                
+                combinedData.push(combinedRecord);
+              });
+              
+              console.log(`📊 Combined ${combinedData.length} records from multiple references`);
+              console.log(`  First 3 combined records:`, combinedData.slice(0, 3));
+              console.log(`  Last combined record:`, combinedData[combinedData.length - 1]);
+              toolInputs[paramName] = combinedData;
+            } else {
+              // Direct array value (like document IDs)
+              console.log(`➡️ Direct array value for ${paramName}:`, paramValue);
+              toolInputs[paramName] = paramValue;
+            }
+          } else if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
+            // This is a single reference to a previous column
             const referencedColumn = paramValue.substring(1); // Remove @ symbol
             console.log(`🔗 Processing reference: ${paramValue} -> ${referencedColumn}`);
             
@@ -6253,49 +6298,16 @@ def extract_function(Column_Name, Excel_File):
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
               
-              // Check if this is an array parameter (for List Item in AI tools)
-              if (Array.isArray(paramValue)) {
-                // Handle array of references - combine data from multiple columns
-                const combinedData: any[] = [];
-                
-                for (const ref of paramValue) {
-                  if (typeof ref === 'string' && ref.startsWith('@')) {
-                    const refColumn = ref.substring(1);
-                    let refColumnName = refColumn;
-                    
-                    if (refColumn.includes('.')) {
-                      const parts = refColumn.split('.');
-                      refColumnName = parts[parts.length - 1];
-                    }
-                    
-                    console.log(`  Processing array reference: ${ref} -> ${refColumnName}`);
-                    
-                    // For each record, create an object with the referenced column data
-                    previousData.forEach((record, idx) => {
-                      if (!combinedData[idx]) {
-                        combinedData[idx] = {};
-                      }
-                      combinedData[idx][refColumnName] = record[refColumnName];
-                    });
-                  }
-                }
-                
-                console.log(`📊 Combined ${combinedData.length} records from multiple references`);
-                console.log(`  Sample combined records:`, combinedData.slice(0, 3));
-                console.log(`  Last combined record:`, combinedData[combinedData.length - 1]);
-                toolInputs[paramName] = combinedData;
-              } else {
-                // Single reference - format data with identifierId
-                const columnValues = previousData.map(record => ({
-                  identifierId: record.identifierId,
-                  name: record[actualColumnName] // Use the extracted column name
-                })).filter(item => item.name !== undefined);
-                
-                console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
-                  columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
-                
-                toolInputs[paramName] = columnValues;
-              }
+              // Single reference - format data with identifierId
+              const columnValues = previousData.map(record => ({
+                identifierId: record.identifierId,
+                name: record[actualColumnName] // Use the extracted column name
+              })).filter(item => item.name !== undefined);
+              
+              console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
+                columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+              
+              toolInputs[paramName] = columnValues;
             } else {
               console.log(`⚠️ No previous data available for reference ${paramValue}`);
             }
