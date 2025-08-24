@@ -969,14 +969,28 @@ try:
             param_name = param['name']
             param_id = param.get('id', param_name)
             # Check both by name and by ID
-            if param_name in inputs and isinstance(inputs[param_name], list):
-                sample_data_records = inputs[param_name]
-                has_sample_data = True
-                break
-            elif param_id in inputs and isinstance(inputs[param_id], list):
-                sample_data_records = inputs[param_id]
-                has_sample_data = True
-                break
+            if param_name in inputs:
+                input_data = inputs[param_name]
+                # Handle data structure with 'rows' property
+                if isinstance(input_data, dict) and 'rows' in input_data:
+                    sample_data_records = input_data['rows']
+                    has_sample_data = True
+                    break
+                elif isinstance(input_data, list):
+                    sample_data_records = input_data
+                    has_sample_data = True
+                    break
+            elif param_id in inputs:
+                input_data = inputs[param_id]
+                # Handle data structure with 'rows' property
+                if isinstance(input_data, dict) and 'rows' in input_data:
+                    sample_data_records = input_data['rows']
+                    has_sample_data = True
+                    break
+                elif isinstance(input_data, list):
+                    sample_data_records = input_data
+                    has_sample_data = True
+                    break
     
     if has_sample_data and output_type == 'multiple':
         # Iterate over each record in sample data
