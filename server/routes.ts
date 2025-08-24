@@ -6259,7 +6259,21 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/projects/:projectId/test-workflow", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
-      const { documentId, documentContent, valueConfig, previousResults, async: useAsync } = req.body;
+      const { documentId, documentContent: frontendDocContent, valueConfig, previousResults, async: useAsync } = req.body;
+      
+      // Load the test document content from database if we have a documentId
+      let documentContent = frontendDocContent;
+      if (documentId) {
+        console.log('📄 Loading test document from database:', documentId);
+        const testDoc = await storage.getTestDocument(documentId);
+        if (testDoc && testDoc.extractedContent) {
+          documentContent = testDoc.extractedContent;
+          console.log('  ✅ Loaded document content from DB:', documentContent.length, 'chars');
+          console.log('  📋 Content has sheet markers:', documentContent.includes('=== Sheet:'));
+        } else {
+          console.log('  ⚠️ Test document not found or has no content, using frontend content');
+        }
+      }
       
       console.log('🧪 Test Workflow Request:');
       console.log('  Project:', projectId);
