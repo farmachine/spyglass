@@ -6158,6 +6158,149 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Individual column extraction endpoint
+  app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { stepId, valueId, previousData } = req.body;
+      
+      console.log(`📊 Running individual column extraction for session ${sessionId}`);
+      console.log(`   Step ID: ${stepId}, Value ID: ${valueId}`);
+      console.log(`   Previous data records: ${previousData?.length || 0}`);
+      
+      // Get the step and value details
+      const step = await storage.getWorkflowStep(stepId);
+      if (!step) {
+        return res.status(404).json({ message: "Workflow step not found" });
+      }
+      
+      const value = await storage.getStepValue(valueId);
+      if (!value) {
+        return res.status(404).json({ message: "Step value not found" });
+      }
+      
+      // Get the tool for this value
+      const tool = await storage.getExcelWizardryFunction(value.toolId);
+      if (!tool) {
+        return res.status(404).json({ message: "Tool not found for this value" });
+      }
+      
+      console.log(`🔧 Using tool: ${tool.name} (${tool.toolType})`);
+      
+      // Get session documents
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const sessionDocuments = await storage.getSessionDocuments(sessionId);
+      const primaryDoc = sessionDocuments.find(d => d.isPrimary);
+      
+      if (!primaryDoc || !primaryDoc.extractedContent) {
+        return res.status(400).json({ message: "No primary document content available" });
+      }
+      
+      // Prepare inputs for the tool
+      let toolInputs: any = {};
+      
+      // If this tool expects previous column data, format it appropriately
+      if (value.inputValues && Object.keys(value.inputValues).length > 0) {
+        // Look for references to previous columns (e.g., @Column Names)
+        for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
+          if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
+            // This is a reference to a previous column
+            const referencedColumn = paramValue.substring(1); // Remove @ symbol
+            
+            // Extract the values from previousData for this column
+            if (previousData && previousData.length > 0) {
+              // For array inputs, extract the column values as an array
+              const columnValues = previousData.map(record => record[referencedColumn]).filter(v => v !== undefined);
+              toolInputs[paramName] = columnValues;
+            }
+          } else {
+            // Direct value
+            toolInputs[paramName] = paramValue;
+          }
+        }
+      }
+      
+      // Add document content if the tool expects it
+      if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
+        toolInputs.document = primaryDoc.extractedContent;
+      }
+      
+      console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs).substring(0, 200) + '...');
+      
+      // Execute the tool using the tool engine
+      const { toolEngine } = await import("./toolEngine");
+      const results = await toolEngine.testTool({
+        id: tool.id,
+        name: tool.name,
+        description: tool.description,
+        toolType: tool.toolType,
+        inputParameters: tool.inputParameters || [],
+        functionCode: tool.functionCode,
+        aiPrompt: tool.aiPrompt || tool.description,
+        outputType: tool.outputType,
+        llmModel: tool.llmModel,
+        metadata: tool.metadata || {}
+      }, toolInputs);
+      
+      console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
+      
+      // Save the results as field validations
+      if (results && results.length > 0) {
+        // Delete existing validations for this value
+        const existingValidations = await storage.getFieldValidations(sessionId);
+        const valueValidations = existingValidations.filter(v => 
+          v.valueId === valueId || 
+          (v.fieldName && v.fieldName.startsWith(`${step.stepName}.${value.valueName}`))
+        );
+        
+        for (const validation of valueValidations) {
+          await storage.deleteFieldValidation(validation.id);
+        }
+        
+        // Create new validations for each result
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          await storage.createFieldValidation({
+            id: crypto.randomUUID(),
+            sessionId: sessionId,
+            fieldId: valueId,
+            valueId: valueId,
+            stepId: stepId,
+            recordIndex: i,
+            extractedValue: result.extractedValue,
+            validationType: 'collection_property',
+            validationStatus: result.validationStatus || 'pending',
+            aiReasoning: result.aiReasoning,
+            confidenceScore: result.confidenceScore,
+            documentSource: result.documentSource || primaryDoc.fileName,
+            originalExtractedValue: result.extractedValue,
+            originalAiReasoning: result.aiReasoning,
+            originalConfidenceScore: result.confidenceScore,
+            manuallyVerified: false,
+            manuallyUpdated: false,
+            extractedAt: new Date()
+          });
+        }
+        
+        console.log(`💾 Saved ${results.length} validation records`);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Extracted ${results?.length || 0} values for ${value.valueName}`,
+        resultsCount: results?.length || 0
+      });
+      
+    } catch (error) {
+      console.error("Column extraction error:", error);
+      res.status(500).json({ message: "Failed to extract column data" });
+    }
+  });
+
   // Object Storage Routes
   app.post("/api/objects/upload", authenticateToken, async (req: AuthRequest, res) => {
     try {

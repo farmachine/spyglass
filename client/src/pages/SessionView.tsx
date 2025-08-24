@@ -1849,6 +1849,84 @@ export default function SessionView() {
     }
   };
 
+  // Handler for running extraction on a single column
+  const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
+    console.log(`Running extraction for column: ${valueName} (${valueId}) in step: ${stepName}`);
+    
+    try {
+      // Get the workflow step
+      const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+      if (!workflowStep) {
+        console.error('Workflow step not found:', stepName);
+        return;
+      }
+      
+      // Get the specific value to run
+      const valueToRun = workflowStep.values?.find(v => v.id === valueId);
+      if (!valueToRun) {
+        console.error('Value not found:', valueId);
+        return;
+      }
+      
+      // Compile previous column data as input
+      // For columns that have already been extracted, use their validated data
+      const previousColumnsData: any[] = [];
+      
+      // If this is not the first column, gather data from previous columns
+      const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
+      if (valueIndex > 0 && workflowStep.values) {
+        // Get all unique record indices for this collection
+        const collectionValidations = validations.filter(v => 
+          v.collectionName === stepName || 
+          (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+        );
+        
+        const uniqueIndices = [...new Set(collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null))];
+        
+        // For each record, compile data from previous columns
+        for (const recordIndex of uniqueIndices) {
+          const recordData: any = {};
+          
+          // Iterate through previous columns
+          for (let i = 0; i < valueIndex; i++) {
+            const prevValue = workflowStep.values[i];
+            const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+            const validation = getValidation(fieldName);
+            
+            if (validation && validation.extractedValue) {
+              recordData[prevValue.valueName] = validation.extractedValue;
+            }
+          }
+          
+          // Only add if we have some data
+          if (Object.keys(recordData).length > 0) {
+            previousColumnsData.push(recordData);
+          }
+        }
+      }
+      
+      console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
+      
+      // Call the extraction endpoint for this specific value
+      const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
+        method: 'POST',
+        body: JSON.stringify({
+          stepId: workflowStep.id,
+          valueId: valueId,
+          previousData: previousColumnsData
+        })
+      });
+      
+      console.log('Column extraction response:', response);
+      
+      // Refresh validations to show the new extracted data
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+    } catch (error) {
+      console.error('Error running column extraction:', error);
+    }
+  };
+
   // Handler for verifying all items in a collection
   const handleVerifyAllCollectionItems = (collectionName: string, shouldVerify: boolean) => {
     console.log(`${shouldVerify ? 'Verifying' : 'Unverifying'} all items in collection: ${collectionName}`);
@@ -3676,6 +3754,13 @@ Thank you for your assistance.`;
                                     >
                                       <span className="truncate">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
+                                    </button>
+                                    <button
+                                      onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-blue-100 rounded"
+                                      title={`Run extraction for ${columnName}`}
+                                    >
+                                      <Wand2 className="h-4 w-4 text-blue-600" />
                                     </button>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
