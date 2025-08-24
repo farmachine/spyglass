@@ -6391,6 +6391,14 @@ def extract_function(Column_Name, Excel_File):
           console.log('  Input values to process:', JSON.stringify(valueConfig.inputValues, null, 2));
           console.log('  Previous results keys available:', previousResults ? Object.keys(previousResults) : 'None');
           
+          // Extra debugging for exact key matching
+          if (previousResults) {
+            console.log('  📋 Detailed previousResults structure:');
+            for (const [key, value] of Object.entries(previousResults)) {
+              console.log(`    "${key}" => ${Array.isArray(value) ? `Array[${value.length}]` : typeof value}`);
+            }
+          }
+          
           // Special logging for Standard Mapping
           if (valueConfig.valueName === 'Standard Mapping') {
             console.log('🎯 SPECIAL DEBUG FOR STANDARD MAPPING:');
