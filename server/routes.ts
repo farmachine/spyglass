@@ -6436,8 +6436,89 @@ def extract_function(Column_Name, Excel_File):
           for (const [key, value] of Object.entries(preparedInputValues)) {
             console.log(`  Processing key "${key}" with value:`, JSON.stringify(value));
             console.log(`    Value type: ${typeof value}, isArray: ${Array.isArray(value)}`);
+            
+            // Handle comma-separated string of references
+            if (typeof value === 'string' && value.includes('@') && value.includes(',')) {
+              console.log(`  📌 Detected comma-separated references in string: "${value}"`);
+              const references = value.split(',').map(ref => ref.trim());
+              console.log(`  Split into ${references.length} references:`, references);
+              
+              // Process as if it were an array of references
+              const allReferences = references.filter(ref => ref.startsWith('@'));
+              if (allReferences.length > 0) {
+                console.log(`  Found ${allReferences.length} @ references to resolve`);
+                
+                // Collect all referenced data
+                const allReferencedData: any[] = [];
+                const referenceMap: {[key: string]: any[]} = {};
+                
+                for (const ref of allReferences) {
+                  const referencePath = ref.slice(1); // Remove @ prefix
+                  console.log(`    Processing reference: ${ref} -> ${referencePath}`);
+                  
+                  if (previousResults && previousResults[referencePath]) {
+                    const previousData = previousResults[referencePath];
+                    referenceMap[referencePath] = previousData;
+                    console.log(`      ✅ Found ${Array.isArray(previousData) ? previousData.length : 1} items for ${referencePath}`);
+                  } else {
+                    console.log(`      ⚠️ No previous results found for ${referencePath}`);
+                    
+                    // Try alternate key formats  
+                    const alternateKeys = [
+                      referencePath.replace('Column Name Mapping.', ''),  // Try without step name
+                      referencePath.split('.').pop() || referencePath,  // Try just the value name
+                    ];
+                    
+                    for (const altKey of alternateKeys) {
+                      if (previousResults && previousResults[altKey]) {
+                        console.log(`        ✅ Found data with alternate key: "${altKey}"`);
+                        referenceMap[referencePath] = previousResults[altKey];
+                        break;
+                      }
+                    }
+                  }
+                }
+                
+                // Merge the referenced data by index
+                if (Object.keys(referenceMap).length > 0) {
+                  console.log(`  📊 Merging ${Object.keys(referenceMap).length} reference results`);
+                  
+                  const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
+                    Array.isArray(arr) ? arr.length : 1
+                  ));
+                  
+                  // Create merged objects for AI processing
+                  for (let i = 0; i < maxLength; i++) {
+                    const mergedItem: any = {};
+                    
+                    for (const [refPath, data] of Object.entries(referenceMap)) {
+                      const valueName = refPath.split('.').pop() || refPath;
+                      
+                      if (Array.isArray(data) && data[i]) {
+                        const item = data[i];
+                        const extractedValue = item?.extractedValue !== undefined ? item.extractedValue : item;
+                        mergedItem[valueName] = extractedValue;
+                      }
+                    }
+                    
+                    if (Object.keys(mergedItem).length > 0) {
+                      allReferencedData.push(mergedItem);
+                    }
+                  }
+                  
+                  console.log(`    ✨ Created ${allReferencedData.length} merged items`);
+                  if (allReferencedData.length > 0) {
+                    console.log(`    First merged item:`, allReferencedData[0]);
+                  }
+                  
+                  // Replace the string with the merged data array
+                  preparedInputValues[key] = allReferencedData;
+                  console.log(`    ✅ Replaced comma-separated references with ${allReferencedData.length} merged items`);
+                }
+              }
+            }
             // Handle array of references (can be multiple like ["@Step.Value1", "@Step.Value2"])
-            if (Array.isArray(value) && value.length > 0) {
+            else if (Array.isArray(value) && value.length > 0) {
               // Check if all elements are references
               const allReferences = value.filter(v => typeof v === 'string' && v.startsWith('@'));
               
