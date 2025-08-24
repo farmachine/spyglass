@@ -3818,7 +3818,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300"
+                                        className="relative border-r border-gray-300 dark:border-gray-600/30"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -3941,7 +3941,7 @@ Thank you for your assistance.`;
                               // Handle empty collections by showing a placeholder row
                               if (uniqueIndices.length === 0) {
                                 return (
-                                  <TableRow className="border-b border-gray-300">
+                                  <TableRow className="border-b border-gray-300 dark:border-gray-600/30">
                                     <TableCell 
                                       colSpan={columnsToDisplay.length + 1} 
                                       className="text-center text-gray-500 py-8 italic"
@@ -3964,7 +3964,7 @@ Thank you for your assistance.`;
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
                               return sortedItems.map(({ item, originalIndex }) => (
-                                <TableRow key={originalIndex} className="border-b border-gray-300">
+                                <TableRow key={originalIndex} className="border-b border-gray-300 dark:border-gray-600/30">
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((column) => {
@@ -3997,7 +3997,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300"
+                                        className="relative border-r border-gray-300 dark:border-gray-600/30"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4110,7 +4110,7 @@ Thank you for your assistance.`;
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="border-r border-gray-300">
+                                  <TableCell className="border-r border-gray-300 dark:border-gray-600/30">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item using improved filtering
