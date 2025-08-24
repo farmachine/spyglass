@@ -2274,7 +2274,7 @@ export default function SessionView() {
     const fieldValidations = validations.filter(v => v.fieldName === fieldName);
     
     if (fieldValidations.length === 0) {
-      console.log(`No validation found for ${fieldName}, available validations:`, validations.map(v => v.fieldName));
+      // Removed verbose logging - validation not found is expected for unprocessed fields
       return undefined;
     }
     
@@ -4136,11 +4136,7 @@ Thank you for your assistance.`;
                                             (v?.validationStatus === 'manual' && v?.manuallyVerified)
                                           );
                                         
-                                        console.log(`Verification status for ${collection.collectionName}[${originalIndex}]:`, {
-                                          itemValidations: itemValidations.length,
-                                          allVerified,
-                                          validations: itemValidations.map(v => ({ id: v.id, fieldName: v.fieldName, status: v.validationStatus }))
-                                        });
+                                        // Removed verbose verification status logging
                                         
                                         return (
                                           <button
