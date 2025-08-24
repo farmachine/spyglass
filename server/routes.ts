@@ -2255,7 +2255,11 @@ except Exception as e:
                 collectionName: workflowStep.stepName,
                 recordIndex: currentRecordIndex + i,
                 confidenceScore: result.confidenceScore || 0.9,
-                aiReasoning: result.aiReasoning || 'Extracted via tool engine'
+                aiReasoning: result.aiReasoning || 'Extracted via tool engine',
+                dataType: 'text',  // Add required data_type field
+                stepId: step_id,   // Add step_id for workflow tracking
+                valueId: value_id,  // Add value_id for workflow tracking
+                identifierId: workflowStep.identifierId  // Add identifier for reference chaining
               };
               
               await storage.createFieldValidation(validation);
