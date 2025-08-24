@@ -494,7 +494,10 @@ export default function DefineData({
       {/* Test Modal */}
       <Dialog open={testModalOpen} onOpenChange={(open) => {
         setTestModalOpen(open);
-        if (!open) {
+        if (open) {
+          // Refetch workflow data when opening the modal to ensure it's up to date
+          refetchWorkflow();
+        } else {
           setTestResults([]); // Clear results when closing
           setTestResultsPage(1); // Reset pagination
         }
