@@ -3435,7 +3435,17 @@ class PostgreSQLStorage implements IStorage {
 
   async deleteWorkflowStep(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
-      // First delete all step values
+      // First, get all values for this step
+      const values = await this.db.select().from(stepValues).where(eq(stepValues.stepId, id));
+      
+      // Update field_validations to remove references to these values
+      for (const value of values) {
+        await this.db.update(fieldValidations)
+          .set({ valueId: null })
+          .where(eq(fieldValidations.valueId, value.id));
+      }
+      
+      // Now delete all step values
       await this.db.delete(stepValues).where(eq(stepValues.stepId, id));
       // Then delete the step
       const result = await this.db.delete(workflowSteps).where(eq(workflowSteps.id, id));
@@ -3454,7 +3464,19 @@ class PostgreSQLStorage implements IStorage {
       
       console.log(`Deleting ${existingSteps.length} existing steps...`);
       
+      // First, we need to handle field_validations that reference these values
       for (const step of existingSteps) {
+        // Get all values for this step
+        const values = await this.db.select().from(stepValues).where(eq(stepValues.stepId, step.id));
+        
+        // Update field_validations to remove references to these values
+        for (const value of values) {
+          await this.db.update(fieldValidations)
+            .set({ valueId: null })
+            .where(eq(fieldValidations.valueId, value.id));
+        }
+        
+        // Now we can safely delete the step values
         await this.db.delete(stepValues).where(eq(stepValues.stepId, step.id));
       }
       await this.db.delete(workflowSteps).where(eq(workflowSteps.projectId, projectId));
