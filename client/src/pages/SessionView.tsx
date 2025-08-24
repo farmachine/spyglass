@@ -1865,7 +1865,7 @@ export default function SessionView() {
 
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
-    console.log(`Preparing extraction for column: ${valueName} (${valueId}) in step: ${stepName}`);
+    console.log(`🎯 Wand clicked for column: ${valueName} (${valueId}) in step: ${stepName}`);
     
     // Get the workflow step
     const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
@@ -1947,13 +1947,18 @@ export default function SessionView() {
       needsDocument
     });
     
-    console.log('Session documents available:', sessionDocuments);
+    console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
+    if (sessionDocuments && sessionDocuments.length > 0) {
+      console.log('🎯 Documents:', sessionDocuments.map(d => ({ id: d.id, fileName: d.fileName })));
+    }
     
     // If documents exist, pre-select the primary document
     const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
     if (primaryDoc) {
-      console.log('Pre-selecting document:', primaryDoc);
+      console.log('🎯 Pre-selecting document:', primaryDoc.id, primaryDoc.fileName);
       setSelectedExtractionDoc(primaryDoc.id);
+    } else {
+      console.log('🎯 No documents found to pre-select');
     }
   };
   
