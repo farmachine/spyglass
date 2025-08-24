@@ -429,7 +429,7 @@ export class ToolEngine {
       // For AI tools, use larger batch size to complete faster
       // Process more items per batch to reduce total number of API calls
       const AI_BATCH_THRESHOLD = 10;
-      const AI_BATCH_SIZE = 10; // Process 10 items at a time for AI tools
+      const AI_BATCH_SIZE = 5; // Process 5 items at a time for AI tools (smaller batches for better accuracy)
       
       // If we have large arrays, process in batches
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
@@ -460,12 +460,13 @@ export class ToolEngine {
             // Process batch
             const batchPrompt = this.buildTestPrompt(tool, batchInputs);
             
-            // Add delay between batches to respect Gemini API rate limits (15 requests/minute)
-            // For free tier: 15 requests/minute = 1 request every 4 seconds
-            // Add delay only after every 3rd batch to stay well under limits
-            if (i > 0 && (Math.floor(i / AI_BATCH_SIZE) % 3 === 0)) {
-              console.log(`  ⏳ Waiting 12 seconds after 3 batches to avoid rate limits...`);
-              await new Promise(resolve => setTimeout(resolve, 12000)); // 12 seconds after every 3 batches
+            // Add delay between batches to respect Gemini API rate limits
+            // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
+            // Add a small delay between each batch to stay under limits
+            if (i > 0) {
+              // Wait 2 seconds between batches to ensure we stay well under the 60 req/min limit
+              console.log(`  ⏳ Waiting 2 seconds before next batch...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             const response = await genAI.models.generateContent({
