@@ -326,10 +326,10 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded animate-pulse"></div>
+            <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -339,9 +339,9 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">Tools</h2>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Tools</h2>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             {tools?.length || 0} tools available
           </div>
           <CreateToolDialog 
@@ -354,15 +354,15 @@ export default function Tools({ projectId }: ExcelToolsProps) {
 
       <div className="space-y-4">
         {tools?.map((tool) => (
-          <Card key={tool.id} className="border-gray-200 hover:shadow-md transition-shadow bg-white">
+          <Card key={tool.id} className="border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-slate-900">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                     {tool.toolType === 'AI' ? (
-                      <Brain className="h-5 w-5 text-gray-600" />
+                      <Brain className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     ) : (
-                      <Code className="h-5 w-5 text-gray-600" />
+                      <Code className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     )}
                     {tool.name}
                   </CardTitle>
@@ -371,16 +371,16 @@ export default function Tools({ projectId }: ExcelToolsProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-4">
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
                   {tool.description}
                 </p>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                       <span>Used {tool.usageCount} times</span>
                     </div>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">
                       {tool.toolType === 'AI' ? 'AI' : 'Code'}
                     </Badge>
                   </div>
@@ -390,7 +390,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleTest(tool)}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                     >
                       <Play className="h-4 w-4 mr-1" />
                       Test
@@ -398,7 +398,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                     <Button 
                       size="sm" 
                       onClick={() => handleEdit(tool)}
-                      className="bg-gray-700 hover:bg-gray-800 text-white"
+                      className="bg-gray-700 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white"
                     >
                       <Edit3 className="h-4 w-4 mr-1" />
                       Edit
@@ -407,7 +407,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleDelete(tool.id)}
-                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      className="border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete
@@ -420,11 +420,11 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         ))}
 
         {(!tools || tools.length === 0) && (
-          <Card className="p-8 text-center border-gray-200 bg-gray-50">
-            <div className="text-gray-500">
+          <Card className="p-8 text-center border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900">
+            <div className="text-gray-500 dark:text-gray-400">
               <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-semibold mb-2 text-gray-700">No Tools Available</h3>
-              <p className="text-gray-600">Tools will appear here after they are generated during extraction processes.</p>
+              <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">No Tools Available</h3>
+              <p className="text-gray-600 dark:text-gray-400">Tools will appear here after they are generated during extraction processes.</p>
             </div>
           </Card>
         )}
