@@ -6277,10 +6277,17 @@ def extract_function(Column_Name, Excel_File):
       const { projectId } = req.params;
       const { documentId, documentContent: frontendDocContent, valueConfig, previousResults, async: useAsync } = req.body;
       
+      console.log('\n🔍 TEST WORKFLOW ENDPOINT HIT');
+      console.log('  📝 Request body keys:', Object.keys(req.body));
+      console.log('  📝 Document ID:', documentId);
+      console.log('  📝 Frontend doc content length:', frontendDocContent?.length || 0);
+      console.log('  📝 Value config tool:', valueConfig?.toolId);
+      
       // Load the test document content from database if we have a documentId
       let documentContent = frontendDocContent;
       if (documentId) {
-        console.log('📄 Loading test document from database:', documentId);
+        console.log('📄 ATTEMPTING TO LOAD TEST DOCUMENT FROM DATABASE');
+        console.log('  📄 Document ID:', documentId);
         const testDoc = await storage.getTestDocument(documentId);
         console.log('  📄 Test doc retrieved:', !!testDoc);
         if (testDoc) {
