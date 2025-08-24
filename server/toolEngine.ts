@@ -765,6 +765,8 @@ Process each item and return the complete array of results.`;
       return results;
       
     } catch (error) {
+      console.error('❌ ERROR in testAITool:', error);
+      console.error('Error details:', error instanceof Error ? error.stack : String(error));
       return [{
         extractedValue: null,
         validationStatus: "invalid",

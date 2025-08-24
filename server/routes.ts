@@ -2238,9 +2238,15 @@ except Exception as e:
               projectId
             );
             
-            console.log(`Tool execution completed, got ${toolResults.length} results`);
-            console.log(`First result has identifierId: ${toolResults[0]?.identifierId}`);
-            console.log(`Last result has identifierId: ${toolResults[toolResults.length - 1]?.identifierId}`);
+            console.log(`✅ Tool execution completed. Results count: ${toolResults.length}`);
+            if (toolResults.length > 0) {
+              console.log(`First result has identifierId: ${toolResults[0]?.identifierId}`);
+              console.log(`First result extractedValue: ${toolResults[0]?.extractedValue}`);
+            }
+            if (toolResults.length > 1) {
+              console.log(`Last result has identifierId: ${toolResults[toolResults.length - 1]?.identifierId}`);
+              console.log(`Last result extractedValue: ${toolResults[toolResults.length - 1]?.extractedValue}`);
+            }
             
             // Save results as field validations
             const currentRecordIndex = collectionRecordCounts[workflowStep.stepName] || 0;
@@ -2301,10 +2307,14 @@ except Exception as e:
                       };
                       
                       // Create new validation for Standard Mapping
-                      await storage.createFieldValidation(validation);
-                      savedCount++;
-                      if (i % 10 === 0) {
-                        console.log(`Saved ${i + 1}/${toolResults.length} validations...`);
+                      try {
+                        await storage.createFieldValidation(validation);
+                        savedCount++;
+                        if (i % 10 === 0) {
+                          console.log(`Saved ${i + 1}/${toolResults.length} validations...`);
+                        }
+                      } catch (saveError) {
+                        console.error(`Error saving Standard Mapping validation ${i + 1}:`, saveError);
                       }
                       
                       // Skip the normal validation creation below
