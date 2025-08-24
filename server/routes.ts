@@ -6302,16 +6302,8 @@ def extract_function(Column_Name, Excel_File):
       
       // Save the results as field validations
       if (results && results.length > 0) {
-        // Delete existing validations for this value
+        // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
-        const valueValidations = existingValidations.filter(v => 
-          v.valueId === valueId || 
-          (v.fieldName && v.fieldName.startsWith(`${step.stepName}.${value.valueName}`))
-        );
-        
-        for (const validation of valueValidations) {
-          await storage.deleteFieldValidation(validation.id);
-        }
         
         // Create new validations for each result
         for (let i = 0; i < results.length; i++) {
@@ -6320,29 +6312,54 @@ def extract_function(Column_Name, Excel_File):
           // Format field name to match UI expectations: "StepName.ValueName[index]"
           const fieldName = `${step.stepName}.${value.valueName}[${i}]`;
           
-          await storage.createFieldValidation({
-            id: crypto.randomUUID(),
-            sessionId: sessionId,
-            fieldId: valueId,
-            valueId: valueId,
-            stepId: stepId,
-            fieldName: fieldName, // Add the properly formatted field name
-            recordIndex: i,
-            extractedValue: result.extractedValue,
-            validationType: 'collection_property',
-            validationStatus: result.validationStatus || 'pending',
-            dataType: 'text', // Default to text type for column extraction
-            aiReasoning: result.aiReasoning,
-            confidenceScore: result.confidenceScore,
-            documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
-            originalExtractedValue: result.extractedValue,
-            originalAiReasoning: result.aiReasoning,
-            originalConfidenceScore: result.confidenceScore,
-            manuallyVerified: false,
-            manuallyUpdated: false,
-            collectionName: step.stepName, // Add collection name
-            extractedAt: new Date()
-          });
+          // Check if validation already exists for this identifier/record index
+          const existingValidation = existingValidations.find(v => 
+            v.valueId === valueId && 
+            v.recordIndex === i &&
+            v.fieldName === fieldName
+          );
+          
+          if (existingValidation) {
+            // Update existing validation
+            await storage.updateFieldValidation(existingValidation.id, {
+              extractedValue: result.extractedValue,
+              validationStatus: result.validationStatus || 'pending',
+              aiReasoning: result.aiReasoning,
+              confidenceScore: result.confidenceScore,
+              documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
+              originalExtractedValue: result.extractedValue,
+              originalAiReasoning: result.aiReasoning,
+              originalConfidenceScore: result.confidenceScore,
+              extractedAt: new Date()
+            });
+            console.log(`📝 Updated existing validation for ${fieldName}`);
+          } else {
+            // Create new validation
+            await storage.createFieldValidation({
+              id: crypto.randomUUID(),
+              sessionId: sessionId,
+              fieldId: valueId,
+              valueId: valueId,
+              stepId: stepId,
+              fieldName: fieldName, // Add the properly formatted field name
+              recordIndex: i,
+              extractedValue: result.extractedValue,
+              validationType: 'collection_property',
+              validationStatus: result.validationStatus || 'pending',
+              dataType: 'text', // Default to text type for column extraction
+              aiReasoning: result.aiReasoning,
+              confidenceScore: result.confidenceScore,
+              documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
+              originalExtractedValue: result.extractedValue,
+              originalAiReasoning: result.aiReasoning,
+              originalConfidenceScore: result.confidenceScore,
+              manuallyVerified: false,
+              manuallyUpdated: false,
+              collectionName: step.stepName, // Add collection name
+              extractedAt: new Date()
+            });
+            console.log(`✨ Created new validation for ${fieldName}`);
+          }
         }
         
         console.log(`💾 Saved ${results.length} validation records`);
