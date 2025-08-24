@@ -716,11 +716,23 @@ Process each item and return the complete array of results.`;
       
       console.log('🧹 CLEANED TEST RESULT:');
       console.log('-'.repeat(80));
-      console.log(result);
+      console.log('Result length:', result.length, 'characters');
+      console.log('First 500 chars:', result.slice(0, 500));
+      console.log('Last 500 chars:', result.slice(-500));
       console.log('-'.repeat(80));
       
       const parsed = JSON.parse(result);
       let results = Array.isArray(parsed) ? parsed : [parsed];
+      
+      console.log(`✅ Parsed results: ${Array.isArray(parsed) ? 'array' : 'object'} with ${results.length} items`);
+      if (results.length > 0) {
+        console.log(`  First result identifierId: ${results[0].identifierId}`);
+        console.log(`  First result extractedValue: ${results[0].extractedValue}`);
+        if (results.length > 1) {
+          console.log(`  Last result identifierId: ${results[results.length - 1].identifierId}`);
+          console.log(`  Last result extractedValue: ${results[results.length - 1].extractedValue}`);
+        }
+      }
       
       // Check if we have data type parameters with arrays (reuse from batching check)
       const dataInputsCheck = Object.entries(inputs).filter(([key, value]) => {
@@ -749,6 +761,7 @@ Process each item and return the complete array of results.`;
         }
       }
       
+      console.log(`🎯 Returning ${results.length} results from testAITool`);
       return results;
       
     } catch (error) {
