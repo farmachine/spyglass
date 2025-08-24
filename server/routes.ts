@@ -2212,7 +2212,8 @@ except Exception as e:
           
           // Process input values - replace @references and user_document placeholders
           if (workflowValue.inputValues) {
-            console.log('📝 Processing input values for tool:', workflowValue.inputValues);
+            console.log('📝 Processing input values for tool:', JSON.stringify(workflowValue.inputValues, null, 2));
+            console.log('📝 Input value keys:', Object.keys(workflowValue.inputValues));
             
             // First, check if we need to get data from previous steps
             // For Standard Equivalent, we need to merge Column Name and Worksheet Name data
