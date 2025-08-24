@@ -6239,6 +6239,16 @@ def extract_function(Column_Name, Excel_File):
             const referencedColumn = paramValue.substring(1); // Remove @ symbol
             console.log(`🔗 Processing reference: ${paramValue} -> ${referencedColumn}`);
             
+            // Handle different reference formats
+            let actualColumnName = referencedColumn;
+            
+            // If the reference is in format "StepName.ColumnName", extract just the column name
+            if (referencedColumn.includes('.')) {
+              const parts = referencedColumn.split('.');
+              actualColumnName = parts[parts.length - 1]; // Get the last part after the dot
+              console.log(`📊 Extracted column name from reference: ${actualColumnName}`);
+            }
+            
             // Extract the values from previousData for this column
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
@@ -6246,7 +6256,7 @@ def extract_function(Column_Name, Excel_File):
               // For the "Get Worksheet from Column" tool, format data with identifierId
               const columnValues = previousData.map(record => ({
                 identifierId: record.identifierId,
-                name: record[referencedColumn]
+                name: record[actualColumnName] // Use the extracted column name
               })).filter(item => item.name !== undefined);
               
               console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
