@@ -479,41 +479,42 @@ export class ToolEngine {
               console.log(`    🔄 Processing merged data with fields: ${fieldNames.join(', ')}`);
               console.log(`    📊 First item:`, JSON.stringify(sampleItem, null, 2));
               
-              // Extract just the primary field values for processing
-              const primaryFieldName = fieldNames[0];
-              const primaryValues = batch.map(item => item[primaryFieldName]);
+              // For merged data, we need to provide both column names and worksheet context
+              const primaryFieldName = fieldNames[0]; // "Column Names"
+              const contextFieldName = fieldNames[1]; // "Worksheet Name"
               
-              console.log(`    📋 Extracting primary field "${primaryFieldName}" values for AI processing`);
-              console.log(`    📊 Sample values:`, primaryValues.slice(0, 3));
+              console.log(`    📋 Processing merged data with primary field: "${primaryFieldName}" and context field: "${contextFieldName}"`);
+              console.log(`    📊 Sample data:`, batch.slice(0, 3));
               
               batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing ${batch.length} items. 
-
-CRITICAL: Each item below is a text value that needs to be looked up in the Reference Document.
+You are processing ${batch.length} column names from an Excel file. Each item includes both the column name and its worksheet for context.
 
 INPUT DATA (${batch.length} items to process):
-${JSON.stringify(primaryValues, null, 2)}
+${batch.map((item, idx) => `Item ${idx + 1}: Column Name: "${item[primaryFieldName]}" (from worksheet: "${item[contextFieldName]}")`).join('\n')}
+
+TASK:
+For each column name above, find its standard mapping or equivalent in the Reference Document. The worksheet name provides context about the type of data.
 
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
 {
-  "extractedValue": "the standard mapping/equivalent found in the Reference Document, or 'Not Found' if no match exists",
-  "validationStatus": "valid" or "invalid",
-  "aiReasoning": "brief explanation of what you found or why it wasn't found",
+  "extractedValue": "the standard field name/mapping found in the Reference Document, or 'Not Found' if no match exists",
+  "validationStatus": "valid" if found or "invalid" if not found,
+  "aiReasoning": "brief explanation of the mapping found or why it wasn't found",
   "confidenceScore": number between 0-100,
   "documentSource": "the section/page in Reference Document where found, or 'Reference Document' if not found"
 }
 
 IMPORTANT INSTRUCTIONS:
-1. Look up each text value in the Reference Document
-2. Find its standard mapping or equivalent value
+1. Look up each column name in the Reference Document
+2. Consider the worksheet context when determining the best match
 3. Return exactly ${batch.length} results in the same order as input
 4. Each result must have all 5 required fields
 5. Use "Not Found" for items that don't appear in the Reference Document
 
-Process ALL items and return the complete array of results.`;
+Process ALL ${batch.length} items and return the complete array of results.`;
             } else {
               // Standard prompt for simple data
               batchPrompt = `${tool.aiPrompt || ''}
@@ -951,9 +952,14 @@ Return only the Python function code, no explanations.`;
           // CRITICAL: Make sure all items are processed
           // The AI needs explicit instruction about array length
           const itemsList = value.map((item, idx) => {
-            if (typeof item === 'object' && item.extractedValue !== undefined) {
-              // Handle result objects from previous steps
-              return `Item ${idx + 1}: ${item.extractedValue}`;
+            if (typeof item === 'object') {
+              if (item.extractedValue !== undefined) {
+                // Handle result objects from previous steps
+                return `Item ${idx + 1}: ${item.extractedValue}`;
+              } else {
+                // Handle objects with multiple fields (like merged data)
+                return `Item ${idx + 1}: ${JSON.stringify(item)}`;
+              }
             }
             return `Item ${idx + 1}: ${item}`;
           }).join('\n');
