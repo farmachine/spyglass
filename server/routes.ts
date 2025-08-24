@@ -50,6 +50,27 @@ async function processWorkflowTestAsync(
       return;
     }
     
+    // Log incoming data for async function
+    console.log('\n📥 [ASYNC] INPUT DATA FOR FUNCTION:', excelFunction.name || excelFunction.functionName);
+    console.log('=' .repeat(60));
+    console.log('Job ID:', jobId);
+    console.log('Project ID:', projectId);
+    console.log('Document ID:', documentId);
+    console.log('Document Content Length:', documentContent?.length || 0);
+    console.log('Raw Input Values:', Object.keys(valueConfig.inputValues));
+    console.log('Previous Results Available:', previousResults ? Object.keys(previousResults) : 'None');
+    if (previousResults) {
+      for (const [key, value] of Object.entries(previousResults)) {
+        if (Array.isArray(value)) {
+          console.log(`  - ${key}: Array[${value.length}]`);
+          if (value.length > 0 && (value as any)[0].extractedValue !== undefined) {
+            console.log(`    First item: ${JSON.stringify((value as any)[0], null, 2)}`);
+          }
+        }
+      }
+    }
+    console.log('=' .repeat(60));
+    
     // Prepare input values
     const preparedInputValues = { ...valueConfig.inputValues };
     
@@ -104,6 +125,22 @@ async function processWorkflowTestAsync(
     );
     
     clearInterval(progressInterval);
+    
+    // Log complete output data from async function
+    console.log('\n📤 [ASYNC] OUTPUT DATA FROM FUNCTION:', excelFunction.name || excelFunction.functionName);
+    console.log('=' .repeat(60));
+    console.log('Job ID:', jobId);
+    console.log('Number of outputs:', Array.isArray(result) ? result.length : 1);
+    if (Array.isArray(result) && result.length > 0) {
+      console.log('\nFirst 3 output items:');
+      result.slice(0, 3).forEach((item: any, index: number) => {
+        console.log(`  [${index}]:`, JSON.stringify(item, null, 2));
+      });
+      if (result.length > 3) {
+        console.log(`  ... and ${result.length - 3} more items`);
+      }
+    }
+    console.log('=' .repeat(60));
     
     // Complete the job with results (no need to save test results in DB for async jobs)
     console.log(`📊 Async job ${jobId} results:`, {
@@ -6285,6 +6322,15 @@ def extract_function(Column_Name, Excel_File):
           console.log('  Tool Properties:', Object.keys(excelFunction));
           console.log('  Using workflow test document instead of tool sample document');
           
+          // Log incoming data for this function
+          console.log('\n📥 INPUT DATA FOR FUNCTION:', excelFunction.name);
+          console.log('=' .repeat(60));
+          console.log('Step:', valueConfig.stepName);
+          console.log('Value:', valueConfig.valueName);
+          console.log('Raw Input Values:', Object.keys(valueConfig.inputValues));
+          console.log('Previous Results Available:', previousResults ? Object.keys(previousResults) : 'None');
+          console.log('=' .repeat(60));
+          
           // Prepare input values, replacing document parameters with test document content
           const preparedInputValues = { ...valueConfig.inputValues };
           
@@ -6430,6 +6476,23 @@ def extract_function(Column_Name, Excel_File):
               results: enhancedResults,
               success: true
             };
+            
+            // Log complete output data that will be passed to next function
+            console.log('\n📤 OUTPUT DATA FROM FUNCTION:', excelFunction.name);
+            console.log('='  .repeat(60));
+            console.log('Step:', valueConfig.stepName);
+            console.log('Value:', valueConfig.valueName);
+            console.log('Number of outputs:', enhancedResults.length);
+            if (enhancedResults.length > 0) {
+              console.log('\nFirst 3 output items:');
+              enhancedResults.slice(0, 3).forEach((item: any, index: number) => {
+                console.log(`  [${index}]:`, JSON.stringify(item, null, 2));
+              });
+              if (enhancedResults.length > 3) {
+                console.log(`  ... and ${enhancedResults.length - 3} more items`);
+              }
+            }
+            console.log('=' .repeat(60));
             
             console.log('✅ Test Execution Result:', JSON.stringify(result, null, 2).slice(0, 500) + '...');
             
