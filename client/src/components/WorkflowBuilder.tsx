@@ -181,14 +181,20 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     return false; // Failed to load or no data
   };
 
+  // Track if workflow has been loaded to avoid overwriting user edits
+  const [workflowLoaded, setWorkflowLoaded] = useState(false);
+  
   // Convert existing data to workflow steps on mount
   useEffect(() => {
-    // First try to load from server
-    loadWorkflow().then(loaded => {
-      if (!loaded) {
-        // If no saved workflow, convert existing data
-        console.log('Converting existing data to workflow:', { schemaFields, collections });
-        const workflowSteps: WorkflowStep[] = [];
+    // Only load workflow once on mount to avoid overwriting user edits
+    if (!workflowLoaded) {
+      // First try to load from server
+      loadWorkflow().then(loaded => {
+        setWorkflowLoaded(true);
+        if (!loaded) {
+          // If no saved workflow, convert existing data
+          console.log('Converting existing data to workflow:', { schemaFields, collections });
+          const workflowSteps: WorkflowStep[] = [];
         let orderIndex = 0;
 
         // Convert collections to list steps
@@ -248,8 +254,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
         setSteps(workflowSteps.sort((a, b) => a.orderIndex - b.orderIndex));
       }
-    });
-  }, [schemaFields, collections]);
+      });
+    }
+  }, [schemaFields, collections, workflowLoaded]);
 
   const addStep = () => {
     const newStep: WorkflowStep = {
@@ -408,8 +415,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           title: "Step Saved",
           description: `"${stepToSave.name}" has been saved successfully`,
         });
-        // Reload workflow to get the current state from database
-        await loadWorkflow();
+        // Don't reload workflow after saving - keep the current UI state
       } else {
         console.error('Failed to save step');
         toast({
