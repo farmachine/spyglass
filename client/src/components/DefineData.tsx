@@ -733,7 +733,7 @@ export default function DefineData({
                       // Get results for each value type that exists
                       const columnNamesResult = testResults.find((r: any) => r.valueName === 'Column Names');
                       const worksheetResult = testResults.find((r: any) => r.valueName === 'Worksheet Name');
-                      const standardResult = testResults.find((r: any) => r.valueName === 'Standard Equivalent');
+                      const standardResult = testResults.find((r: any) => r.valueName === 'Standard Mapping');
                       
                       console.log('🔍 Merging Column Name Mapping results:', {
                         columnNamesResult: columnNamesResult ? `${columnNamesResult.data?.length} items` : 'not found',

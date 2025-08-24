@@ -6388,7 +6388,47 @@ def extract_function(Column_Name, Excel_File):
           
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
-            if (typeof value === 'string' && value.startsWith('@')) {
+            // Handle array of references (like ["@Column Name Mapping.Worksheet Name"])
+            if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].startsWith('@')) {
+              const referencePath = value[0].slice(1); // Remove @ prefix from first element
+              console.log(`  Found array reference: ${value[0]} -> Looking for ${referencePath}`);
+              
+              if (previousResults && previousResults[referencePath]) {
+                const previousData = previousResults[referencePath];
+                console.log(`  ✅ Replacing ${key} with results from ${referencePath} (${previousData.length} items)`);
+                
+                // For array references, we pass the actual data
+                if (Array.isArray(previousData)) {
+                  console.log(`    📊 Array contains ${previousData.length} items`);
+                  if (previousData.length > 0) {
+                    console.log(`    First item: ${JSON.stringify(previousData[0]).slice(0, 100)}...`);
+                    
+                    // Check if these are result objects with extractedValue
+                    const extractedValues = previousData
+                      .filter(item => item && typeof item === 'object' && 'extractedValue' in item)
+                      .map(item => item.extractedValue);
+                    
+                    if (extractedValues.length > 0) {
+                      console.log(`    📝 Extracted values count: ${extractedValues.length}`);
+                      console.log(`    First 5 values: ${extractedValues.slice(0, 5).join(', ')}`);
+                      // Replace with just the extracted values for data inputs
+                      preparedInputValues[key] = extractedValues;
+                      console.log(`    ✨ Successfully set ${key} to ${extractedValues.length} extracted values`);
+                    } else {
+                      // Keep the full objects if no extractedValue
+                      preparedInputValues[key] = previousData;
+                      console.log(`    ⚠️ No extractedValue found, keeping ${previousData.length} full objects`);
+                    }
+                  }
+                } else {
+                  preparedInputValues[key] = previousData;
+                }
+              } else {
+                console.log(`  ⚠️ No previous results found for ${referencePath}`);
+              }
+            }
+            // Handle single string references
+            else if (typeof value === 'string' && value.startsWith('@')) {
               const referencePath = value.slice(1); // Remove @ prefix
               console.log(`  Found reference: ${value} -> Looking for ${referencePath}`);
               
