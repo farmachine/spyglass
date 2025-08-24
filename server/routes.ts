@@ -6444,6 +6444,9 @@ def extract_function(Column_Name, Excel_File):
                   const referencePath = ref.slice(1); // Remove @ prefix
                   console.log(`    Processing reference: ${ref} -> ${referencePath}`);
                   
+                  // Debug: Log exact matching attempt
+                  console.log(`      🔍 Checking if previousResults["${referencePath}"] exists...`);
+                  
                   if (previousResults && previousResults[referencePath]) {
                     const previousData = previousResults[referencePath];
                     referenceMap[referencePath] = previousData;
@@ -6451,6 +6454,22 @@ def extract_function(Column_Name, Excel_File):
                   } else {
                     console.log(`      ⚠️ No previous results found for ${referencePath}`);
                     console.log(`      Available keys in previousResults:`, previousResults ? Object.keys(previousResults) : 'No previousResults object');
+                    
+                    // Try alternate key formats  
+                    const alternateKeys = [
+                      referencePath.replace('Column Name Mapping.', ''),  // Try without step name
+                      `Column Name Mapping.${referencePath}`,  // Try with step name if not present
+                      referencePath.split('.').pop() || referencePath  // Try just the value name
+                    ];
+                    
+                    console.log(`      🔄 Trying alternate key formats:`, alternateKeys);
+                    for (const altKey of alternateKeys) {
+                      if (previousResults && previousResults[altKey]) {
+                        console.log(`        ✅ Found data with alternate key: "${altKey}"`);
+                        referenceMap[referencePath] = previousResults[altKey];
+                        break;
+                      }
+                    }
                   }
                 }
                 
@@ -6495,11 +6514,19 @@ def extract_function(Column_Name, Excel_File):
                   preparedInputValues[key] = allReferencedData;
                   console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items`);
                 }
-                // No references found but we have the reference strings - don't pass them to AI
+                // No references found but we have the reference strings
                 else if (allReferences.length > 0 && Object.keys(referenceMap).length === 0) {
-                  console.log(`    ⚠️ References not resolved, removing literal reference strings`);
-                  // Don't pass unresolved references to the AI
-                  delete preparedInputValues[key];
+                  console.log(`    ⚠️ References not resolved for ${key}`);
+                  console.log(`    ⚠️ Looking for these references:`, allReferences);
+                  console.log(`    ⚠️ Available in previousResults:`, previousResults ? Object.keys(previousResults) : 'none');
+                  
+                  // For AI tools, we should not pass unresolved references
+                  // The AI will receive literal strings like "@Column Name Mapping.Worksheet Name"
+                  // which it cannot process properly
+                  if (excelFunction?.toolType === 'AI') {
+                    console.log(`    ❌ Removing unresolved references for AI tool`);
+                    delete preparedInputValues[key];
+                  }
                 }
                 // Single reference - handle as before
                 else if (Object.keys(referenceMap).length === 1) {
