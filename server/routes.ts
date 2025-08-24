@@ -6395,12 +6395,29 @@ def extract_function(Column_Name, Excel_File):
           if (valueConfig.valueName === 'Standard Mapping') {
             console.log('🎯 SPECIAL DEBUG FOR STANDARD MAPPING:');
             console.log('  Full previousResults structure:', JSON.stringify(Object.keys(previousResults || {}), null, 2));
+            console.log('  Looking for references in inputValues:', valueConfig.inputValues);
             if (previousResults) {
               for (const [key, value] of Object.entries(previousResults)) {
                 if (Array.isArray(value)) {
                   console.log(`  previousResults["${key}"] = Array with ${value.length} items`);
                   if (value.length > 0) {
                     console.log(`    First item:`, value[0]);
+                  }
+                }
+              }
+            }
+            
+            // Check what the input values are looking for
+            if (valueConfig.inputValues) {
+              for (const [paramKey, paramValue] of Object.entries(valueConfig.inputValues)) {
+                console.log(`  📍 Input parameter "${paramKey}":`, paramValue);
+                if (Array.isArray(paramValue)) {
+                  for (const ref of paramValue) {
+                    if (typeof ref === 'string' && ref.startsWith('@')) {
+                      const lookingFor = ref.slice(1);
+                      console.log(`    → Looking for: "${lookingFor}"`);
+                      console.log(`    → Found in previousResults: ${previousResults && previousResults[lookingFor] ? 'YES ✅' : 'NO ❌'}`);
+                    }
                   }
                 }
               }
