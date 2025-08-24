@@ -1968,7 +1968,8 @@ export default function SessionView() {
     
     const { stepName, valueId, valueName, previousData } = columnExtractionModal;
     
-    console.log(`Running extraction for column: ${valueName} with document: ${selectedExtractionDoc}`);
+    console.log(`🎯 Running extraction for column: ${valueName} with document: ${selectedExtractionDoc}`);
+    console.log(`🎯 Previous data being sent:`, previousData);
     
     try {
       // Get the workflow step
@@ -1978,15 +1979,19 @@ export default function SessionView() {
         return;
       }
       
+      const requestPayload = {
+        stepId: workflowStep.id,
+        valueId: valueId,
+        previousData: previousData,
+        documentId: selectedExtractionDoc // Pass the selected document ID
+      };
+      
+      console.log(`🎯 Full request payload:`, requestPayload);
+      
       // Call the extraction endpoint with the selected document
       const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
         method: 'POST',
-        body: JSON.stringify({
-          stepId: workflowStep.id,
-          valueId: valueId,
-          previousData: previousData,
-          documentId: selectedExtractionDoc // Pass the selected document ID
-        })
+        body: JSON.stringify(requestPayload)
       });
       
       console.log('Column extraction response:', response);

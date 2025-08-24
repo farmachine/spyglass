@@ -6234,11 +6234,19 @@ def extract_function(Column_Name, Excel_File):
           if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
             // This is a reference to a previous column
             const referencedColumn = paramValue.substring(1); // Remove @ symbol
+            console.log(`🔗 Processing reference: ${paramValue} -> ${referencedColumn}`);
             
             // Extract the values from previousData for this column
             if (previousData && previousData.length > 0) {
-              // For array inputs, extract the column values as an array
-              const columnValues = previousData.map(record => record[referencedColumn]).filter(v => v !== undefined);
+              // For the "Get Worksheet from Column" tool, format data with identifierId
+              const columnValues = previousData.map(record => ({
+                identifierId: record.identifierId,
+                name: record[referencedColumn]
+              })).filter(item => item.name !== undefined);
+              
+              console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
+                columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+              
               toolInputs[paramName] = columnValues;
             }
           } else {
