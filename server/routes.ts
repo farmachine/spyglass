@@ -6196,8 +6196,20 @@ def extract_function(Column_Name, Excel_File):
       const sessionDocuments = await storage.getSessionDocuments(sessionId);
       const primaryDoc = sessionDocuments.find(d => d.isPrimary);
       
-      if (!primaryDoc || !primaryDoc.extractedContent) {
-        return res.status(400).json({ message: "No primary document content available" });
+      // If no primary document found, use the first document
+      const documentToUse = primaryDoc || sessionDocuments[0];
+      
+      // If no extracted content, try to get it from the document content field
+      let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;
+      
+      if (!documentToUse || !documentContent) {
+        console.log('No document found or no content available:', {
+          hasDoc: !!documentToUse,
+          hasExtracted: !!documentToUse?.extractedContent,
+          hasContent: !!documentToUse?.documentContent
+        });
+        // Fall back to empty document for tools that don't need document content
+        documentContent = ""; 
       }
       
       // Prepare inputs for the tool
@@ -6226,7 +6238,7 @@ def extract_function(Column_Name, Excel_File):
       
       // Add document content if the tool expects it
       if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
-        toolInputs.document = primaryDoc.extractedContent;
+        toolInputs.document = documentContent;
       }
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs).substring(0, 200) + '...');
@@ -6276,7 +6288,7 @@ def extract_function(Column_Name, Excel_File):
             validationStatus: result.validationStatus || 'pending',
             aiReasoning: result.aiReasoning,
             confidenceScore: result.confidenceScore,
-            documentSource: result.documentSource || primaryDoc.fileName,
+            documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
             originalExtractedValue: result.extractedValue,
             originalAiReasoning: result.aiReasoning,
             originalConfidenceScore: result.confidenceScore,
