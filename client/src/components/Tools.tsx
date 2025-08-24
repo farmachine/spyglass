@@ -694,7 +694,9 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                                         );
                                       })}
                                       <td className="p-3 text-gray-600 border-l border-gray-200">
-                                        {result.extractedValue || '-'}
+                                        {typeof result.extractedValue === 'object' && result.extractedValue !== null 
+                                          ? JSON.stringify(result.extractedValue) 
+                                          : (result.extractedValue || '-')}
                                       </td>
                                       <td className="p-3 border-l border-gray-200">
                                         <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -729,7 +731,11 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                         <div className="space-y-3">
                           <div className="flex items-start justify-between py-2 border-b border-gray-100">
                             <span className="font-medium text-gray-700">Extracted Value</span>
-                            <span className="text-gray-600 ml-4">{testResults[0]?.extractedValue || '-'}</span>
+                            <span className="text-gray-600 ml-4">
+                              {typeof testResults[0]?.extractedValue === 'object' && testResults[0]?.extractedValue !== null
+                                ? JSON.stringify(testResults[0].extractedValue, null, 2)
+                                : (testResults[0]?.extractedValue || '-')}
+                            </span>
                           </div>
                           <div className="flex items-start justify-between py-2 border-b border-gray-100">
                             <span className="font-medium text-gray-700">Status</span>

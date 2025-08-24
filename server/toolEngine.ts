@@ -187,9 +187,9 @@ export class ToolEngine {
                 const extractionData = {
                   step: "extract_text_only",
                   documents: [{
-                    fileName: param.sampleFile || 'document',
-                    mimeType: mimeType,
-                    dataURL: dataURL
+                    file_name: param.sampleFile || 'document',
+                    mime_type: mimeType,
+                    file_content: dataURL
                   }]
                 };
                 
