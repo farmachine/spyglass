@@ -2212,8 +2212,82 @@ except Exception as e:
           
           // Process input values - replace @references and user_document placeholders
           if (workflowValue.inputValues) {
+            console.log('📝 Processing input values for tool:', workflowValue.inputValues);
+            
+            // First, check if we need to get data from previous steps
+            // For Standard Equivalent, we need to merge Column Name and Worksheet Name data
+            if (workflowValue.valueName === 'Standard Equivalent') {
+              console.log('🔄 Preparing merged data for Standard Equivalent extraction');
+              
+              // Get Column Name and Worksheet Name data from existing validations
+              const columnNameValidations = existingValidations.filter((v: any) => 
+                v.valueId && v.collectionName === 'Column Name Mapping' && 
+                v.fieldName?.includes('Column Name')
+              );
+              
+              const worksheetValidations = existingValidations.filter((v: any) => 
+                v.valueId && v.collectionName === 'Column Name Mapping' && 
+                v.fieldName?.includes('Worksheet Name')
+              );
+              
+              console.log(`📊 Found ${columnNameValidations.length} Column Name records`);
+              console.log(`📊 Found ${worksheetValidations.length} Worksheet Name records`);
+              
+              // Create merged data array with identifierId for tracking
+              const mergedData = columnNameValidations.map((colVal: any) => {
+                // Find matching worksheet validation by record index
+                const wsVal = worksheetValidations.find((w: any) => 
+                  w.recordIndex === colVal.recordIndex
+                );
+                
+                return {
+                  identifierId: colVal.identifierId || `record-${colVal.recordIndex}`,
+                  "Column Names": colVal.extractedValue || '',
+                  "Worksheet Name": wsVal?.extractedValue || ''
+                };
+              });
+              
+              console.log(`📊 Created ${mergedData.length} merged records for AI processing`);
+              if (mergedData.length > 0) {
+                console.log('📊 Sample merged record:', mergedData[0]);
+              }
+              
+              // Set the merged data as List Item input
+              toolInputs['List Item'] = mergedData;
+              toolInputs['0.0qv7jjabq7on'] = mergedData; // Also set by ID in case needed
+            }
+            
+            // Process other input values
             for (const [key, value] of Object.entries(workflowValue.inputValues)) {
-              if (typeof value === 'object' && value !== null) {
+              // Skip List Item if we already set it above
+              if (key === 'List Item' && toolInputs['List Item']) {
+                continue;
+              }
+              
+              // Handle Reference Document
+              if (key === 'Reference Document' || key === '0.4uir69thnel') {
+                // Get reference documents from session or knowledge base
+                const sessionDocs = await storage.getSessionDocuments(sessionId);
+                const knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
+                
+                console.log(`📚 Found ${sessionDocs.length} session documents`);
+                console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
+                
+                // Combine document contents
+                const allDocContents = [
+                  ...sessionDocs.map((d: any) => d.extractedContent || ''),
+                  ...knowledgeDocs.map((d: any) => d.content || '')
+                ].filter(c => c.length > 0);
+                
+                if (allDocContents.length > 0) {
+                  const combinedContent = allDocContents.join('\n\n---\n\n');
+                  toolInputs[key] = combinedContent;
+                  console.log(`📚 Set reference document content (${combinedContent.length} chars)`);
+                } else {
+                  console.log('⚠️ No reference documents found');
+                  toolInputs[key] = '';
+                }
+              } else if (typeof value === 'object' && value !== null) {
                 // Handle nested input structure
                 for (const [subKey, subValue] of Object.entries(value as Record<string, any>)) {
                   if (Array.isArray(subValue) && subValue.includes('user_document')) {
@@ -2224,7 +2298,21 @@ except Exception as e:
                   }
                 }
               } else {
-                toolInputs[key] = value;
+                // Set value as-is if not already set
+                if (!toolInputs[key]) {
+                  toolInputs[key] = value;
+                }
+              }
+            }
+            
+            console.log('✅ Final tool inputs prepared:', Object.keys(toolInputs));
+            for (const [k, v] of Object.entries(toolInputs)) {
+              if (Array.isArray(v)) {
+                console.log(`  - ${k}: Array with ${v.length} items`);
+              } else if (typeof v === 'string') {
+                console.log(`  - ${k}: String (${v.length} chars)`);
+              } else {
+                console.log(`  - ${k}: ${typeof v}`);
               }
             }
           }
