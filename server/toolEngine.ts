@@ -126,6 +126,8 @@ export class ToolEngine {
                 
                 console.log(`📄 Using knowledge document content for ${param.name} (${combinedContent.length} chars)`);
                 console.log(`📄 First 500 chars of content: ${combinedContent.substring(0, 500)}`);
+                console.log(`📚 CRITICAL: Reference document loaded - ${knowledgeDocs.length} document(s), total content length: ${combinedContent.length} characters`);
+                console.log(`📚 Document names: ${knowledgeDocs.map(d => d.displayName || d.fileName).join(', ')}`);
                 preparedInputs[param.name] = combinedContent;
               } else {
                 console.log(`⚠️ No knowledge documents found for IDs: ${inputValue.join(', ')}`);
