@@ -6447,10 +6447,12 @@ def extract_function(Column_Name, Excel_File):
               formattedRecord.identifierId = record.identifierId;
             }
             
-            // Include all other fields from the record
+            // Include all other fields from the record, renaming ID to Column Name for clarity
             for (const [key, value] of Object.entries(record)) {
               if (key !== 'identifierId') {
-                formattedRecord[key] = value;
+                // Rename 'ID' to 'Column Name' to avoid confusing the AI
+                const fieldName = key === 'ID' ? 'Column Name' : key;
+                formattedRecord[fieldName] = value;
               }
             }
             
