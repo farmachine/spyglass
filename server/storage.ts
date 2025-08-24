@@ -3317,6 +3317,13 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
+  async getTestDocument(id: string): Promise<TestDocument | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db.select().from(testDocuments).where(eq(testDocuments.id, id));
+      return result[0];
+    });
+  }
+
   async createTestDocument(document: InsertTestDocument): Promise<TestDocument> {
     return this.retryOperation(async () => {
       const [result] = await this.db.insert(testDocuments).values(document).returning();
