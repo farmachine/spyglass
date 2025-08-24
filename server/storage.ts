@@ -2299,18 +2299,28 @@ class PostgreSQLStorage implements IStorage {
     if (!project) return undefined;
 
     // Fetch related data in parallel
-    const [schemaFields, collections, sessions, knowledgeDocuments, extractionRules] = await Promise.all([
+    const [schemaFields, collections, workflowSteps, sessions, knowledgeDocuments, extractionRules] = await Promise.all([
       this.getProjectSchemaFields(id),
       this.getObjectCollections(id),
+      this.getWorkflowSteps(id),
       this.getExtractionSessions(id),
       this.getKnowledgeDocuments(id),
       this.getExtractionRules(id)
     ]);
 
+    // Add values to each workflow step
+    const workflowStepsWithValues = await Promise.all(
+      workflowSteps.map(async (step) => {
+        const values = await this.getStepValues(step.id);
+        return { ...step, values };
+      })
+    );
+
     return {
       ...project,
       schemaFields,
       collections,
+      workflowSteps: workflowStepsWithValues,
       sessions,
       knowledgeDocuments,
       extractionRules
