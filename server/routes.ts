@@ -2297,6 +2297,7 @@ except Exception as e:
                         validationStatus: result.validationStatus || 'extracted',
                         validationType: 'collection_property',
                         collectionName: workflowStep.stepName,
+                        collectionId: step_id,  // CRITICAL: Use stepId as collectionId in unified architecture
                         recordIndex: recordIndexToUse,
                         confidenceScore: result.confidenceScore || 0.9,
                         aiReasoning: result.aiReasoning || 'Extracted via tool engine',
@@ -2331,6 +2332,7 @@ except Exception as e:
                   validationStatus: result.validationStatus || 'extracted',
                   validationType: 'collection_property',
                   collectionName: workflowStep.stepName,
+                  collectionId: step_id,  // CRITICAL: Use stepId as collectionId in unified architecture
                   recordIndex: existingValidation ? existingValidation.recordIndex : (currentRecordIndex + i),
                   confidenceScore: result.confidenceScore || 0.9,
                   aiReasoning: result.aiReasoning || 'Extracted via tool engine',
