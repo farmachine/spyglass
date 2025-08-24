@@ -2051,7 +2051,7 @@ except Exception as e:
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { files, project_data } = req.body;
+      const { files, project_data, is_workflow_step, step_id, value_id, target_fields } = req.body;
       
       const projectId = project_data?.projectId || project_data?.id;
       console.log(`STEP 1 EXTRACT: Starting extraction for session ${sessionId}`);
@@ -2153,7 +2153,7 @@ except Exception as e:
       // Get collection count for starting index
       let collectionRecordCounts: Record<string, number> = {};
       try {
-        const validationCount = await storage.getFieldValidationCount(sessionId);
+        // Calculate from existing validations instead of using non-existent method
         for (const validation of existingValidations) {
           if (validation.collectionName && validation.recordIndex !== null) {
             const currentCount = collectionRecordCounts[validation.collectionName] || 0;
@@ -2168,7 +2168,6 @@ except Exception as e:
       
       console.log('TASK CLASSIFICATION: Collection record counts:', collectionRecordCounts);
       console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
-      console.log('TASK CLASSIFICATION: Is simple column task:', isSimpleColumnTask);
       
       if (isExcelColumnExtraction) {
         console.log('USING EXCEL COLUMN EXTRACTION: Direct Excel parsing - no AI needed');

@@ -645,6 +645,9 @@ const AIExtractionModal = ({
               )
             : documentsWithContent;
           
+          // Find the specific target field for this value
+          const targetField = targetFieldsWithSources.find(tf => tf.id === field.id);
+          
           // Prepare value-specific request data
           const valueRequestData = {
             files: docsForThisField,
@@ -655,7 +658,7 @@ const AIExtractionModal = ({
               collections: project?.collections || [],
               workflowSteps: project?.workflowSteps || []
             },
-            target_fields: [targetFieldsWithSources.find(tf => tf.id === field.id)],
+            target_fields: targetField ? [targetField] : [],
             step_id: field.stepId,
             value_id: field.valueId,
             is_workflow_step: true
