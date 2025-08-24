@@ -6432,16 +6432,23 @@ def extract_function(Column_Name, Excel_File):
             }
           }
           
+          // Special handling for AI tools with data parameters containing references
+          console.log('\n🔧 REFERENCE RESOLUTION PHASE');
+          console.log('  Tool type:', excelFunction?.toolType);
+          console.log('  Input parameters to resolve:', Object.keys(preparedInputValues));
+          
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
-            console.log(`  Processing key "${key}" with value:`, JSON.stringify(value));
+            console.log(`\n  📍 Processing parameter "${key}"`);
+            console.log(`    Raw value:`, JSON.stringify(value).substring(0, 200));
             console.log(`    Value type: ${typeof value}, isArray: ${Array.isArray(value)}`);
             
-            // Handle comma-separated string of references
+            // Handle comma-separated string of references (common in AI tool data parameters)
             if (typeof value === 'string' && value.includes('@') && value.includes(',')) {
-              console.log(`  📌 Detected comma-separated references in string: "${value}"`);
+              console.log(`  📌 COMMA-SEPARATED REFERENCES DETECTED!`);
+              console.log(`    Full string: "${value}"`);
               const references = value.split(',').map(ref => ref.trim());
-              console.log(`  Split into ${references.length} references:`, references);
+              console.log(`    Split into ${references.length} parts:`, references);
               
               // Process as if it were an array of references
               const allReferences = references.filter(ref => ref.startsWith('@'));
@@ -6513,11 +6520,16 @@ def extract_function(Column_Name, Excel_File):
                   console.log(`    ✨ Created ${allReferencedData.length} merged items`);
                   if (allReferencedData.length > 0) {
                     console.log(`    First merged item:`, allReferencedData[0]);
+                    console.log(`    Last merged item:`, allReferencedData[allReferencedData.length - 1]);
                   }
                   
                   // Replace the string with the merged data array
                   preparedInputValues[key] = allReferencedData;
-                  console.log(`    ✅ Replaced comma-separated references with ${allReferencedData.length} merged items`);
+                  console.log(`    ✅ CRITICAL: Replaced parameter "${key}" with ${allReferencedData.length} merged items`);
+                  console.log(`    🔍 VERIFICATION: preparedInputValues["${key}"] is now:`, 
+                    Array.isArray(preparedInputValues[key]) ? 
+                      `Array[${preparedInputValues[key].length}]` : 
+                      typeof preparedInputValues[key]);
                 }
               }
             }
