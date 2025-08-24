@@ -721,7 +721,48 @@ Process each item and return the complete array of results.`;
       console.log('Last 500 chars:', result.slice(-500));
       console.log('-'.repeat(80));
       
-      const parsed = JSON.parse(result);
+      // Try to parse the result
+      let parsed;
+      try {
+        parsed = JSON.parse(result);
+      } catch (parseError) {
+        console.error('⚠️ JSON parsing failed, attempting to extract valid JSON from response');
+        
+        // Try to extract a JSON array if it exists in the text
+        const arrayMatch = result.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (arrayMatch) {
+          console.log('🔍 Found JSON array in response, attempting to parse');
+          try {
+            parsed = JSON.parse(arrayMatch[0]);
+          } catch (secondParseError) {
+            console.error('❌ Failed to parse extracted array:', secondParseError);
+            throw parseError; // Re-throw original error
+          }
+        } else {
+          // Try to find individual JSON objects
+          const objectMatches = result.match(/\{[^{}]*\}/g);
+          if (objectMatches && objectMatches.length > 0) {
+            console.log(`🔍 Found ${objectMatches.length} potential JSON objects, attempting to parse`);
+            parsed = [];
+            for (const objStr of objectMatches) {
+              try {
+                const obj = JSON.parse(objStr);
+                if (obj.extractedValue !== undefined || obj.identifierId !== undefined) {
+                  parsed.push(obj);
+                }
+              } catch (objParseError) {
+                // Skip invalid objects
+              }
+            }
+            if (parsed.length === 0) {
+              throw parseError; // No valid objects found
+            }
+          } else {
+            throw parseError; // Re-throw original error
+          }
+        }
+      }
+      
       let results = Array.isArray(parsed) ? parsed : [parsed];
       
       console.log(`✅ Parsed results: ${Array.isArray(parsed) ? 'array' : 'object'} with ${results.length} items`);
@@ -767,6 +808,29 @@ Process each item and return the complete array of results.`;
     } catch (error) {
       console.error('❌ ERROR in testAITool:', error);
       console.error('Error details:', error instanceof Error ? error.stack : String(error));
+      
+      // Check if we have data inputs that we should create placeholder results for
+      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
+        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+        return param?.type === 'data' && Array.isArray(value);
+      });
+      
+      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
+        // Create error results for each input item so we don't lose the mapping
+        const inputArray = dataInputs[0][1] as any[];
+        console.log(`⚠️ Creating ${inputArray.length} error placeholders to maintain data mapping`);
+        
+        return inputArray.map((item, index) => ({
+          identifierId: item.identifierId || null,
+          extractedValue: null,
+          validationStatus: "invalid",
+          aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
+          confidenceScore: 0,
+          documentSource: "AI_ERROR"
+        }));
+      }
+      
+      // Default single error result
       return [{
         extractedValue: null,
         validationStatus: "invalid",

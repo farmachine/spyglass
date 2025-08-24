@@ -6516,12 +6516,17 @@ def extract_function(Column_Name, Excel_File):
             console.log(`📝 Updated existing validation for ${fieldName}`);
           } else {
             // Create new validation
+            // Get collection ID from the project - needed for proper database constraints
+            const project = await storage.getProject(sessionDetails.projectId);
+            const collection = project?.collections?.find(c => c.collectionName === step.stepName);
+            
             await storage.createFieldValidation({
               id: crypto.randomUUID(),
               sessionId: sessionId,
               fieldId: valueId,
               valueId: valueId,
               stepId: stepId,
+              collectionId: collection?.id || null, // Add collection ID
               fieldName: fieldName, // Add the properly formatted field name
               recordIndex: recordIndex, // Use the correct record index
               identifierId: identifierId, // Add identifier mapping
