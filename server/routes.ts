@@ -2256,23 +2256,60 @@ except Exception as e:
                 // Use identifierId from the result to map to existing records
                 const identifierId = result.identifierId || null;
                 
-                // If we have an identifierId, check if a validation already exists for it
-                // Look for existing validation with same identifierId OR same record index
+                // For Standard Mapping, we need to create new records with the same identifierId
+                // but different value_id (since it's a different column)
+                // Check if a validation already exists for this specific value and identifierId
                 let existingValidation = null;
                 if (identifierId) {
-                  // First try to find by identifierId and valueId
+                  // Only look for existing validation with same identifierId AND same value_id
+                  // This ensures we don't accidentally update records from other columns
                   existingValidation = existingValidations.find((v: any) => 
                     v.identifierId === identifierId && 
                     v.valueId === value_id
                   );
                   
-                  // If not found, try to find by identifierId and collectionName for this specific value
+                  // If not found, we need to find the correct record index from the Column Names records
                   if (!existingValidation) {
-                    existingValidation = existingValidations.find((v: any) => 
+                    // Find the record with this identifierId from any column to get its record index
+                    const referenceRecord = existingValidations.find((v: any) => 
                       v.identifierId === identifierId && 
-                      v.collectionName === workflowStep.stepName &&
-                      v.fieldId === value_id
+                      v.collectionName === workflowStep.stepName
                     );
+                    
+                    if (referenceRecord && referenceRecord.recordIndex !== null && referenceRecord.recordIndex !== undefined) {
+                      // Use the same record index as the reference record
+                      // This ensures Standard Mapping aligns with Column Names and Worksheet Name
+                      const recordIndexToUse = referenceRecord.recordIndex;
+                      
+                      // Update our tracking - we'll use this specific index
+                      // Don't increment currentRecordIndex + i, use the exact index
+                      const validation = {
+                        sessionId,
+                        fieldId: value_id,
+                        fieldName: `${workflowStep.stepName}.${workflowValue.valueName}[${recordIndexToUse}]`,
+                        extractedValue: result.extractedValue || '',
+                        validationStatus: result.validationStatus || 'extracted',
+                        validationType: 'collection_property',
+                        collectionName: workflowStep.stepName,
+                        recordIndex: recordIndexToUse,
+                        confidenceScore: result.confidenceScore || 0.9,
+                        aiReasoning: result.aiReasoning || 'Extracted via tool engine',
+                        dataType: 'text',
+                        stepId: step_id,
+                        valueId: value_id,
+                        identifierId: identifierId
+                      };
+                      
+                      // Create new validation for Standard Mapping
+                      await storage.createFieldValidation(validation);
+                      savedCount++;
+                      if (i % 10 === 0) {
+                        console.log(`Saved ${i + 1}/${toolResults.length} validations...`);
+                      }
+                      
+                      // Skip the normal validation creation below
+                      continue;
+                    }
                   }
                 }
                 
