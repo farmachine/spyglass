@@ -6432,18 +6432,85 @@ def extract_function(Column_Name, Excel_File):
             }
           }
           
-          // Special handling for AI tools with data parameters containing references
+          // Special handling for AI tools - compile merged array BEFORE sending
+          if ((excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY') && 
+              valueConfig.valueName === 'Standard Mapping') {
+            console.log('\n🎯 SPECIAL HANDLING FOR STANDARD MAPPING AI TOOL');
+            console.log('  This is the critical step that needs merged data!');
+            
+            // Look for the List Item parameter that needs merged data
+            for (const [key, value] of Object.entries(preparedInputValues)) {
+              if (Array.isArray(value) && value.length === 2 && 
+                  value[0] === '@Column Name Mapping.Column Names' &&
+                  value[1] === '@Column Name Mapping.Worksheet Name') {
+                
+                console.log('  📌 FOUND THE LIST ITEM PARAMETER!');
+                console.log('  📌 Need to merge Column Names and Worksheet Name arrays');
+                
+                // Get the actual data from previousResults
+                const columnNames = previousResults?.['Column Name Mapping.Column Names'] || 
+                                   previousResults?.['Column Names'] || [];
+                const worksheetNames = previousResults?.['Column Name Mapping.Worksheet Name'] || 
+                                      previousResults?.['Worksheet Name'] || [];
+                
+                console.log(`  📊 Column Names: ${columnNames.length} items`);
+                console.log(`  📊 Worksheet Names: ${worksheetNames.length} items`);
+                
+                if (columnNames.length > 0 && worksheetNames.length > 0) {
+                  // Create the merged array
+                  const mergedArray: any[] = [];
+                  const maxLength = Math.min(columnNames.length, worksheetNames.length);
+                  
+                  for (let i = 0; i < maxLength; i++) {
+                    const columnItem = columnNames[i];
+                    const worksheetItem = worksheetNames[i];
+                    
+                    const columnValue = columnItem?.extractedValue !== undefined ? 
+                                       columnItem.extractedValue : columnItem;
+                    const worksheetValue = worksheetItem?.extractedValue !== undefined ? 
+                                          worksheetItem.extractedValue : worksheetItem;
+                    
+                    mergedArray.push({
+                      "Column Name": columnValue,
+                      "Worksheet Name": worksheetValue
+                    });
+                  }
+                  
+                  console.log(`  ✅ CREATED MERGED ARRAY: ${mergedArray.length} items`);
+                  console.log(`  📊 First item:`, JSON.stringify(mergedArray[0]));
+                  console.log(`  📊 Second item:`, JSON.stringify(mergedArray[1]));
+                  console.log(`  📊 Last item:`, JSON.stringify(mergedArray[mergedArray.length - 1]));
+                  
+                  // Replace the parameter with the merged array
+                  preparedInputValues[key] = mergedArray;
+                  console.log(`  ✅ REPLACED PARAMETER "${key}" WITH MERGED ARRAY`);
+                } else {
+                  console.log('  ❌ ERROR: Missing data for merging!');
+                  console.log('  ❌ Column Names available:', columnNames.length > 0);
+                  console.log('  ❌ Worksheet Names available:', worksheetNames.length > 0);
+                }
+              }
+            }
+          }
+          
+          // Standard reference resolution for other cases
           console.log('\n🔧 REFERENCE RESOLUTION PHASE');
           console.log('  Tool type:', excelFunction?.toolType);
           console.log('  Tool is AI?', excelFunction?.toolType === 'AI' || excelFunction?.toolType === 'AI_ONLY');
           console.log('  Input parameters to resolve:', Object.keys(preparedInputValues));
-          console.log('  Raw input values:', JSON.stringify(preparedInputValues, null, 2));
           
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
             console.log(`\n  📍 Processing parameter "${key}"`);
             console.log(`    Raw value:`, JSON.stringify(value).substring(0, 200));
             console.log(`    Value type: ${typeof value}, isArray: ${Array.isArray(value)}`);
+            
+            // Skip if we already handled this parameter above
+            if (valueConfig.valueName === 'Standard Mapping' && Array.isArray(value) && 
+                value.length > 0 && typeof value[0] === 'object') {
+              console.log('    ✅ Already processed as merged array, skipping reference resolution');
+              continue;
+            }
             
             // Handle comma-separated string of references (common in AI tool data parameters)
             if (typeof value === 'string' && value.includes('@') && value.includes(',')) {
