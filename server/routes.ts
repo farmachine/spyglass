@@ -6387,11 +6387,14 @@ def extract_function(Column_Name, Excel_File):
           const preparedInputValues = { ...valueConfig.inputValues };
           
           console.log('\n🔍 REFERENCE RESOLUTION START');
+          console.log('  Step being processed:', valueConfig.stepName, '>', valueConfig.valueName);
           console.log('  Input values to process:', JSON.stringify(valueConfig.inputValues, null, 2));
+          console.log('  Previous results keys available:', previousResults ? Object.keys(previousResults) : 'None');
           
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
             console.log(`  Processing key "${key}" with value:`, JSON.stringify(value));
+            console.log(`    Value type: ${typeof value}, isArray: ${Array.isArray(value)}`);
             // Handle array of references (can be multiple like ["@Step.Value1", "@Step.Value2"])
             if (Array.isArray(value) && value.length > 0) {
               // Check if all elements are references
