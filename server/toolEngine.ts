@@ -427,25 +427,29 @@ export class ToolEngine {
       
       console.log(`🔍 Found ${dataInputs.length} data inputs that are arrays`);
       
-      // For AI tools, use larger batch size to complete faster
-      // Process more items per batch to reduce total number of API calls
-      const AI_BATCH_THRESHOLD = 10;
-      const AI_BATCH_SIZE = 3; // Process 3 items at a time for AI tools (optimal for accuracy and context)
+      // For AI tools, we send ALL data in one call to minimize API requests
+      // NO BATCHING for AI tools - send everything at once
+      const AI_BATCH_THRESHOLD = 999999; // Effectively disable batching for AI tools
+      const AI_BATCH_SIZE = 999999; // Process ALL items at once for AI tools
       
-      // If we have large arrays, process in batches
+      // If we have large arrays, check if we need special handling
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
         const [dataKey, dataArray] = dataInputs[0];
-        if (Array.isArray(dataArray) && dataArray.length > AI_BATCH_THRESHOLD) {
-          console.log(`📦 AI Tool: Array detected (${dataArray.length} items). Processing in small batches of ${AI_BATCH_SIZE}...`);
+        
+        // For AI tools, send ALL items in a single request
+        if (tool.toolType === 'AI' && Array.isArray(dataArray) && dataArray.length > 0) {
+          console.log(`📦 AI Tool: Processing ALL ${dataArray.length} items in a SINGLE API call...`);
           
+          // Process ALL items in a single batch for AI tools
+          const batch = dataArray; // Use the entire array as one batch
           const allResults: ToolResult[] = [];
-          const totalBatches = Math.ceil(dataArray.length / AI_BATCH_SIZE);
           
-          for (let i = 0; i < dataArray.length; i += AI_BATCH_SIZE) {
-            const batch = dataArray.slice(i, Math.min(i + AI_BATCH_SIZE, dataArray.length));
-            const batchEnd = Math.min(i + AI_BATCH_SIZE, dataArray.length);
-            const batchNumber = Math.floor(i / AI_BATCH_SIZE) + 1;
-            const totalBatches = Math.ceil(dataArray.length / AI_BATCH_SIZE);
+          // No loop needed - process everything at once
+          {
+            const i = 0;
+            const batchEnd = dataArray.length;
+            const batchNumber = 1;
+            const totalBatches = 1;
             
             console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
             
@@ -612,10 +616,14 @@ Process each item and return the complete array of results.`;
                 });
               }
             }
-          }
+          } // End of single batch processing block
           
-          console.log(`✅ All batches complete. Total results: ${allResults.length}`);
+          console.log(`✅ Processing complete. Total results: ${allResults.length}`);
           return allResults;
+        } else if (Array.isArray(dataArray) && dataArray.length > AI_BATCH_THRESHOLD) {
+          // Original batching logic for non-AI tools (if needed)
+          console.log(`📦 Non-AI Tool: Array detected (${dataArray.length} items). Processing in batches...`);
+          // Keep existing batching logic here for non-AI tools if needed
         }
       }
       
