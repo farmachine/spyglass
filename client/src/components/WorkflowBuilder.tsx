@@ -1114,7 +1114,8 @@ function ValueEditor({
                         }
                         
                         // Ensure identifier ref is always included if it exists
-                        const currentValues = value.inputValues[param.id] || [];
+                        const rawValues = value.inputValues[param.id];
+                        const currentValues = Array.isArray(rawValues) ? rawValues : (rawValues ? [rawValues] : []);
                         const allValues = identifierRef 
                           ? Array.from(new Set([identifierRef, ...currentValues]))
                           : currentValues;
@@ -1165,7 +1166,8 @@ function ValueEditor({
                       <Select
                         value=""
                         onValueChange={(valueRef) => {
-                          const currentValues = value.inputValues[param.id] || [];
+                          const rawValues = value.inputValues[param.id];
+                          const currentValues = Array.isArray(rawValues) ? rawValues : (rawValues ? [rawValues] : []);
                           if (!currentValues.includes(valueRef)) {
                             const updatedValues = [...currentValues, valueRef];
                             onUpdate({
