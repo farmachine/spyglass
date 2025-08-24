@@ -6326,6 +6326,7 @@ def extract_function(Column_Name, Excel_File):
             extractedValue: result.extractedValue,
             validationType: 'collection_property',
             validationStatus: result.validationStatus || 'pending',
+            dataType: 'text', // Default to text type for column extraction
             aiReasoning: result.aiReasoning,
             confidenceScore: result.confidenceScore,
             documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
