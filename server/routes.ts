@@ -6354,6 +6354,13 @@ def extract_function(Column_Name, Excel_File):
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
           
+          // Get the identifier ID from the previous data
+          let identifierId: string | null = null;
+          if (previousData && previousData[i]) {
+            identifierId = previousData[i].identifierId || null;
+            console.log(`🔗 Mapping result ${i} to identifier: ${identifierId}`);
+          }
+          
           // Format field name to match UI expectations: "StepName.ValueName[index]"
           const fieldName = `${step.stepName}.${value.valueName}[${i}]`;
           
@@ -6375,6 +6382,7 @@ def extract_function(Column_Name, Excel_File):
               originalExtractedValue: result.extractedValue,
               originalAiReasoning: result.aiReasoning,
               originalConfidenceScore: result.confidenceScore,
+              identifierId: identifierId, // Add identifier mapping
               extractedAt: new Date()
             });
             console.log(`📝 Updated existing validation for ${fieldName}`);
@@ -6388,6 +6396,7 @@ def extract_function(Column_Name, Excel_File):
               stepId: stepId,
               fieldName: fieldName, // Add the properly formatted field name
               recordIndex: i,
+              identifierId: identifierId, // Add identifier mapping
               extractedValue: result.extractedValue,
               validationType: 'collection_property',
               validationStatus: result.validationStatus || 'pending',
@@ -6403,7 +6412,7 @@ def extract_function(Column_Name, Excel_File):
               collectionName: step.stepName, // Add collection name
               extractedAt: new Date()
             });
-            console.log(`✨ Created new validation for ${fieldName}`);
+            console.log(`✨ Created new validation for ${fieldName} with identifier ${identifierId}`);
           }
         }
         
