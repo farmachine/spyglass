@@ -6516,9 +6516,8 @@ def extract_function(Column_Name, Excel_File):
             console.log(`📝 Updated existing validation for ${fieldName}`);
           } else {
             // Create new validation
-            // Get collection ID from the project - needed for proper database constraints
-            const project = await storage.getProject(sessionDetails.projectId);
-            const collection = project?.collections?.find(c => c.collectionName === step.stepName);
+            // In the unified architecture, collectionId should be the stepId for Data Tables
+            // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
             await storage.createFieldValidation({
               id: crypto.randomUUID(),
@@ -6526,7 +6525,7 @@ def extract_function(Column_Name, Excel_File):
               fieldId: valueId,
               valueId: valueId,
               stepId: stepId,
-              collectionId: collection?.id || null, // Add collection ID
+              collectionId: stepId, // Use stepId as the collection ID in unified architecture
               fieldName: fieldName, // Add the properly formatted field name
               recordIndex: recordIndex, // Use the correct record index
               identifierId: identifierId, // Add identifier mapping
@@ -6542,7 +6541,7 @@ def extract_function(Column_Name, Excel_File):
               originalConfidenceScore: result.confidenceScore,
               manuallyVerified: false,
               manuallyUpdated: false,
-              collectionName: step.stepName, // Add collection name
+              collectionName: step.stepName, // Add collection name for backward compatibility
               extractedAt: new Date()
             });
             console.log(`✨ Created new validation for ${fieldName} with identifier ${identifierId}`);
