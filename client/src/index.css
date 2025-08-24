@@ -70,16 +70,16 @@
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
+  --background: hsl(222, 47%, 11%); /* Lighter navy blue background */
   --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
+  --muted: hsl(217, 33%, 17%);
   --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
+  --popover: hsl(222, 47%, 11%);
   --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
+  --card: hsl(222, 47%, 11%);
   --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
+  --border: hsl(217, 33%, 17%);
+  --input: hsl(217, 33%, 17%);
   --primary: hsl(225, 35%, 48%); /* Keep slate blue in dark mode */
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(240, 3.7%, 15.9%);
@@ -96,13 +96,13 @@
   --warning: hsl(25, 95%, 53%);
   
   /* Sidebar color variables for dark mode */
-  --sidebar-background: hsl(240, 10%, 3.9%); /* Dark background */
+  --sidebar-background: hsl(222, 47%, 11%); /* Lighter navy blue background */
   --sidebar-foreground: hsl(226, 81%, 18%); /* #071e54 - Keep same deep blue text */
   --sidebar-primary: hsl(225, 35%, 48%); /* #4F63A4 */
   --sidebar-primary-foreground: hsl(0, 0%, 100%); /* White */
-  --sidebar-accent: hsl(240, 3.7%, 15.9%); /* Dark accent */
+  --sidebar-accent: hsl(217, 33%, 17%); /* Dark accent */
   --sidebar-accent-foreground: hsl(226, 81%, 18%); /* #071e54 */
-  --sidebar-border: hsl(240, 3.7%, 15.9%); /* Dark border */
+  --sidebar-border: hsl(217, 33%, 17%); /* Dark border */
   --sidebar-ring: hsl(225, 35%, 48%); /* Primary blue */
 }
 
