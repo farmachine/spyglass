@@ -6391,6 +6391,22 @@ def extract_function(Column_Name, Excel_File):
           console.log('  Input values to process:', JSON.stringify(valueConfig.inputValues, null, 2));
           console.log('  Previous results keys available:', previousResults ? Object.keys(previousResults) : 'None');
           
+          // Special logging for Standard Mapping
+          if (valueConfig.valueName === 'Standard Mapping') {
+            console.log('🎯 SPECIAL DEBUG FOR STANDARD MAPPING:');
+            console.log('  Full previousResults structure:', JSON.stringify(Object.keys(previousResults || {}), null, 2));
+            if (previousResults) {
+              for (const [key, value] of Object.entries(previousResults)) {
+                if (Array.isArray(value)) {
+                  console.log(`  previousResults["${key}"] = Array with ${value.length} items`);
+                  if (value.length > 0) {
+                    console.log(`    First item:`, value[0]);
+                  }
+                }
+              }
+            }
+          }
+          
           // Check for @-references in input values and replace with previous results
           for (const [key, value] of Object.entries(preparedInputValues)) {
             console.log(`  Processing key "${key}" with value:`, JSON.stringify(value));
@@ -6461,6 +6477,12 @@ def extract_function(Column_Name, Excel_File):
                   
                   preparedInputValues[key] = allReferencedData;
                   console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items`);
+                }
+                // No references found but we have the reference strings - don't pass them to AI
+                else if (allReferences.length > 0 && Object.keys(referenceMap).length === 0) {
+                  console.log(`    ⚠️ References not resolved, removing literal reference strings`);
+                  // Don't pass unresolved references to the AI
+                  delete preparedInputValues[key];
                 }
                 // Single reference - handle as before
                 else if (Object.keys(referenceMap).length === 1) {
