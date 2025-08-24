@@ -1,0 +1,52 @@
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+Result length: 27253 characters
+First 500 chars: ```json
+[
+  {
+    "identifierId": "Item 1: {\"ID\":\"Date Of Exit From Active Service\",\"Worksheet Name\":\"New_Pensioners\"}",
+    "extractedValue": "Exit Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Standardized date field by removing verbose phrasing",
+    "confidenceScore": 95,
+    "documentSource": "New_Pensioners"
+  },
+  {
+    "identifierId": "Item 2: {\"ID\":\"Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service\",\"Worksheet Name\":\"New_Pensioners\"}",
+
+Last 500 chars:  Name\":\"Active deferreds\"}",
+    "extractedValue": "Deferred Exit Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Simplified column name for clarity",
+    "confidenceScore": 95,
+    "documentSource": "Active deferreds"
+  },
+  {
+    "identifierId": "Item 81: {\"ID\":\"Early Vesting Age\"}",
+    "extractedValue": "Early Vesting Age",
+    "validationStatus": "valid",
+    "aiReasoning": "No changes needed",
+    "confidenceScore": 100,
+    "documentSource": "Active deferreds"
+  },
+  {
+
+--------------------------------------------------------------------------------
+⚠️ JSON parsing failed, attempting to extract valid JSON from response
+🔍 Found 81 potential JSON objects, attempting to parse
+❌ ERROR in testAITool: SyntaxError: Unexpected token '`', "```json
+[
+"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:727:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:6474:23)
+Error details: SyntaxError: Unexpected token '`', "```json
+[
+"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:727:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:6474:23)
+⚠️ Creating 177 error placeholders to maintain data mapping
+✅ Tool execution completed. Results count: 177
