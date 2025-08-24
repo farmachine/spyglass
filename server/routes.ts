@@ -31,7 +31,7 @@ async function processWorkflowTestAsync(
   jobId: string,
   projectId: string,
   documentId: string,
-  documentContent: string,
+  documentContentFromFrontend: string,
   valueConfig: any,
   previousResults: any
 ) {
@@ -43,6 +43,22 @@ async function processWorkflowTestAsync(
     
     // Get the tool/function details
     const storage = (await import('./storage')).storage;
+    
+    // Load the test document content from database if we have a documentId
+    let documentContent = documentContentFromFrontend;
+    if (documentId) {
+      console.log('[ASYNC] 📄 Loading test document from database:', documentId);
+      const testDoc = await storage.getTestDocument(documentId);
+      if (testDoc) {
+        const content = testDoc.extractedContent || testDoc.extracted_content;
+        if (content) {
+          documentContent = content;
+          console.log('[ASYNC]   ✅ Loaded document content from DB:', documentContent.length, 'chars');
+          console.log('[ASYNC]   📋 Content has sheet markers:', documentContent.includes('=== Sheet:'));
+        }
+      }
+    }
+    
     const excelFunction = await storage.getExcelWizardryFunction(valueConfig.toolId);
     
     if (!excelFunction) {
@@ -6266,13 +6282,25 @@ def extract_function(Column_Name, Excel_File):
       if (documentId) {
         console.log('📄 Loading test document from database:', documentId);
         const testDoc = await storage.getTestDocument(documentId);
-        if (testDoc && testDoc.extractedContent) {
-          documentContent = testDoc.extractedContent;
-          console.log('  ✅ Loaded document content from DB:', documentContent.length, 'chars');
-          console.log('  📋 Content has sheet markers:', documentContent.includes('=== Sheet:'));
+        console.log('  📄 Test doc retrieved:', !!testDoc);
+        if (testDoc) {
+          console.log('  📄 Test doc fields:', Object.keys(testDoc));
+          // Use the correct field name based on what's in the database
+          const content = testDoc.extractedContent || testDoc.extracted_content;
+          if (content) {
+            documentContent = content;
+            console.log('  ✅ Loaded document content from DB:', documentContent.length, 'chars');
+            console.log('  📋 Content preview:', documentContent.substring(0, 200) + '...');
+            console.log('  📋 Content has sheet markers:', documentContent.includes('=== Sheet:'));
+          } else {
+            console.log('  ⚠️ Test document has no extracted content');
+            console.log('  📄 Available fields:', Object.entries(testDoc).map(([k,v]) => `${k}: ${typeof v === 'string' ? v.length + ' chars' : typeof v}`).join(', '));
+          }
         } else {
-          console.log('  ⚠️ Test document not found or has no content, using frontend content');
+          console.log('  ⚠️ Test document not found in database');
         }
+      } else {
+        console.log('⚠️ No documentId provided, using frontend content');
       }
       
       console.log('🧪 Test Workflow Request:');
