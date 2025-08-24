@@ -2246,10 +2246,11 @@ except Exception as e:
             for (let i = 0; i < toolResults.length; i++) {
               const result = toolResults[i];
               // Use the actual value name from the workflow step
+              const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`;
               const validation = {
                 sessionId,
                 fieldId: value_id,
-                fieldName: `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`,
+                fieldName: fieldName,  // This will be used for display purposes even though not stored
                 extractedValue: result.extractedValue,
                 validationStatus: result.validationStatus || 'extracted',
                 validationType: 'collection_property',

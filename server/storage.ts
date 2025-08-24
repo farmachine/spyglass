@@ -5,6 +5,7 @@ import {
   collectionProperties,
   workflowSteps,
   stepValues,
+  stepValues,
   extractionSessions,
   sessionDocuments,
   knowledgeDocuments,
@@ -2772,22 +2773,44 @@ class PostgreSQLStorage implements IStorage {
     // Batch fetch collection property names with collection names
     const collectionPropertiesMap = new Map<string, { propertyName: string, collectionName: string }>();
     if (collectionPropertyIds.length > 0) {
-      const propertiesWithCollections = await this.db
-        .select({ 
-          id: collectionProperties.id,
-          propertyName: collectionProperties.propertyName,
-          collectionName: objectCollections.collectionName 
+      // First try to get from step_values (workflow values)
+      const stepValueResults = await this.db
+        .select({
+          id: stepValues.id,
+          valueName: stepValues.valueName,
+          stepName: workflowSteps.stepName
         })
-        .from(collectionProperties)
-        .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
-        .where(inArray(collectionProperties.id, collectionPropertyIds));
+        .from(stepValues)
+        .innerJoin(workflowSteps, eq(stepValues.stepId, workflowSteps.id))
+        .where(inArray(stepValues.id, collectionPropertyIds));
       
-      propertiesWithCollections.forEach(prop => {
-        collectionPropertiesMap.set(prop.id, { 
-          propertyName: prop.propertyName, 
-          collectionName: prop.collectionName 
+      stepValueResults.forEach(value => {
+        collectionPropertiesMap.set(value.id, {
+          propertyName: value.valueName,
+          collectionName: value.stepName
         });
       });
+      
+      // For any IDs not found in step_values, fall back to collection properties
+      const remainingIds = collectionPropertyIds.filter(id => !collectionPropertiesMap.has(id));
+      if (remainingIds.length > 0) {
+        const propertiesWithCollections = await this.db
+          .select({ 
+            id: collectionProperties.id,
+            propertyName: collectionProperties.propertyName,
+            collectionName: objectCollections.collectionName 
+          })
+          .from(collectionProperties)
+          .innerJoin(objectCollections, eq(collectionProperties.collectionId, objectCollections.id))
+          .where(inArray(collectionProperties.id, remainingIds));
+        
+        propertiesWithCollections.forEach(prop => {
+          collectionPropertiesMap.set(prop.id, { 
+            propertyName: prop.propertyName, 
+            collectionName: prop.collectionName 
+          });
+        });
+      }
     }
     
     // Enhance results with field names using the cached data
