@@ -1,0 +1,139 @@
+  ... and 174 more items
+============================================================
+📊 Async job 27ce80be-49bf-40e1-996c-9e8ac861d2f0 results: {
+  resultCount: 'not an array',
+  success: undefined,
+  firstItem: undefined
+}
+✅ Async job 27ce80be-49bf-40e1-996c-9e8ac861d2f0 completed successfully
+10:36:59 AM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/test-workflow/job/27ce80be-49bf-40e1-996c-9e8ac861d2f0 200 in 2ms
+10:36:59 AM [browser] 📝   📦 Job result structure: {"results":[{"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Old Member's Reference ...
+10:36:59 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝   ✅ Extracted 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝   📋 Sample results:
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     Item 1: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Old Member's Reference No' found in sheet 'New_Pen...
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     Item 2: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Member's Reference No' found in sheet 'New_Pension...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     Item 3: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Employer Code' found in sheet 'New_Pensioners'","c...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     ... and 174 more items
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝   💾 STORING RESULTS FOR NEXT STEPS:
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Stored as "Column Name Mapping.Worksheet Name": 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Also stored as "Worksheet Name": 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • First item keys: ["extractedValue","validationStatus","aiReasoning","confidenceScore","documentSource"]
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Sample item: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Old Member's Reference No' found in sheet '...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝 
+  ⚙️ Running value 3 of 3: Column Name Mapping > Standard Mapping
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝   ═══════════════════════════════════════════
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝   📋 STEP CONFIGURATION:
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Tool ID: fb0190e9-0b26-4133-b8e8-decfba38cd22
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Step ID: e3c7f77d-910c-4e41-8668-e0fccf16fd45
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Value ID: 28cf3fc8-53f8-490b-b694-16de7664f87f
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Input Values: {"0.4uir69thnel":["37dbd483-c91b-4470-a728-aec645b1ad5e"],"0.hb25dnz5dmd":"For each column, find its equivalent that is mention...
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝   📊 AVAILABLE DATA FROM PREVIOUS STEPS:
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • "Column Name Mapping.Column Names": Array with 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       First item structure: ["extractedValue","validationStatus","aiReasoning","confidenceScore","documentSource","step_id","value_id"]
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝       Sample data: {"extractedValue":"Old Member's Reference No","validationStatus":"valid","aiReasoning":"Column found in New_Pensioners","confide...
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     • "Column Names": Array with 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       First item structure: ["extractedValue","validationStatus","aiReasoning","confidenceScore","documentSource","step_id","value_id"]
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝       Sample data: {"extractedValue":"Old Member's Reference No","validationStatus":"valid","aiReasoning":"Column found in New_Pensioners","confide...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • "Column Name Mapping.Worksheet Name": Array with 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       First item structure: ["extractedValue","validationStatus","aiReasoning","confidenceScore","documentSource"]
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       Sample data: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Old Member's Reference No' found in sheet '...
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       First item structure: ["extractedValue","validationStatus","aiReasoning","confidenceScore","documentSource"]
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • "Worksheet Name": Array with 177 items
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝       Sample data: {"extractedValue":"New_Pensioners","validationStatus":"valid","aiReasoning":"Column 'Old Member's Reference No' found in sheet '...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝   🎯 RESOLVED INPUT PARAMETERS:
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • 0.4uir69thnel: Direct value = "37dbd483-c91b-4470-a728-aec645b1ad5e"
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • 0.hb25dnz5dmd: Direct value = "For each column, find its equivalent that is mentioned in the knowledge document standard fields mapping.. If ...
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • 0.0qv7jjabq7on: Direct value = "@Column Name Mapping.Column Names,@Column Name Mapping.Worksheet Name"
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝   📤 REQUEST SUMMARY:
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Document ID: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Document content length: 12925 chars
+10:37:00 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:37:00 AM [browser] 📝     • Previous results keys: [Column Name Mapping.Column Names, Column Names, Column Name Mapping.Worksheet Name, Worksheet Name]
+10:37:00 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+
+🔍 TEST WORKFLOW ENDPOINT HIT
+  📝 Request body keys: [
+  'documentId',
+  'documentContent',
+  'valueConfig',
+  'previousResults',
+  'async'
+]
+  📝 Document ID: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+  📝 Frontend doc content length: 12925
+  📝 Value config tool: fb0190e9-0b26-4133-b8e8-decfba38cd22
+📄 ATTEMPTING TO LOAD TEST DOCUMENT FROM DATABASE
+  📄 Document ID: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+  📄 Test doc retrieved: true
+  📄 Test doc fields: [
+  'id',
+  'projectId',
+  'fileName',
+  'fileSize',
+  'mimeType',
+  'filePath',
+  'extractedContent',
+  'createdAt'
+]
+  ✅ Loaded document content from DB: 12925 chars
+  📋 Content preview: === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code  Date of Birth   Date Became Pensioner   Code For Previous Status    Type Of Retirement    Date Of Exit From A...
+  📋 Content has sheet markers: true
+🧪 Test Workflow Request:
+  Project: 915d87a3-dd55-401e-8f8b-df38132c2215
+  Document: 886a3797-03d6-4cf6-a6da-8a71459bdf39
+  Document Content Length: 12925
+  Value Config: {
+  stepId: 'e3c7f77d-910c-4e41-8668-e0fccf16fd45',
+  stepName: 'Column Name Mapping',
+  stepType: 'list',
+  valueId: '28cf3fc8-53f8-490b-b694-16de7664f87f',
+  valueName: 'Standard Mapping',
+  toolId: 'fb0190e9-0b26-4133-b8e8-decfba38cd22',
+  inputValues: {
+    '0.4uir69thnel': [ '37dbd483-c91b-4470-a728-aec645b1ad5e' ],
+    '0.hb25dnz5dmd': "For each column, find its equivalent that is mentioned in the knowledge document standard fields mapping.. If you can't find anything just say 'No Match'",
+    '0.0qv7jjabq7on': [
+      '@Column Name Mapping.Column Names',
+      '@Column Name Mapping.Worksheet Name'
+    ]
+  }
+}

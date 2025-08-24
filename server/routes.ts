@@ -6443,6 +6443,7 @@ def extract_function(Column_Name, Excel_File):
               
               if (allReferences.length > 0) {
                 console.log(`  Found ${allReferences.length} references in array for ${key}`);
+                console.log(`  Raw references:`, allReferences);
                 
                 // Collect all referenced data
                 const allReferencedData: any[] = [];
@@ -6529,6 +6530,10 @@ def extract_function(Column_Name, Excel_File):
                     // Pass the entire merged array to the AI
                     preparedInputValues[key] = allReferencedData;
                     console.log(`    ✅ Set ${key} to merged array with ${allReferencedData.length} items for AI batch processing`);
+                    console.log(`    🔍 VERIFICATION: preparedInputValues["${key}"] now contains:`, 
+                      Array.isArray(preparedInputValues[key]) ? 
+                        `Array with ${preparedInputValues[key].length} items` : 
+                        typeof preparedInputValues[key]);
                   } else {
                     // For non-AI tools, keep the original merging logic
                     const maxLength = Math.max(...Object.values(referenceMap).map(arr => 
