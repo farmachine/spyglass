@@ -1190,14 +1190,23 @@ Input Data:
 ${formattedInputs}${arrayInstruction}`;
     
     // Log if reference document is included
+    console.log('🔍 CHECKING PROMPT FOR REFERENCE DOCUMENT...');
     if (finalPrompt.includes('Reference Document:')) {
-      const docMatch = finalPrompt.match(/Reference Document:\s*([\s\S]{0,200})/);
+      const docMatch = finalPrompt.match(/Reference Document:\s*([\s\S]{0,500})/);
       if (docMatch) {
         console.log('✅ Reference Document IS included in prompt');
-        console.log('  📄 Document preview:', docMatch[1].substring(0, 100) + '...');
+        console.log('  📄 Document preview:', docMatch[1].substring(0, 300) + '...');
+      }
+    } else if (formattedInputs.includes('Reference Document:')) {
+      console.log('✅ Reference Document IS included in formattedInputs');
+      const docMatch = formattedInputs.match(/Reference Document:\s*([\s\S]{0,500})/);
+      if (docMatch) {
+        console.log('  📄 Document preview:', docMatch[1].substring(0, 300) + '...');
       }
     } else {
       console.log('⚠️ WARNING: No Reference Document found in prompt!');
+      console.log('  Input keys provided:', Object.keys(inputs));
+      console.log('  Tool expects parameters:', tool.inputParameters.map(p => `${p.name} (${p.id})`));
     }
     
     return finalPrompt;

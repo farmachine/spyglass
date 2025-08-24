@@ -2264,9 +2264,8 @@ except Exception as e:
                 continue;
               }
               
-              // Handle Reference Document - check for null, placeholder, or explicit key
-              if ((key === 'Reference Document' || key === '0.4uir69thnel') && 
-                  (value === null || value === '@reference_document' || value === 'Reference Document')) {
+              // Handle Reference Document - always fetch when this key is present
+              if (key === 'Reference Document' || key === '0.4uir69thnel') {
                 console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
                 // Get reference documents from session or knowledge base
                 const sessionDocs = await storage.getSessionDocuments(sessionId);
