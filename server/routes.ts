@@ -82,6 +82,9 @@ async function processWorkflowTestAsync(
         if (referencePath === 'user_document') {
           console.log(`  ✅ Replacing ${key} with test document content (${documentContent?.length || 0} chars)`);
           console.log(`  📄 Document content preview: ${documentContent?.substring(0, 200)}...`);
+          // Check if document has sheet markers
+          const hasSheets = documentContent?.includes('=== Sheet:');
+          console.log(`  📋 Document has sheet markers: ${hasSheets}`);
           preparedInputValues[key] = documentContent || '';
           console.log(`  ✅ Successfully set ${key} to document content`);
         }
