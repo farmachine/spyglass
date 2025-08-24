@@ -614,40 +614,94 @@ const AIExtractionModal = ({
     ));
     console.log('Collected Document IDs for extraction:', documentIds);
     
-    // Run the extraction wizardry Python script with document IDs, session ID, and target fields
+    // Check if this is a workflow step extraction
+    const isWorkflowStep = sectionName && project?.workflowSteps?.find(
+      step => step.stepName === sectionName
+    );
+    
     try {
-      const requestData = {
-        document_ids: documentIds,
-        session_id: sessionId,
-        target_fields: targetFieldsWithSources
-      };
-      
-      console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
-      
-      const response = await apiRequest('/api/run-wizardry', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
-      console.log('Wizardry Result:', response);
-      if (response.output) {
-        console.log('Python Script Output:');
-        console.log(response.output);
-      }
-      
-      // Simulate field-by-field progress for UI feedback
-      for (let i = 0; i < sortedSelectedFields.length; i++) {
-        setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
+      if (isWorkflowStep) {
+        // Process workflow step values sequentially
+        console.log('Processing workflow step values sequentially...');
         
-        // Wait a bit to show the spinner animation
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        for (let i = 0; i < sortedSelectedFields.length; i++) {
+          const field = sortedSelectedFields[i];
+          setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
+          
+          // Get document sources for this specific value
+          const fieldSources = fieldDocumentSources[field.id] || [];
+          const documentsToUse = fieldSources.length > 0 
+            ? fieldSources 
+            : sessionDocuments.map(doc => doc.id);
+          
+          // Prepare value-specific request data
+          const valueRequestData = {
+            document_ids: documentsToUse,
+            session_id: sessionId,
+            target_fields: [targetFieldsWithSources.find(tf => tf.id === field.id)],
+            step_id: field.stepId,
+            value_id: field.valueId,
+            is_workflow_step: true
+          };
+          
+          console.log(`Extracting value ${i + 1}/${sortedSelectedFields.length}: ${field.name}`);
+          console.log('Value extraction request:', JSON.stringify(valueRequestData, null, 2));
+          
+          // Run extraction for this single value
+          const response = await apiRequest(`/api/sessions/${sessionId}/extract`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(valueRequestData),
+          });
+          
+          console.log(`Value ${field.name} extraction result:`, response);
+          
+          // Mark this field as complete
+          setExtractionProgress(prev => ({ 
+            ...prev, 
+            completedFields: new Set([...prev.completedFields, field.id])
+          }));
+          
+          // Small delay before next value
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } else {
+        // Original extraction logic for non-workflow steps
+        const requestData = {
+          document_ids: documentIds,
+          session_id: sessionId,
+          target_fields: targetFieldsWithSources
+        };
         
-        setExtractionProgress(prev => ({ 
-          ...prev, 
-          completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
-        }));
+        console.log('Complete Extraction Request:', JSON.stringify(requestData, null, 2));
+        
+        const response = await apiRequest(`/api/sessions/${sessionId}/extract`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+        console.log('Wizardry Result:', response);
+        if (response.output) {
+          console.log('Python Script Output:');
+          console.log(response.output);
+        }
+        
+        // Simulate field-by-field progress for UI feedback
+        for (let i = 0; i < sortedSelectedFields.length; i++) {
+          setExtractionProgress(prev => ({ ...prev, currentFieldIndex: i }));
+          
+          // Wait a bit to show the spinner animation
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          setExtractionProgress(prev => ({ 
+            ...prev, 
+            completedFields: new Set([...prev.completedFields, sortedSelectedFields[i].id])
+          }));
+        }
       }
       
       // Mark extraction as complete
@@ -1091,11 +1145,40 @@ export default function SessionView() {
   // Handler to open AI extraction modal
   const handleOpenAIExtraction = (sectionName: string, availableFields: { id: string; name: string; type: string }[]) => {
     console.log('handleOpenAIExtraction called with:', { sectionName, availableFields });
-    setAiExtractionModal({
-      open: true,
-      sectionName,
-      availableFields
-    });
+    
+    // Check if this is a workflow step
+    const workflowStep = project?.workflowSteps?.find(
+      step => step.stepName === sectionName
+    );
+    
+    if (workflowStep) {
+      // Use step values as fields
+      const stepFields = workflowStep.values?.map(value => ({
+        id: value.id,
+        name: value.valueName,
+        type: value.dataType,
+        stepId: workflowStep.id,
+        valueId: value.id,
+        toolId: value.toolId,
+        inputValues: value.inputValues,
+        orderIndex: value.orderIndex
+      })) || [];
+      
+      setAiExtractionModal({
+        open: true,
+        sectionName,
+        availableFields: stepFields,
+        isWorkflowStep: true,
+        workflowStep
+      });
+    } else {
+      setAiExtractionModal({
+        open: true,
+        sectionName,
+        availableFields,
+        isWorkflowStep: false
+      });
+    }
   };
 
   // Handler to close AI extraction modal
