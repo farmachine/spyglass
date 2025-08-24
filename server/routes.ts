@@ -2265,8 +2265,8 @@ except Exception as e:
                 continue;
               }
               
-              // Handle Reference Document - always fetch when this key is present
-              if (key === 'Reference Document' || key === '0.4uir69thnel') {
+              // Handle Reference Document - fetch when key is present OR value is @reference_document
+              if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document') {
                 console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
                 // Get reference documents from session or knowledge base
                 const sessionDocs = await storage.getSessionDocuments(sessionId);
@@ -2293,13 +2293,14 @@ except Exception as e:
                 
                 if (allDocContents.length > 0) {
                   const combinedContent = allDocContents.join('\n\n---\n\n');
-                  toolInputs[key] = combinedContent;
-                  toolInputs['0.4uir69thnel'] = combinedContent; // Set by ID too
+                  // Set reference document by both key name and ID
+                  toolInputs['Reference Document'] = combinedContent;
+                  toolInputs['0.4uir69thnel'] = combinedContent;
                   console.log(`📚 ✅ Set reference document content (${combinedContent.length} chars)`);
                   console.log(`📚 Preview of combined content: ${combinedContent.substring(0, 200)}...`);
                 } else {
                   console.log('⚠️ No reference documents found');
-                  toolInputs[key] = '';
+                  toolInputs['Reference Document'] = '';
                   toolInputs['0.4uir69thnel'] = '';
                 }
               } else if (typeof value === 'object' && value !== null) {
