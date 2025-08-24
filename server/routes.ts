@@ -6316,12 +6316,17 @@ def extract_function(Column_Name, Excel_File):
         // Create new validations for each result
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
+          
+          // Format field name to match UI expectations: "StepName.ValueName[index]"
+          const fieldName = `${step.stepName}.${value.valueName}[${i}]`;
+          
           await storage.createFieldValidation({
             id: crypto.randomUUID(),
             sessionId: sessionId,
             fieldId: valueId,
             valueId: valueId,
             stepId: stepId,
+            fieldName: fieldName, // Add the properly formatted field name
             recordIndex: i,
             extractedValue: result.extractedValue,
             validationType: 'collection_property',
@@ -6335,6 +6340,7 @@ def extract_function(Column_Name, Excel_File):
             originalConfidenceScore: result.confidenceScore,
             manuallyVerified: false,
             manuallyUpdated: false,
+            collectionName: step.stepName, // Add collection name
             extractedAt: new Date()
           });
         }
