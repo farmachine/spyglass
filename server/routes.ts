@@ -2195,14 +2195,19 @@ except Exception as e:
       console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
       
       if (isExcelColumnExtraction && is_workflow_step && value_id) {
-        console.log('USING TOOL ENGINE FOR WORKFLOW VALUE EXTRACTION');
+        console.log('🚀 USING TOOL ENGINE FOR WORKFLOW VALUE EXTRACTION');
+        console.log('🚀 Step ID:', step_id);
+        console.log('🚀 Value ID:', value_id);
         
         // Get the workflow step and value details
         const workflowStep = project_data?.workflowSteps?.find((s: any) => s.id === step_id);
         const workflowValue = workflowStep?.values?.find((v: any) => v.id === value_id);
         
+        console.log('🚀 Workflow Value Name:', workflowValue?.valueName);
+        console.log('🚀 Tool ID:', workflowValue?.toolId);
+        
         if (workflowValue?.toolId) {
-          console.log(`Using tool ${workflowValue.toolId} for value ${workflowValue.valueName}`);
+          console.log(`🎯 Using tool ${workflowValue.toolId} for value ${workflowValue.valueName}`);
           
           // Import tool engine to execute the tool
           const { runToolForExtraction } = await import('./toolEngine');
