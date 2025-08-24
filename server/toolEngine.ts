@@ -477,13 +477,15 @@ export class ToolEngine {
               
               batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing ${batch.length} merged data items. Each item contains multiple related fields that should be processed together.
+You are processing ${batch.length} items for column name mapping. Each item has multiple fields that provide context.
 
 INPUT DATA STRUCTURE:
-Each item has these fields: ${fieldNames.join(', ')}
-Total items to process: ${batch.length}
+Each item contains:
+${fieldNames.map(f => `- ${f}: the value in this field`).join('\n')}
 
-INPUT DATA:
+The PRIMARY field to process/map is usually the first one (${fieldNames[0]}), but use ALL fields for context.
+
+INPUT DATA (${batch.length} items):
 ${JSON.stringify(batch.slice(0, 5), null, 2)}
 ${batch.length > 5 ? `... and ${batch.length - 5} more items` : ''}
 
@@ -491,7 +493,7 @@ REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
 {
-  "extractedValue": "the result of processing/mapping this item, or 'Not Found' if no match",
+  "extractedValue": "the mapped/processed value for the ${fieldNames[0]} field, or 'Not Found' if no match",
   "validationStatus": "valid" or "invalid",
   "aiReasoning": "brief explanation of your finding",
   "confidenceScore": number between 0-100,
@@ -499,11 +501,11 @@ Each object must follow this schema:
 }
 
 IMPORTANT INSTRUCTIONS:
-1. Process ALL ${batch.length} items - no exceptions
-2. Return exactly ${batch.length} results in the same order as input
-3. Each item should be processed using ALL its fields (${fieldNames.join(', ')})
-4. If processing involves mapping or matching, use all available fields to make the determination
-5. Your response must be a valid JSON array with ${batch.length} objects
+1. Process the ${fieldNames[0]} value from each item (this is the main field to map)
+2. Use the other fields (${fieldNames.slice(1).join(', ')}) as context to help with mapping
+3. Return exactly ${batch.length} results in the same order as input
+4. Each result must have all 5 required fields
+5. Your response must be a valid JSON array
 
 Process each item and return the complete array of results.`;
             } else {
