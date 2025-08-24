@@ -6229,6 +6229,9 @@ def extract_function(Column_Name, Excel_File):
       
       // If this tool expects previous column data, format it appropriately
       if (value.inputValues && Object.keys(value.inputValues).length > 0) {
+        console.log(`🎯 Processing inputValues:`, value.inputValues);
+        console.log(`🎯 Previous data available:`, previousData ? `${previousData.length} records` : 'None');
+        
         // Look for references to previous columns (e.g., @Column Names)
         for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
           if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
@@ -6238,6 +6241,8 @@ def extract_function(Column_Name, Excel_File):
             
             // Extract the values from previousData for this column
             if (previousData && previousData.length > 0) {
+              console.log(`📊 Sample previous data record:`, previousData[0]);
+              
               // For the "Get Worksheet from Column" tool, format data with identifierId
               const columnValues = previousData.map(record => ({
                 identifierId: record.identifierId,
@@ -6248,12 +6253,17 @@ def extract_function(Column_Name, Excel_File):
                 columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
               
               toolInputs[paramName] = columnValues;
+            } else {
+              console.log(`⚠️ No previous data available for reference ${paramValue}`);
             }
           } else {
             // Direct value
+            console.log(`➡️ Direct value for ${paramName}:`, paramValue);
             toolInputs[paramName] = paramValue;
           }
         }
+      } else {
+        console.log(`⚠️ No inputValues defined for this value`);
       }
       
       // Add document content if the tool expects it
@@ -6261,7 +6271,7 @@ def extract_function(Column_Name, Excel_File):
         toolInputs.document = documentContent;
       }
       
-      console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs).substring(0, 200) + '...');
+      console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
       
       // Execute the tool using the tool engine
       const { toolEngine } = await import("./toolEngine");
