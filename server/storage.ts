@@ -2753,9 +2753,10 @@ class PostgreSQLStorage implements IStorage {
   async getFieldValidations(sessionId: string): Promise<FieldValidation[]> { 
     const result = await this.db.select().from(fieldValidations).where(eq(fieldValidations.sessionId, sessionId));
     
-    // Get all unique field IDs for batch processing
+    // Get all unique field IDs and value IDs for batch processing
     const schemaFieldIds = [...new Set(result.filter(v => v.validationType === 'schema_field').map(v => v.fieldId))];
     const collectionPropertyIds = [...new Set(result.filter(v => v.validationType === 'collection_property').map(v => v.fieldId))];
+    const valueIds = [...new Set(result.filter(v => v.valueId).map(v => v.valueId).filter(Boolean))];
     
     // Batch fetch schema field names
     const schemaFieldsMap = new Map<string, string>();
@@ -2772,8 +2773,30 @@ class PostgreSQLStorage implements IStorage {
     
     // Batch fetch collection property names with collection names
     const collectionPropertiesMap = new Map<string, { propertyName: string, collectionName: string }>();
+    
+    // First get value names from step_values for workflow-based validations
+    const stepValuesMap = new Map<string, { valueName: string, stepName: string }>();
+    if (valueIds.length > 0) {
+      const stepValueResults = await this.db
+        .select({
+          id: stepValues.id,
+          valueName: stepValues.valueName,
+          stepName: workflowSteps.stepName
+        })
+        .from(stepValues)
+        .innerJoin(workflowSteps, eq(stepValues.stepId, workflowSteps.id))
+        .where(inArray(stepValues.id, valueIds as string[]));
+      
+      stepValueResults.forEach(value => {
+        stepValuesMap.set(value.id, {
+          valueName: value.valueName,
+          stepName: value.stepName
+        });
+      });
+    }
+    
     if (collectionPropertyIds.length > 0) {
-      // First try to get from step_values (workflow values)
+      // First try to get from step_values (workflow values) using field IDs
       const stepValueResults = await this.db
         .select({
           id: stepValues.id,
@@ -2817,7 +2840,13 @@ class PostgreSQLStorage implements IStorage {
     const enhancedValidations = result.map(validation => {
       let fieldName = '';
       
-      if (validation.validationType === 'schema_field') {
+      // First check if this validation has a value_id (workflow step value)
+      if (validation.valueId) {
+        const valueInfo = stepValuesMap.get(validation.valueId);
+        if (valueInfo && validation.recordIndex !== null) {
+          fieldName = `${valueInfo.stepName}.${valueInfo.valueName}[${validation.recordIndex}]`;
+        }
+      } else if (validation.validationType === 'schema_field') {
         fieldName = schemaFieldsMap.get(validation.fieldId) || '';
       } else if (validation.validationType === 'collection_property') {
         const propInfo = collectionPropertiesMap.get(validation.fieldId);
