@@ -45,6 +45,30 @@
   display: none;
 }
 
+/* Workflow Builder specific styling */
+.workflow-builder button[role="combobox"],
+.workflow-builder input,
+.workflow-builder textarea,
+.workflow-builder select,
+.workflow-builder [data-state="open"],
+.workflow-builder [data-state="closed"] {
+  @apply dark:bg-slate-800 dark:border-slate-700;
+}
+
+.workflow-builder button[role="combobox"]:hover,
+.workflow-builder input:hover,
+.workflow-builder textarea:hover,
+.workflow-builder select:hover {
+  @apply dark:bg-slate-700;
+}
+
+.workflow-builder button[role="combobox"]:focus,
+.workflow-builder input:focus,
+.workflow-builder textarea:focus,
+.workflow-builder select:focus {
+  @apply dark:bg-slate-800;
+}
+
 .dark {
   --background: hsl(240, 10%, 3.9%);
   --foreground: hsl(0, 0%, 98%);

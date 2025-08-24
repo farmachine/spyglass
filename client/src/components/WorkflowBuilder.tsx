@@ -585,7 +585,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-6 relative workflow-builder">
       <div className="flex flex-col items-center">
         {/* Start dot and arrow */}
         {steps.length > 0 && (
@@ -779,7 +779,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 </div>
 
                 {/* Description Section with dot format */}
-                <div className="mt-6 p-4 bg-white dark:bg-slate-800 rounded-lg group relative">
+                <div className="mt-6 p-4 bg-transparent rounded-lg group relative">
                   <div className="flex flex-col items-center">
                     {editingDescription === step.id ? (
                       <Textarea
@@ -798,7 +798,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </p>
                         <button
                           onClick={() => setEditingDescription(step.id)}
-                          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700"
+                          className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200 dark:hover:bg-slate-800"
                         >
                           <Edit2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </button>
