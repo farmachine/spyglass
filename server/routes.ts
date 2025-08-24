@@ -2245,10 +2245,12 @@ except Exception as e:
             
             for (let i = 0; i < toolResults.length; i++) {
               const result = toolResults[i];
+              // For Column Name Mapping, the first value is "Column Names" which should be stored as the ID
+              const propertyName = workflowValue.valueName === 'Column Names' ? 'ID' : workflowValue.valueName;
               const validation = {
                 sessionId,
                 fieldId: value_id,
-                fieldName: `${workflowStep.stepName}.${workflowValue.valueName}[${currentRecordIndex + i}]`,
+                fieldName: `${workflowStep.stepName}.${propertyName}[${currentRecordIndex + i}]`,
                 extractedValue: result.extractedValue,
                 validationStatus: result.validationStatus || 'extracted',
                 validationType: 'collection_property',
