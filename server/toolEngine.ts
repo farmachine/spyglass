@@ -479,39 +479,41 @@ export class ToolEngine {
               console.log(`    🔄 Processing merged data with fields: ${fieldNames.join(', ')}`);
               console.log(`    📊 First item:`, JSON.stringify(sampleItem, null, 2));
               
+              // Extract just the primary field values for processing
+              const primaryFieldName = fieldNames[0];
+              const primaryValues = batch.map(item => item[primaryFieldName]);
+              
+              console.log(`    📋 Extracting primary field "${primaryFieldName}" values for AI processing`);
+              console.log(`    📊 Sample values:`, primaryValues.slice(0, 3));
+              
               batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing ${batch.length} items for column name mapping. Each item has multiple fields that provide context.
+You are processing ${batch.length} items. 
 
-INPUT DATA STRUCTURE:
-Each item contains:
-${fieldNames.map(f => `- ${f}: the value in this field`).join('\n')}
+CRITICAL: Each item below is a text value that needs to be looked up in the Reference Document.
 
-The PRIMARY field to process/map is usually the first one (${fieldNames[0]}), but use ALL fields for context.
-
-INPUT DATA (${batch.length} items):
-${JSON.stringify(batch.slice(0, 5), null, 2)}
-${batch.length > 5 ? `... and ${batch.length - 5} more items` : ''}
+INPUT DATA (${batch.length} items to process):
+${JSON.stringify(primaryValues, null, 2)}
 
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
 {
-  "extractedValue": "the mapped/processed value for the ${fieldNames[0]} field, or 'Not Found' if no match",
+  "extractedValue": "the standard mapping/equivalent found in the Reference Document, or 'Not Found' if no match exists",
   "validationStatus": "valid" or "invalid",
-  "aiReasoning": "brief explanation of your finding",
+  "aiReasoning": "brief explanation of what you found or why it wasn't found",
   "confidenceScore": number between 0-100,
-  "documentSource": "source document or reference"
+  "documentSource": "the section/page in Reference Document where found, or 'Reference Document' if not found"
 }
 
 IMPORTANT INSTRUCTIONS:
-1. Process the ${fieldNames[0]} value from each item (this is the main field to map)
-2. Use the other fields (${fieldNames.slice(1).join(', ')}) as context to help with mapping
+1. Look up each text value in the Reference Document
+2. Find its standard mapping or equivalent value
 3. Return exactly ${batch.length} results in the same order as input
 4. Each result must have all 5 required fields
-5. Your response must be a valid JSON array
+5. Use "Not Found" for items that don't appear in the Reference Document
 
-Process each item and return the complete array of results.`;
+Process ALL items and return the complete array of results.`;
             } else {
               // Standard prompt for simple data
               batchPrompt = `${tool.aiPrompt || ''}
