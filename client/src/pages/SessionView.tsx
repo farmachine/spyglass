@@ -32,6 +32,7 @@ import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
+import ExtractWizardModal from "@/components/ExtractWizardModal";
 
 import type { 
   ExtractionSession, 
@@ -1138,6 +1139,8 @@ export default function SessionView() {
     valueName: string;
     previousData: any[];
     needsDocument: boolean;
+    toolType?: string;
+    toolDescription?: string;
   } | null>(null);
   const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
   
@@ -1943,6 +1946,9 @@ export default function SessionView() {
     
     console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
     
+    // Get tool information if available
+    const toolInfo = project?.tools?.find((t: any) => t.id === value?.toolId);
+    
     // Open the modal with the prepared data
     setColumnExtractionModal({
       isOpen: true,
@@ -1950,7 +1956,9 @@ export default function SessionView() {
       valueId,
       valueName,
       previousData: previousColumnsData,
-      needsDocument
+      needsDocument,
+      toolType: toolInfo?.toolType || value?.name?.toLowerCase(),
+      toolDescription: toolInfo?.description
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4346,112 +4354,27 @@ Thank you for your assistance.`;
       
       {/* Column Extraction Modal */}
       {columnExtractionModal && (
-        <Dialog open={columnExtractionModal.isOpen} onOpenChange={(open) => {
-          if (!open) {
+        <ExtractWizardModal
+          open={columnExtractionModal.isOpen}
+          onClose={() => {
             setColumnExtractionModal(null);
             setSelectedExtractionDoc("");
-          }
-        }}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>Extract {columnExtractionModal.valueName}</DialogTitle>
-              <DialogDescription>
-                {columnExtractionModal.needsDocument 
-                  ? "Select a document and confirm to run the extraction." 
-                  : "Review the input data and confirm to run the extraction."}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              {/* Document Selection */}
-              {columnExtractionModal.needsDocument && (
-                <div className="space-y-2">
-                  <Label>Select Document</Label>
-                  {sessionDocuments && sessionDocuments.length > 0 ? (
-                    <Select value={selectedExtractionDoc} onValueChange={setSelectedExtractionDoc}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a document" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sessionDocuments.map(doc => (
-                          <SelectItem key={doc.id} value={doc.id}>
-                            {doc.isPrimary && "📎 "}{doc.fileName || doc.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No documents available. Please upload documents to the session first.
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Input Data Preview */}
-              <div className="space-y-2">
-                <Label>Input Data ({columnExtractionModal.previousData.length} records)</Label>
-                <div className="border rounded-lg bg-gray-50 dark:bg-gray-900">
-                  {columnExtractionModal.previousData.length > 0 ? (
-                    <div className="p-3 space-y-2">
-                      {columnExtractionModal.previousData.slice(0, 5).map((record, idx) => {
-                        // Extract the identifier ID if it exists
-                        const identifierId = record.identifierId || record.id || `record-${idx}`;
-                        
-                        return (
-                          <div key={idx} className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-mono text-xs text-gray-600 dark:text-gray-400">
-                                Record {idx + 1}
-                              </span>
-                              {identifierId && (
-                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                  ID: {identifierId}
-                                </span>
-                              )}
-                            </div>
-                            <div className="bg-gray-50 dark:bg-gray-900 rounded p-2 overflow-x-auto">
-                              <pre className="text-xs font-mono whitespace-pre">
-                                {JSON.stringify(record, null, 2)}
-                              </pre>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {columnExtractionModal.previousData.length > 5 && (
-                        <div className="text-center text-gray-500 dark:text-gray-400 text-xs py-2">
-                          ... and {columnExtractionModal.previousData.length - 5} more records
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                      No previous data available. This will be the first extraction for this step.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex-shrink-0 flex justify-end gap-3 pt-4 border-t">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setColumnExtractionModal(null);
-                  setSelectedExtractionDoc("");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleConfirmColumnExtraction}
-                disabled={columnExtractionModal.needsDocument && !selectedExtractionDoc}
-              >
-                Run Extraction
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          }}
+          onConfirm={(documentId) => {
+            setSelectedExtractionDoc(documentId);
+            handleConfirmColumnExtraction();
+          }}
+          title={`Extract ${columnExtractionModal.valueName}`}
+          toolType={columnExtractionModal.toolType}
+          toolDescription={columnExtractionModal.toolDescription}
+          documents={sessionDocuments?.map(doc => ({
+            id: doc.id,
+            name: doc.fileName || doc.name || 'Untitled',
+            type: doc.fileType || 'unknown'
+          })) || []}
+          inputData={columnExtractionModal.previousData}
+          isLoading={false}
+        />
       )}
     </div>
   );
