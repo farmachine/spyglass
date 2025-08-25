@@ -1008,9 +1008,10 @@ ${tool.outputType === "single"
 Create a detailed, specific prompt that:
 1. References input parameters using backticks like \`${tool.inputParameters.map(p => p.name).join('\`, \`')}\`
 2. ${tool.outputType === "single" 
-     ? "Clearly states to return ONE JSON OBJECT with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"
-     : "Clearly states to return a JSON ARRAY of objects, each with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"}
+     ? "Clearly states to return ONE JSON OBJECT with these keys: identifierId (if provided in input), extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"
+     : "Clearly states to return a JSON ARRAY of objects, each with these keys: identifierId (if provided in input), extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"}
 3. Explains what each field means:
+   - identifierId: CRITICAL - If present in input data, MUST be copied exactly to output for database matching
    - extractedValue: The actual extracted data
    - validationStatus: "valid" or "invalid" based on confidence
    - aiReasoning: Explanation of extraction logic
@@ -1018,7 +1019,8 @@ Create a detailed, specific prompt that:
    - documentSource: Source document/page reference
 4. ${tool.outputType === "single"
      ? "Emphasizes returning ONLY ONE OBJECT, not an array"
-     : "Specifies to return multiple items as an array"}
+     : "Specifies to return multiple items as an array, maintaining the SAME ORDER as input"}
+5. CRITICAL for batch processing: If processing multiple items with identifierIds, each output item MUST include the corresponding identifierId from the input to maintain record linkage
 
 Return only the prompt text, no explanations.`;
     } else {
@@ -1064,12 +1066,16 @@ FINDING SPECIFIC DATA:
 RETURN FORMAT REQUIREMENTS:
 Every extracted item MUST be returned as a field validation object:
 {
+  "identifierId": <if present in input data, MUST be copied exactly to output>,
   "extractedValue": <the actual data value>,
   "validationStatus": "valid" or "invalid",
   "aiReasoning": <brief explanation of extraction>,
   "confidenceScore": <0-100 confidence level>,
   "documentSource": <reference like "Sheet1, Row X, Column Y">
 }
+
+CRITICAL: If processing data arrays with identifierId fields, each output object MUST include 
+the corresponding identifierId from the input to maintain database record linkage.
 
 Return an array of these objects: [object1, object2, ...]
 `;
@@ -1087,14 +1093,16 @@ Requirements:
 - Handle Excel files with openpyxl if needed
 - Return a JSON array of field validation objects
 - Each object must have these exact fields:
+  * identifierId: If present in input data, MUST be copied exactly to output for database linkage
   * extractedValue: The extracted data value
   * validationStatus: "valid" or "invalid" 
   * aiReasoning: Brief explanation of the extraction
   * confidenceScore: Number between 0-100
   * documentSource: Source document/location reference
+- CRITICAL: When processing data arrays, preserve the identifierId from each input record in the corresponding output
 - Include proper error handling
 - Function should be self-contained
-- Example return format: [{"extractedValue": "Column1", "validationStatus": "valid", "aiReasoning": "Extracted from first row", "confidenceScore": 100, "documentSource": "Row 1, Column A"}]
+- Example return format: [{"identifierId": "uuid-123", "extractedValue": "Column1", "validationStatus": "valid", "aiReasoning": "Extracted from first row", "confidenceScore": 100, "documentSource": "Row 1, Column A"}]
 
 Return only the Python function code, no explanations.`;
     }
