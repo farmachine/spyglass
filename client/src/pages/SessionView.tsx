@@ -1928,16 +1928,18 @@ export default function SessionView() {
         
         // For each record, compile data from previous columns
         for (const recordIndex of uniqueIndices) {
-          // Get the identifier ID for this record FIRST
+          // Get the identifier ID from the FIRST column's validation (ID column)
+          // The identifierId should be on the validation record for the first value
+          const firstValue = workflowStep.values[0];
+          const firstColumnFieldName = `${stepName}.${firstValue.valueName}[${recordIndex}]`;
           const firstColumnValidation = validations.find(v => 
-            v.recordIndex === recordIndex && 
-            (v.collectionName === stepName || v.fieldName?.startsWith(`${stepName}.`))
+            v.fieldName === firstColumnFieldName
           );
           
           // Build record data with identifierId as the FIRST property
           const recordData: any = {
-            // Always include identifierId first, even if null
-            identifierId: firstColumnValidation?.identifierId || null
+            // Use the ID of the field_validation record from the first column
+            identifierId: firstColumnValidation?.id || null
           };
           
           // Iterate through previous columns
