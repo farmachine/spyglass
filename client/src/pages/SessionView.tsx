@@ -2293,7 +2293,7 @@ export default function SessionView() {
     // 1. Records with actual extracted values (not null/empty)
     // 2. Most recent records (by createdAt)
     if (fieldValidations.length > 1) {
-      console.log(`Multiple validations found for ${fieldName}:`, fieldValidations.map(v => ({ id: v.id, extractedValue: v.extractedValue, createdAt: v.createdAt })));
+      // Removed verbose logging to prevent console spam during renders
       
       // First priority: records with actual extracted values
       const validationsWithValues = fieldValidations.filter(v => 
@@ -2307,7 +2307,7 @@ export default function SessionView() {
       if (validationsWithValues.length > 0) {
         // Sort by createdAt descending (most recent first) and return the first one
         const bestValidation = validationsWithValues.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-        console.log(`Selected validation with value for ${fieldName}:`, bestValidation.extractedValue);
+        // Removed verbose logging to prevent console spam during renders
         
         // Debug logging for MSA field specifically
         if (fieldName === 'MSA ID/Number') {
