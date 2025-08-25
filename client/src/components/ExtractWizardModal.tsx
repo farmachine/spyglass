@@ -235,11 +235,6 @@ export default function ExtractWizardModal({
                         <span className="text-xs font-medium text-gray-500">
                           Record {index + 1}
                         </span>
-                        {record.identifierId && (
-                          <span className="text-xs text-gray-400">
-                            ID: {record.identifierId}
-                          </span>
-                        )}
                       </div>
                       <pre className="text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
                         {JSON.stringify(record, null, 2)}
