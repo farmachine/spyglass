@@ -6814,6 +6814,31 @@ def extract_function(Column_Name, Excel_File):
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
         
+        // If this is not the first column, we need to get the identifierIds from the first column
+        // to ensure all columns in the same row share the same identifierId
+        let firstColumnIdentifiers: Map<number, string> = new Map();
+        if (previousData && previousData.length > 0) {
+          // Find the first value in this step (should be the ID column)
+          const stepValues = await storage.getStepValues(stepId);
+          const firstValue = stepValues.sort((a, b) => a.orderIndex - b.orderIndex)[0];
+          
+          if (firstValue && firstValue.id !== valueId) {
+            // This is not the first column, so get identifierIds from the first column
+            console.log(`🔍 Looking up identifierIds from first column: ${firstValue.valueName}`);
+            const firstColumnValidations = existingValidations.filter(v => 
+              v.valueId === firstValue.id && v.sessionId === sessionId
+            ).sort((a, b) => a.recordIndex - b.recordIndex);
+            
+            for (const validation of firstColumnValidations) {
+              if (validation.identifierId) {
+                firstColumnIdentifiers.set(validation.recordIndex, validation.identifierId);
+                console.log(`  Record ${validation.recordIndex} -> ${validation.identifierId}`);
+              }
+            }
+            console.log(`📊 Found ${firstColumnIdentifiers.size} identifierIds from first column`);
+          }
+        }
+        
         // Create new validations for each result
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
@@ -6835,13 +6860,23 @@ def extract_function(Column_Name, Excel_File):
                 console.log(`  Found matching record at index ${recordIndex}`);
               }
             }
+          } else if (firstColumnIdentifiers.size > 0) {
+            // Use the identifierId from the first column to ensure all columns in the same row share the same ID
+            identifierId = firstColumnIdentifiers.get(i) || null;
+            if (identifierId) {
+              console.log(`🔗 Using identifierId from first column for row ${i}: ${identifierId}`);
+            } else {
+              // Fallback if we don't have an identifier for this row
+              identifierId = `col_${String(i).padStart(4, '0')}`;
+              console.log(`⚠️ No identifierId found for row ${i}, generating: ${identifierId}`);
+            }
           } else if (previousData && previousData[i]) {
             // Fallback to index-based mapping from previous data
             identifierId = previousData[i].identifierId || null;
             console.log(`🔗 Mapping result ${i} to identifier from previous data: ${identifierId}`);
           } else if (!previousData || previousData.length === 0) {
-            // This is the first column being extracted - generate new identifierIds
-            identifierId = crypto.randomUUID();
+            // This is the first column being extracted - generate col_XXXX format identifiers
+            identifierId = `col_${String(i).padStart(4, '0')}`;
             console.log(`🔗 Generated new identifierId for first column: ${identifierId}`);
           }
           
