@@ -517,11 +517,37 @@ export class ToolEngine {
               
               console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
               
+              // For Standard Equivalent mapping, ensure proper iteration
               batchPrompt = `${basePrompt}
 
-Input Data:
-List Item (${formattedData.length} items total - PROCESS ALL ${formattedData.length} ITEMS):
-${JSON.stringify(formattedData, null, 2)}`;
+CRITICAL INSTRUCTIONS:
+You MUST process EACH of the ${formattedData.length} items below individually.
+Return an array with EXACTLY ${formattedData.length} results, one for each input item.
+
+Input Data (${formattedData.length} items to process):
+${JSON.stringify(formattedData, null, 2)}
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array with EXACTLY ${formattedData.length} objects in the SAME ORDER as the input.
+Each object must have these fields:
+{
+  "identifierId": "copy the exact identifierId from the input item",
+  "extractedValue": "the mapped standard equivalent or 'Not Found' if no match",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "brief explanation",
+  "confidenceScore": number between 0-100,
+  "documentSource": "Reference Document or Manual Mapping"
+}
+
+PROCESS EACH ITEM:
+${formattedData.map((item, idx) => `
+Item ${idx + 1}:
+- identifierId: ${item.identifierId}
+- Column Name: "${item["Column Names"]}"
+- Worksheet: "${item["Worksheet Name"]}"
+→ Map this to its standard equivalent using the rules provided above`).join('\n')}
+
+Return the complete array with ALL ${formattedData.length} results.`;
             } else {
               // Standard prompt for simple data
               // Check if items have identifierId
