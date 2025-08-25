@@ -6780,6 +6780,25 @@ def extract_function(Column_Name, Excel_File):
             // Fallback to index-based mapping from previous data
             identifierId = previousData[i].identifierId || null;
             console.log(`🔗 Mapping result ${i} to identifier from previous data: ${identifierId}`);
+            
+            // CRITICAL: For columns without identifierId, we need to look up the correct recordIndex
+            // from existing validations to maintain proper alignment with the UI table rows
+            if (!identifierId && previousData[i]) {
+              // Look for the first column's validation to get the correct recordIndex
+              const firstColumnName = Object.keys(previousData[i]).find(key => key !== 'identifierId');
+              if (firstColumnName) {
+                const existingValidationForRecord = existingValidations.find(v => 
+                  v.collectionName === step.stepName &&
+                  v.extractedValue === previousData[i][firstColumnName] &&
+                  v.fieldName?.includes(`.${firstColumnName}[`)
+                );
+                
+                if (existingValidationForRecord && existingValidationForRecord.recordIndex !== null) {
+                  recordIndex = existingValidationForRecord.recordIndex;
+                  console.log(`  📊 Found correct recordIndex ${recordIndex} from existing validation for ${firstColumnName}: ${previousData[i][firstColumnName]}`);
+                }
+              }
+            }
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
