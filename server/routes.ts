@@ -8002,6 +8002,96 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Save extraction results from wizard to field_validations
+  app.post("/api/sessions/:sessionId/save-extraction-results", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { results, stepName, valueName, collectionName, propertyId } = req.body;
+      
+      console.log(`💾 SAVING EXTRACTION RESULTS for session ${sessionId}`);
+      console.log(`  Collection: ${collectionName}, Property: ${propertyId}`);
+      console.log(`  Results count: ${results?.length || 0}`);
+      
+      if (!results || !Array.isArray(results)) {
+        return res.status(400).json({ message: "Invalid results data" });
+      }
+      
+      // Get existing validations to check what needs updating
+      const existingValidations = await storage.getFieldValidations(sessionId);
+      
+      let savedCount = 0;
+      let updatedCount = 0;
+      
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const recordIndex = i;
+        
+        // Find existing validation for this property and record
+        const existingValidation = existingValidations.find(v => 
+          v.fieldId === propertyId && 
+          v.recordIndex === recordIndex &&
+          v.validationType === 'collection_property'
+        );
+        
+        // Extract confidence score and AI reasoning from result
+        const confidenceScore = result.confidenceScore || result.confidence_score || 0;
+        const aiReasoning = result.aiReasoning || result.reasoning || '';
+        const extractedValue = result.extractedValue || result.value || '';
+        
+        console.log(`  📝 Record ${recordIndex}: value="${extractedValue}", confidence=${confidenceScore}%`);
+        
+        if (existingValidation) {
+          // Update existing validation with AI results
+          await storage.updateFieldValidation(existingValidation.id, {
+            extractedValue: extractedValue,
+            confidenceScore: Math.round(confidenceScore),
+            aiReasoning: aiReasoning,
+            validationStatus: extractedValue ? 'valid' : 'pending',
+            originalExtractedValue: extractedValue,
+            originalConfidenceScore: Math.round(confidenceScore),
+            originalAiReasoning: aiReasoning
+          });
+          updatedCount++;
+          console.log(`    ✅ Updated existing validation ${existingValidation.id}`);
+        } else {
+          // Create new validation record
+          await storage.createFieldValidation({
+            sessionId: sessionId,
+            fieldId: propertyId,
+            validationType: 'collection_property',
+            dataType: 'TEXT',
+            collectionName: collectionName,
+            recordIndex: recordIndex,
+            extractedValue: extractedValue,
+            confidenceScore: Math.round(confidenceScore),
+            validationStatus: extractedValue ? 'valid' : 'pending',
+            aiReasoning: aiReasoning,
+            originalExtractedValue: extractedValue,
+            originalConfidenceScore: Math.round(confidenceScore),
+            originalAiReasoning: aiReasoning,
+            manuallyVerified: false,
+            manuallyUpdated: false
+          });
+          savedCount++;
+          console.log(`    ✅ Created new validation for record ${recordIndex}`);
+        }
+      }
+      
+      console.log(`💾 SAVE COMPLETE: ${savedCount} created, ${updatedCount} updated`);
+      
+      res.json({
+        success: true,
+        message: `Saved ${savedCount} new and updated ${updatedCount} existing validations`,
+        savedCount,
+        updatedCount
+      });
+      
+    } catch (error) {
+      console.error("Error saving extraction results:", error);
+      res.status(500).json({ message: "Failed to save extraction results" });
+    }
+  });
+
   // Get sample documents for a function
   app.get("/api/sample-documents/function/:functionId", authenticateToken, async (req: AuthRequest, res) => {
     try {
