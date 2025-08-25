@@ -1947,7 +1947,7 @@ export default function SessionView() {
     console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
     
     // Get tool information if available
-    const toolInfo = project?.tools?.find((t: any) => t.id === value?.toolId);
+    const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
     
     // Open the modal with the prepared data
     setColumnExtractionModal({
@@ -1957,7 +1957,7 @@ export default function SessionView() {
       valueName,
       previousData: previousColumnsData,
       needsDocument,
-      toolType: toolInfo?.toolType || value?.name?.toLowerCase(),
+      toolType: toolInfo?.toolType || valueToRun?.valueName?.toLowerCase(),
       toolDescription: toolInfo?.description
     });
     
