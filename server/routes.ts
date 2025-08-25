@@ -6574,6 +6574,36 @@ def extract_function(Column_Name, Excel_File):
       // If no extracted content, try to get it from the document content field
       let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;
       
+      // Special handling for Standard Equivalent mapping - load knowledge document
+      if (value.valueName === 'Standard Equivalent' || 
+          tool?.name?.toLowerCase().includes('standard') || 
+          tool?.description?.toLowerCase().includes('standard equivalent')) {
+        console.log('📚 Loading knowledge document for Standard Equivalent mapping');
+        try {
+          // Get knowledge documents for the project
+          const knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
+          console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
+          
+          // Look for the mapping rules document
+          const mappingDoc = knowledgeDocs.find(doc => 
+            doc.displayName?.toLowerCase().includes('mapping') ||
+            doc.displayName?.toLowerCase().includes('standard') ||
+            doc.fileName?.toLowerCase().includes('mapping') ||
+            doc.description?.toLowerCase().includes('mapping')
+          );
+          
+          if (mappingDoc && mappingDoc.content) {
+            console.log(`📚 Using knowledge document: ${mappingDoc.displayName}`);
+            documentContent = mappingDoc.content;
+            console.log(`📚 Knowledge document content length: ${documentContent.length} chars`);
+          } else {
+            console.log('⚠️ No mapping knowledge document found, using session document');
+          }
+        } catch (error) {
+          console.error('Error loading knowledge document:', error);
+        }
+      }
+      
       if (!documentToUse || !documentContent) {
         console.log('No document found or no content available:', {
           hasDoc: !!documentToUse,

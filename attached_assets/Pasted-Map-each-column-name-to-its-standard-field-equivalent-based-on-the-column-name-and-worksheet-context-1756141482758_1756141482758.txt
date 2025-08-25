@@ -1,0 +1,50 @@
+Map each column name to its standard field equivalent based on the column name and worksheet context.
+
+CRITICAL MAPPING RULES:
+
+1. DATE OF BIRTH FIELDS → "DoB"
+   - "Date of Birth" → "DoB"
+   - "DOB" → "DoB"
+   - "Birth Date" → "DoB"
+
+2. SPOUSE/BENEFICIARY/WIDOW(ER) FIELDS → Add "Spouses " prefix
+   - "Widow(er)'s Date Of Birth" → "Spouses DoB"
+   - "Spouse's Date of Birth" → "Spouses DoB"
+   - "Beneficiary's Date of Birth" → "Spouses DoB"
+   - "Widow(er)'s Member ID" → "Spouses MemberID"
+   - "Beneficiary's Code" → "Spouses MemberID"
+   - "Spouse Member ID" → "Spouses MemberID"
+   - "Widow(er)'s Pre-88 GMP" → "Spouses Pre-88 GMP"
+   - "Spouse Pre-1988 GMP" → "Spouses Pre-88 GMP"
+   - "Beneficiary Pre-88 GMP" → "Spouses Pre-88 GMP"
+   - "Widow(er)'s Post-88 GMP" → "Spouses Post-88 GMP"
+   - "Spouse Post-1988 GMP" → "Spouses Post-88 GMP"
+
+3. PRE-1988 GMP (anything BEFORE April 1988) → "Pre-88 GMP"
+   - "Annual Pre-6.4.1988 GMP Component" → "Pre-88 GMP"
+   - "Annual Pre-5.4.1988 GMP Component" → "Pre-88 GMP"
+   - "Pre-1988 GMP" → "Pre-88 GMP"
+   - Any field with "Pre" and "1988" referring to GMP → "Pre-88 GMP"
+
+4. POST-1988 GMP (anything AFTER April 1988) → "Post-88 GMP"
+   - "Annual Post-6.4.1988 GMP Component" → "Post-88 GMP"
+   - "Annual Post-5.4.1988 GMP Component" → "Post-88 GMP"
+   - "Post-1988 GMP" → "Post-88 GMP"
+   - Any field with "Post" and "1988" referring to GMP → "Post-88 GMP"
+
+5. MEMBER ID FIELDS → "MemberID"
+   - "Member ID" → "MemberID"
+   - "Member Number" → "MemberID"
+   - "Member Code" → "MemberID"
+   - "Beneficiary's Code" (without spouse context) → "MemberID"
+
+6. GENDER FIELDS → "Gender"
+   - "Sex" → "Gender"
+   - "Gender" → "Gender"
+   - "M/F" → "Gender"
+
+CRITICAL NOTES:
+- Widow(er), Spouse, and Beneficiary fields ALWAYS get "Spouses " prefix
+- "Pre-6.4.1988" means BEFORE April 1988 = "Pre-88 GMP"
+- "Post-6.4.1988" means AFTER April 1988 = "Post-88 GMP"
+- Check the worksheet name for context (e.g., "New_Pensioners" may indicate pension-specific ...

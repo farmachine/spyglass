@@ -536,7 +536,7 @@ Each object must have these fields:
   "validationStatus": "valid" or "invalid",
   "aiReasoning": "brief explanation",
   "confidenceScore": number between 0-100,
-  "documentSource": "Reference Document or Manual Mapping"
+  "documentSource": "Knowledge Document"
 }
 
 PROCESS EACH ITEM:
@@ -545,7 +545,7 @@ Item ${idx + 1}:
 - identifierId: ${item.identifierId}
 - Column Name: "${item["Column Names"]}"
 - Worksheet: "${item["Worksheet Name"]}"
-→ Map this to its standard equivalent using the rules provided above`).join('\n')}
+→ Map this to its standard equivalent using the mapping rules from the knowledge document provided in the input data below`).join('\n')}
 
 Return the complete array with ALL ${formattedData.length} results.`;
             } else {
