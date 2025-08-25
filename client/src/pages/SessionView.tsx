@@ -1407,9 +1407,22 @@ export default function SessionView() {
     if (!property) return itemsWithIndices;
     
     return [...itemsWithIndices].sort((a, b) => {
+      // Get identifierIds for both items
+      const aIdentifierId = validations.find(v => 
+        v.recordIndex === a.originalIndex &&
+        v.collectionName === collection.collectionName &&
+        v.identifierId
+      )?.identifierId || null;
+      
+      const bIdentifierId = validations.find(v => 
+        v.recordIndex === b.originalIndex &&
+        v.collectionName === collection.collectionName &&
+        v.identifierId
+      )?.identifierId || null;
+      
       // Get values for comparison using original indices
-      const aValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${a.originalIndex}]`);
-      const bValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${b.originalIndex}]`);
+      const aValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${a.originalIndex}]`, aIdentifierId);
+      const bValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${b.originalIndex}]`, bIdentifierId);
       
       let aValue = aValidation?.extractedValue || a.item[property.propertyName] || '';
       let bValue = bValidation?.extractedValue || b.item[property.propertyName] || '';
@@ -1930,7 +1943,7 @@ export default function SessionView() {
         for (let i = 0; i < valueIndex; i++) {
           const prevValue = workflowStep.values[i];
           const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
-          const validation = getValidation(fieldName);
+          const validation = getValidation(fieldName, recordData.identifierId);
           
           if (validation && validation.extractedValue) {
             recordData[prevValue.valueName] = validation.extractedValue;
@@ -2287,8 +2300,30 @@ export default function SessionView() {
   }
 
   // Get validation for a specific field
-  const getValidation = (fieldName: string) => {
-    // Filter all validations for this field name
+  const getValidation = (fieldName: string, identifierId?: string | null) => {
+    // If we have an identifierId, try to find validation by identifierId and value name
+    if (identifierId) {
+      // Extract the value name from the fieldName (e.g., "Column Name Mapping.Standard Equivalent[0]" -> "Standard Equivalent")
+      const match = fieldName.match(/\.([^[]+)\[/);
+      if (match) {
+        const valueName = match[1];
+        const collectionMatch = fieldName.match(/^([^.]+)\./);
+        const collectionName = collectionMatch ? collectionMatch[1] : null;
+        
+        // Find validation by identifierId and collection/value names
+        const identifierValidation = validations.find(v => 
+          v.identifierId === identifierId &&
+          v.collectionName === collectionName &&
+          v.fieldName?.includes(`.${valueName}[`)
+        );
+        
+        if (identifierValidation) {
+          return identifierValidation;
+        }
+      }
+    }
+    
+    // Fallback to fieldName-based lookup
     const fieldValidations = validations.filter(v => v.fieldName === fieldName);
     
     if (fieldValidations.length === 0) {
@@ -3987,7 +4022,19 @@ Thank you for your assistance.`;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
                                     const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
-                                    const validation = getValidation(fieldName);
+                                    
+                                    // Get the identifierId for this row
+                                    const rowIdentifierId = (() => {
+                                      // Try to find any validation for this row that has an identifierId
+                                      const rowValidation = validations.find(v => 
+                                        v.recordIndex === originalIndex &&
+                                        v.collectionName === collection.collectionName &&
+                                        v.identifierId
+                                      );
+                                      return rowValidation?.identifierId || null;
+                                    })();
+                                    
+                                    const validation = getValidation(fieldName, rowIdentifierId);
                                     
 
                                     
