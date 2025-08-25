@@ -2003,6 +2003,8 @@ export default function SessionView() {
       };
       
       console.log(`🎯 Full request payload:`, requestPayload);
+      console.log(`🚀 SENDING SINGLE EXTRACTION REQUEST FOR: ${valueName} (${valueId})`);
+      console.log(`   This should extract ONLY the "${valueName}" column, NOT other columns in the step`);
       
       // Call the extraction endpoint with the selected document
       const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {

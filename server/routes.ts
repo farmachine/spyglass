@@ -6519,8 +6519,10 @@ def extract_function(Column_Name, Excel_File):
       const { sessionId } = req.params;
       const { stepId, valueId, previousData, documentId } = req.body;
       
-      console.log(`📊 Running individual column extraction for session ${sessionId}`);
+      console.log(`📊 Running SINGLE column extraction for session ${sessionId}`);
       console.log(`   Step ID: ${stepId}, Value ID: ${valueId}`);
+      console.log(`   ⚠️ IMPORTANT: This endpoint extracts ONLY the single value/column specified by valueId`);
+      console.log(`   ⚠️ It does NOT extract all values in the step - just this one value`);
       console.log(`   Previous data records: ${previousData?.length || 0}`);
       console.log(`   Document ID: ${documentId || 'Using default'}`);
       
@@ -6534,6 +6536,9 @@ def extract_function(Column_Name, Excel_File):
       if (!value) {
         return res.status(404).json({ message: "Step value not found" });
       }
+      
+      console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
+      console.log(`   🚫 NOT extracting other values in step "${step.stepName}"`)
       
       // Get the tool for this value
       const tool = await storage.getExcelWizardryFunction(value.toolId);
