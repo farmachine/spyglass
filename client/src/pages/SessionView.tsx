@@ -2217,11 +2217,16 @@ export default function SessionView() {
       
       console.log(`Successfully deleted ${collectionValidations.length} validation records for ${collectionName}`);
       
-      // Invalidate queries to refresh the UI
+      // Force complete cache refresh - remove the query data first, then invalidate
+      queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      // Also refresh the session data
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
     } catch (error) {
       console.error('Error deleting all collection data:', error);
-      // Revert optimistic update on error
+      // Force complete refresh on error
+      queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     }
   };
