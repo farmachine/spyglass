@@ -6580,8 +6580,8 @@ def extract_function(Column_Name, Excel_File):
           tool?.description?.toLowerCase().includes('standard equivalent')) {
         console.log('📚 Loading knowledge document for Standard Equivalent mapping');
         try {
-          // Get knowledge documents for the project
-          const knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
+          // Get knowledge documents for the project - need to get projectId from session
+          const knowledgeDocs = await storage.getKnowledgeDocuments(session.projectId);
           console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
           
           // Look for the mapping rules document
@@ -6596,6 +6596,7 @@ def extract_function(Column_Name, Excel_File):
             console.log(`📚 Using knowledge document: ${mappingDoc.displayName}`);
             documentContent = mappingDoc.content;
             console.log(`📚 Knowledge document content length: ${documentContent.length} chars`);
+            console.log(`📚 Setting document content for AI tool to use mapping rules`);
           } else {
             console.log('⚠️ No mapping knowledge document found, using session document');
           }
@@ -6759,6 +6760,16 @@ def extract_function(Column_Name, Excel_File):
       // Add document content if the tool expects it
       if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
         toolInputs.document = documentContent;
+        console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
+        if (value.valueName === 'Standard Equivalent') {
+          console.log(`📚 Document content for Standard Equivalent includes knowledge document with mapping rules`);
+        }
+      }
+      
+      // For Standard Equivalent, ensure we're using the proper tool configuration
+      if (value.valueName === 'Standard Equivalent' && !toolInputs.document) {
+        console.log(`⚠️ WARNING: Standard Equivalent tool does not have document parameter, adding it anyway`);
+        toolInputs.document = documentContent;
       }
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
@@ -6779,6 +6790,24 @@ def extract_function(Column_Name, Excel_File):
       }, toolInputs);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
+      
+      // Log the first few results to verify they contain all required fields
+      if (results && results.length > 0) {
+        console.log(`📊 Verifying tool results contain all validation fields:`);
+        console.log(`  First result:`, JSON.stringify(results[0], null, 2));
+        if (results.length > 1) {
+          console.log(`  Second result:`, JSON.stringify(results[1], null, 2));
+        }
+        
+        // Check if results have the required fields
+        const firstResult = results[0];
+        console.log(`  ✓ Has extractedValue: ${firstResult.extractedValue !== undefined}`);
+        console.log(`  ✓ Has validationStatus: ${firstResult.validationStatus !== undefined}`);
+        console.log(`  ✓ Has aiReasoning: ${firstResult.aiReasoning !== undefined}`);
+        console.log(`  ✓ Has confidenceScore: ${firstResult.confidenceScore !== undefined}`);
+        console.log(`  ✓ Has documentSource: ${firstResult.documentSource !== undefined}`);
+        console.log(`  ✓ Has identifierId: ${firstResult.identifierId !== undefined}`);
+      }
       
       // Save the results as field validations
       if (results && results.length > 0) {
