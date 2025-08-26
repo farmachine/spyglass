@@ -3471,9 +3471,19 @@ Thank you for your assistance.`;
               <h3 className="text-xs font-medium text-slate-700 dark:text-gray-400 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
             </div>
             <div className="relative">
-              {/* Vertical connecting line - stops at last collection */}
+              {/* Vertical connecting line - stops at last item */}
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
-                height: `${project.collections.length * 48 + 12}px` 
+                height: `${(() => {
+                  let count = project.collections ? project.collections.length : 0;
+                  if (project.workflowSteps) {
+                    const additionalSteps = project.workflowSteps.filter(step => 
+                      step.stepType === 'list' && 
+                      !project.collections?.some(c => c.collectionName === step.stepName)
+                    ).length;
+                    count += additionalSteps;
+                  }
+                  return count * 48 + 12;
+                })()}px` 
               }}></div>
               
               <div className="space-y-3">
@@ -3517,54 +3527,87 @@ Thank you for your assistance.`;
                   </button>
                 </div>
                 
-                {/* Collection Tabs */}
-                {project.collections.map((collection, index) => {
-                  const collectionValidations = validations.filter(v => 
-                    v.collectionName === collection.collectionName || 
-                    (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-                  );
-                  const validationIndices = collectionValidations.length > 0 ? 
-                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                {/* Collection and List-type Workflow Step Tabs */}
+                {(() => {
+                  // Combine collections and list-type workflow steps
+                  const listItems: Array<{ id: string; name: string; type: 'collection' | 'workflow' }> = [];
                   
-                  const verifiedCount = collectionValidations.filter(v => 
-                    v.validationStatus === 'verified' || 
-                    (v.validationStatus === 'valid' && v.manuallyVerified === true)
-                  ).length;
-                  const totalCount = collectionValidations.length;
+                  // Add collections
+                  if (project.collections) {
+                    project.collections.forEach(collection => {
+                      listItems.push({
+                        id: collection.id,
+                        name: collection.collectionName,
+                        type: 'collection'
+                      });
+                    });
+                  }
                   
-                  return (
-                    <div key={collection.id} className="relative flex items-center">
-                      {/* Horizontal connecting line when selected */}
-                      {activeTab === collection.collectionName && (
-                        <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
-                      )}
-                      
-                      {/* Circular icon - solid dot without border */}
-                      <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                        {totalCount > 0 && verifiedCount === totalCount ? (
-                          <Check className="w-5 h-5 text-green-600 dark:text-green-500" />
-                        ) : (
-                          <div className={`w-2 h-2 rounded-full ${
-                            activeTab === collection.collectionName ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
-                          }`}></div>
+                  // Add list-type workflow steps that aren't already in collections
+                  if (project.workflowSteps) {
+                    project.workflowSteps
+                      .filter(step => step.stepType === 'list')
+                      .forEach(step => {
+                        // Only add if not already in collections
+                        const alreadyExists = listItems.some(item => item.name === step.stepName);
+                        if (!alreadyExists) {
+                          listItems.push({
+                            id: step.id,
+                            name: step.stepName,
+                            type: 'workflow'
+                          });
+                        }
+                      });
+                  }
+                  
+                  return listItems.map((item, index) => {
+                    const itemValidations = validations.filter(v => 
+                      v.collectionName === item.name || 
+                      (v.fieldName && v.fieldName.startsWith(item.name + '.'))
+                    );
+                    const validationIndices = itemValidations.length > 0 ? 
+                      itemValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                    const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                    
+                    const verifiedCount = itemValidations.filter(v => 
+                      v.validationStatus === 'verified' || 
+                      (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                    ).length;
+                    const totalCount = itemValidations.length;
+                    
+                    return (
+                      <div key={item.id} className="relative flex items-center">
+                        {/* Horizontal connecting line when selected */}
+                        {activeTab === item.name && (
+                          <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
                         )}
+                        
+                        {/* Circular icon - solid dot without border */}
+                        <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                          {totalCount > 0 && verifiedCount === totalCount ? (
+                            <Check className="w-5 h-5 text-green-600 dark:text-green-500" />
+                          ) : (
+                            <div className={`w-2 h-2 rounded-full ${
+                              activeTab === item.name ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
+                            }`}></div>
+                          )}
+                        </div>
+                        
+                        {/* Tab button */}
+                        <button
+                          onClick={() => setActiveTab(item.name)}
+                          className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                            activeTab === item.name 
+                              ? 'bg-primary text-white font-medium shadow-sm' 
+                              : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
+                          }`}
+                        >
+                          <div className="truncate">{item.name}</div>
+                        </button>
                       </div>
-                      
-                      {/* Tab button */}
-                      <button
-                        onClick={() => setActiveTab(collection.collectionName)}
-                        className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                          activeTab === collection.collectionName 
-                            ? 'bg-primary text-white font-medium shadow-sm' 
-                            : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
-                        }`}
-                      >
-                        <div className="truncate">{collection.collectionName}</div>
-                      </button>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
