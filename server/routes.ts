@@ -6870,7 +6870,11 @@ def extract_function(Column_Name, Excel_File):
           let identifierId: string | null = null;
           let recordIndex = i; // Default to the result index
           
-          if (previousData && previousData[i] && previousData[i].identifierId) {
+          // FIRST: Check if the result itself has an identifierId (from AI tools that preserve it)
+          if (result.identifierId) {
+            identifierId = result.identifierId;
+            console.log(`🔗 Using identifierId from result at index ${i}: ${identifierId}`);
+          } else if (previousData && previousData[i] && previousData[i].identifierId) {
             // This is a subsequent column - use the identifierId from previousData
             identifierId = previousData[i].identifierId;
             console.log(`🔗 Using identifierId from previous data at index ${i}: ${identifierId}`);
