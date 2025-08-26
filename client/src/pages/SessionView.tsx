@@ -2030,8 +2030,8 @@ export default function SessionView() {
                 // Find validations from the referenced step and value
                 // Since value_id might be NULL in validations, also match by field_id
                 const referencedValidations = validations.filter(v => {
-                  // IMPORTANT: Only include verified validations
-                  if (!v.manuallyVerified || v.validationStatus !== 'valid') {
+                  // IMPORTANT: Only include valid validations
+                  if (v.validationStatus !== 'valid') {
                     return false;
                   }
                   
