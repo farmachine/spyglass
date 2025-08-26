@@ -509,10 +509,11 @@ export class ToolEngine {
               
               // Use the base prompt but format the data correctly for it
               // The base prompt expects a "List Item" parameter, so we need to format our data accordingly
-              const formattedData = batch.map(item => ({
+              const formattedData = batch.map((item, index) => ({
                 identifierId: item.identifierId,
                 "Column Names": item[primaryFieldName],
-                "Worksheet Name": item[contextFieldName]
+                "Worksheet Name": item[contextFieldName],
+                "_index": index // Add index for tracking
               }));
               
               console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
@@ -539,15 +540,21 @@ Each object must have these fields:
   "documentSource": "Knowledge Document"
 }
 
-PROCESS EACH ITEM:
+CRITICAL: Process items IN ORDER and preserve identifierId exactly:
 ${formattedData.map((item, idx) => `
 Item ${idx + 1}:
-- identifierId: ${item.identifierId}
+- identifierId: "${item.identifierId}" (COPY THIS EXACT VALUE TO OUTPUT)
 - Column Name: "${item["Column Names"]}"
 - Worksheet: "${item["Worksheet Name"]}"
-→ Map this to its standard equivalent using the mapping rules from the knowledge document provided in the input data below`).join('\n')}
+→ Map this to its standard equivalent`).join('\n')}
 
-Return the complete array with ALL ${formattedData.length} results.`;
+IMPORTANT: Your output array MUST:
+1. Have exactly ${formattedData.length} objects
+2. Be in the SAME ORDER as the input
+3. Each output object at index N must have the identifierId from input object at index N
+4. Do NOT sort, reorder, or skip any items
+
+Return the complete array with ALL ${formattedData.length} results IN ORDER.`;
             } else {
               // Standard prompt for simple data
               // Check if items have identifierId
@@ -616,6 +623,57 @@ Process each item and return the complete array of results.`;
               if (results.length > 1) {
                 console.log(`    🔍 Last result:`, results[results.length - 1]);
               }
+              
+              // CRITICAL: Verify and FIX identifierId mapping
+              console.log(`    🔍 VERIFYING IDENTIFIER MAPPING:`);
+              
+              // Create a map of AI results by identifierId for lookup
+              const resultMap = new Map();
+              for (const result of results) {
+                if (result.identifierId) {
+                  resultMap.set(result.identifierId, result);
+                }
+              }
+              
+              // Now create properly ordered results based on input order
+              const orderedResults = [];
+              for (let idx = 0; idx < batch.length; idx++) {
+                const input = batch[idx];
+                const expectedId = input.identifierId;
+                
+                // Try to find the matching result by identifierId
+                let matchingResult = resultMap.get(expectedId);
+                
+                if (!matchingResult) {
+                  // If AI didn't preserve identifierId, fall back to position
+                  console.error(`      ❌ No result found for identifierId: ${expectedId}, using position ${idx}`);
+                  matchingResult = results[idx] || {
+                    identifierId: expectedId,
+                    extractedValue: "Not Found",
+                    validationStatus: "invalid",
+                    aiReasoning: "AI did not return result for this identifier",
+                    confidenceScore: 0,
+                    documentSource: "Missing"
+                  };
+                }
+                
+                // Ensure the result has the correct identifierId
+                matchingResult.identifierId = expectedId;
+                orderedResults.push(matchingResult);
+                
+                // Log first few for debugging
+                if (idx < 5) {
+                  console.log(`      Item ${idx}:`);
+                  console.log(`        Input: ID=${expectedId}, Value="${input["Column Names"] || input.ID || input}"`);
+                  console.log(`        Output: ID=${matchingResult.identifierId}, Value="${matchingResult.extractedValue}"`);
+                }
+              }
+              
+              // Replace results with properly ordered results
+              results.length = 0;
+              results.push(...orderedResults);
+              
+              console.log(`    ✅ Reordered ${orderedResults.length} results to match input order`);
               
               // Validate that we got the expected number of results
               if (results.length !== batch.length) {
