@@ -1,0 +1,40 @@
+}
+📊 Running SINGLE column extraction for session 29e7713e-e4b9-4966-b414-5f4393164266
+   Step ID: e3c7f77d-910c-4e41-8668-e0fccf16fd45, Value ID: 3a91ea85-ed02-41cf-a607-a8d9a21d6fdf
+   ⚠️ IMPORTANT: This endpoint extracts ONLY the single value/column specified by valueId
+   ⚠️ It does NOT extract all values in the step - just this one value
+   Previous data records: 0
+   Document ID: 96c1c05e-a22a-4e48-898f-1a3ad3beea02
+   🎯 Extracting ONLY: "ID" (3a91ea85-ed02-41cf-a607-a8d9a21d6fdf)
+   🚫 NOT extracting other values in step "Column Name Mapping"
+🔧 Using tool: Get Column Names (CODE)
+⚠️ No inputValues defined for this value
+📥 Tool inputs prepared: {}
+🚀 ToolEngine.testTool called
+  Tool Name: Get Column Names
+  Tool Type: CODE
+  Output Type: multiple
+📄 Using pre-extracted content for Excel File (12925 chars)
+  Prepared inputs keys: [ 'Excel File' ]
+  → Calling testCodeTool
+Python stdout length: 300
+Python stderr: DEBUG: Function name: get_column_names
+DEBUG: Inputs keys: ['Excel File']
+DEBUG: Input content preview: {'Excel File': "=== Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code\tDate of Birth\tDate Became Pensioner\tCode For Previous Status\tType Of Retirement\tDate Of Exit From Active Service\tAnnual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service\tAnnual Post-5.4.1988 GMP Component At Date Of Exit From Active Service\tAnnual Pre-6.4.1988 GMP Component At Date Of This Valuation\tAnnual Post-5.4.1988 GMP Component At Date Of This Valua...
+DEBUG: output_type=multiple, data_params count=0
+DEBUG: has_sample_data=False, records to process=0
+DEBUG: Result is list with 1 items
+DEBUG: First item type: <class 'dict'>
+DEBUG: First item keys: dict_keys(['extractedValue', 'validationStatus', 'aiReasoning', 'confidenceScore', 'documentSource'])
+DEBUG: All 1 items are field validation objects
+
+Found JSON array in output, extracting...
+Parsed result type: array
+Parsed result length: 1
+🐍 CODE TOOL RESULTS: 1 items returned
+  First item: {
+  extractedValue: null,
+  validationStatus: 'invalid',
+  aiReasoning: 'Error processing file: openpyxl does not support .16\t\tn\t\tn\t0\t file format, please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm',
+  confidenceScore: 10,
+  documentSource: 'File'
