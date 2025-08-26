@@ -1983,8 +1983,9 @@ export default function SessionView() {
           const stepValidations = validations.filter(v => {
             // Find validations for the referenced step's values
             const isStepValidation = referencedStep.values?.some(val => {
-              // Check both possible property names for compatibility
-              const valueId = (v as any).value_id || (v as any).valueId;
+              // Check all possible property names for compatibility
+              // The database uses field_id for workflow step values
+              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
               return valueId === val.id;
             });
             return isStepValidation;
@@ -2037,7 +2038,8 @@ export default function SessionView() {
               }
               
               // Find which value this validation belongs to
-              const valueId = (v as any).value_id || (v as any).valueId;
+              // The database uses field_id for workflow step values
+              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
               const value = referencedStep.values?.find(val => val.id === valueId);
               if (value) {
                 recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
