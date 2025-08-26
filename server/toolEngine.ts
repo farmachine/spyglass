@@ -951,23 +951,46 @@ Process each item and return the complete array of results.`;
       });
       
       if (dataInputsCheck.length > 0 && tool.outputType === 'multiple') {
-        const expectedCount = dataInputsCheck.reduce((sum, [, value]) => 
-          sum + (Array.isArray(value) ? value.length : 0), 0);
+        // Get the input array to check identifierIds
+        const inputArray = dataInputsCheck[0][1] as any[];
+        const expectedCount = inputArray.length;
         
         console.log(`⚠️ Expected ${expectedCount} results, got ${results.length}`);
         
-        // If we got fewer results than expected, pad with "Not Found" entries
+        // If we got fewer results than expected, we need to properly map missing items
         if (results.length < expectedCount) {
-          console.log(`📝 Padding results to match expected count of ${expectedCount}`);
-          while (results.length < expectedCount) {
-            results.push({
-              extractedValue: "Not Found",
-              validationStatus: "invalid",
-              aiReasoning: "Result not provided by AI - item may have been skipped",
-              confidenceScore: 0,
-              documentSource: "Missing"
-            });
+          console.log(`📝 Mapping results to preserve identifierIds`);
+          
+          // Create a map of returned identifierIds
+          const returnedIds = new Set(results.map(r => r.identifierId).filter(id => id));
+          
+          // Build complete results array with proper identifierId mapping
+          const completeResults: any[] = [];
+          
+          for (const inputItem of inputArray) {
+            const inputId = inputItem.identifierId;
+            
+            // Find if this ID was returned by the AI
+            const existingResult = results.find(r => r.identifierId === inputId);
+            
+            if (existingResult) {
+              completeResults.push(existingResult);
+            } else {
+              // Create a "Not Found" entry with the correct identifierId
+              console.log(`  Adding missing result for identifierId: ${inputId}`);
+              completeResults.push({
+                identifierId: inputId,
+                extractedValue: "Not Found",
+                validationStatus: "invalid",
+                aiReasoning: "No standard equivalent found for this column",
+                confidenceScore: 0,
+                documentSource: "N/A"
+              });
+            }
           }
+          
+          results = completeResults;
+          console.log(`✅ Padded results to ${results.length} items with proper identifierId mapping`);
         }
       }
       
