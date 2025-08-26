@@ -588,29 +588,29 @@ Return ONLY the matched results as a JSON array.`;
               
               batchPrompt = `${tool.aiPrompt || ''}
 
-You are processing a batch of ${batch.length} items. Each item needs to be processed individually.
+You are processing a batch of ${batch.length} items. Find matches for items where possible.
 
 INPUT DATA (${batch.length} items):
 ${JSON.stringify(batch, null, 2)}
 
 REQUIRED OUTPUT FORMAT:
-Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
-Each object must follow this schema:
+Return a JSON array containing ONLY items where you found matches or extracted valid data.
+Each matched object must follow this schema:
 {${hasIdentifierId ? '\n  "identifierId": "copy exactly from input",' : ''}
-  "extractedValue": "result or 'Not Found'",
-  "validationStatus": "valid" or "invalid",
+  "extractedValue": "the extracted or matched value",
+  "validationStatus": "valid",
   "aiReasoning": "max 10 words",
   "confidenceScore": 0-100,
-  "documentSource": "source or N/A"
+  "documentSource": "source reference"
 }
 
 IMPORTANT:
-- Process ALL ${batch.length} items
-- Return exactly ${batch.length} results in the same order as input
+- ONLY include items where you found actual matches or extracted valid data
+- DO NOT include "Not Found" entries - the system handles those automatically
+- Keep aiReasoning VERY SHORT (max 10 words)
 - Each result must have all ${hasIdentifierId ? '6' : '5'} required fields${hasIdentifierId ? ' (including identifierId)' : ''}
-- If no match is found, use extractedValue: "Not Found"
 
-Process each item and return the complete array of results.`;
+Return ONLY the matched results as a JSON array.`;
             }
             
             // Add delay between batches to respect Gemini API rate limits
