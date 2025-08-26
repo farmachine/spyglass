@@ -638,8 +638,8 @@ Return ONLY the matched results as a JSON array.`;
             }
             
             try {
-              const parsed = JSON.parse(batchResult);
-              const results = Array.isArray(parsed) ? parsed : [parsed];
+              const parsed = batchResult.trim() ? JSON.parse(batchResult) : [];
+              const results = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
               
               console.log(`    🔍 AI returned ${results.length} results`);
               console.log(`    🔍 First result:`, results[0]);
@@ -687,9 +687,10 @@ Return ONLY the matched results as a JSON array.`;
                 
                 // Log first few for debugging
                 if (idx < 5) {
+                  const result = matchingResult || orderedResults[orderedResults.length - 1];
                   console.log(`      Item ${idx}:`);
                   console.log(`        Input: ID=${expectedId}, Value="${input["Column Names"] || input.ID || input}"`);
-                  console.log(`        Output: ID=${matchingResult.identifierId}, Value="${matchingResult.extractedValue}"`);
+                  console.log(`        Output: ID=${result.identifierId}, Value="${result.extractedValue}"`);
                 }
               }
               
