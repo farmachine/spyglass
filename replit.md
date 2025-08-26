@@ -47,6 +47,7 @@ Preferred communication style: Simple, everyday language.
 - **Manual Fix System**: Endpoints for correcting pandas-based functions when AI generation fails.
 - **Complete Tool Testing Workflow**: Document extraction on tool creation, structured sample data storage, enhanced test UI, debug workflow, and automatic sample document/data replacement.
 - **Unified Database Architecture**: Schema fields and collections consistently treated as "steps" with "values" using `workflow_steps` and `step_values` tables. `workflow_steps` stores Info Pages and Data Tables, tracking `valueCount` and `identifierId`. `step_values` stores value configuration including `toolId` and `inputValues`.
+- **Clean Extraction Pipeline**: Tool-based architecture where each value uses only its assigned tool via toolId. IdentifierIds are generated at database save time (proper UUIDs) for first columns, then passed via previousData for subsequent columns. Extraction functions never generate identifierIds - they only extract data values.
 
 ### Key Architectural Decisions
 - **Monorepo Structure**: Single repository with shared types.

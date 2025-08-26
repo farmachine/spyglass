@@ -6794,7 +6794,6 @@ def extract_function(Column_Name, Excel_File):
         console.log(`  ✓ Has aiReasoning: ${firstResult.aiReasoning !== undefined}`);
         console.log(`  ✓ Has confidenceScore: ${firstResult.confidenceScore !== undefined}`);
         console.log(`  ✓ Has documentSource: ${firstResult.documentSource !== undefined}`);
-        console.log(`  ✓ Has identifierId: ${firstResult.identifierId !== undefined}`);
       }
       
       // Save the results as field validations
@@ -6831,23 +6830,15 @@ def extract_function(Column_Name, Excel_File):
         for (let i = 0; i < results.length; i++) {
           const result = results[i];
           
-          // Get the identifier ID - prefer from result if AI provided it, otherwise from previous data
+          // Get the identifier ID based on whether this is the first column or a subsequent one
           let identifierId: string | null = null;
           let recordIndex = i; // Default to the result index
           
-          if (result.identifierId) {
-            // AI provided the identifierId directly in the result
-            identifierId = result.identifierId;
-            console.log(`🔗 Using identifierId from AI result: ${identifierId}`);
-            
-            // Find the actual record index for this identifierId from previousData
-            if (previousData) {
-              const matchingRecordIndex = previousData.findIndex(record => record.identifierId === identifierId);
-              if (matchingRecordIndex !== -1) {
-                recordIndex = matchingRecordIndex;
-                console.log(`  Found matching record at index ${recordIndex}`);
-              }
-            }
+          if (previousData && previousData[i] && previousData[i].identifierId) {
+            // This is a subsequent column - use the identifierId from previousData
+            identifierId = previousData[i].identifierId;
+            console.log(`🔗 Using identifierId from previous data at index ${i}: ${identifierId}`);
+            recordIndex = i;
           } else if (firstColumnIdentifiers.size > 0) {
             // Use the identifierId from the first column to ensure all columns in the same row share the same ID
             identifierId = firstColumnIdentifiers.get(i) || null;
@@ -6858,11 +6849,7 @@ def extract_function(Column_Name, Excel_File):
               identifierId = crypto.randomUUID();
               console.log(`⚠️ No identifierId found for row ${i}, generating new UUID: ${identifierId}`);
             }
-          } else if (previousData && previousData[i]) {
-            // Fallback to index-based mapping from previous data
-            identifierId = previousData[i].identifierId || null;
-            console.log(`🔗 Mapping result ${i} to identifier from previous data: ${identifierId}`);
-          } else if (!previousData || previousData.length === 0) {
+          } else {
             // This is the first column being extracted - generate proper UUID identifiers
             identifierId = crypto.randomUUID();
             console.log(`🔗 Generated new identifierId for first column: ${identifierId}`);
