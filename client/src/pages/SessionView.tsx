@@ -1905,7 +1905,7 @@ export default function SessionView() {
     
     // Check if this tool needs a document
     // A tool needs a document if:
-    // 1. It's the first column (ID column) with no previous data
+    // 1. It's the first column (ID column) with no previous data AND no @ references
     // 2. It's the Worksheet Name column 
     // 3. Its input values contain document references (not @ references to other columns)
     const isFirstColumn = valueIndex === 0;
@@ -1935,8 +1935,11 @@ export default function SessionView() {
     
     console.log(`  - hasColumnReferences: ${hasColumnReferences}`);
     
-    // If it has column references, it doesn't need a document (unless it's the first column)
-    const needsDocument = isFirstColumn || isWorksheetNameColumn || (!hasColumnReferences && valueIndex > 0);
+    // A tool needs a document if:
+    // - It's the Worksheet Name column (always needs document)
+    // - OR it doesn't have @ references (meaning it needs actual document data)
+    // If it has @ references, it uses data from other columns, not documents
+    const needsDocument = isWorksheetNameColumn || !hasColumnReferences;
     console.log(`  - RESULT: needsDocument = ${needsDocument}`);
     
     // Compile previous column data as input
