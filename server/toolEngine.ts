@@ -556,37 +556,28 @@ LIST ITEMS (${formattedData.length} items to process):
 ${JSON.stringify(formattedData, null, 2)}
 
 CRITICAL INSTRUCTIONS:
-You MUST process EACH of the ${formattedData.length} items above individually.
-Return an array with EXACTLY ${formattedData.length} results, one for each input item.
+Only return items where you FOUND A MATCH in the Reference Document.
+Skip items that have no matching information - the system will handle those automatically.
 
 REQUIRED OUTPUT FORMAT:
-Return a JSON array with EXACTLY ${formattedData.length} objects in the SAME ORDER as the input.
-Each object must have these fields:
+Return a JSON array containing ONLY the items where you found matches.
+Each matched object must have these fields:
 {
   "identifierId": "copy the exact identifierId from the input item",
-  "extractedValue": "the mapped standard equivalent or 'Not Found' if no match",
-  "validationStatus": "valid" or "invalid",
-  "aiReasoning": "KEEP VERY SHORT - max 10 words",
+  "extractedValue": "the mapped standard equivalent",
+  "validationStatus": "valid",
+  "aiReasoning": "max 10 words",
   "confidenceScore": number between 0-100,
-  "documentSource": "Knowledge Document" or "N/A"
+  "documentSource": "Knowledge Document"
 }
 
-CRITICAL: Keep aiReasoning EXTREMELY SHORT (max 10 words) to avoid response truncation!
+IMPORTANT:
+- ONLY include items where you found actual matches
+- DO NOT include "Not Found" entries
+- Keep aiReasoning VERY SHORT (max 10 words)
+- The system will automatically handle unmatched items
 
-CRITICAL MAPPING INSTRUCTIONS:
-The identifierId is the KEY that links each input to its corresponding output. You MUST:
-1. Use the identifierId to track which output belongs to which input
-2. Use the "Column Names" and "Worksheet Name" as the CONTENT to analyze for mapping
-3. Find the standard equivalent for each column name based on its meaning and context
-
-IMPORTANT: Your output array MUST:
-1. Have exactly ${formattedData.length} objects
-2. Be in the SAME ORDER as the input
-3. Each output object at index N must have the identifierId from input object at index N
-4. Do NOT sort, reorder, or skip any items
-5. Keep ALL responses CONCISE to avoid truncation
-
-Return the complete array with ALL ${formattedData.length} results IN ORDER.`;
+Return ONLY the matched results as a JSON array.`;
             } else {
               // Standard prompt for simple data
               // Check if items have identifierId
@@ -656,8 +647,8 @@ Process each item and return the complete array of results.`;
                 console.log(`    🔍 Last result:`, results[results.length - 1]);
               }
               
-              // CRITICAL: Verify and FIX identifierId mapping
-              console.log(`    🔍 VERIFYING IDENTIFIER MAPPING:`);
+              // CRITICAL: Process AI results - AI now only returns matches
+              console.log(`    🔍 PROCESSING AI RESULTS (AI returns matches only):`);
               
               // Create a map of AI results by identifierId for lookup
               const resultMap = new Map();
@@ -667,31 +658,32 @@ Process each item and return the complete array of results.`;
                 }
               }
               
+              console.log(`      AI found ${resultMap.size} matches out of ${batch.length} inputs`);
+              
               // Now create properly ordered results based on input order
               const orderedResults = [];
               for (let idx = 0; idx < batch.length; idx++) {
                 const input = batch[idx];
                 const expectedId = input.identifierId;
                 
-                // Try to find the matching result by identifierId
-                let matchingResult = resultMap.get(expectedId);
+                // Check if AI found a match for this item
+                const matchingResult = resultMap.get(expectedId);
                 
-                if (!matchingResult) {
-                  // If AI didn't preserve identifierId, fall back to position
-                  console.error(`      ❌ No result found for identifierId: ${expectedId}, using position ${idx}`);
-                  matchingResult = results[idx] || {
+                if (matchingResult) {
+                  // AI found a match - use it as-is
+                  orderedResults.push(matchingResult);
+                } else {
+                  // AI didn't find a match - create "Not Found" entry
+                  const notFoundResult = {
                     identifierId: expectedId,
                     extractedValue: "Not Found",
                     validationStatus: "invalid",
-                    aiReasoning: "AI did not return result for this identifier",
+                    aiReasoning: "No match in document",
                     confidenceScore: 0,
-                    documentSource: "Missing"
+                    documentSource: "N/A"
                   };
+                  orderedResults.push(notFoundResult);
                 }
-                
-                // Ensure the result has the correct identifierId
-                matchingResult.identifierId = expectedId;
-                orderedResults.push(matchingResult);
                 
                 // Log first few for debugging
                 if (idx < 5) {
@@ -705,29 +697,7 @@ Process each item and return the complete array of results.`;
               results.length = 0;
               results.push(...orderedResults);
               
-              console.log(`    ✅ Reordered ${orderedResults.length} results to match input order`);
-              
-              // Validate that we got the expected number of results
-              if (results.length !== batch.length) {
-                console.error(`    ⚠️ CRITICAL: Batch returned ${results.length} results but expected ${batch.length}`);
-                console.error(`    ⚠️ This means AI did not process all items!`);
-                // Pad with "Not Found" results if needed
-                while (results.length < batch.length) {
-                  const missingIndex = results.length;
-                  const missingInput = batch[missingIndex];
-                  const missingId = missingInput?.identifierId || `col_${String(missingIndex).padStart(4, '0')}`;
-                  
-                  results.push({
-                    identifierId: missingId, // CRITICAL: Include the identifierId!
-                    extractedValue: "Not Found",
-                    validationStatus: "invalid",
-                    aiReasoning: "AI did not return a result for this item",
-                    confidenceScore: 0,
-                    documentSource: "Missing Result"
-                  });
-                  console.log(`      ➕ Added missing result for identifierId: ${missingId}`);
-                }
-              }
+              console.log(`    ✅ Created ${orderedResults.length} total results: ${resultMap.size} matches + ${orderedResults.length - resultMap.size} "Not Found" entries`);
               
               allResults.push(...results);
               console.log(`    ✅ Batch processed: ${results.length} results`);
