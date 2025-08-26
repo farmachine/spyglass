@@ -717,13 +717,19 @@ Process each item and return the complete array of results.`;
                 console.error(`    ⚠️ This means AI did not process all items!`);
                 // Pad with "Not Found" results if needed
                 while (results.length < batch.length) {
+                  const missingIndex = results.length;
+                  const missingInput = batch[missingIndex];
+                  const missingId = missingInput?.identifierId || `col_${String(missingIndex).padStart(4, '0')}`;
+                  
                   results.push({
+                    identifierId: missingId, // CRITICAL: Include the identifierId!
                     extractedValue: "Not Found",
                     validationStatus: "invalid",
                     aiReasoning: "AI did not return a result for this item",
                     confidenceScore: 0,
                     documentSource: "Missing Result"
                   });
+                  console.log(`      ➕ Added missing result for identifierId: ${missingId}`);
                 }
               }
               
