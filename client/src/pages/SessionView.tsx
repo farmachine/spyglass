@@ -1141,6 +1141,7 @@ export default function SessionView() {
     needsDocument: boolean;
     toolType?: string;
     toolDescription?: string;
+    presetReferences?: Array<{ name: string; type: string }>;
   } | null>(null);
   const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
   
@@ -1905,12 +1906,48 @@ export default function SessionView() {
     
     // Check if this tool needs a document
     const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
-    // For ID column (first column with no previous data) or Worksheet Name column, always require document selection
+    
+    // Gather preset references from tool's input values
+    const presetReferences: Array<{ name: string; type: string }> = [];
+    if (tool?.inputParameters && valueToRun?.inputValues) {
+      tool.inputParameters.forEach((param: any) => {
+        const paramValue = valueToRun.inputValues[param.name] || valueToRun.inputValues[param.id];
+        
+        // Check for knowledge documents
+        if (param.type === 'document' && Array.isArray(paramValue)) {
+          paramValue.forEach((docId: string) => {
+            const knowledgeDoc = project?.knowledgeDocuments?.find((doc: any) => doc.id === docId);
+            if (knowledgeDoc) {
+              presetReferences.push({
+                name: knowledgeDoc.displayName || knowledgeDoc.fileName || 'Knowledge Document',
+                type: 'Knowledge Document'
+              });
+            }
+          });
+        }
+        
+        // Check for @ references in other parameters
+        if (param.type === 'data' && typeof paramValue === 'string' && paramValue.startsWith('@')) {
+          // Extract the reference type and name
+          const refMatch = paramValue.match(/@([^.]+)\.(.+)/);
+          if (refMatch) {
+            const [, refType, refName] = refMatch;
+            presetReferences.push({
+              name: refName,
+              type: refType === 'previousData' ? 'Previous Step Data' : refType
+            });
+          }
+        }
+      });
+    }
+    
+    // Determine if document is needed
+    const hasUserDocumentParam = tool?.inputParameters?.some((p: any) => 
+      p.name === 'user_document' || (p.name === 'document' && !valueToRun?.inputValues?.[p.name] && !valueToRun?.inputValues?.[p.id])
+    );
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
-    const needsDocument = isFirstColumn || isWorksheetNameColumn || tool?.inputParameters?.some(p => 
-      p.name === 'document' || p.name === 'document_content' || p.name === 'user_document'
-    ) || false;
+    const needsDocument = hasUserDocumentParam || (isFirstColumn && !presetReferences.length) || isWorksheetNameColumn;
     
     // Compile previous column data as input
     const previousColumnsData: any[] = [];
@@ -2057,7 +2094,8 @@ export default function SessionView() {
       previousData: previousColumnsData,
       needsDocument,
       toolType: toolInfo?.toolType || valueToRun?.valueName?.toLowerCase(),
-      toolDescription: toolInfo?.description
+      toolDescription: toolInfo?.description,
+      presetReferences
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -2094,12 +2132,16 @@ export default function SessionView() {
         return;
       }
       
-      const requestPayload = {
+      const requestPayload: any = {
         stepId: workflowStep.id,
         valueId: valueId,
-        previousData: previousData,
-        documentId: selectedExtractionDoc // Pass the selected document ID
+        previousData: previousData
       };
+      
+      // Only include documentId if one is selected and needed
+      if (selectedExtractionDoc) {
+        requestPayload.documentId = selectedExtractionDoc;
+      }
       
       console.log(`🎯 Full request payload:`, requestPayload);
       console.log(`🚀 SENDING SINGLE EXTRACTION REQUEST FOR: ${valueName} (${valueId})`);
@@ -4524,7 +4566,9 @@ Thank you for your assistance.`;
             setSelectedExtractionDoc("");
           }}
           onConfirm={(documentId) => {
-            setSelectedExtractionDoc(documentId);
+            if (documentId) {
+              setSelectedExtractionDoc(documentId);
+            }
             handleConfirmColumnExtraction();
           }}
           title={`Extract ${columnExtractionModal.valueName}`}
@@ -4537,6 +4581,8 @@ Thank you for your assistance.`;
           })) || []}
           inputData={columnExtractionModal.previousData}
           isLoading={false}
+          needsDocument={columnExtractionModal.needsDocument}
+          presetReferences={columnExtractionModal.presetReferences}
         />
       )}
     </div>

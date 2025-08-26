@@ -12,13 +12,15 @@ import { Separator } from "@/components/ui/separator";
 interface ExtractWizardModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (documentId: string) => void;
+  onConfirm: (documentId?: string) => void;
   title: string;
   toolType?: string;
   toolDescription?: string;
   documents: Array<{ id: string; name: string; type: string }>;
   inputData: any[];
   isLoading?: boolean;
+  needsDocument?: boolean;
+  presetReferences?: Array<{ name: string; type: string }>;
 }
 
 // Function type descriptions for user guidance
@@ -102,7 +104,9 @@ export default function ExtractWizardModal({
   toolDescription,
   documents,
   inputData,
-  isLoading = false
+  isLoading = false,
+  needsDocument = true,
+  presetReferences = []
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -127,8 +131,10 @@ export default function ExtractWizardModal({
   }, [documents]);
   
   const handleConfirm = () => {
-    if (selectedDocument) {
+    if (needsDocument && selectedDocument) {
       onConfirm(selectedDocument);
+    } else if (!needsDocument) {
+      onConfirm();
     }
   };
   
@@ -143,38 +149,34 @@ export default function ExtractWizardModal({
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* User Guide Section */}
+          {/* Description Section */}
           <Alert className="border-blue-200 bg-blue-50/50">
             <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="space-y-3">
+            <AlertDescription className="space-y-2">
               <div>
-                <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                <p className="text-gray-700">{functionInfo.detailedDescription}</p>
+                <p className="font-medium text-gray-900 mb-1">Description:</p>
+                <p className="text-gray-700">{toolDescription || functionInfo.detailedDescription}</p>
               </div>
-              
-              {toolDescription && (
-                <div>
-                  <p className="font-medium text-gray-900 mb-1">Function details:</p>
-                  <p className="text-gray-700 text-sm">{toolDescription}</p>
-                </div>
-              )}
             </AlertDescription>
           </Alert>
           
-          {/* How it works section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-gray-900">How it works:</Label>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              {functionInfo.whatHappens.map((step, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-medium mt-0.5">
-                    {index + 1}
+          {/* Preset References section - show when tool uses preset references */}
+          {presetReferences && presetReferences.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-900">Reference Documents:</Label>
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                {presetReferences.map((ref, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">{ref.name}</span>
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      {ref.type}
+                    </Badge>
                   </div>
-                  <p className="text-sm text-gray-700 flex-1">{step}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Requirements section */}
           {functionInfo.requirements && functionInfo.requirements.length > 0 && (
@@ -192,31 +194,33 @@ export default function ExtractWizardModal({
           
           <Separator />
           
-          {/* Document Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Select Document</Label>
-            <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a document to process" />
-              </SelectTrigger>
-              <SelectContent>
-                {documents.map((doc) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gray-500" />
-                      <span>{doc.name}</span>
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        {doc.type}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {documents.length === 0 && (
-              <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
-            )}
-          </div>
+          {/* Document Selection - only show when document is needed */}
+          {needsDocument && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select Document</Label>
+              <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a document to process" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documents.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span>{doc.name}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {doc.type}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {documents.length === 0 && (
+                <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
+              )}
+            </div>
+          )}
           
           {/* Input Data Preview */}
           {inputData && inputData.length > 0 && (
@@ -258,12 +262,16 @@ export default function ExtractWizardModal({
               {inputData && inputData.length > 0 ? (
                 <>
                   The extraction will process <strong>{inputData.length} records</strong> from your input data.
-                  Each record will be processed individually to ensure accurate results.
+                  {needsDocument ? ' Select a document above to continue.' : ' Click Run Extraction to begin.'}
                 </>
-              ) : (
+              ) : needsDocument ? (
                 <>
                   Select a document to begin the extraction process. The function will analyze the document
                   and extract the requested information automatically.
+                </>
+              ) : (
+                <>
+                  Click Run Extraction to begin processing with the configured references.
                 </>
               )}
             </AlertDescription>
@@ -281,7 +289,7 @@ export default function ExtractWizardModal({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={!selectedDocument || isLoading}
+            disabled={(needsDocument && !selectedDocument) || isLoading}
             className="min-w-[140px]"
           >
             {isLoading ? (
