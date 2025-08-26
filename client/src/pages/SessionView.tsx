@@ -1979,92 +1979,32 @@ export default function SessionView() {
         if (referencedStep) {
           console.log(`📊 Getting data from referenced step: "${referencedStepName}"`);
           
-          // Get all validations for the referenced step
+          // Simple approach: Get all validations for the referenced step's field IDs
           const stepValidations = validations.filter(v => {
             // Must have an identifierId
             if (!v.identifierId) return false;
             
-            // Check if step_id matches (if it exists)
-            const stepId = (v as any).stepId || (v as any).step_id;
-            if (stepId && stepId !== referencedStep.id) {
-              return false; // Wrong step
-            }
+            // Check if this validation belongs to one of the referenced step's values
+            const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+            const belongsToStep = referencedStep.values?.some(val => val.id === fieldId);
             
-            // Find validations for the referenced step's values
-            const isStepValidation = referencedStep.values?.some(val => {
-              // Check all possible property names for compatibility
-              // The database uses field_id for workflow step values
-              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
-              return valueId === val.id;
-            });
+            // Check if it's verified (any acceptable status)
+            const isVerified = v.validationStatus === 'valid' || 
+                              v.validationStatus === 'verified' || 
+                              v.validationStatus === 'manual-verified' ||
+                              v.validationStatus === 'manual';
             
-            return isStepValidation;
+            return belongsToStep && isVerified;
           });
           
-          console.log(`  - Found ${stepValidations.length} validations for step "${referencedStepName}"`);
-          if (stepValidations.length > 0) {
-            console.log(`  - Sample validation:`, stepValidations[0]);
-          }
+          console.log(`  - Found ${stepValidations.length} verified validations for step "${referencedStepName}"`);
           
           // Group by identifier ID to compile records
           const recordsByIdentifier = new Map<string, any>();
-          const verificationStatusByIdentifier = new Map<string, boolean>();
           
-          // First pass: check which identifierIds have all fields verified
-          const identifierIds = new Set(stepValidations.filter(v => v.identifierId).map(v => v.identifierId));
-          
-          // Debug: Log first identifier to understand the structure
-          let debuggedFirst = false;
-          
-          for (const identifierId of identifierIds) {
-            const recordValidations = stepValidations.filter(v => v.identifierId === identifierId);
-            
-            if (!debuggedFirst && recordValidations.length > 0) {
-              console.log(`  - Debug first record (${identifierId}):`, recordValidations.map(v => ({
-                status: v.validationStatus,
-                value: v.extractedValue?.substring(0, 20),
-                fieldId: (v as any).field_id || (v as any).fieldId
-              })));
-              debuggedFirst = true;
-            }
-            
-            // Check if ALL validations for this identifier have valid data
-            const allVerified = recordValidations.every(v => {
-              // Accept any status that indicates the data exists and is usable
-              const isValid = v.validationStatus === 'valid' || 
-                             v.validationStatus === 'verified' || 
-                             v.validationStatus === 'manual-verified' ||
-                             v.validationStatus === 'manual' ||
-                             (v.validationStatus === 'manual' && v.manuallyVerified);
-              return isValid;
-            });
-            
-            // Also check that Standard Equivalent is not "Not Found"
-            const standardEquivalentValidation = recordValidations.find(v => {
-              // The database uses field_id for workflow step values
-              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
-              const value = referencedStep.values?.find(val => val.id === valueId);
-              const isStandardEquiv = value?.valueName === 'Standard Equivalent';
-              if (!debuggedFirst && isStandardEquiv) {
-                console.log(`    - Found Standard Equivalent: valueId=${valueId}, extracted="${v.extractedValue}"`);
-              }
-              return isStandardEquiv;
-            });
-            
-            const hasValidStandardEquivalent = standardEquivalentValidation && 
-                                              standardEquivalentValidation.extractedValue !== 'Not Found';
-            
-            const shouldInclude = allVerified && hasValidStandardEquivalent;
-            verificationStatusByIdentifier.set(identifierId, shouldInclude);
-            
-            if (!debuggedFirst && shouldInclude) {
-              console.log(`    - Record ${identifierId} INCLUDED: allVerified=${allVerified}, hasValidStandardEquivalent=${hasValidStandardEquivalent}`);
-            }
-          }
-          
-          // Second pass: only include records where all fields are verified
+          // Simply group all validations by identifier
           stepValidations.forEach(v => {
-            if (v.identifierId && verificationStatusByIdentifier.get(v.identifierId)) {
+            if (v.identifierId) {
               if (!recordsByIdentifier.has(v.identifierId)) {
                 recordsByIdentifier.set(v.identifierId, {
                   identifierId: v.identifierId
@@ -2073,8 +2013,8 @@ export default function SessionView() {
               
               // Find which value this validation belongs to
               // The database uses field_id for workflow step values
-              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
-              const value = referencedStep.values?.find(val => val.id === valueId);
+              const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+              const value = referencedStep.values?.find(val => val.id === fieldId);
               if (value) {
                 recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
               }
@@ -2083,7 +2023,7 @@ export default function SessionView() {
           
           // Convert to array
           previousColumnsData.push(...Array.from(recordsByIdentifier.values()));
-          console.log(`📊 Filtered to ${recordsByIdentifier.size} fully verified records with valid mappings (from ${identifierIds.size} total)`);
+          console.log(`📊 Found ${recordsByIdentifier.size} records with verified data from step "${referencedStepName}"`);
         }
       }
     } else if (workflowStep.values) {
