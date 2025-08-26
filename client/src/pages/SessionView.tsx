@@ -2093,12 +2093,15 @@ export default function SessionView() {
             const prevValue = workflowStep.values[i];
             
             // Find the validation for this column and record
-            const validation = validations.find(v => 
-              v.valueId === prevValue.id && 
-              v.identifierId === recordData.identifierId
-            );
+            // Check all possible field name variations for workflow steps
+            const validation = validations.find(v => {
+              const fieldIdMatch = (v as any).fieldId === prevValue.id || (v as any).field_id === prevValue.id;
+              const valueIdMatch = v.valueId === prevValue.id || (v as any).value_id === prevValue.id;
+              const identifierMatch = v.identifierId === recordData.identifierId;
+              return (fieldIdMatch || valueIdMatch) && identifierMatch;
+            });
             
-            console.log(`Looking for validation: valueId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
+            console.log(`Looking for validation: valueId/fieldId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
             
             // Check if this column has a value
             if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
@@ -4748,6 +4751,7 @@ Thank you for your assistance.`;
           needsDocument={columnExtractionModal.needsDocument}
           isLoading={false}
           inputValues={columnExtractionModal.inputValues}
+          knowledgeDocuments={project?.knowledgeDocuments || []}
         />
       )}
       {/* AI Extraction Modal */}

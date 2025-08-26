@@ -21,6 +21,7 @@ interface ExtractWizardModalProps {
   isLoading?: boolean;
   needsDocument?: boolean;
   inputValues?: any;
+  knowledgeDocuments?: Array<{ id: string; documentName: string }>;
 }
 
 // Function type descriptions for user guidance
@@ -106,7 +107,8 @@ export default function ExtractWizardModal({
   inputData,
   isLoading = false,
   needsDocument = true,
-  inputValues
+  inputValues,
+  knowledgeDocuments = []
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -131,9 +133,19 @@ export default function ExtractWizardModal({
               type: 'references'
             });
           } else if (value.length > 0) {
+            // Check if these are knowledge document IDs and resolve them
+            const resolvedValues = value.map((v: string) => {
+              // If it's a UUID and we have knowledge documents, try to resolve it
+              if (typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i) && knowledgeDocuments.length > 0) {
+                const doc = knowledgeDocuments.find(d => d.id === v);
+                return doc ? doc.documentName : v;
+              }
+              return v;
+            });
+            
             config.push({
               key: 'Source Fields',
-              value: value.join(', '),
+              value: resolvedValues.join(', '),
               type: 'array'
             });
           }
