@@ -1142,7 +1142,6 @@ export default function SessionView() {
     toolType?: string;
     toolDescription?: string;
     presetReferences?: Array<{ name: string; type: string }>;
-    crossStepReference?: string;
   } | null>(null);
   const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
   
@@ -2031,13 +2030,8 @@ export default function SessionView() {
                 // Find validations from the referenced step and value
                 // Since value_id might be NULL in validations, also match by field_id
                 const referencedValidations = validations.filter(v => {
-                  // IMPORTANT: Only include valid validations AND exclude "Not Found" values
-                  if (v.validationStatus !== 'valid') {
-                    return false;
-                  }
-                  
-                  // Exclude "Not Found" values - we only want actual valid mappings
-                  if (v.extractedValue === "Not Found" || v.extractedValue === null || v.extractedValue === undefined || v.extractedValue === "") {
+                  // IMPORTANT: Only include verified validations
+                  if (!v.manuallyVerified || v.validationStatus !== 'valid') {
                     return false;
                   }
                   
@@ -2051,20 +2045,13 @@ export default function SessionView() {
                   }
                   // Fallback: match by collection name for backward compatibility
                   if (v.validationType === 'collection_property' && v.collectionName === refStepName) {
-                    return true;
+                    // Additional check for extracted value to ensure we have data
+                    return v.extractedValue !== null && v.extractedValue !== undefined;
                   }
                   return false;
                 });
                 
-                console.log(`📊 Found ${referencedValidations.length} valid (non-"Not Found") validations from ${refStepName}.${refValueName}`);
-                
-                // Debug: show sample of what we're filtering
-                const sampleValidations = referencedValidations.slice(0, 3);
-                console.log(`📋 Sample of filtered validations:`, sampleValidations.map(v => ({
-                  identifierId: v.identifierId,
-                  extractedValue: v.extractedValue,
-                  validationStatus: v.validationStatus
-                })));
+                console.log(`📊 Found ${referencedValidations.length} validations from ${refStepName}.${refValueName}`);
                 
                 // Group by identifierId to get unique records
                 const recordsByIdentifier = new Map<string, any>();
@@ -2083,7 +2070,7 @@ export default function SessionView() {
                 // For cross-step references, we don't include identifierId as new ones will be generated
                 crossStepData = Array.from(recordsByIdentifier.values());
                 
-                console.log(`🔗 Loaded ${crossStepData.length} valid records from cross-step reference (filtered from ${referencedValidations.length} validations)`);
+                console.log(`🔗 Loaded ${crossStepData.length} records from cross-step reference`);
               }
             }
           });
@@ -2203,25 +2190,30 @@ export default function SessionView() {
       }
     }
     
-    // Log filtering results based on data source
-    if (crossStepData.length > 0) {
-      // Using cross-step data
-      console.log(`📦 Using ${previousColumnsData.length} records from cross-step reference`);
-      console.log(`📋 Sample of cross-step data (first 3 records):`, previousColumnsData.slice(0, 3));
-    } else if (previousColumnsData.length > 0) {
-      // Using same-step data
-      const totalRecords = validations.filter(v => 
-        v.collectionName === stepName || 
-        (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
-      ).map(v => v.recordIndex).filter(idx => idx !== null);
-      const uniqueTotalRecords = [...new Set(totalRecords)].length;
-      
-      console.log(`📊 Compiled ${previousColumnsData.length} records from same-step columns (${uniqueTotalRecords} total records)`);
-      if (previousColumnsData.length < uniqueTotalRecords) {
-        console.log(`📊 Excluded ${uniqueTotalRecords - previousColumnsData.length} records that have incomplete data in previous columns`);
-      }
-      console.log(`📋 Sample of same-step data (first 3 records):`, previousColumnsData.slice(0, 3));
+    // Log filtering results
+    const totalRecords = validations.filter(v => 
+      v.collectionName === stepName || 
+      (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+    ).map(v => v.recordIndex).filter(idx => idx !== null);
+    const uniqueTotalRecords = [...new Set(totalRecords)].length;
+    
+    console.log(`📊 Compiled ${previousColumnsData.length} records with complete data from ${uniqueTotalRecords} total records`);
+    if (previousColumnsData.length < uniqueTotalRecords) {
+      console.log(`📊 Excluded ${uniqueTotalRecords - previousColumnsData.length} records that have incomplete data in previous columns`);
     }
+    
+    // Show which records have valid Standard Equivalent values (not "Not Found")
+    const recordsWithValidMappings = previousColumnsData.filter(record => 
+      record['Standard Equivalent'] && record['Standard Equivalent'] !== 'Not Found'
+    );
+    console.log(`✅ ${recordsWithValidMappings.length} records have valid Standard Equivalent mappings (not "Not Found")`);
+    console.log(`❌ ${previousColumnsData.length - recordsWithValidMappings.length} records have "Not Found" in Standard Equivalent`);
+    
+    // Log sample data to see what we're actually sending
+    console.log(`Sample of data being sent (first 3 with valid mappings):`, 
+      recordsWithValidMappings.slice(0, 3));
+    console.log(`Sample of data being sent (first 3 with "Not Found"):`, 
+      previousColumnsData.filter(r => r['Standard Equivalent'] === 'Not Found').slice(0, 3));
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
@@ -2251,8 +2243,7 @@ export default function SessionView() {
       needsDocument,
       toolType: toolInfo?.toolType || valueToRun?.valueName?.toLowerCase(),
       toolDescription: toolInfo?.description,
-      presetReferences,
-      crossStepReference
+      presetReferences
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4740,7 +4731,6 @@ Thank you for your assistance.`;
           isLoading={false}
           needsDocument={columnExtractionModal.needsDocument}
           presetReferences={columnExtractionModal.presetReferences}
-          crossStepReference={columnExtractionModal.crossStepReference}
         />
       )}
     </div>
