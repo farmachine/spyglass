@@ -1907,6 +1907,11 @@ export default function SessionView() {
     // Check if this tool needs a document
     const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
     
+    console.log(`🔧 Tool lookup: toolId=${valueToRun.toolId}, found=${!!tool}`);
+    if (!tool) {
+      console.log(`🔧 Available tools:`, project?.tools?.map(t => ({ id: t.id, name: t.name })));
+    }
+    
     // Gather preset references from tool's input values
     const presetReferences: Array<{ name: string; type: string }> = [];
     if (tool?.inputParameters && valueToRun?.inputValues) {
@@ -2021,6 +2026,11 @@ export default function SessionView() {
                 // Find validations from the referenced step and value
                 // Since value_id might be NULL in validations, also match by field_id
                 const referencedValidations = validations.filter(v => {
+                  // IMPORTANT: Only include verified validations
+                  if (!v.manuallyVerified || v.validationStatus !== 'valid') {
+                    return false;
+                  }
+                  
                   // Match by value_id if available
                   if (referencedValue && v.valueId === referencedValue.id) {
                     return true;
