@@ -1911,15 +1911,33 @@ export default function SessionView() {
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
     
+    console.log(`🔍 Checking if "${valueName}" needs document:`);
+    console.log(`  - isFirstColumn: ${isFirstColumn}`);
+    console.log(`  - isWorksheetNameColumn: ${isWorksheetNameColumn}`);
+    console.log(`  - inputValues:`, valueToRun.inputValues);
+    
     // Check if input values contain @ references (which means it uses data from other columns, not documents)
     const hasColumnReferences = valueToRun.inputValues && 
-      Object.values(valueToRun.inputValues).some(value => 
-        typeof value === 'string' && value.includes('@') ||
-        (Array.isArray(value) && value.some(v => typeof v === 'string' && v.includes('@')))
-      );
+      Object.values(valueToRun.inputValues).some(value => {
+        if (typeof value === 'string' && value.includes('@')) {
+          console.log(`  - Found @ reference in string: "${value}"`);
+          return true;
+        }
+        if (Array.isArray(value)) {
+          const hasRef = value.some(v => typeof v === 'string' && v.includes('@'));
+          if (hasRef) {
+            console.log(`  - Found @ reference in array:`, value);
+          }
+          return hasRef;
+        }
+        return false;
+      });
+    
+    console.log(`  - hasColumnReferences: ${hasColumnReferences}`);
     
     // If it has column references, it doesn't need a document (unless it's the first column)
     const needsDocument = isFirstColumn || isWorksheetNameColumn || (!hasColumnReferences && valueIndex > 0);
+    console.log(`  - RESULT: needsDocument = ${needsDocument}`);
     
     // Compile previous column data as input
     const previousColumnsData: any[] = [];
