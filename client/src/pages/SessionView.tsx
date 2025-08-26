@@ -4135,6 +4135,7 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
+                                                const isNotFound = validation.extractedValue === "Not Found";
                                                 const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
@@ -4164,9 +4165,10 @@ Thank you for your assistance.`;
                                                       </Tooltip>
                                                     </TooltipProvider>
                                                   );
-                                                } else if (hasValue && validation.confidenceScore) {
-                                                  // Show colored confidence dot when not verified
-                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                } else if ((hasValue || isNotFound) && validation.confidenceScore) {
+                                                  // Show colored confidence dot when not verified (including for "Not Found" values)
+                                                  const colorClass = isNotFound ? 'bg-gray-500' : 
+                                                                   score >= 80 ? 'bg-green-500' : 
                                                                    score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                   
                                                   return (
@@ -4185,10 +4187,10 @@ Thank you for your assistance.`;
                                                         }
                                                       }}
                                                       className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                      title={`${score}% confidence - ${isNotFound ? 'Not Found' : 'Click for AI analysis'}`}
                                                     />
                                                   );
-                                                } else if (!hasValue) {
+                                                } else if (!hasValue && !isNotFound) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
