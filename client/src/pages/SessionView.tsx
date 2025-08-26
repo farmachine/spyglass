@@ -1142,6 +1142,7 @@ export default function SessionView() {
     toolType?: string;
     toolDescription?: string;
     presetReferences?: Array<{ name: string; type: string }>;
+    crossStepReference?: string;
   } | null>(null);
   const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
   
@@ -2243,7 +2244,8 @@ export default function SessionView() {
       needsDocument,
       toolType: toolInfo?.toolType || valueToRun?.valueName?.toLowerCase(),
       toolDescription: toolInfo?.description,
-      presetReferences
+      presetReferences,
+      crossStepReference
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4731,6 +4733,7 @@ Thank you for your assistance.`;
           isLoading={false}
           needsDocument={columnExtractionModal.needsDocument}
           presetReferences={columnExtractionModal.presetReferences}
+          crossStepReference={columnExtractionModal.crossStepReference}
         />
       )}
     </div>

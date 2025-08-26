@@ -21,6 +21,7 @@ interface ExtractWizardModalProps {
   isLoading?: boolean;
   needsDocument?: boolean;
   presetReferences?: Array<{ name: string; type: string }>;
+  crossStepReference?: string;
 }
 
 // Function type descriptions for user guidance
@@ -106,7 +107,8 @@ export default function ExtractWizardModal({
   inputData,
   isLoading = false,
   needsDocument = true,
-  presetReferences = []
+  presetReferences = [],
+  crossStepReference
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -222,8 +224,46 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* Input Data Preview */}
-          {inputData && inputData.length > 0 && (
+          {/* Referenced Data Preview - Show when using cross-step references */}
+          {crossStepReference && inputData && inputData.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Referenced Data from {crossStepReference.replace('@', '')}</Label>
+                <Badge variant="secondary" className="text-xs">
+                  {inputData.length} records
+                </Badge>
+              </div>
+              <ScrollArea className="h-48 border rounded-lg bg-gray-50">
+                <div className="p-3 space-y-3">
+                  {inputData.slice(0, 5).map((record, index) => (
+                    <div key={index} className="border-b last:border-0 pb-3 last:pb-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          Record {index + 1}
+                        </span>
+                      </div>
+                      <div className="text-xs bg-white p-2 rounded border border-gray-200">
+                        {Object.entries(record).map(([key, value]) => (
+                          <div key={key} className="flex gap-2">
+                            <span className="font-medium text-gray-600">{key}:</span>
+                            <span className="text-gray-800">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {inputData.length > 5 && (
+                    <p className="text-xs text-gray-500 text-center pt-2">
+                      ... and {inputData.length - 5} more records
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+          
+          {/* Input Data Preview - Show when NOT using cross-step references */}
+          {!crossStepReference && inputData && inputData.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Input Data ({inputData.length} records)</Label>
