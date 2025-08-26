@@ -1959,10 +1959,71 @@ export default function SessionView() {
     // Only need document if there's an unfilled document param, or special cases for first column/worksheet name
     const needsDocument = hasUnfilledDocumentParam || (isFirstColumn && !presetReferences.length && !tool) || isWorksheetNameColumn;
     
-    // Compile previous column data as input
+    // Check for cross-step references in tool input values
+    let crossStepData: any[] = [];
+    let crossStepReference: string | null = null;
+    
+    if (tool?.inputParameters && valueToRun?.inputValues) {
+      // Look for @ references to other steps
+      tool.inputParameters.forEach((param: any) => {
+        const paramValue = valueToRun.inputValues[param.name] || valueToRun.inputValues[param.id];
+        
+        // Check for @ references in data parameters
+        if (param.type === 'data' && Array.isArray(paramValue)) {
+          paramValue.forEach((val: string) => {
+            if (typeof val === 'string' && val.startsWith('@')) {
+              // Parse the reference format: @StepName.ValueName
+              const refMatch = val.match(/@([^.]+)\.(.+)/);
+              if (refMatch) {
+                const [, refStepName, refValueName] = refMatch;
+                console.log(`🔗 Found cross-step reference: ${refStepName}.${refValueName}`);
+                crossStepReference = val;
+                
+                // Find validations from the referenced step and value
+                const referencedValidations = validations.filter(v => {
+                  // Match by collection/step name and value name
+                  return v.collectionName === refStepName && 
+                         v.fieldName?.includes(refValueName);
+                });
+                
+                console.log(`📊 Found ${referencedValidations.length} validations from ${refStepName}.${refValueName}`);
+                
+                // Group by identifierId to get unique records
+                const recordsByIdentifier = new Map<string, any>();
+                referencedValidations.forEach(v => {
+                  if (v.identifierId && v.extractedValue !== null && v.extractedValue !== undefined) {
+                    if (!recordsByIdentifier.has(v.identifierId)) {
+                      recordsByIdentifier.set(v.identifierId, {});
+                    }
+                    // Extract the clean value name from fieldName
+                    const valueNameMatch = v.fieldName?.match(/\.([^\[]+)\[/);
+                    const cleanValueName = valueNameMatch ? valueNameMatch[1] : refValueName;
+                    recordsByIdentifier.get(v.identifierId)[cleanValueName] = v.extractedValue;
+                  }
+                });
+                
+                // Convert to array for input
+                crossStepData = Array.from(recordsByIdentifier.entries()).map(([identifierId, data]) => ({
+                  ...data
+                  // Note: Don't include identifierId for cross-step references as they will be generated fresh
+                }));
+                
+                console.log(`🔗 Loaded ${crossStepData.length} records from cross-step reference`);
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // Compile previous column data as input (for same-step references)
     const previousColumnsData: any[] = [];
     
-    if (workflowStep.values) {
+    // If we have cross-step data, use that instead of same-step data
+    if (crossStepData.length > 0) {
+      console.log(`📊 Using cross-step data with ${crossStepData.length} records`);
+      previousColumnsData.push(...crossStepData);
+    } else if (workflowStep.values) {
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
         // Get all unique record indices for this collection
@@ -2094,6 +2155,21 @@ export default function SessionView() {
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
+    
+    // Add cross-step reference to presetReferences if found
+    if (crossStepReference) {
+      const refMatch = crossStepReference.match(/@([^.]+)\.(.+)/);
+      if (refMatch) {
+        const [, refStepName, refValueName] = refMatch;
+        // Add to preset references if not already there
+        if (!presetReferences.some(ref => ref.name === `${refStepName}.${refValueName}`)) {
+          presetReferences.push({
+            name: `${refStepName}.${refValueName}`,
+            type: 'Previous Step Data'
+          });
+        }
+      }
+    }
     
     // Open the modal with the prepared data
     setColumnExtractionModal({
