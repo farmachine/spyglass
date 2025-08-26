@@ -4071,22 +4071,62 @@ Thank you for your assistance.`;
                 </Card>
               )}
 
-              {/* Individual Collection Tabs */}
-              {project.collections.map((collection) => {
-                const collectionData = extractedData[collection.collectionName];
-                const collectionValidations = validations.filter(v => 
-                  v.collectionName === collection.collectionName || 
-                  (v.fieldName && v.fieldName.startsWith(collection.collectionName + '.'))
-                );
+              {/* Individual Collection and Workflow Step Tabs */}
+              {(() => {
+                // Combine collections and list-type workflow steps for rendering
+                const allListItems: Array<any> = [];
                 
-                const validationIndices = collectionValidations.length > 0 ? 
-                  collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
-                const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
-                const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
+                // Add collections
+                project.collections.forEach(collection => {
+                  allListItems.push({
+                    ...collection,
+                    itemType: 'collection',
+                    itemName: collection.collectionName
+                  });
+                });
                 
-                // Always show the table even when there are no records, so headers remain visible
+                // Add workflow steps that aren't in collections
+                if (project.workflowSteps) {
+                  project.workflowSteps
+                    .filter(step => step.stepType === 'list')
+                    .forEach(step => {
+                      // Only add if not already in collections
+                      const alreadyExists = allListItems.some(item => item.itemName === step.stepName);
+                      if (!alreadyExists) {
+                        // Create a collection-like structure for workflow steps
+                        allListItems.push({
+                          id: step.id,
+                          collectionName: step.stepName,
+                          itemType: 'workflow',
+                          itemName: step.stepName,
+                          description: `Workflow step for ${step.stepName}`,
+                          properties: step.values?.map(value => ({
+                            id: value.id,
+                            propertyName: value.valueName,
+                            propertyType: value.dataType,
+                            orderIndex: value.orderIndex
+                          })) || []
+                        });
+                      }
+                    });
+                }
+                
+                return allListItems.map((item) => {
+                  const collection = item; // Use item as collection for compatibility
+                  const collectionData = extractedData[item.itemName];
+                  const collectionValidations = validations.filter(v => 
+                    v.collectionName === item.itemName || 
+                    (v.fieldName && v.fieldName.startsWith(item.itemName + '.'))
+                  );
+                  
+                  const validationIndices = collectionValidations.length > 0 ? 
+                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                  const maxRecordIndex = uniqueIndices.length > 0 ? Math.max(...uniqueIndices) : -1;
+                  
+                  // Always show the table even when there are no records, so headers remain visible
 
-                return activeTab === collection.collectionName ? (
+                  return activeTab === item.itemName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                       <CardHeader>
@@ -4525,7 +4565,8 @@ Thank you for your assistance.`;
                     </Card>
                   </div>
                 ) : null;
-              })}
+                });
+              })()}
             </div>
           </div>
         </div>
