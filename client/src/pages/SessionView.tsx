@@ -2003,19 +2003,30 @@ export default function SessionView() {
           // First pass: check which identifierIds have all fields verified
           const identifierIds = new Set(stepValidations.filter(v => v.identifierId).map(v => v.identifierId));
           
+          // Debug: Log first identifier to understand the structure
+          let debuggedFirst = false;
+          
           for (const identifierId of identifierIds) {
             const recordValidations = stepValidations.filter(v => v.identifierId === identifierId);
             
-            // Check if ALL validations for this identifier are verified
+            if (!debuggedFirst && recordValidations.length > 0) {
+              console.log(`  - Debug first record (${identifierId}):`, recordValidations.map(v => ({
+                status: v.validationStatus,
+                value: v.extractedValue?.substring(0, 20),
+                fieldId: (v as any).field_id || (v as any).fieldId
+              })));
+              debuggedFirst = true;
+            }
+            
+            // Check if ALL validations for this identifier have valid data
             const allVerified = recordValidations.every(v => {
-              const isVerified = v.validationStatus === 'valid' || 
-                                v.validationStatus === 'verified' || 
-                                v.validationStatus === 'manual-verified' ||
-                                (v.validationStatus === 'manual' && v.manuallyVerified);
-              if (!isVerified && recordValidations.length <= 3) {
-                console.log(`  - Record ${identifierId} field not verified:`, v.validationStatus, 'for value:', v.extractedValue);
-              }
-              return isVerified;
+              // Accept any status that indicates the data exists and is usable
+              const isValid = v.validationStatus === 'valid' || 
+                             v.validationStatus === 'verified' || 
+                             v.validationStatus === 'manual-verified' ||
+                             v.validationStatus === 'manual' ||
+                             (v.validationStatus === 'manual' && v.manuallyVerified);
+              return isValid;
             });
             
             // Also check that Standard Equivalent is not "Not Found"
@@ -2023,13 +2034,22 @@ export default function SessionView() {
               // The database uses field_id for workflow step values
               const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
               const value = referencedStep.values?.find(val => val.id === valueId);
-              return value?.valueName === 'Standard Equivalent';
+              const isStandardEquiv = value?.valueName === 'Standard Equivalent';
+              if (!debuggedFirst && isStandardEquiv) {
+                console.log(`    - Found Standard Equivalent: valueId=${valueId}, extracted="${v.extractedValue}"`);
+              }
+              return isStandardEquiv;
             });
             
             const hasValidStandardEquivalent = standardEquivalentValidation && 
                                               standardEquivalentValidation.extractedValue !== 'Not Found';
             
-            verificationStatusByIdentifier.set(identifierId, allVerified && hasValidStandardEquivalent);
+            const shouldInclude = allVerified && hasValidStandardEquivalent;
+            verificationStatusByIdentifier.set(identifierId, shouldInclude);
+            
+            if (!debuggedFirst && shouldInclude) {
+              console.log(`    - Record ${identifierId} INCLUDED: allVerified=${allVerified}, hasValidStandardEquivalent=${hasValidStandardEquivalent}`);
+            }
           }
           
           // Second pass: only include records where all fields are verified
