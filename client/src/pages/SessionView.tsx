@@ -1904,12 +1904,16 @@ export default function SessionView() {
     // Get the value index to determine if this is the first column
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
     
-    // Check if this tool needs a document
-    const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
-    
-    console.log(`🔧 Tool lookup: toolId=${valueToRun.toolId}, found=${!!tool}`);
-    if (!tool) {
-      console.log(`🔧 Available tools:`, project?.tools?.map(t => ({ id: t.id, name: t.name })));
+    // Fetch the tool based on the value's toolId
+    let tool = null;
+    if (valueToRun.toolId) {
+      try {
+        const toolResponse = await apiRequest(`/api/tools/${valueToRun.toolId}`);
+        tool = toolResponse;
+        console.log(`🔧 Tool loaded: ${tool.name} (${tool.id})`);
+      } catch (error) {
+        console.error(`🔧 Failed to load tool ${valueToRun.toolId}:`, error);
+      }
     }
     
     // Gather preset references from tool's input values
