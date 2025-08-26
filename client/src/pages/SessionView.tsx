@@ -1952,13 +1952,25 @@ export default function SessionView() {
             const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
             const validation = getValidation(fieldName, recordData.identifierId);
             
-            // Check if this column has a valid value (not "Not Found" and has valid status)
-            if (validation && validation.extractedValue && 
-                validation.extractedValue !== "Not Found" && 
-                (validation.validationStatus === 'valid' || validation.validationStatus === 'verified' || validation.validationStatus === 'manual')) {
+            // Check if this column has a value
+            if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
+              // For the "Reasong" column, we should only process records that have valid mappings (not "Not Found")
+              // This is because the AI needs to provide reasoning about actual mappings, not missing ones
+              if (valueName === 'Reasong' && prevValue.valueName === 'Standard Equivalent' && validation.extractedValue === "Not Found") {
+                // Skip records with "Not Found" in Standard Equivalent when processing Reasong column
+                allPreviousColumnsValid = false;
+                break;
+              }
+              
+              // Check if validation is truly invalid (error or pending)
+              if (validation.validationStatus === 'pending' || validation.validationStatus === 'error') {
+                allPreviousColumnsValid = false;
+                break;
+              }
+              
               tempRecordData[prevValue.valueName] = validation.extractedValue;
             } else {
-              // If any previous column is invalid or "Not Found", exclude this record
+              // No extraction value at all - this record hasn't been processed
               allPreviousColumnsValid = false;
               break;
             }
@@ -2003,11 +2015,23 @@ export default function SessionView() {
     ).map(v => v.recordIndex).filter(idx => idx !== null);
     const uniqueTotalRecords = [...new Set(totalRecords)].length;
     
-    console.log(`Compiled ${previousColumnsData.length} valid records from ${uniqueTotalRecords} total records`);
+    console.log(`📊 Compiled ${previousColumnsData.length} records with complete data from ${uniqueTotalRecords} total records`);
     if (previousColumnsData.length < uniqueTotalRecords) {
-      console.log(`📊 Filtered out ${uniqueTotalRecords - previousColumnsData.length} records with invalid/Not Found values in previous columns`);
+      console.log(`📊 Excluded ${uniqueTotalRecords - previousColumnsData.length} records that have incomplete data in previous columns`);
     }
-    console.log(`Previous columns data:`, previousColumnsData);
+    
+    // Show which records have valid Standard Equivalent values (not "Not Found")
+    const recordsWithValidMappings = previousColumnsData.filter(record => 
+      record['Standard Equivalent'] && record['Standard Equivalent'] !== 'Not Found'
+    );
+    console.log(`✅ ${recordsWithValidMappings.length} records have valid Standard Equivalent mappings (not "Not Found")`);
+    console.log(`❌ ${previousColumnsData.length - recordsWithValidMappings.length} records have "Not Found" in Standard Equivalent`);
+    
+    // Log sample data to see what we're actually sending
+    console.log(`Sample of data being sent (first 3 with valid mappings):`, 
+      recordsWithValidMappings.slice(0, 3));
+    console.log(`Sample of data being sent (first 3 with "Not Found"):`, 
+      previousColumnsData.filter(r => r['Standard Equivalent'] === 'Not Found').slice(0, 3));
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);

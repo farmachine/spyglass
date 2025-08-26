@@ -1,0 +1,60 @@
+🤖 Using LLM Model from tool configuration: gemini-1.5-flash
+🎉 GEMINI TEST RESPONSE:
+--------------------------------------------------------------------------------
+```json
+[
+  {
+    "identifierId": "c9de7f4d-51ba-48db-9367-cda4382861e1",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to match this identifierId.  The query asked for reasoning on column mapping, and this ID provides no column information.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "0ed277e5-eaa7-4bb1-80e8-8cca85edfcaa",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to match this identifierId. The query asked for reasoning on column mapping, and this ID provides no column information.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "76f9cd06-f5ac-4032-9f3d-ef88d1906532",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to match this identifierI...
+--------------------------------------------------------------------------------
+
+🔧 Detected markdown code blocks, attempting to clean...
+✅ Successfully extracted content from markdown code block
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+Result length: 8407 characters
+First 500 chars: [
+  {
+    "identifierId": "c9de7f4d-51ba-48db-9367-cda4382861e1",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to match this identifierId.  The query asked for reasoning on column mapping, and this ID provides no column information.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "0ed277e5-eaa7-4bb1-80e8-8cca85edfcaa",
+    "extractedValue": "Not Found",
+    "validationS
+Last 500 chars: umn mapping, and this ID provides no column information.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "f9182e60-d5ff-4f99-bdd2-9e250d9ead03",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to match this identifierId. The query asked for reasoning on column mapping, and this ID provides no column information.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  }
+]
+----
