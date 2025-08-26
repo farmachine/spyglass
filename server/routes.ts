@@ -6682,6 +6682,8 @@ def extract_function(Column_Name, Excel_File):
             // Extract the values from previousData for this column
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
+              console.log(`📊 Looking for column name: "${actualColumnName}"`);
+              console.log(`📊 Sample fieldNames in data:`, previousData.slice(0, 3).map(r => r.fieldName));
               
               // Single reference - format data with identifierId
               // The previousData contains validation records, so we need extractedValue
@@ -6689,11 +6691,14 @@ def extract_function(Column_Name, Excel_File):
                 .filter(record => {
                   // Filter for records that match this column name
                   const fieldParts = record.fieldName?.split('.') || [];
-                  if (fieldParts.length > 1) {
-                    const columnPart = fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '');
-                    return columnPart === actualColumnName;
+                  const matches = fieldParts.length > 1 ? 
+                    fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '') === actualColumnName :
+                    false;
+                  
+                  if (matches) {
+                    console.log(`✅ Matched: ${record.fieldName} -> ${actualColumnName}`);
                   }
-                  return false;
+                  return matches;
                 })
                 .map(record => ({
                   identifierId: record.identifierId,
@@ -6704,6 +6709,11 @@ def extract_function(Column_Name, Excel_File):
               
               console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
                 columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+              
+              if (columnValues.length === 0) {
+                console.log(`⚠️ No matching records found for column "${actualColumnName}"`);
+                console.log(`   Available fieldNames: ${[...new Set(previousData.map(r => r.fieldName))].slice(0, 10)}`);
+              }
               
               toolInputs[paramName] = columnValues;
             } else {
