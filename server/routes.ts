@@ -6683,39 +6683,63 @@ def extract_function(Column_Name, Excel_File):
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
               console.log(`📊 Looking for column name: "${actualColumnName}"`);
-              console.log(`📊 Sample fieldNames in data:`, previousData.slice(0, 3).map(r => r.fieldName));
               
-              // Single reference - format data with identifierId
-              // The previousData contains validation records, so we need extractedValue
-              const columnValues = previousData
-                .filter(record => {
-                  // Filter for records that match this column name
-                  const fieldParts = record.fieldName?.split('.') || [];
-                  const matches = fieldParts.length > 1 ? 
-                    fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '') === actualColumnName :
-                    false;
+              // Check if previousData is already in the correct format (has identifierId and column values directly)
+              if (previousData[0].identifierId && previousData[0][actualColumnName] !== undefined) {
+                // Data is already properly formatted with identifierId and column values
+                console.log(`✅ Previous data already has ${actualColumnName} property directly`);
+                
+                const columnValues = previousData
+                  .filter(record => record[actualColumnName] !== undefined && record[actualColumnName] !== null)
+                  .map(record => ({
+                    identifierId: record.identifierId,
+                    ID: record[actualColumnName], // Use the actual value from the column
+                    extractedValue: record[actualColumnName], // Also include as extractedValue for compatibility
+                    name: record[actualColumnName] // Also include as name for compatibility
+                  }));
+                
+                console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
+                  columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.ID}`));
                   
-                  if (matches) {
-                    console.log(`✅ Matched: ${record.fieldName} -> ${actualColumnName}`);
-                  }
-                  return matches;
-                })
-                .map(record => ({
-                  identifierId: record.identifierId,
-                  ID: record.extractedValue, // Use the actual column name as field name
-                  extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
-                  name: record.extractedValue // Also include as name for compatibility
-                }));
-              
-              console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
-                columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
-              
-              if (columnValues.length === 0) {
-                console.log(`⚠️ No matching records found for column "${actualColumnName}"`);
-                console.log(`   Available fieldNames: ${[...new Set(previousData.map(r => r.fieldName))].slice(0, 10)}`);
+                toolInputs[paramName] = columnValues;
+              } else if (previousData[0].fieldName) {
+                // Data is in validation record format with fieldName property
+                console.log(`📊 Sample fieldNames in data:`, previousData.slice(0, 3).map(r => r.fieldName));
+                
+                const columnValues = previousData
+                  .filter(record => {
+                    // Filter for records that match this column name
+                    const fieldParts = record.fieldName?.split('.') || [];
+                    const matches = fieldParts.length > 1 ? 
+                      fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '') === actualColumnName :
+                      false;
+                    
+                    if (matches) {
+                      console.log(`✅ Matched: ${record.fieldName} -> ${actualColumnName}`);
+                    }
+                    return matches;
+                  })
+                  .map(record => ({
+                    identifierId: record.identifierId,
+                    ID: record.extractedValue, // Use the actual column name as field name
+                    extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
+                    name: record.extractedValue // Also include as name for compatibility
+                  }));
+                
+                console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
+                  columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+                
+                if (columnValues.length === 0) {
+                  console.log(`⚠️ No matching records found for column "${actualColumnName}"`);
+                  console.log(`   Available fieldNames: ${[...new Set(previousData.map(r => r.fieldName))].slice(0, 10)}`);
+                }
+                
+                toolInputs[paramName] = columnValues;
+              } else {
+                console.log(`⚠️ Unexpected previousData format - no identifierId, no fieldName, and no ${actualColumnName} property`);
+                console.log(`   Available properties: ${Object.keys(previousData[0])}`);
+                toolInputs[paramName] = [];
               }
-              
-              toolInputs[paramName] = columnValues;
             } else {
               console.log(`⚠️ No previous data available for reference ${paramValue}`);
             }
