@@ -6575,9 +6575,8 @@ def extract_function(Column_Name, Excel_File):
       let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;
       
       // Special handling for Standard Equivalent mapping - load knowledge document
-      if (value.valueName === 'Standard Equivalent' || 
-          tool?.name?.toLowerCase().includes('standard') || 
-          tool?.description?.toLowerCase().includes('standard equivalent')) {
+      // ONLY apply this to Standard Equivalent value, not other values
+      if (value.valueName === 'Standard Equivalent') {
         console.log('📚 Loading knowledge document for Standard Equivalent mapping');
         try {
           // Get knowledge documents for the project - need to get projectId from session
