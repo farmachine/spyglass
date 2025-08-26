@@ -942,6 +942,15 @@ Process each item and return the complete array of results.`;
           console.log(`  Last result identifierId: ${results[results.length - 1].identifierId}`);
           console.log(`  Last result extractedValue: ${results[results.length - 1].extractedValue}`);
         }
+        // Check how many results have identifierIds
+        const resultsWithIds = results.filter(r => r.identifierId).length;
+        console.log(`  Results with identifierIds: ${resultsWithIds}/${results.length}`);
+        
+        // Log first few missing identifierIds
+        const missingIds = results.slice(0, 10).filter(r => !r.identifierId);
+        if (missingIds.length > 0) {
+          console.log(`  ⚠️ First results missing identifierIds:`, missingIds.length);
+        }
       }
       
       // Check if we have data type parameters with arrays (reuse from batching check)
@@ -957,41 +966,57 @@ Process each item and return the complete array of results.`;
         
         console.log(`⚠️ Expected ${expectedCount} results, got ${results.length}`);
         
-        // If we got fewer results than expected, we need to properly map missing items
-        if (results.length < expectedCount) {
-          console.log(`📝 Mapping results to preserve identifierIds`);
+        // ALWAYS ensure proper identifierId mapping, not just when we have fewer results
+        console.log(`📝 Ensuring proper identifierId mapping for all results`);
+        
+        // Create a map of returned results by identifierId
+        const resultMap = new Map<string, any>();
+        for (const result of results) {
+          if (result.identifierId) {
+            resultMap.set(result.identifierId, result);
+          }
+        }
+        
+        // Build complete results array with proper identifierId mapping
+        const completeResults: any[] = [];
+        
+        for (let i = 0; i < inputArray.length; i++) {
+          const inputItem = inputArray[i];
+          const inputId = inputItem.identifierId;
           
-          // Create a map of returned identifierIds
-          const returnedIds = new Set(results.map(r => r.identifierId).filter(id => id));
+          // Try to find matching result by identifierId
+          let matchingResult = resultMap.get(inputId);
           
-          // Build complete results array with proper identifierId mapping
-          const completeResults: any[] = [];
-          
-          for (const inputItem of inputArray) {
-            const inputId = inputItem.identifierId;
-            
-            // Find if this ID was returned by the AI
-            const existingResult = results.find(r => r.identifierId === inputId);
-            
-            if (existingResult) {
-              completeResults.push(existingResult);
-            } else {
-              // Create a "Not Found" entry with the correct identifierId
-              console.log(`  Adding missing result for identifierId: ${inputId}`);
-              completeResults.push({
-                identifierId: inputId,
-                extractedValue: "Not Found",
-                validationStatus: "invalid",
-                aiReasoning: "No standard equivalent found for this column",
-                confidenceScore: 0,
-                documentSource: "N/A"
-              });
+          if (!matchingResult && i < results.length) {
+            // If no match by ID, try position-based matching
+            // This handles cases where AI didn't preserve identifierIds
+            matchingResult = results[i];
+            if (matchingResult && !matchingResult.identifierId) {
+              console.log(`  Assigning identifierId ${inputId} to result at position ${i}`);
+              matchingResult.identifierId = inputId;
             }
           }
           
-          results = completeResults;
-          console.log(`✅ Padded results to ${results.length} items with proper identifierId mapping`);
+          if (matchingResult) {
+            // Ensure the result has the correct identifierId
+            matchingResult.identifierId = inputId;
+            completeResults.push(matchingResult);
+          } else {
+            // Create a "Not Found" entry with the correct identifierId
+            console.log(`  Adding missing result for identifierId: ${inputId} at index ${i}`);
+            completeResults.push({
+              identifierId: inputId,
+              extractedValue: "Not Found",
+              validationStatus: "invalid",
+              aiReasoning: "No standard equivalent found for this column",
+              confidenceScore: 0,
+              documentSource: "N/A"
+            });
+          }
         }
+        
+        results = completeResults;
+        console.log(`✅ Ensured ${results.length} results with proper identifierId mapping`);
       }
       
       console.log(`🎯 Returning ${results.length} results from testAITool`);
