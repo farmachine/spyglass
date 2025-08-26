@@ -6607,47 +6607,82 @@ def extract_function(Column_Name, Excel_File):
               
               console.log(`📊 Building combined data from ${previousData.length} records`);
               
-              // Group previousData by identifierId to get all columns for each row
-              const dataByIdentifier = new Map();
-              previousData.forEach(record => {
-                if (!dataByIdentifier.has(record.identifierId)) {
-                  dataByIdentifier.set(record.identifierId, {});
-                }
-                // Extract the column name from the field name (e.g., "Column Name Mapping.ID[0]" -> "ID")
-                const fieldParts = record.fieldName?.split('.') || [];
-                if (fieldParts.length > 1) {
-                  const columnPart = fieldParts[fieldParts.length - 1];
-                  const columnName = columnPart.replace(/\[\d+\]$/, ''); // Remove [index] suffix
-                  dataByIdentifier.get(record.identifierId)[columnName] = record.extractedValue;
-                }
-              });
-              
-              console.log(`📊 Grouped data by identifier: ${dataByIdentifier.size} unique rows`);
-              
-              // Now build combined records from grouped data
-              dataByIdentifier.forEach((rowData, identifierId) => {
-                const combinedRecord: any = {
-                  identifierId: identifierId
-                };
+              // Check if previousData is already in the proper format (with columns as properties)
+              if (previousData[0].identifierId && !previousData[0].fieldName) {
+                // Data is already properly formatted with column values as direct properties
+                console.log(`✅ Previous data already has column properties directly`);
+                console.log(`  Available columns:`, Object.keys(previousData[0]).filter(k => k !== 'identifierId'));
                 
-                // Process each reference in the array
-                for (const ref of paramValue) {
-                  if (typeof ref === 'string' && ref.startsWith('@')) {
-                    const refColumn = ref.substring(1);
-                    let refColumnName = refColumn;
-                    
-                    if (refColumn.includes('.')) {
-                      const parts = refColumn.split('.');
-                      refColumnName = parts[parts.length - 1];
+                // Build combined data by extracting only the requested columns
+                for (const record of previousData) {
+                  const combinedRecord: any = {
+                    identifierId: record.identifierId
+                  };
+                  
+                  // Process each reference in the array
+                  for (const ref of paramValue) {
+                    if (typeof ref === 'string' && ref.startsWith('@')) {
+                      const refColumn = ref.substring(1);
+                      let refColumnName = refColumn;
+                      
+                      if (refColumn.includes('.')) {
+                        const parts = refColumn.split('.');
+                        refColumnName = parts[parts.length - 1];
+                      }
+                      
+                      // Add this column's value to the combined record
+                      combinedRecord[refColumnName] = record[refColumnName] || null;
                     }
-                    
-                    // Add this column's value to the combined record
-                    combinedRecord[refColumnName] = rowData[refColumnName] || null;
                   }
+                  
+                  combinedData.push(combinedRecord);
                 }
+              } else if (previousData[0].fieldName) {
+                // Data is in validation record format - need to group by identifier
+                console.log(`📊 Previous data is in validation format, grouping by identifier`);
                 
-                combinedData.push(combinedRecord);
-              });
+                // Group previousData by identifierId to get all columns for each row
+                const dataByIdentifier = new Map();
+                previousData.forEach(record => {
+                  if (!dataByIdentifier.has(record.identifierId)) {
+                    dataByIdentifier.set(record.identifierId, {});
+                  }
+                  // Extract the column name from the field name (e.g., "Column Name Mapping.ID[0]" -> "ID")
+                  const fieldParts = record.fieldName?.split('.') || [];
+                  if (fieldParts.length > 1) {
+                    const columnPart = fieldParts[fieldParts.length - 1];
+                    const columnName = columnPart.replace(/\[\d+\]$/, ''); // Remove [index] suffix
+                    dataByIdentifier.get(record.identifierId)[columnName] = record.extractedValue;
+                  }
+                });
+                
+                console.log(`📊 Grouped data by identifier: ${dataByIdentifier.size} unique rows`);
+                
+                // Now build combined records from grouped data
+                dataByIdentifier.forEach((rowData, identifierId) => {
+                  const combinedRecord: any = {
+                    identifierId: identifierId
+                  };
+                  
+                  // Process each reference in the array
+                  for (const ref of paramValue) {
+                    if (typeof ref === 'string' && ref.startsWith('@')) {
+                      const refColumn = ref.substring(1);
+                      let refColumnName = refColumn;
+                      
+                      if (refColumn.includes('.')) {
+                        const parts = refColumn.split('.');
+                        refColumnName = parts[parts.length - 1];
+                      }
+                      
+                      // Add this column's value to the combined record
+                      combinedRecord[refColumnName] = rowData[refColumnName] || null;
+                    }
+                  }
+                  
+                  combinedData.push(combinedRecord);
+                });
+              }
               
               console.log(`📊 Combined ${combinedData.length} records from multiple references`);
               console.log(`  First 3 combined records:`, combinedData.slice(0, 3));

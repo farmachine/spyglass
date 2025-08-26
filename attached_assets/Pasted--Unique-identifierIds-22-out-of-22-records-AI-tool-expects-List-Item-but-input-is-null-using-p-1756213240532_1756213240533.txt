@@ -1,0 +1,287 @@
+ Unique identifierIds: 22 out of 22 records
+🎯 AI tool expects List Item but input is null - using previousData with 22 records
+  First record: {
+  identifierId: 'c9de7f4d-51ba-48db-9367-cda4382861e1',
+  ID: "Member's Reference No",
+  'Worksheet Name': 'New_Pensioners',
+  'Standard Equivalent': 'MemberID'
+}
+  Last record: {
+  identifierId: 'f9182e60-d5ff-4f99-bdd2-9e250d9ead03',
+  ID: "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+  'Worksheet Name': 'Active deferreds',
+  'Standard Equivalent': 'Spouses Pre-88 GMP'
+}
+✅ Populated List Item with 22 records from previousData
+  Sample records: [
+  {
+    identifierId: 'c9de7f4d-51ba-48db-9367-cda4382861e1',
+    'Column Name': "Member's Reference No",
+    'Worksheet Name': 'New_Pensioners',
+    'Standard Equivalent': 'MemberID'
+  },
+  {
+    identifierId: '0ed277e5-eaa7-4bb1-80e8-8cca85edfcaa',
+    'Column Name': 'Sex Code',
+    'Worksheet Name': 'New_Pensioners',
+    'Standard Equivalent': 'Gender'
+  },
+  {
+    identifierId: '76f9cd06-f5ac-4032-9f3d-ef88d1906532',
+    'Column Name': 'Date of Birth',
+    'Worksheet Name': 'New_Pensioners',
+    'Standard Equivalent': 'DoB'
+  }
+]
+📥 Tool inputs prepared: {
+  "0.4uir69thnel": [
+    "37dbd483-c91b-4470-a728-aec645b1ad5e"
+  ],
+  "0.hb25dnz5dmd": "Please give a reasoning for the mapping of the column names to the fields in the standard mappings document.",
+  "0.0qv7jjabq7on": [
+    {
+      "identifierId": "c9de7f4d-51ba-48db-9367-cda4382861e1",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "0ed277e5-eaa7-4bb1-80e8-8cca85edfcaa",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "76f9cd06-f5ac-4032-9f3d-ef88d1906532",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "9b9fbaee-69cb-49ea-95a7-835bce3b1bfb",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "7295403f-8910-4d87-a676-7d253e2b798c",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "12cc378d-f0aa-4c64-93eb-0ad3c402bde9",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "43e6aebe-bef0-492d-bf58-3ce5d164c22d",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "4209a6e6-3909-4de0-8a0b-2f987f92be87",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "a64b7118-3df7-4689-b64a-65e119f09fe2",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "2d6d9ead-e976-4698-8b3f-dff043eb645d",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "40d9e460-58e8-43a0-b9b3-0290bd098674",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "39be6f90-9b82-4f5a-9309-3160ffe6dab4",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "9eacc954-74aa-4ed2-958d-0e3d047d179c",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "d1a6b1c2-8868-40fb-9475-7a05192e8c44",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "3f1aacfa-0600-4654-b44c-a9b49f09d631",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "f27e5749-dbc9-4858-9472-ad988d1e7e3a",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "92f91f6d-d842-450b-88ef-69ae7bc8ee4e",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "251177bb-d944-41a0-beff-06aede5a9e4e",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "1a55b265-b793-43e0-9bae-43f37f6d2351",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "1e472197-89b9-4e40-88e0-953db000c130",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "3652d1cf-a1e3-4f43-acba-937efb7b276d",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    },
+    {
+      "identifierId": "f9182e60-d5ff-4f99-bdd2-9e250d9ead03",
+      "Worksheet Name": null,
+      "Standard Equivalent": null
+    }
+  ],
+  "List Item": [
+    {
+      "identifierId": "c9de7f4d-51ba-48db-9367-cda4382861e1",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "0ed277e5-eaa7-4bb1-80e8-8cca85edfcaa",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "76f9cd06-f5ac-4032-9f3d-ef88d1906532",
+      "Column Name": "Date of Birth",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "DoB"
+    },
+    {
+      "identifierId": "9b9fbaee-69cb-49ea-95a7-835bce3b1bfb",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "7295403f-8910-4d87-a676-7d253e2b798c",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "12cc378d-f0aa-4c64-93eb-0ad3c402bde9",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "43e6aebe-bef0-492d-bf58-3ce5d164c22d",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "4209a6e6-3909-4de0-8a0b-2f987f92be87",
+      "Column Name": "Contingent Widow(er)'s Sex Code",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Gender Spouse"
+    },
+    {
+      "identifierId": "a64b7118-3df7-4689-b64a-65e119f09fe2",
+      "Column Name": "Contingent Widow(er)'s Date Of Birth",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "DoB Spouse"
+    },
+    {
+      "identifierId": "2d6d9ead-e976-4698-8b3f-dff043eb645d",
+      "Column Name": "Contingent Widow(er)'s Pension At This Valuation",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Spouses Post 09 Total Pension"
+    },
+    {
+      "identifierId": "40d9e460-58e8-43a0-b9b3-0290bd098674",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Marital Status"
+    },
+    {
+      "identifierId": "39be6f90-9b82-4f5a-9309-3160ffe6dab4",
+      "Column Name": "Section B Indicator",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "SectionMarker"
+    },
+    {
+      "identifierId": "9eacc954-74aa-4ed2-958d-0e3d047d179c",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "d1a6b1c2-8868-40fb-9475-7a05192e8c44",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "3f1aacfa-0600-4654-b44c-a9b49f09d631",
+      "Column Name": "Date Of Birth",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "DoB"
+    },
+    {
+      "identifierId": "f27e5749-dbc9-4858-9472-ad988d1e7e3a",
+      "Column Name": "Normal Retirement Date",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "92f91f6d-d842-450b-88ef-69ae7bc8ee4e",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "251177bb-d944-41a0-beff-06aede5a9e4e",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "1a55b265-b793-43e0-9bae-43f37f6d2351",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "Spouses Post-88 GMP"
+    },
+    {
+      "identifierId": "1e472197-89b9-4e40-88e0-953db000c130",
+      "Column Name": "Spouse's Date of Birth",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "DoB Spouse"
+    },
+    {
+      "identifierId": "3652d1cf-a1e3-4f43-acba-937efb7b276d",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners",
+      "Standard Equivalent": "Marital Status"
+    },
+    {
+      "identifierId": "f9182e60-d5ff-4f99-bdd2-9e250d9ead03",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds",
+      "Standard Equivalent": "Spouses Pre-88 GMP"
+    }
+  ]
+}
