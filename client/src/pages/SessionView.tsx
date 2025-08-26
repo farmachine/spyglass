@@ -1131,18 +1131,6 @@ export default function SessionView() {
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
   
-  // Column extraction modal state
-  const [columnExtractionModal, setColumnExtractionModal] = useState<{
-    isOpen: boolean;
-    stepName: string;
-    valueId: string;
-    valueName: string;
-    previousData: any[];
-    needsDocument: boolean;
-    toolType?: string;
-    toolDescription?: string;
-  } | null>(null);
-  const [selectedExtractionDoc, setSelectedExtractionDoc] = useState<string>("");
   
   // AI extraction modal state
   const [aiExtractionModal, setAiExtractionModal] = useState<{
@@ -2182,17 +2170,34 @@ export default function SessionView() {
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
     
-    // Open the modal with the prepared data
-    setColumnExtractionModal({
-      isOpen: true,
-      stepName,
-      valueId,
-      valueName,
-      previousData: previousColumnsData,
-      needsDocument,
-      toolType: toolInfo?.toolType || valueToRun?.valueName?.toLowerCase(),
-      toolDescription: toolInfo?.description
+    // Create field information that includes the actual tool configuration
+    const fieldWithToolConfig = {
+      id: valueId,
+      name: valueName,
+      type: valueToRun.dataType || 'TEXT',
+      stepId: workflowStep.id,
+      valueId: valueId,
+      toolId: valueToRun.toolId,
+      inputValues: valueToRun.inputValues,
+      orderIndex: valueToRun.orderIndex
+    };
+    
+    // Open the AI extraction modal with the proper field configuration
+    setAiExtractionModal({
+      open: true,
+      sectionName: stepName,
+      availableFields: [fieldWithToolConfig], // Pass the field with tool config
+      isWorkflowStep: true
     });
+    
+    // Pre-select the document if needed
+    if (needsDocument) {
+      const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+      if (primaryDoc) {
+        console.log('🎯 Pre-selecting document:', primaryDoc.id, primaryDoc.fileName);
+        // The document selection will be handled in the ExtractWizardModal
+      }
+    }
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
     if (sessionDocuments && sessionDocuments.length > 0) {
@@ -2209,55 +2214,6 @@ export default function SessionView() {
     }
   };
   
-  // Handler for confirming and running the column extraction
-  const handleConfirmColumnExtraction = async () => {
-    if (!columnExtractionModal) return;
-    
-    const { stepName, valueId, valueName, previousData } = columnExtractionModal;
-    
-    console.log(`\n🎯🎯🎯 RUNNING EXTRACTION 🎯🎯🎯`);
-    console.log(`🎯 Column: ${valueName}`);
-    console.log(`🎯 Document: ${selectedExtractionDoc}`);
-    console.log(`🎯 Previous data (${previousData.length} records):`, previousData);
-    
-    try {
-      // Get the workflow step
-      const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
-      if (!workflowStep) {
-        console.error('Workflow step not found:', stepName);
-        return;
-      }
-      
-      const requestPayload = {
-        stepId: workflowStep.id,
-        valueId: valueId,
-        previousData: previousData,
-        documentId: selectedExtractionDoc // Pass the selected document ID
-      };
-      
-      console.log(`🎯 Full request payload:`, requestPayload);
-      console.log(`🚀 SENDING SINGLE EXTRACTION REQUEST FOR: ${valueName} (${valueId})`);
-      console.log(`   This should extract ONLY the "${valueName}" column, NOT other columns in the step`);
-      
-      // Call the extraction endpoint with the selected document
-      const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
-        method: 'POST',
-        body: JSON.stringify(requestPayload)
-      });
-      
-      console.log('Column extraction response:', response);
-      
-      // Close the modal
-      setColumnExtractionModal(null);
-      setSelectedExtractionDoc("");
-      
-      // Refresh validations to show the new extracted data
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      
-    } catch (error) {
-      console.error('Error running column extraction:', error);
-    }
-  };
 
   // Handler for verifying all items in a collection
   const handleVerifyAllCollectionItems = (collectionName: string, shouldVerify: boolean) => {
@@ -4733,31 +4689,6 @@ Thank you for your assistance.`;
         />
       )}
       
-      {/* Column Extraction Modal */}
-      {columnExtractionModal && (
-        <ExtractWizardModal
-          open={columnExtractionModal.isOpen}
-          onClose={() => {
-            setColumnExtractionModal(null);
-            setSelectedExtractionDoc("");
-          }}
-          onConfirm={(documentId) => {
-            setSelectedExtractionDoc(documentId);
-            handleConfirmColumnExtraction();
-          }}
-          title={`Extract ${columnExtractionModal.valueName}`}
-          toolType={columnExtractionModal.toolType}
-          toolDescription={columnExtractionModal.toolDescription}
-          documents={sessionDocuments?.map(doc => ({
-            id: doc.id,
-            name: doc.fileName || doc.name || 'Untitled',
-            type: doc.fileType || 'unknown'
-          })) || []}
-          inputData={columnExtractionModal.previousData}
-          needsDocument={columnExtractionModal.needsDocument}
-          isLoading={false}
-        />
-      )}
     </div>
   );
 }
