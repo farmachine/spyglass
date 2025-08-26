@@ -1,0 +1,49 @@
+🔧 Detected markdown code blocks, attempting to clean...
+✅ Removed markdown backticks via replacement
+🧹 CLEANED TEST RESULT:
+--------------------------------------------------------------------------------
+Result length: 22529 characters
+First 500 chars: [
+  {
+    "identifierId": "9cc5bdfe-1cbe-4faf-b980-6bdea2df5d37",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to map the null values in the input List Item.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "4c0db758-0e67-42e3-9b8a-9758120b438a",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided
+Last 500 chars: formation found in the provided document to map the null values in the input List Item.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "0cedcf26-2729-47a6-bb08-13212c5bb7cd",
+    "extractedValue": "Not Found",
+    "validationStatus": "invalid",
+    "aiReasoning": "No information found in the provided document to map the null values in the input List Item.",
+    "confidenceScore": 0,
+    "documentSource": "N/A"
+  },
+  {
+    "identifierId": "08c6c8c9-5a21-42fc
+--------------------------------------------------------------------------------
+⚠️ Initial JSON parsing failed, attempting recovery
+Parse error: Unterminated string in JSON at position 22529
+Result starts with: [
+  {
+    "identifierId": "9cc5bdfe-1cbe-4faf-b980
+⚠️ JSON parsing still failed, attempting alternative extraction methods
+🔍 Found 73 potential JSON objects, attempting to parse
+✅ Parsed results: array with 73 items
+  First result identifierId: 9cc5bdfe-1cbe-4faf-b980-6bdea2df5d37
+  First result extractedValue: Not Found
+  Last result identifierId: 0cedcf26-2729-47a6-bb08-13212c5bb7cd
+  Last result extractedValue: Not Found
+  Results with identifierIds: 73/73
+⚠️ Expected 185 results, got 73
+📝 Ensuring proper identifierId mapping for all results

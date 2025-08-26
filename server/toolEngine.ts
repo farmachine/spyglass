@@ -566,10 +566,12 @@ Each object must have these fields:
   "identifierId": "copy the exact identifierId from the input item",
   "extractedValue": "the mapped standard equivalent or 'Not Found' if no match",
   "validationStatus": "valid" or "invalid",
-  "aiReasoning": "brief explanation",
+  "aiReasoning": "KEEP VERY SHORT - max 10 words",
   "confidenceScore": number between 0-100,
-  "documentSource": "Knowledge Document"
+  "documentSource": "Knowledge Document" or "N/A"
 }
+
+CRITICAL: Keep aiReasoning EXTREMELY SHORT (max 10 words) to avoid response truncation!
 
 CRITICAL MAPPING INSTRUCTIONS:
 The identifierId is the KEY that links each input to its corresponding output. You MUST:
@@ -577,18 +579,12 @@ The identifierId is the KEY that links each input to its corresponding output. Y
 2. Use the "Column Names" and "Worksheet Name" as the CONTENT to analyze for mapping
 3. Find the standard equivalent for each column name based on its meaning and context
 
-Process each item:
-${formattedData.map((item, idx) => `
-Item ${idx + 1} (identifierId: "${item.identifierId}"):
-- Input Column: "${item["Column Names"]}" from worksheet "${item["Worksheet Name"]}"
-- Task: Find the standard field name that best matches this column's purpose
-- Output must include identifierId: "${item.identifierId}"`).join('\n')}
-
 IMPORTANT: Your output array MUST:
 1. Have exactly ${formattedData.length} objects
 2. Be in the SAME ORDER as the input
 3. Each output object at index N must have the identifierId from input object at index N
 4. Do NOT sort, reorder, or skip any items
+5. Keep ALL responses CONCISE to avoid truncation
 
 Return the complete array with ALL ${formattedData.length} results IN ORDER.`;
             } else {
@@ -609,12 +605,12 @@ ${JSON.stringify(batch, null, 2)}
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with exactly ${batch.length} objects, one for each input item, in the same order.
 Each object must follow this schema:
-{${hasIdentifierId ? '\n  "identifierId": "the identifierId from the input item (CRITICAL: copy this exactly from the input data)",' : ''}
-  "extractedValue": "the extracted or mapped value, or 'Not Found' if nothing matches",
+{${hasIdentifierId ? '\n  "identifierId": "copy exactly from input",' : ''}
+  "extractedValue": "result or 'Not Found'",
   "validationStatus": "valid" or "invalid",
-  "aiReasoning": "brief explanation of your finding",
-  "confidenceScore": number between 0-100,
-  "documentSource": "source document or reference"
+  "aiReasoning": "max 10 words",
+  "confidenceScore": 0-100,
+  "documentSource": "source or N/A"
 }
 
 IMPORTANT:
