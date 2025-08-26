@@ -2000,18 +2000,41 @@ export default function SessionView() {
           const recordsByIdentifier = new Map<string, any>();
           const verificationStatusByIdentifier = new Map<string, boolean>();
           
-          // First pass: get all unique identifierIds
+          // First pass: check which identifierIds have all fields verified
           const identifierIds = new Set(stepValidations.filter(v => v.identifierId).map(v => v.identifierId));
           
-          // For extraction modal, include ALL records (not just verified ones)
-          // This allows the user to see and work with unverified data
           for (const identifierId of identifierIds) {
-            verificationStatusByIdentifier.set(identifierId, true);
+            const recordValidations = stepValidations.filter(v => v.identifierId === identifierId);
+            
+            // Check if ALL validations for this identifier are verified
+            const allVerified = recordValidations.every(v => {
+              const isVerified = v.validationStatus === 'valid' || 
+                                v.validationStatus === 'verified' || 
+                                v.validationStatus === 'manual-verified' ||
+                                (v.validationStatus === 'manual' && v.manuallyVerified);
+              if (!isVerified && recordValidations.length <= 3) {
+                console.log(`  - Record ${identifierId} field not verified:`, v.validationStatus, 'for value:', v.extractedValue);
+              }
+              return isVerified;
+            });
+            
+            // Also check that Standard Equivalent is not "Not Found"
+            const standardEquivalentValidation = recordValidations.find(v => {
+              // The database uses field_id for workflow step values
+              const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
+              const value = referencedStep.values?.find(val => val.id === valueId);
+              return value?.valueName === 'Standard Equivalent';
+            });
+            
+            const hasValidStandardEquivalent = standardEquivalentValidation && 
+                                              standardEquivalentValidation.extractedValue !== 'Not Found';
+            
+            verificationStatusByIdentifier.set(identifierId, allVerified && hasValidStandardEquivalent);
           }
           
-          // Second pass: include all records (not filtered by verification status)
+          // Second pass: only include records where all fields are verified
           stepValidations.forEach(v => {
-            if (v.identifierId) {
+            if (v.identifierId && verificationStatusByIdentifier.get(v.identifierId)) {
               if (!recordsByIdentifier.has(v.identifierId)) {
                 recordsByIdentifier.set(v.identifierId, {
                   identifierId: v.identifierId
@@ -2030,7 +2053,7 @@ export default function SessionView() {
           
           // Convert to array
           previousColumnsData.push(...Array.from(recordsByIdentifier.values()));
-          console.log(`📊 Found ${recordsByIdentifier.size} total records from step "${referencedStepName}"`);
+          console.log(`📊 Filtered to ${recordsByIdentifier.size} fully verified records with valid mappings (from ${identifierIds.size} total)`);
         }
       }
     } else if (workflowStep.values) {
