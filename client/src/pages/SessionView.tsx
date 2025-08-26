@@ -1904,17 +1904,8 @@ export default function SessionView() {
     // Get the value index to determine if this is the first column
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
     
-    // Fetch the tool based on the value's toolId
-    let tool = null;
-    if (valueToRun.toolId) {
-      try {
-        const toolResponse = await apiRequest(`/api/tools/${valueToRun.toolId}`);
-        tool = toolResponse;
-        console.log(`🔧 Tool loaded: ${tool.name} (${tool.id})`);
-      } catch (error) {
-        console.error(`🔧 Failed to load tool ${valueToRun.toolId}:`, error);
-      }
-    }
+    // Check if this tool needs a document
+    const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
     
     // Gather preset references from tool's input values
     const presetReferences: Array<{ name: string; type: string }> = [];
@@ -1936,156 +1927,32 @@ export default function SessionView() {
         }
         
         // Check for @ references in other parameters
-        if (param.type === 'data') {
-          // Handle array of references
-          if (Array.isArray(paramValue)) {
-            paramValue.forEach((val: string) => {
-              if (typeof val === 'string' && val.startsWith('@')) {
-                // Extract the reference type and name
-                const refMatch = val.match(/@([^.]+)\.(.+)/);
-                if (refMatch) {
-                  const [, refType, refName] = refMatch;
-                  presetReferences.push({
-                    name: `${refType}.${refName}`,
-                    type: refType === 'previousData' ? 'Previous Step Data' : 'Reference'
-                  });
-                }
-              }
+        if (param.type === 'data' && typeof paramValue === 'string' && paramValue.startsWith('@')) {
+          // Extract the reference type and name
+          const refMatch = paramValue.match(/@([^.]+)\.(.+)/);
+          if (refMatch) {
+            const [, refType, refName] = refMatch;
+            presetReferences.push({
+              name: refName,
+              type: refType === 'previousData' ? 'Previous Step Data' : refType
             });
-          }
-          // Handle single string reference
-          else if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
-            const refMatch = paramValue.match(/@([^.]+)\.(.+)/);
-            if (refMatch) {
-              const [, refType, refName] = refMatch;
-              presetReferences.push({
-                name: `${refType}.${refName}`,
-                type: refType === 'previousData' ? 'Previous Step Data' : 'Reference'
-              });
-            }
           }
         }
       });
     }
     
     // Determine if document is needed
-    // Check if any document parameters are unfilled (need user selection)
-    const hasUnfilledDocumentParam = tool?.inputParameters?.some((p: any) => {
-      if (p.type !== 'document') return false;
-      
-      // Check if this document parameter has a preset value
-      const paramValue = valueToRun?.inputValues?.[p.name] || valueToRun?.inputValues?.[p.id];
-      
-      console.log(`🔍 Checking document parameter: ${p.name || p.id}, value:`, paramValue);
-      
-      // If there's no value or it's empty, we need user selection
-      return !paramValue || (Array.isArray(paramValue) && paramValue.length === 0);
-    });
-    
-    console.log(`📋 Has unfilled document param: ${hasUnfilledDocumentParam}`);
-    
+    const hasUserDocumentParam = tool?.inputParameters?.some((p: any) => 
+      p.name === 'user_document' || (p.name === 'document' && !valueToRun?.inputValues?.[p.name] && !valueToRun?.inputValues?.[p.id])
+    );
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
+    const needsDocument = hasUserDocumentParam || (isFirstColumn && !presetReferences.length) || isWorksheetNameColumn;
     
-    // Only need document if there's an unfilled document param, or special cases for first column/worksheet name
-    const needsDocument = hasUnfilledDocumentParam || (isFirstColumn && !presetReferences.length && !tool) || isWorksheetNameColumn;
-    
-    console.log(`🎯 Decision factors:`, {
-      hasUnfilledDocumentParam,
-      isFirstColumn,
-      presetReferencesCount: presetReferences.length,
-      hasTool: !!tool,
-      isWorksheetNameColumn,
-      needsDocument,
-      presetReferences
-    });
-    
-    // Check for cross-step references in tool input values
-    let crossStepData: any[] = [];
-    let crossStepReference: string | null = null;
-    
-    if (tool?.inputParameters && valueToRun?.inputValues) {
-      // Look for @ references to other steps
-      tool.inputParameters.forEach((param: any) => {
-        const paramValue = valueToRun.inputValues[param.name] || valueToRun.inputValues[param.id];
-        
-        // Check for @ references in data parameters
-        if (param.type === 'data' && Array.isArray(paramValue)) {
-          paramValue.forEach((val: string) => {
-            if (typeof val === 'string' && val.startsWith('@')) {
-              // Parse the reference format: @StepName.ValueName
-              const refMatch = val.match(/@([^.]+)\.(.+)/);
-              if (refMatch) {
-                const [, refStepName, refValueName] = refMatch;
-                console.log(`🔗 Found cross-step reference: ${refStepName}.${refValueName}`);
-                crossStepReference = val;
-                
-                // Find the step_value ID for the referenced value
-                const referencedStep = project?.workflowSteps?.find(s => s.stepName === refStepName);
-                const referencedValue = referencedStep?.values?.find(v => v.valueName === refValueName);
-                
-                console.log(`🔍 Looking for step: ${refStepName}, value: ${refValueName}`);
-                console.log(`🔍 Found value ID: ${referencedValue?.id}`);
-                
-                // Find validations from the referenced step and value
-                // Since value_id might be NULL in validations, also match by field_id
-                const referencedValidations = validations.filter(v => {
-                  // IMPORTANT: Only include verified validations
-                  if (!v.manuallyVerified || v.validationStatus !== 'valid') {
-                    return false;
-                  }
-                  
-                  // Match by value_id if available
-                  if (referencedValue && v.valueId === referencedValue.id) {
-                    return true;
-                  }
-                  // Also match by field_id (which is the same as value id in our case)
-                  if (referencedValue && v.fieldId === referencedValue.id) {
-                    return true;
-                  }
-                  // Fallback: match by collection name for backward compatibility
-                  if (v.validationType === 'collection_property' && v.collectionName === refStepName) {
-                    // Additional check for extracted value to ensure we have data
-                    return v.extractedValue !== null && v.extractedValue !== undefined;
-                  }
-                  return false;
-                });
-                
-                console.log(`📊 Found ${referencedValidations.length} validations from ${refStepName}.${refValueName}`);
-                
-                // Group by identifierId to get unique records
-                const recordsByIdentifier = new Map<string, any>();
-                referencedValidations.forEach(v => {
-                  if (v.identifierId && v.extractedValue !== null && v.extractedValue !== undefined) {
-                    // For cross-step references, we just need the value itself
-                    // Store it with the value name as the key
-                    if (!recordsByIdentifier.has(v.identifierId)) {
-                      recordsByIdentifier.set(v.identifierId, {});
-                    }
-                    recordsByIdentifier.get(v.identifierId)[refValueName] = v.extractedValue;
-                  }
-                });
-                
-                // Convert to array for input
-                // For cross-step references, we don't include identifierId as new ones will be generated
-                crossStepData = Array.from(recordsByIdentifier.values());
-                
-                console.log(`🔗 Loaded ${crossStepData.length} records from cross-step reference`);
-              }
-            }
-          });
-        }
-      });
-    }
-    
-    // Compile previous column data as input (for same-step references)
+    // Compile previous column data as input
     const previousColumnsData: any[] = [];
     
-    // If we have cross-step data, use that instead of same-step data
-    if (crossStepData.length > 0) {
-      console.log(`📊 Using cross-step data with ${crossStepData.length} records`);
-      previousColumnsData.push(...crossStepData);
-    } else if (workflowStep.values) {
+    if (workflowStep.values) {
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
         // Get all unique record indices for this collection
@@ -2217,21 +2084,6 @@ export default function SessionView() {
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
-    
-    // Add cross-step reference to presetReferences if found
-    if (crossStepReference) {
-      const refMatch = crossStepReference.match(/@([^.]+)\.(.+)/);
-      if (refMatch) {
-        const [, refStepName, refValueName] = refMatch;
-        // Add to preset references if not already there
-        if (!presetReferences.some(ref => ref.name === `${refStepName}.${refValueName}`)) {
-          presetReferences.push({
-            name: `${refStepName}.${refValueName}`,
-            type: 'Previous Step Data'
-          });
-        }
-      }
-    }
     
     // Open the modal with the prepared data
     setColumnExtractionModal({

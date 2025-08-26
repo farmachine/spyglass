@@ -181,9 +181,6 @@ export interface IStorage {
   searchExcelWizardryFunctions(tags: string[]): Promise<ExcelWizardryFunction[]>;
   deleteExcelWizardryFunction(id: string): Promise<boolean>;
 
-  // Tool alias (maps to ExcelWizardryFunction)
-  getTool(id: string): Promise<ExcelWizardryFunction | undefined>;
-  
   // Extraction Identifier References
   getExtractionIdentifierReferences(sessionId: string, extractionNumber?: number): Promise<ExtractionIdentifierReference[]>;
   createExtractionIdentifierReferences(references: InsertExtractionIdentifierReference[]): Promise<ExtractionIdentifierReference[]>;
@@ -1677,11 +1674,6 @@ export class MemStorage implements IStorage {
 
   async getExcelWizardryFunction(id: string): Promise<ExcelWizardryFunction | undefined> {
     return this.excelWizardryFunctions.get(id);
-  }
-  
-  // Alias for getExcelWizardryFunction for API consistency
-  async getTool(id: string): Promise<ExcelWizardryFunction | undefined> {
-    return this.getExcelWizardryFunction(id);
   }
 
   async createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction> {
@@ -3189,11 +3181,6 @@ class PostgreSQLStorage implements IStorage {
         .limit(1);
       return result[0];
     });
-  }
-  
-  // Alias for getExcelWizardryFunction for API consistency
-  async getTool(id: string): Promise<ExcelWizardryFunction | undefined> {
-    return this.getExcelWizardryFunction(id);
   }
 
   async createExcelWizardryFunction(func: InsertExcelWizardryFunction): Promise<ExcelWizardryFunction> {

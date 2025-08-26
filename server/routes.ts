@@ -2865,20 +2865,6 @@ except Exception as e:
     }
   });
   
-  // Get a single tool by ID
-  app.get("/api/tools/:id", async (req, res) => {
-    try {
-      const tool = await storage.getTool(req.params.id);
-      if (!tool) {
-        return res.status(404).json({ message: "Tool not found" });
-      }
-      res.json(tool);
-    } catch (error) {
-      console.error("Get tool error:", error);
-      res.status(500).json({ message: "Failed to fetch tool" });
-    }
-  });
-  
   // STEP-BY-STEP DEVELOPMENT: Extract document text only
   app.post("/api/sessions/:sessionId/extract-text", async (req, res) => {
     try {
