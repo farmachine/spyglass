@@ -1942,12 +1942,22 @@ export default function SessionView() {
     }
     
     // Determine if document is needed
-    const hasUserDocumentParam = tool?.inputParameters?.some((p: any) => 
-      p.name === 'user_document' || (p.name === 'document' && !valueToRun?.inputValues?.[p.name] && !valueToRun?.inputValues?.[p.id])
-    );
+    // Check if any document parameters are unfilled (need user selection)
+    const hasUnfilledDocumentParam = tool?.inputParameters?.some((p: any) => {
+      if (p.type !== 'document') return false;
+      
+      // Check if this document parameter has a preset value
+      const paramValue = valueToRun?.inputValues?.[p.name] || valueToRun?.inputValues?.[p.id];
+      
+      // If there's no value or it's empty, we need user selection
+      return !paramValue || (Array.isArray(paramValue) && paramValue.length === 0);
+    });
+    
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
-    const needsDocument = hasUserDocumentParam || (isFirstColumn && !presetReferences.length) || isWorksheetNameColumn;
+    
+    // Only need document if there's an unfilled document param, or special cases for first column/worksheet name
+    const needsDocument = hasUnfilledDocumentParam || (isFirstColumn && !presetReferences.length && !tool) || isWorksheetNameColumn;
     
     // Compile previous column data as input
     const previousColumnsData: any[] = [];
