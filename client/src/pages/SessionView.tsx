@@ -1938,8 +1938,8 @@ export default function SessionView() {
           
           // Build record data with identifierId as the FIRST property
           const recordData: any = {
-            // Use the ID of the field_validation record from the first column
-            identifierId: firstColumnValidation?.id || null
+            // Use the identifierId field from the first column's validation record
+            identifierId: firstColumnValidation?.identifierId || null
           };
           
           // Iterate through previous columns
