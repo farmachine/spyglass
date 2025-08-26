@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2 } from "lucide-react";
+import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -279,34 +279,59 @@ export default function ExtractWizardModal({
           )}
           
           {/* Input Data Preview - Show when there's input data */}
-          {inputData && inputData.length > 0 && (
+          {inputData && inputData.length > 0 ? (
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                 <ChevronRight className="h-4 w-4" />
-                Input Data from Previous Steps
+                Referenced Data Preview
               </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {inputData.length} record{inputData.length !== 1 ? 's' : ''} available
+              <p className="text-sm text-gray-600 mb-3">
+                {inputData.length} record{inputData.length !== 1 ? 's' : ''} available from previous steps
               </p>
-              {inputData[0] && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Sample fields from first record:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {Object.keys(inputData[0]).slice(0, 5).map(key => (
-                      <Badge key={key} variant="outline" className="text-xs">
-                        {key}
-                      </Badge>
-                    ))}
-                    {Object.keys(inputData[0]).length > 5 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{Object.keys(inputData[0]).length - 5} more
-                      </Badge>
-                    )}
-                  </div>
+              
+              {/* Show sample records */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-700">Sample records (first 3):</p>
+                <div className="bg-white rounded border border-gray-200 p-2 space-y-2 max-h-48 overflow-y-auto">
+                  {inputData.slice(0, 3).map((record, index) => (
+                    <div key={index} className="text-xs border-b last:border-b-0 pb-2 last:pb-0">
+                      <p className="font-medium text-gray-600 mb-1">Record {index + 1}:</p>
+                      <div className="grid grid-cols-2 gap-1 ml-2">
+                        {Object.entries(record).slice(0, 4).map(([key, value]) => (
+                          <div key={key} className="flex">
+                            <span className="font-medium text-gray-500 mr-1">{key}:</span>
+                            <span className="text-gray-700 truncate">
+                              {value === null || value === undefined ? 'null' : String(value)}
+                            </span>
+                          </div>
+                        ))}
+                        {Object.keys(record).length > 4 && (
+                          <div className="text-gray-400 col-span-2">
+                            ...and {Object.keys(record).length - 4} more fields
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {inputData.length > 3 && (
+                    <p className="text-xs text-gray-500 pt-1">
+                      ...and {inputData.length - 3} more records
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          )}
+          ) : inputData && inputData.length === 0 ? (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-sm">
+                <p className="font-medium mb-1">No data available from referenced steps</p>
+                <p className="text-xs text-gray-600">
+                  The referenced columns may not have any verified data yet. Please extract and verify data in the "Column Name Mapping" step first.
+                </p>
+              </AlertDescription>
+            </Alert>
+          ) : null}
           
           {/* How it works section - Only show if no input config */}
           {!hasInputConfig && (
