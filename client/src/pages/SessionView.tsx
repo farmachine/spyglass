@@ -2011,11 +2011,30 @@ export default function SessionView() {
                 console.log(`🔗 Found cross-step reference: ${refStepName}.${refValueName}`);
                 crossStepReference = val;
                 
+                // Find the step_value ID for the referenced value
+                const referencedStep = project?.workflowSteps?.find(s => s.stepName === refStepName);
+                const referencedValue = referencedStep?.values?.find(v => v.valueName === refValueName);
+                
+                console.log(`🔍 Looking for step: ${refStepName}, value: ${refValueName}`);
+                console.log(`🔍 Found value ID: ${referencedValue?.id}`);
+                
                 // Find validations from the referenced step and value
+                // Since value_id might be NULL in validations, also match by field_id
                 const referencedValidations = validations.filter(v => {
-                  // Match by collection/step name and value name
-                  return v.collectionName === refStepName && 
-                         v.fieldName?.includes(refValueName);
+                  // Match by value_id if available
+                  if (referencedValue && v.valueId === referencedValue.id) {
+                    return true;
+                  }
+                  // Also match by field_id (which is the same as value id in our case)
+                  if (referencedValue && v.fieldId === referencedValue.id) {
+                    return true;
+                  }
+                  // Fallback: match by collection name for backward compatibility
+                  if (v.validationType === 'collection_property' && v.collectionName === refStepName) {
+                    // Additional check for extracted value to ensure we have data
+                    return v.extractedValue !== null && v.extractedValue !== undefined;
+                  }
+                  return false;
                 });
                 
                 console.log(`📊 Found ${referencedValidations.length} validations from ${refStepName}.${refValueName}`);
@@ -2024,21 +2043,18 @@ export default function SessionView() {
                 const recordsByIdentifier = new Map<string, any>();
                 referencedValidations.forEach(v => {
                   if (v.identifierId && v.extractedValue !== null && v.extractedValue !== undefined) {
+                    // For cross-step references, we just need the value itself
+                    // Store it with the value name as the key
                     if (!recordsByIdentifier.has(v.identifierId)) {
                       recordsByIdentifier.set(v.identifierId, {});
                     }
-                    // Extract the clean value name from fieldName
-                    const valueNameMatch = v.fieldName?.match(/\.([^\[]+)\[/);
-                    const cleanValueName = valueNameMatch ? valueNameMatch[1] : refValueName;
-                    recordsByIdentifier.get(v.identifierId)[cleanValueName] = v.extractedValue;
+                    recordsByIdentifier.get(v.identifierId)[refValueName] = v.extractedValue;
                   }
                 });
                 
                 // Convert to array for input
-                crossStepData = Array.from(recordsByIdentifier.entries()).map(([identifierId, data]) => ({
-                  ...data
-                  // Note: Don't include identifierId for cross-step references as they will be generated fresh
-                }));
+                // For cross-step references, we don't include identifierId as new ones will be generated
+                crossStepData = Array.from(recordsByIdentifier.values());
                 
                 console.log(`🔗 Loaded ${crossStepData.length} records from cross-step reference`);
               }
