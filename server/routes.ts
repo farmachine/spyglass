@@ -6638,11 +6638,27 @@ def extract_function(Column_Name, Excel_File):
               
               console.log(`📊 Building combined data from ${previousData.length} records`);
               
-              // For each record in previousData
-              previousData.forEach((record, idx) => {
+              // Group previousData by identifierId to get all columns for each row
+              const dataByIdentifier = new Map();
+              previousData.forEach(record => {
+                if (!dataByIdentifier.has(record.identifierId)) {
+                  dataByIdentifier.set(record.identifierId, {});
+                }
+                // Extract the column name from the field name (e.g., "Column Name Mapping.ID[0]" -> "ID")
+                const fieldParts = record.fieldName?.split('.') || [];
+                if (fieldParts.length > 1) {
+                  const columnPart = fieldParts[fieldParts.length - 1];
+                  const columnName = columnPart.replace(/\[\d+\]$/, ''); // Remove [index] suffix
+                  dataByIdentifier.get(record.identifierId)[columnName] = record.extractedValue;
+                }
+              });
+              
+              console.log(`📊 Grouped data by identifier: ${dataByIdentifier.size} unique rows`);
+              
+              // Now build combined records from grouped data
+              dataByIdentifier.forEach((rowData, identifierId) => {
                 const combinedRecord: any = {
-                  // Always include the identifierId for tracking
-                  identifierId: record.identifierId
+                  identifierId: identifierId
                 };
                 
                 // Process each reference in the array
@@ -6657,7 +6673,7 @@ def extract_function(Column_Name, Excel_File):
                     }
                     
                     // Add this column's value to the combined record
-                    combinedRecord[refColumnName] = record[refColumnName];
+                    combinedRecord[refColumnName] = rowData[refColumnName] || null;
                   }
                 }
                 
@@ -6699,10 +6715,21 @@ def extract_function(Column_Name, Excel_File):
               console.log(`📊 Sample previous data record:`, previousData[0]);
               
               // Single reference - format data with identifierId
-              const columnValues = previousData.map(record => ({
-                identifierId: record.identifierId,
-                name: record[actualColumnName] // Use the extracted column name
-              })).filter(item => item.name !== undefined);
+              // The previousData contains validation records, so we need extractedValue
+              const columnValues = previousData
+                .filter(record => {
+                  // Filter for records that match this column name
+                  const fieldParts = record.fieldName?.split('.') || [];
+                  if (fieldParts.length > 1) {
+                    const columnPart = fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '');
+                    return columnPart === actualColumnName;
+                  }
+                  return false;
+                })
+                .map(record => ({
+                  identifierId: record.identifierId,
+                  name: record.extractedValue // Use extractedValue from validation record
+                }));
               
               console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
                 columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
