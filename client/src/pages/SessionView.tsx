@@ -1980,9 +1980,18 @@ export default function SessionView() {
           // Get all validations for the referenced step
           const stepValidations = validations.filter(v => {
             // Find validations for the referenced step's values
-            const isStepValidation = referencedStep.values?.some(val => v.value_id === val.id);
+            const isStepValidation = referencedStep.values?.some(val => {
+              // Check both possible property names for compatibility
+              const valueId = (v as any).value_id || (v as any).valueId;
+              return valueId === val.id;
+            });
             return isStepValidation;
           });
+          
+          console.log(`  - Found ${stepValidations.length} validations for step "${referencedStepName}"`);
+          if (stepValidations.length > 0) {
+            console.log(`  - Sample validation:`, stepValidations[0]);
+          }
           
           // Group by identifier ID to compile records
           const recordsByIdentifier = new Map<string, any>();
@@ -1996,7 +2005,8 @@ export default function SessionView() {
               }
               
               // Find which value this validation belongs to
-              const value = referencedStep.values?.find(val => val.id === v.value_id);
+              const valueId = (v as any).value_id || (v as any).valueId;
+              const value = referencedStep.values?.find(val => val.id === valueId);
               if (value) {
                 recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
               }
