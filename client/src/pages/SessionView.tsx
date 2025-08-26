@@ -2094,11 +2094,11 @@ export default function SessionView() {
     // Compile previous column data as input (for same-step references)
     const previousColumnsData: any[] = [];
     
-    // If we have cross-step data, use that EXCLUSIVELY (don't also compile same-step data)
+    // If we have cross-step data, use that instead of same-step data
     if (crossStepData.length > 0) {
       console.log(`📊 Using cross-step data with ${crossStepData.length} records`);
       previousColumnsData.push(...crossStepData);
-    } else if (!crossStepReference && workflowStep.values) {
+    } else if (workflowStep.values) {
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
         // Get all unique record indices for this collection
@@ -2203,24 +2203,24 @@ export default function SessionView() {
       }
     }
     
-    // Log filtering results only if we're NOT using cross-step data
-    if (!crossStepReference) {
+    // Log filtering results based on data source
+    if (crossStepData.length > 0) {
+      // Using cross-step data
+      console.log(`📦 Using ${previousColumnsData.length} records from cross-step reference`);
+      console.log(`📋 Sample of cross-step data (first 3 records):`, previousColumnsData.slice(0, 3));
+    } else if (previousColumnsData.length > 0) {
+      // Using same-step data
       const totalRecords = validations.filter(v => 
         v.collectionName === stepName || 
         (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
       ).map(v => v.recordIndex).filter(idx => idx !== null);
       const uniqueTotalRecords = [...new Set(totalRecords)].length;
       
-      console.log(`📊 Compiled ${previousColumnsData.length} records with complete data from ${uniqueTotalRecords} total records`);
+      console.log(`📊 Compiled ${previousColumnsData.length} records from same-step columns (${uniqueTotalRecords} total records)`);
       if (previousColumnsData.length < uniqueTotalRecords) {
         console.log(`📊 Excluded ${uniqueTotalRecords - previousColumnsData.length} records that have incomplete data in previous columns`);
       }
-    }
-    
-    // Show summary of data being sent
-    if (previousColumnsData.length > 0) {
-      console.log(`📦 Sending ${previousColumnsData.length} records to extraction`);
-      console.log(`📋 Sample of data (first 3 records):`, previousColumnsData.slice(0, 3));
+      console.log(`📋 Sample of same-step data (first 3 records):`, previousColumnsData.slice(0, 3));
     }
     
     // Get tool information if available
