@@ -6574,36 +6574,6 @@ def extract_function(Column_Name, Excel_File):
       // If no extracted content, try to get it from the document content field
       let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;
       
-      // Special handling for Standard Equivalent mapping - load knowledge document
-      // ONLY apply this to Standard Equivalent value, not other values
-      if (value.valueName === 'Standard Equivalent') {
-        console.log('📚 Loading knowledge document for Standard Equivalent mapping');
-        try {
-          // Get knowledge documents for the project - need to get projectId from session
-          const knowledgeDocs = await storage.getKnowledgeDocuments(session.projectId);
-          console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
-          
-          // Look for the mapping rules document
-          const mappingDoc = knowledgeDocs.find(doc => 
-            doc.displayName?.toLowerCase().includes('mapping') ||
-            doc.displayName?.toLowerCase().includes('standard') ||
-            doc.fileName?.toLowerCase().includes('mapping') ||
-            doc.description?.toLowerCase().includes('mapping')
-          );
-          
-          if (mappingDoc && mappingDoc.content) {
-            console.log(`📚 Using knowledge document: ${mappingDoc.displayName}`);
-            documentContent = mappingDoc.content;
-            console.log(`📚 Knowledge document content length: ${documentContent.length} chars`);
-            console.log(`📚 Setting document content for AI tool to use mapping rules`);
-          } else {
-            console.log('⚠️ No mapping knowledge document found, using session document');
-          }
-        } catch (error) {
-          console.error('Error loading knowledge document:', error);
-        }
-      }
-      
       if (!documentToUse || !documentContent) {
         console.log('No document found or no content available:', {
           hasDoc: !!documentToUse,
@@ -6787,16 +6757,8 @@ def extract_function(Column_Name, Excel_File):
       if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
         toolInputs.document = documentContent;
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
-        if (value.valueName === 'Standard Equivalent') {
-          console.log(`📚 Document content for Standard Equivalent includes knowledge document with mapping rules`);
-        }
       }
       
-      // For Standard Equivalent, ensure we're using the proper tool configuration
-      if (value.valueName === 'Standard Equivalent' && !toolInputs.document) {
-        console.log(`⚠️ WARNING: Standard Equivalent tool does not have document parameter, adding it anyway`);
-        toolInputs.document = documentContent;
-      }
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
       
