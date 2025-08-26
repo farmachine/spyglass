@@ -535,15 +535,29 @@ export class ToolEngine {
               
               console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
               
-              // For Standard Equivalent mapping, ensure proper iteration
-              batchPrompt = `${basePrompt}
+              // Get other input parameters that should be included in the prompt
+              // Look for AI Query in the original inputs (not batchInputs which only has the data array)
+              const aiQuery = inputs['AI Query'] || 'Map each column name to its standard field equivalent';
+              const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
+              
+              console.log(`    📊 AI Query: ${aiQuery}`);
+              console.log(`    📊 Reference Document provided: ${referenceDoc ? 'Yes' : 'No'}`);
+              
+              // Build the prompt with all necessary parameters
+              // The AI Query Against Document tool expects these specific parameters
+              batchPrompt = `You will be provided with a List Item, an AI Query, and a Reference Document. For each List Item, use the AI Query to extract information from the Reference Document.
+
+AI QUERY: ${aiQuery}
+
+REFERENCE DOCUMENT:
+${referenceDoc}
+
+LIST ITEMS (${formattedData.length} items to process):
+${JSON.stringify(formattedData, null, 2)}
 
 CRITICAL INSTRUCTIONS:
-You MUST process EACH of the ${formattedData.length} items below individually.
+You MUST process EACH of the ${formattedData.length} items above individually.
 Return an array with EXACTLY ${formattedData.length} results, one for each input item.
-
-Input Data (${formattedData.length} items to process):
-${JSON.stringify(formattedData, null, 2)}
 
 REQUIRED OUTPUT FORMAT:
 Return a JSON array with EXACTLY ${formattedData.length} objects in the SAME ORDER as the input.
