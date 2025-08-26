@@ -6854,17 +6854,17 @@ def extract_function(Column_Name, Excel_File):
             if (identifierId) {
               console.log(`🔗 Using identifierId from first column for row ${i}: ${identifierId}`);
             } else {
-              // Fallback if we don't have an identifier for this row
-              identifierId = `col_${String(i).padStart(4, '0')}`;
-              console.log(`⚠️ No identifierId found for row ${i}, generating: ${identifierId}`);
+              // Fallback if we don't have an identifier for this row - generate proper UUID
+              identifierId = crypto.randomUUID();
+              console.log(`⚠️ No identifierId found for row ${i}, generating new UUID: ${identifierId}`);
             }
           } else if (previousData && previousData[i]) {
             // Fallback to index-based mapping from previous data
             identifierId = previousData[i].identifierId || null;
             console.log(`🔗 Mapping result ${i} to identifier from previous data: ${identifierId}`);
           } else if (!previousData || previousData.length === 0) {
-            // This is the first column being extracted - generate col_XXXX format identifiers
-            identifierId = `col_${String(i).padStart(4, '0')}`;
+            // This is the first column being extracted - generate proper UUID identifiers
+            identifierId = crypto.randomUUID();
             console.log(`🔗 Generated new identifierId for first column: ${identifierId}`);
           }
           
