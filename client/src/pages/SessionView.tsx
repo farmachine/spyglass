@@ -1949,8 +1949,14 @@ export default function SessionView() {
           // Iterate through previous columns
           for (let i = 0; i < valueIndex; i++) {
             const prevValue = workflowStep.values[i];
-            const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
-            const validation = getValidation(fieldName, recordData.identifierId);
+            
+            // Find the validation for this column and record
+            const validation = validations.find(v => 
+              v.valueId === prevValue.id && 
+              v.identifierId === recordData.identifierId
+            );
+            
+            console.log(`Looking for validation: valueId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
             
             // Check if this column has a value
             if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
@@ -1980,7 +1986,13 @@ export default function SessionView() {
           if (allPreviousColumnsValid && (Object.keys(tempRecordData).length > 0 || valueIndex === 0)) {
             // Merge the identifierId with the valid data
             Object.assign(recordData, tempRecordData);
+            
+            // Debug: log what we're adding
+            console.log(`Adding record ${recordIndex} with data:`, recordData);
+            
             previousColumnsData.push(recordData);
+          } else {
+            console.log(`Skipping record ${recordIndex} - allValid: ${allPreviousColumnsValid}, tempData:`, tempRecordData);
           }
         }
       } else {
