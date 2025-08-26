@@ -2190,25 +2190,18 @@ export default function SessionView() {
       isWorkflowStep: true
     });
     
-    // Pre-select the document if needed
-    if (needsDocument) {
-      const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
-      if (primaryDoc) {
-        console.log('🎯 Pre-selecting document:', primaryDoc.id, primaryDoc.fileName);
-        // The document selection will be handled in the ExtractWizardModal
-      }
-    }
-    
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
     if (sessionDocuments && sessionDocuments.length > 0) {
       console.log('🎯 Documents:', sessionDocuments.map(d => ({ id: d.id, fileName: d.fileName })));
-    }
-    
-    // If documents exist, pre-select the primary document
-    const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
-    if (primaryDoc) {
-      console.log('🎯 Pre-selecting document:', primaryDoc.id, primaryDoc.fileName);
-      setSelectedExtractionDoc(primaryDoc.id);
+      
+      // Log document pre-selection info if needed
+      if (needsDocument) {
+        const primaryDoc = sessionDocuments.find(d => d.isPrimary) || sessionDocuments[0];
+        if (primaryDoc) {
+          console.log('🎯 Pre-selecting document:', primaryDoc.id, primaryDoc.fileName);
+          // The document selection will be handled in the ExtractWizardModal
+        }
+      }
     } else {
       console.log('🎯 No documents found to pre-select');
     }
