@@ -1942,19 +1942,32 @@ export default function SessionView() {
             identifierId: firstColumnValidation?.identifierId || null
           };
           
+          // Check if ALL previous columns have valid data for this record
+          let allPreviousColumnsValid = true;
+          const tempRecordData: any = {};
+          
           // Iterate through previous columns
           for (let i = 0; i < valueIndex; i++) {
             const prevValue = workflowStep.values[i];
             const fieldName = `${stepName}.${prevValue.valueName}[${recordIndex}]`;
             const validation = getValidation(fieldName, recordData.identifierId);
             
-            if (validation && validation.extractedValue) {
-              recordData[prevValue.valueName] = validation.extractedValue;
+            // Check if this column has a valid value (not "Not Found" and has valid status)
+            if (validation && validation.extractedValue && 
+                validation.extractedValue !== "Not Found" && 
+                (validation.validationStatus === 'valid' || validation.validationStatus === 'verified' || validation.validationStatus === 'manual')) {
+              tempRecordData[prevValue.valueName] = validation.extractedValue;
+            } else {
+              // If any previous column is invalid or "Not Found", exclude this record
+              allPreviousColumnsValid = false;
+              break;
             }
           }
           
-          // Only add if we have some actual data beyond just identifierId
-          if (Object.keys(recordData).length > 1 || (Object.keys(recordData).length === 1 && recordData.identifierId)) {
+          // Only add this record if ALL previous columns are valid
+          if (allPreviousColumnsValid && (Object.keys(tempRecordData).length > 0 || valueIndex === 0)) {
+            // Merge the identifierId with the valid data
+            Object.assign(recordData, tempRecordData);
             previousColumnsData.push(recordData);
           }
         }
@@ -1983,7 +1996,18 @@ export default function SessionView() {
       }
     }
     
-    console.log(`Compiled ${previousColumnsData.length} records from previous columns:`, previousColumnsData);
+    // Log filtering results
+    const totalRecords = validations.filter(v => 
+      v.collectionName === stepName || 
+      (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+    ).map(v => v.recordIndex).filter(idx => idx !== null);
+    const uniqueTotalRecords = [...new Set(totalRecords)].length;
+    
+    console.log(`Compiled ${previousColumnsData.length} valid records from ${uniqueTotalRecords} total records`);
+    if (previousColumnsData.length < uniqueTotalRecords) {
+      console.log(`📊 Filtered out ${uniqueTotalRecords - previousColumnsData.length} records with invalid/Not Found values in previous columns`);
+    }
+    console.log(`Previous columns data:`, previousColumnsData);
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
