@@ -1,0 +1,13 @@
+
+UPDATE: The issue is that existing tools in the database were created with the old prompts that instruct them to generate identifierId fields with 'col_XXXX' format.
+
+These tools need to be regenerated without the identifierId field in their output.
+
+The extraction functions should only return:
+- extractedValue
+- validationStatus  
+- aiReasoning
+- confidenceScore
+- documentSource
+
+The identifierId should be generated at database save time, not by the extraction function.
