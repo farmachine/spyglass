@@ -1927,15 +1927,33 @@ export default function SessionView() {
         }
         
         // Check for @ references in other parameters
-        if (param.type === 'data' && typeof paramValue === 'string' && paramValue.startsWith('@')) {
-          // Extract the reference type and name
-          const refMatch = paramValue.match(/@([^.]+)\.(.+)/);
-          if (refMatch) {
-            const [, refType, refName] = refMatch;
-            presetReferences.push({
-              name: refName,
-              type: refType === 'previousData' ? 'Previous Step Data' : refType
+        if (param.type === 'data') {
+          // Handle array of references
+          if (Array.isArray(paramValue)) {
+            paramValue.forEach((val: string) => {
+              if (typeof val === 'string' && val.startsWith('@')) {
+                // Extract the reference type and name
+                const refMatch = val.match(/@([^.]+)\.(.+)/);
+                if (refMatch) {
+                  const [, refType, refName] = refMatch;
+                  presetReferences.push({
+                    name: `${refType}.${refName}`,
+                    type: refType === 'previousData' ? 'Previous Step Data' : 'Reference'
+                  });
+                }
+              }
             });
+          }
+          // Handle single string reference
+          else if (typeof paramValue === 'string' && paramValue.startsWith('@')) {
+            const refMatch = paramValue.match(/@([^.]+)\.(.+)/);
+            if (refMatch) {
+              const [, refType, refName] = refMatch;
+              presetReferences.push({
+                name: `${refType}.${refName}`,
+                type: refType === 'previousData' ? 'Previous Step Data' : 'Reference'
+              });
+            }
           }
         }
       });
@@ -1949,15 +1967,29 @@ export default function SessionView() {
       // Check if this document parameter has a preset value
       const paramValue = valueToRun?.inputValues?.[p.name] || valueToRun?.inputValues?.[p.id];
       
+      console.log(`🔍 Checking document parameter: ${p.name || p.id}, value:`, paramValue);
+      
       // If there's no value or it's empty, we need user selection
       return !paramValue || (Array.isArray(paramValue) && paramValue.length === 0);
     });
+    
+    console.log(`📋 Has unfilled document param: ${hasUnfilledDocumentParam}`);
     
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
     
     // Only need document if there's an unfilled document param, or special cases for first column/worksheet name
     const needsDocument = hasUnfilledDocumentParam || (isFirstColumn && !presetReferences.length && !tool) || isWorksheetNameColumn;
+    
+    console.log(`🎯 Decision factors:`, {
+      hasUnfilledDocumentParam,
+      isFirstColumn,
+      presetReferencesCount: presetReferences.length,
+      hasTool: !!tool,
+      isWorksheetNameColumn,
+      needsDocument,
+      presetReferences
+    });
     
     // Check for cross-step references in tool input values
     let crossStepData: any[] = [];
