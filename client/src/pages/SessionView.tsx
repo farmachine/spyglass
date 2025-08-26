@@ -1138,6 +1138,20 @@ export default function SessionView() {
     sectionName: string;
     availableFields: { id: string; name: string; type: string; index?: number; orderIndex?: number }[];
   }>({ open: false, sectionName: '', availableFields: [] });
+  
+  // Column extraction modal state for workflow step values
+  const [columnExtractionModal, setColumnExtractionModal] = useState<{
+    isOpen: boolean;
+    stepName: string;
+    valueId: string;
+    valueName: string;
+    previousData: any[];
+    needsDocument: boolean;
+    toolType: string;
+    toolDescription: string;
+    toolId?: string;
+    inputValues?: any;
+  } | null>(null);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -2182,12 +2196,18 @@ export default function SessionView() {
       orderIndex: valueToRun.orderIndex
     };
     
-    // Open the AI extraction modal with the proper field configuration
-    setAiExtractionModal({
-      open: true,
-      sectionName: stepName,
-      availableFields: [fieldWithToolConfig], // Pass the field with tool config
-      isWorkflowStep: true
+    // Open the extraction wizard modal with the value's tool configuration
+    setColumnExtractionModal({
+      isOpen: true,
+      stepName: stepName,
+      valueId: valueId,
+      valueName: valueName,
+      previousData: previousColumnsData,
+      needsDocument: needsDocument,
+      toolType: toolInfo?.name || 'extraction',
+      toolDescription: toolInfo?.description || '',
+      toolId: valueToRun.toolId,
+      inputValues: valueToRun.inputValues
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4661,6 +4681,69 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         }}
       />
+      {/* Column Extraction Modal for Workflow Step Values */}
+      {columnExtractionModal && (
+        <ExtractWizardModal
+          open={columnExtractionModal.isOpen}
+          onClose={() => setColumnExtractionModal(null)}
+          onConfirm={async (documentId) => {
+            if (!columnExtractionModal) return;
+            
+            const { stepName, valueId, valueName, previousData } = columnExtractionModal;
+            
+            console.log(`🎯 Running extraction for ${valueName}`);
+            console.log(`🎯 Document: ${documentId}`);
+            console.log(`🎯 Previous data: ${previousData.length} records`);
+            
+            try {
+              // Get the workflow step
+              const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+              if (!workflowStep) {
+                console.error('Workflow step not found:', stepName);
+                return;
+              }
+              
+              const requestPayload = {
+                stepId: workflowStep.id,
+                valueId: valueId,
+                previousData: previousData,
+                documentId: documentId
+              };
+              
+              console.log(`🎯 Sending extraction request for: ${valueName} (${valueId})`);
+              
+              // Call the extraction endpoint
+              const response = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
+                method: 'POST',
+                body: JSON.stringify(requestPayload)
+              });
+              
+              console.log('Column extraction response:', response);
+              
+              // Close the modal
+              setColumnExtractionModal(null);
+              
+              // Refresh validations to show the new extracted data
+              await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              
+            } catch (error) {
+              console.error('Error running column extraction:', error);
+            }
+          }}
+          title={`Extract ${columnExtractionModal.valueName}`}
+          toolType={columnExtractionModal.toolType}
+          toolDescription={columnExtractionModal.toolDescription}
+          documents={sessionDocuments?.map(doc => ({
+            id: doc.id,
+            name: doc.fileName || doc.name || 'Untitled',
+            type: doc.fileType || 'unknown'
+          })) || []}
+          inputData={columnExtractionModal.previousData}
+          needsDocument={columnExtractionModal.needsDocument}
+          isLoading={false}
+          inputValues={columnExtractionModal.inputValues}
+        />
+      )}
       {/* AI Extraction Modal */}
       <AIExtractionModal
         isOpen={aiExtractionModal.open}
