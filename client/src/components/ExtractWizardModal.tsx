@@ -230,7 +230,7 @@ export default function ExtractWizardModal({
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Referenced Data from {crossStepReference.replace('@', '')}</Label>
                 <Badge variant="secondary" className="text-xs">
-                  {inputData.length} records
+                  {inputData.length} valid records
                 </Badge>
               </div>
               <ScrollArea className="h-48 border rounded-lg bg-gray-50">
