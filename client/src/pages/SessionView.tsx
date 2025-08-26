@@ -1945,7 +1945,71 @@ export default function SessionView() {
     // Compile previous column data as input
     const previousColumnsData: any[] = [];
     
-    if (workflowStep.values) {
+    // Check if this value has @ references that need data from other steps
+    const referencedSteps = new Set<string>();
+    if (hasColumnReferences && valueToRun.inputValues) {
+      Object.values(valueToRun.inputValues).forEach(value => {
+        if (typeof value === 'string' && value.includes('@')) {
+          const match = value.match(/@([^.]+)\./);
+          if (match) {
+            referencedSteps.add(match[1]);
+            console.log(`  - References step: "${match[1]}"`);
+          }
+        } else if (Array.isArray(value)) {
+          value.forEach(v => {
+            if (typeof v === 'string' && v.includes('@')) {
+              const match = v.match(/@([^.]+)\./);
+              if (match) {
+                referencedSteps.add(match[1]);
+                console.log(`  - References step: "${match[1]}"`);
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // If we have referenced steps, get data from those steps
+    if (referencedSteps.size > 0) {
+      // Get data from the referenced steps
+      for (const referencedStepName of referencedSteps) {
+        const referencedStep = project?.workflowSteps?.find(s => s.stepName === referencedStepName);
+        if (referencedStep) {
+          console.log(`📊 Getting data from referenced step: "${referencedStepName}"`);
+          
+          // Get all validations for the referenced step
+          const stepValidations = validations.filter(v => {
+            // Find validations for the referenced step's values
+            const isStepValidation = referencedStep.values?.some(val => v.value_id === val.id);
+            return isStepValidation;
+          });
+          
+          // Group by identifier ID to compile records
+          const recordsByIdentifier = new Map<string, any>();
+          
+          stepValidations.forEach(v => {
+            if (v.identifierId) {
+              if (!recordsByIdentifier.has(v.identifierId)) {
+                recordsByIdentifier.set(v.identifierId, {
+                  identifierId: v.identifierId
+                });
+              }
+              
+              // Find which value this validation belongs to
+              const value = referencedStep.values?.find(val => val.id === v.value_id);
+              if (value) {
+                recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
+              }
+            }
+          });
+          
+          // Convert to array
+          previousColumnsData.push(...Array.from(recordsByIdentifier.values()));
+          console.log(`📊 Found ${recordsByIdentifier.size} records from "${referencedStepName}"`);
+        }
+      }
+    } else if (workflowStep.values) {
+      // Original logic for within-step data compilation
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
         // Get all unique record indices for this collection
