@@ -6837,29 +6837,21 @@ def extract_function(Column_Name, Excel_File):
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
         
-        // If this is not the first column, we need to get the identifierIds from the first column
-        // to ensure all columns in the same row share the same identifierId
-        let firstColumnIdentifiers: Map<number, string> = new Map();
+        // If previousData is provided, use its identifierIds directly
+        // This is the source of truth for row identifiers
+        let previousDataIdentifiers: Map<number, string> = new Map();
         if (previousData && previousData.length > 0) {
-          // Find the first value in this step (should be the ID column)
-          const stepValues = await storage.getStepValues(stepId);
-          const firstValue = stepValues.sort((a, b) => a.orderIndex - b.orderIndex)[0];
-          
-          if (firstValue && firstValue.id !== valueId) {
-            // This is not the first column, so get identifierIds from the first column
-            console.log(`🔍 Looking up identifierIds from first column: ${firstValue.valueName}`);
-            const firstColumnValidations = existingValidations.filter(v => 
-              v.valueId === firstValue.id && v.sessionId === sessionId
-            ).sort((a, b) => a.recordIndex - b.recordIndex);
-            
-            for (const validation of firstColumnValidations) {
-              if (validation.identifierId) {
-                firstColumnIdentifiers.set(validation.recordIndex, validation.identifierId);
-                console.log(`  Record ${validation.recordIndex} -> ${validation.identifierId}`);
+          console.log(`📊 Using identifierIds from previousData (${previousData.length} records)`);
+          for (let i = 0; i < previousData.length; i++) {
+            const record = previousData[i];
+            if (record.identifierId) {
+              previousDataIdentifiers.set(i, record.identifierId);
+              if (i < 5) {
+                console.log(`  Record ${i} -> ${record.identifierId}`);
               }
             }
-            console.log(`📊 Found ${firstColumnIdentifiers.size} identifierIds from first column`);
           }
+          console.log(`📊 Found ${previousDataIdentifiers.size} identifierIds from previousData`);
         }
         
         // Create new validations for each result
@@ -6874,25 +6866,20 @@ def extract_function(Column_Name, Excel_File):
           if (result.identifierId) {
             identifierId = result.identifierId;
             console.log(`🔗 Using identifierId from result at index ${i}: ${identifierId}`);
-          } else if (previousData && previousData[i] && previousData[i].identifierId) {
-            // This is a subsequent column - use the identifierId from previousData
-            identifierId = previousData[i].identifierId;
-            console.log(`🔗 Using identifierId from previous data at index ${i}: ${identifierId}`);
-            recordIndex = i;
-          } else if (firstColumnIdentifiers.size > 0) {
-            // Use the identifierId from the first column to ensure all columns in the same row share the same ID
-            identifierId = firstColumnIdentifiers.get(i) || null;
+          } else if (previousDataIdentifiers.size > 0) {
+            // Use the identifierId from previousData map
+            identifierId = previousDataIdentifiers.get(i) || null;
             if (identifierId) {
-              console.log(`🔗 Using identifierId from first column for row ${i}: ${identifierId}`);
+              console.log(`🔗 Using identifierId from previousData for index ${i}: ${identifierId}`);
             } else {
               // Fallback if we don't have an identifier for this row - generate proper UUID
               identifierId = crypto.randomUUID();
-              console.log(`⚠️ No identifierId found for row ${i}, generating new UUID: ${identifierId}`);
+              console.log(`⚠️ No identifierId found in previousData for index ${i}, generating new UUID: ${identifierId}`);
             }
           } else {
             // This is the first column being extracted - generate proper UUID identifiers
             identifierId = crypto.randomUUID();
-            console.log(`🔗 Generated new identifierId for first column: ${identifierId}`);
+            console.log(`🔗 Generated new identifierId for first column at index ${i}: ${identifierId}`);
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
