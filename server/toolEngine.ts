@@ -1139,23 +1139,10 @@ Return only the Python function code, no explanations.`;
           // When receiving array data (like column names from previous step)
           console.log(`📊 Processing data array for ${param.name}: ${value.length} items`);
           
-          // CRITICAL: Make sure all items are processed
-          // The AI needs explicit instruction about array length
-          const itemsList = value.map((item, idx) => {
-            if (typeof item === 'object') {
-              if (item.extractedValue !== undefined) {
-                // Handle result objects from previous steps
-                return `Item ${idx + 1}: ${item.extractedValue}`;
-              } else {
-                // Handle objects with multiple fields (like merged data)
-                return `Item ${idx + 1}: ${JSON.stringify(item)}`;
-              }
-            }
-            return `Item ${idx + 1}: ${item}`;
-          }).join('\n');
-          
+          // CRITICAL: Preserve the full structure for proper identifierId mapping
+          // Return as JSON array to maintain structure
           return `${param.name} (${value.length} items total - PROCESS ALL ${value.length} ITEMS):
-${itemsList}`;
+${JSON.stringify(value, null, 2)}`;
         } else if (param.sampleData?.rows) {
           // Use sample data if available
           return `${param.name}: ${JSON.stringify(param.sampleData.rows, null, 2)}`;
@@ -1237,10 +1224,16 @@ Return a JSON array where each object contains these exact fields:
 }
 
 CRITICAL INSTRUCTIONS:
-1. Each input row MUST have a corresponding output with the SAME identifierId
-2. Use the Reference Document to determine the correct mapping for each value
-3. If no mapping exists in the Reference Document, return "Not Found" as extractedValue
-4. Return ONLY the JSON array, no explanations or markdown formatting`;
+1. Each input object has an "identifierId" field - you MUST copy this EXACT value to your output
+2. For each input object, create exactly one output object with the SAME identifierId
+3. Use the Reference Document to determine the correct mapping for each value
+4. If no mapping exists in the Reference Document, return "Not Found" as extractedValue
+5. The order and identifierId values MUST match exactly between input and output
+6. Return ONLY the JSON array, no explanations or markdown formatting
+
+EXAMPLE:
+If input has: {"identifierId": "abc-123", "ID": "Date of Birth", "Worksheet Name": "New_Pensioners"}
+Output must have: {"identifierId": "abc-123", "extractedValue": "DoB", ...other fields...}`;
       }
     }
     
