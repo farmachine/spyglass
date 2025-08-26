@@ -1904,13 +1904,22 @@ export default function SessionView() {
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
     
     // Check if this tool needs a document
-    const tool = project?.tools?.find(t => t.id === valueToRun.toolId);
-    // For ID column (first column with no previous data) or Worksheet Name column, always require document selection
+    // A tool needs a document if:
+    // 1. It's the first column (ID column) with no previous data
+    // 2. It's the Worksheet Name column 
+    // 3. Its input values contain document references (not @ references to other columns)
     const isFirstColumn = valueIndex === 0;
     const isWorksheetNameColumn = valueName === "Worksheet Name";
-    const needsDocument = isFirstColumn || isWorksheetNameColumn || tool?.inputParameters?.some(p => 
-      p.name === 'document' || p.name === 'document_content' || p.name === 'user_document'
-    ) || false;
+    
+    // Check if input values contain @ references (which means it uses data from other columns, not documents)
+    const hasColumnReferences = valueToRun.inputValues && 
+      Object.values(valueToRun.inputValues).some(value => 
+        typeof value === 'string' && value.includes('@') ||
+        (Array.isArray(value) && value.some(v => typeof v === 'string' && v.includes('@')))
+      );
+    
+    // If it has column references, it doesn't need a document (unless it's the first column)
+    const needsDocument = isFirstColumn || isWorksheetNameColumn || (!hasColumnReferences && valueIndex > 0);
     
     // Compile previous column data as input
     const previousColumnsData: any[] = [];
@@ -4536,6 +4545,7 @@ Thank you for your assistance.`;
             type: doc.fileType || 'unknown'
           })) || []}
           inputData={columnExtractionModal.previousData}
+          needsDocument={columnExtractionModal.needsDocument}
           isLoading={false}
         />
       )}

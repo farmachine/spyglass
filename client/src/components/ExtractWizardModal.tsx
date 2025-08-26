@@ -19,6 +19,8 @@ interface ExtractWizardModalProps {
   documents: Array<{ id: string; name: string; type: string }>;
   inputData: any[];
   isLoading?: boolean;
+  needsDocument?: boolean;
+  inputValues?: any;
 }
 
 // Function type descriptions for user guidance
@@ -102,7 +104,9 @@ export default function ExtractWizardModal({
   toolDescription,
   documents,
   inputData,
-  isLoading = false
+  isLoading = false,
+  needsDocument = true,
+  inputValues
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -127,9 +131,10 @@ export default function ExtractWizardModal({
   }, [documents]);
   
   const handleConfirm = () => {
-    if (selectedDocument) {
-      onConfirm(selectedDocument);
+    if (needsDocument && !selectedDocument) {
+      return;
     }
+    onConfirm(selectedDocument || '');
   };
   
   return (
@@ -192,55 +197,70 @@ export default function ExtractWizardModal({
           
           <Separator />
           
-          {/* Document Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Select Document</Label>
-            <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a document to process" />
-              </SelectTrigger>
-              <SelectContent>
-                {documents.map((doc) => (
-                  <SelectItem key={doc.id} value={doc.id}>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gray-500" />
-                      <span>{doc.name}</span>
-                      <Badge variant="outline" className="ml-2 text-xs">
-                        {doc.type}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {documents.length === 0 && (
-              <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
-            )}
-          </div>
+          {/* Document Selection - Only show if needed */}
+          {needsDocument && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select Document</Label>
+              <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a document to process" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documents.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span>{doc.name}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {doc.type}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {documents.length === 0 && (
+                <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
+              )}
+            </div>
+          )}
           
-          {/* Input Data Preview */}
+          {/* Reference Data Preview - Show when we have previous column data */}
           {inputData && inputData.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Input Data ({inputData.length} records)</Label>
+                <Label className="text-sm font-medium">Reference Data ({inputData.length} records)</Label>
                 <Badge variant="secondary" className="text-xs">
-                  Preview
+                  From Previous Steps
                 </Badge>
               </div>
-              <ScrollArea className="h-48 border rounded-lg bg-gray-50">
+              <ScrollArea className="h-48 border rounded-lg bg-blue-50/30">
                 <div className="p-3 space-y-3">
-                  {inputData.slice(0, 3).map((record, index) => (
-                    <div key={index} className="border-b last:border-0 pb-3 last:pb-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500">
-                          Record {index + 1}
-                        </span>
+                  {inputData.slice(0, 3).map((record, index) => {
+                    // Format the record to show only relevant fields
+                    const displayRecord = { ...record };
+                    // Remove internal fields
+                    delete displayRecord.identifierId;
+                    delete displayRecord._recordIndex;
+                    
+                    return (
+                      <div key={index} className="border-b border-blue-100 last:border-0 pb-3 last:pb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-blue-700">
+                            Record {index + 1}
+                          </span>
+                        </div>
+                        <div className="bg-white rounded border border-blue-200 p-2">
+                          {Object.entries(displayRecord).map(([key, value]) => (
+                            <div key={key} className="flex gap-2 text-xs py-0.5">
+                              <span className="font-medium text-gray-600 min-w-[120px]">{key}:</span>
+                              <span className="text-gray-900">{String(value)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <pre className="text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
-                        {JSON.stringify(record, null, 2)}
-                      </pre>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {inputData.length > 3 && (
                     <p className="text-xs text-gray-500 text-center pt-2">
                       ... and {inputData.length - 3} more records
@@ -281,7 +301,7 @@ export default function ExtractWizardModal({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={!selectedDocument || isLoading}
+            disabled={(needsDocument && !selectedDocument) || isLoading}
             className="min-w-[140px]"
           >
             {isLoading ? (
