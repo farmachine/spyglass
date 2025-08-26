@@ -1112,7 +1112,7 @@ Return only the Python function code, no explanations.`;
    * Build test prompt for AI tools
    */
   private buildTestPrompt(tool: Tool, inputs: Record<string, any>): string {
-    const aiPrompt = tool.aiPrompt || tool.description;
+    let aiPrompt = tool.aiPrompt || tool.description;
     
     // Log what inputs we're receiving
     console.log('🔍 Building test prompt with inputs:', Object.keys(inputs));
@@ -1218,8 +1218,33 @@ CRITICAL INSTRUCTION:
       }
     }
     
-    // Use the AI prompt as-is since it should already contain the correct format instructions
-    // Just provide the input data
+    // Check if this is an AI Query Against Document tool and ensure proper format
+    if (tool.name?.toLowerCase().includes('query') || tool.name?.toLowerCase().includes('document')) {
+      // Ensure the prompt includes field validation output format with identifierId
+      if (!aiPrompt.includes('identifierId') && !aiPrompt.includes('REQUIRED OUTPUT FORMAT')) {
+        // Add the proper output format instructions
+        aiPrompt += `
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array where each object contains these exact fields:
+{
+  "identifierId": "The identifier from the input data row (CRITICAL - preserve exactly as provided)",
+  "extractedValue": "The extracted/mapped value based on the reference document",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "Brief explanation of why this mapping was chosen",
+  "confidenceScore": 80-100 for clear matches, 50-79 for partial matches, <50 for uncertain,
+  "documentSource": "Reference to the rule or section used for mapping"
+}
+
+CRITICAL INSTRUCTIONS:
+1. Each input row MUST have a corresponding output with the SAME identifierId
+2. Use the Reference Document to determine the correct mapping for each value
+3. If no mapping exists in the Reference Document, return "Not Found" as extractedValue
+4. Return ONLY the JSON array, no explanations or markdown formatting`;
+      }
+    }
+    
+    // Use the AI prompt with input data
     const finalPrompt = `${aiPrompt}
 
 Input Data:
