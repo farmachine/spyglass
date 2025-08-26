@@ -62,7 +62,7 @@ const AIReasoningModal = ({
   validation: FieldValidation | undefined;
   onVerificationChange: (isVerified: boolean) => void;
 }) => {
-  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'verified';
+  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
 
   const copyToClipboard = async () => {
     try {
@@ -228,9 +228,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
   }
 
   const isVerified = validation.validationStatus === 'valid' || 
-                    validation.validationStatus === 'verified' || 
-                    validation.validationStatus === 'manual-verified' ||
-                    (validation.validationStatus === 'manual' && validation.manuallyVerified);
+                    validation.validationStatus === 'manual';
 
   return (
     <div className="flex items-center gap-2">
@@ -1680,7 +1678,7 @@ export default function SessionView() {
     const validation = getValidation(fieldName);
     if (!validation) return;
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
     
     // Optimistic update: immediately update the UI
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -1739,7 +1737,7 @@ export default function SessionView() {
       return;
     }
     
-    const newStatus: ValidationStatus = isVerified ? 'verified' : 'unverified';
+    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
     
     // Optimistic updates for all item validations
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
@@ -2005,8 +2003,8 @@ export default function SessionView() {
           // Check each identifier group - ALL columns must be verified
           identifierGroups.forEach((validations, identifierId) => {
             const allVerified = validations.every(v => 
-              v.validationStatus === 'verified' || 
-              v.validationStatus === 'manual-verified'
+              v.validationStatus === 'valid' || 
+              v.validationStatus === 'manual'
             );
             if (allVerified) {
               verifiedIdentifierIds.add(identifierId);
@@ -2566,13 +2564,13 @@ export default function SessionView() {
   // Get session status based on field verification
   const getSessionStatus = () => {
     if (validations.length === 0) return 'in_progress';
-    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'manual');
     return allVerified ? 'verified' : 'in_progress';
   };
 
   // Get verification count helpers
   const getVerifiedCount = () => {
-    return validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
+    return validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'manual').length;
   };
 
   const getTotalFieldCount = () => {
@@ -2591,7 +2589,7 @@ export default function SessionView() {
   const getCollectionVerificationProgress = (collectionName: string) => {
     const collectionValidations = validations.filter(v => v.collectionName === collectionName);
     const totalFields = collectionValidations.length;
-    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'verified' || v.validationStatus === 'valid').length;
+    const verifiedFields = collectionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'manual').length;
     const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
     
     return {
@@ -2603,7 +2601,7 @@ export default function SessionView() {
 
   // Get all unverified fields for consolidated reasoning
   const getUnverifiedFields = () => {
-    return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'verified');
+    return validations.filter(v => v.validationStatus !== 'valid' && v.validationStatus !== 'manual');
   };
 
   // Get all project fields for AI extraction modal
@@ -3228,9 +3226,7 @@ Thank you for your assistance.`;
             
             // Check if field is verified (including manually verified fields)
             const isVerified = validation.validationStatus === 'valid' || 
-                              validation.validationStatus === 'verified' || 
-                              validation.validationStatus === 'manual-verified' ||
-                              validation.manuallyVerified === true;
+                              validation.validationStatus === 'manual';
             
             // Check if field has actual value - if it has a value, it should never show "Not Extracted"
             const hasValue = validation.extractedValue !== null && 
@@ -3309,7 +3305,7 @@ Thank you for your assistance.`;
     const sessionValidations = projectValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return 'pending';
     
-    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'verified');
+    const allVerified = sessionValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'manual');
     return allVerified ? 'verified' : 'in_progress';
   };
 
@@ -3469,8 +3465,8 @@ Thank you for your assistance.`;
                     {(() => {
                       const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
                       const verifiedCount = infoValidations.filter(v => 
-                        v.validationStatus === 'verified' || 
-                        (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                        v.validationStatus === 'valid' || 
+                        v.validationStatus === 'manual'
                       ).length;
                       const totalCount = infoValidations.length;
                       
@@ -3540,8 +3536,8 @@ Thank you for your assistance.`;
                     const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                     
                     const verifiedCount = itemValidations.filter(v => 
-                      v.validationStatus === 'verified' || 
-                      (v.validationStatus === 'valid' && v.manuallyVerified === true)
+                      v.validationStatus === 'valid' || 
+                      v.validationStatus === 'manual'
                     ).length;
                     const totalCount = itemValidations.length;
                     
@@ -3767,7 +3763,7 @@ Thank you for your assistance.`;
                                   const validation = getValidation(fieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                                  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
                                   const score = Math.round(validation?.confidenceScore || 0);
 
 
@@ -3817,7 +3813,7 @@ Thank you for your assistance.`;
                                               getFieldDisplayName,
                                               validation,
                                               onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
+                                              isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
                                             });
                                           }
                                         }}
@@ -4214,7 +4210,7 @@ Thank you for your assistance.`;
                                       }).filter(Boolean);
                                       
                                       return itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'verified');
+                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'manual');
                                     });
                                     
                                     return (
@@ -4400,7 +4396,7 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
                                                 const isNotFound = validation.extractedValue === "Not Found";
-                                                const isVerified = validation.validationStatus === 'verified' || validation.validationStatus === 'valid';
+                                                const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'manual';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
@@ -4446,7 +4442,7 @@ Thank you for your assistance.`;
                                                             getFieldDisplayName,
                                                             validation,
                                                             onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                                            isVerified: validation.validationStatus === 'verified' || validation.validationStatus === 'valid'
+                                                            isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
                                                           });
                                                         }
                                                       }}
@@ -4492,8 +4488,7 @@ Thank you for your assistance.`;
                                         const allVerified = itemValidations.length > 0 && 
                                           itemValidations.every(v => 
                                             v?.validationStatus === 'valid' || 
-                                            v?.validationStatus === 'verified' || 
-                                            (v?.validationStatus === 'manual' && v?.manuallyVerified)
+                                            v?.validationStatus === 'manual'
                                           );
                                         
                                         // Removed verbose verification status logging
@@ -4565,7 +4560,7 @@ Thank you for your assistance.`;
               
               {(() => {
                 const validation = getValidation(selectedReasoning.fieldName);
-                const isVerified = validation?.validationStatus === 'verified' || validation?.validationStatus === 'valid';
+                const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
                 
                 return (
                   <div className="flex items-center justify-between pt-4 border-t">

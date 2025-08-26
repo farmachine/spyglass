@@ -43,8 +43,8 @@ export function EditFieldValueDialog({
   const handleSave = () => {
     if (!validation) return;
     
-    // Empty fields are unverified, non-empty manually edited fields are verified
-    const finalStatus = value.trim() === "" ? "unverified" : "verified";
+    // Empty fields are pending, non-empty manually edited fields are manual
+    const finalStatus = value.trim() === "" ? "pending" : "manual";
     onSave(validation.id, value, finalStatus);
     onClose();
   };
@@ -54,7 +54,7 @@ export function EditFieldValueDialog({
     
     // Revert to original AI values immediately in the UI
     setValue(validation.originalExtractedValue);
-    setStatus("verified");
+    setStatus("valid");
     setCurrentReasoning(validation.originalAiReasoning || "");
     setHasRevertedToAI(true);
   };
@@ -62,7 +62,7 @@ export function EditFieldValueDialog({
   const handleClear = () => {
     // Clear the field value to empty and set status to unverified
     setValue("");
-    setStatus("unverified");
+    setStatus("pending");
     setHasRevertedToAI(false);
   };
 
