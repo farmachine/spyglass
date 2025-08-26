@@ -6697,7 +6697,9 @@ def extract_function(Column_Name, Excel_File):
                 })
                 .map(record => ({
                   identifierId: record.identifierId,
-                  name: record.extractedValue // Use extractedValue from validation record
+                  ID: record.extractedValue, // Use the actual column name as field name
+                  extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
+                  name: record.extractedValue // Also include as name for compatibility
                 }));
               
               console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
