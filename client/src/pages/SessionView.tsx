@@ -2264,6 +2264,11 @@ export default function SessionView() {
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
     } catch (error) {
       console.error('Error deleting all collection data:', error);
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       // Force complete refresh on error
       queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
