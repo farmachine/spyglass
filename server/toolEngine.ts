@@ -483,8 +483,10 @@ export class ToolEngine {
               console.log(`    📊 First item:`, JSON.stringify(sampleItem, null, 2));
               
               // For merged data, we need to provide both column names and worksheet context
-              const primaryFieldName = fieldNames[0]; // "Column Names"
-              const contextFieldName = fieldNames[1]; // "Worksheet Name"
+              // Filter out identifierId and internal fields to get actual data fields
+              const dataFields = fieldNames.filter(f => f !== 'identifierId' && !f.startsWith('_'));
+              const primaryFieldName = dataFields.find(f => f.includes('Column') || f === 'Column Names') || dataFields[0];
+              const contextFieldName = dataFields.find(f => f.includes('Worksheet') || f === 'Worksheet Name') || dataFields[1];
               
               // Check if we have identifierIds (for tracking which record each item corresponds to)
               const hasIdentifierId = batch.length > 0 && batch[0].identifierId !== undefined;
@@ -509,12 +511,27 @@ export class ToolEngine {
               
               // Use the base prompt but format the data correctly for it
               // The base prompt expects a "List Item" parameter, so we need to format our data accordingly
-              const formattedData = batch.map((item, index) => ({
-                identifierId: item.identifierId,
-                "Column Names": item[primaryFieldName],
-                "Worksheet Name": item[contextFieldName],
-                "_index": index // Add index for tracking
-              }));
+              const formattedData = batch.map((item, index) => {
+                const formatted: any = {
+                  identifierId: item.identifierId,
+                  "_index": index // Add index for tracking
+                };
+                
+                // If the item already has the correct field names, use them directly
+                if (item["Column Names"] !== undefined) {
+                  formatted["Column Names"] = item["Column Names"];
+                } else if (item[primaryFieldName] !== undefined) {
+                  formatted["Column Names"] = item[primaryFieldName];
+                }
+                
+                if (item["Worksheet Name"] !== undefined) {
+                  formatted["Worksheet Name"] = item["Worksheet Name"];
+                } else if (item[contextFieldName] !== undefined) {
+                  formatted["Worksheet Name"] = item[contextFieldName];
+                }
+                
+                return formatted;
+              });
               
               console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
               
@@ -540,13 +557,18 @@ Each object must have these fields:
   "documentSource": "Knowledge Document"
 }
 
-CRITICAL: Process items IN ORDER and preserve identifierId exactly:
+CRITICAL MAPPING INSTRUCTIONS:
+The identifierId is the KEY that links each input to its corresponding output. You MUST:
+1. Use the identifierId to track which output belongs to which input
+2. Use the "Column Names" and "Worksheet Name" as the CONTENT to analyze for mapping
+3. Find the standard equivalent for each column name based on its meaning and context
+
+Process each item:
 ${formattedData.map((item, idx) => `
-Item ${idx + 1}:
-- identifierId: "${item.identifierId}" (COPY THIS EXACT VALUE TO OUTPUT)
-- Column Name: "${item["Column Names"]}"
-- Worksheet: "${item["Worksheet Name"]}"
-→ Map this to its standard equivalent`).join('\n')}
+Item ${idx + 1} (identifierId: "${item.identifierId}"):
+- Input Column: "${item["Column Names"]}" from worksheet "${item["Worksheet Name"]}"
+- Task: Find the standard field name that best matches this column's purpose
+- Output must include identifierId: "${item.identifierId}"`).join('\n')}
 
 IMPORTANT: Your output array MUST:
 1. Have exactly ${formattedData.length} objects
