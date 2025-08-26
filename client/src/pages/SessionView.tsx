@@ -1979,8 +1979,8 @@ export default function SessionView() {
         if (referencedStep) {
           console.log(`📊 Getting data from referenced step: "${referencedStepName}"`);
           
-          // Simple approach: Get all validations for the referenced step's field IDs
-          const stepValidations = validations.filter(v => {
+          // Get all validations for the referenced step's field IDs
+          const allStepValidations = validations.filter(v => {
             // Must have an identifierId
             if (!v.identifierId) return false;
             
@@ -1988,16 +1988,38 @@ export default function SessionView() {
             const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
             const belongsToStep = referencedStep.values?.some(val => val.id === fieldId);
             
-            // Check if it's verified (any acceptable status)
-            const isVerified = v.validationStatus === 'valid' || 
-                              v.validationStatus === 'verified' || 
-                              v.validationStatus === 'manual-verified' ||
-                              v.validationStatus === 'manual';
-            
-            return belongsToStep && isVerified;
+            return belongsToStep;
           });
           
-          console.log(`  - Found ${stepValidations.length} verified validations for step "${referencedStepName}"`);
+          // Group by identifierId to check if ALL columns are verified (green checkmarks)
+          const verifiedIdentifierIds = new Set<string>();
+          const identifierGroups = new Map<string, any[]>();
+          
+          allStepValidations.forEach(v => {
+            if (!identifierGroups.has(v.identifierId)) {
+              identifierGroups.set(v.identifierId, []);
+            }
+            identifierGroups.get(v.identifierId)?.push(v);
+          });
+          
+          // Check each identifier group - ALL columns must be verified
+          identifierGroups.forEach((validations, identifierId) => {
+            const allVerified = validations.every(v => 
+              v.validationStatus === 'verified' || 
+              v.validationStatus === 'manual-verified'
+            );
+            if (allVerified) {
+              verifiedIdentifierIds.add(identifierId);
+            }
+          });
+          
+          // Filter to only include records where ALL columns have green checkmarks
+          const stepValidations = allStepValidations.filter(v => 
+            verifiedIdentifierIds.has(v.identifierId)
+          );
+          
+          console.log(`  - Found ${verifiedIdentifierIds.size} records where ALL columns have green checkmarks`);
+          console.log(`  - Total validations for these verified records: ${stepValidations.length}`);
           
           // Group by identifier ID to compile records
           const recordsByIdentifier = new Map<string, any>();
