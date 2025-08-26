@@ -2870,6 +2870,11 @@ Thank you for your assistance.`;
   };
 
   const formatValueForDisplay = (value: any, fieldType: string) => {
+    // Special handling for "Not Found" - display it as-is
+    if (value === 'Not Found') {
+      return 'Not Found';
+    }
+    
     if (!value || value === 'null' || value === 'undefined' || value === null) {
       return 'Empty';
     }
@@ -4080,8 +4085,12 @@ Thank you for your assistance.`;
                                     }
                                     
                                     let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                    // Don't convert "Not Found" to null
                                     if (displayValue === "null" || displayValue === "undefined") {
                                       displayValue = null;
+                                    } else if (displayValue === "Not Found") {
+                                      // Keep "Not Found" as is
+                                      displayValue = "Not Found";
                                     }
                                     
                                     return (
@@ -4107,7 +4116,10 @@ Thank you for your assistance.`;
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            <span className={formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 italic' : ''}>
+                                            <span className={
+                                              formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 italic' : 
+                                              formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''
+                                            }>
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
                                             
