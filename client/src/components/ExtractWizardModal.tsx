@@ -110,6 +110,64 @@ export default function ExtractWizardModal({
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
+  // Parse input values to show configuration
+  const getInputConfig = () => {
+    if (!inputValues) return [];
+    
+    const config: Array<{ key: string; value: any; type: string }> = [];
+    
+    Object.entries(inputValues).forEach(([key, value]) => {
+      // Skip internal keys starting with numbers
+      if (key.match(/^\d+\./)) {
+        // Extract meaningful part from keys like "0.hb25dnz5dmd"
+        
+        if (Array.isArray(value)) {
+          // Check if it contains @ references
+          const hasReferences = value.some(v => typeof v === 'string' && v.startsWith('@'));
+          if (hasReferences) {
+            config.push({
+              key: 'Field References',
+              value: value.filter(v => typeof v === 'string' && v.startsWith('@')).join(', '),
+              type: 'references'
+            });
+          } else if (value.length > 0) {
+            config.push({
+              key: 'Source Fields',
+              value: value.join(', '),
+              type: 'array'
+            });
+          }
+        } else if (typeof value === 'string') {
+          // Check for prompts or text content
+          if (value.length > 100) {
+            config.push({
+              key: 'Extraction Instructions',
+              value: value,
+              type: 'prompt'
+            });
+          } else if (value.startsWith('@')) {
+            config.push({
+              key: 'Field Reference',
+              value: value,
+              type: 'reference'
+            });
+          } else {
+            config.push({
+              key: key.split('.')[1] || key,
+              value: value,
+              type: 'text'
+            });
+          }
+        }
+      }
+    });
+    
+    return config;
+  };
+  
+  const inputConfig = getInputConfig();
+  const hasInputConfig = inputConfig.length > 0;
+  
   // Determine the function type from the title or tool type
   const getFunctionType = () => {
     const lowerTitle = title.toLowerCase();
@@ -148,38 +206,124 @@ export default function ExtractWizardModal({
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* User Guide Section */}
-          <Alert className="border-blue-200 bg-blue-50/50">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="space-y-3">
-              <div>
-                <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                <p className="text-gray-700">{functionInfo.detailedDescription}</p>
+          {/* Show Tool Configuration if available */}
+          {hasInputConfig ? (
+            <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Database className="h-4 w-4 text-blue-600" />
+                Tool Configuration
+              </h3>
+              
+              <div className="space-y-3">
+                {inputConfig.map((item, index) => (
+                  <div key={index} className="space-y-1">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {item.key}:
+                    </Label>
+                    {item.type === 'prompt' ? (
+                      <div className="bg-white rounded border border-gray-200 p-3">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+                          {item.value.substring(0, 200)}
+                          {item.value.length > 200 && '...'}
+                        </p>
+                      </div>
+                    ) : item.type === 'references' || item.type === 'reference' ? (
+                      <div className="flex flex-wrap gap-2">
+                        {item.value.split(', ').map((ref: string, i: number) => (
+                          <Badge key={i} variant="secondary" className="bg-purple-100 text-purple-800">
+                            {ref}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : item.type === 'array' ? (
+                      <div className="flex flex-wrap gap-2">
+                        {item.value.split(', ').map((val: string, i: number) => (
+                          <Badge key={i} variant="outline">
+                            {val}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded border border-gray-200 px-3 py-1.5">
+                        <p className="text-sm text-gray-800">{item.value}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
               
               {toolDescription && (
-                <div>
-                  <p className="font-medium text-gray-900 mb-1">Function details:</p>
-                  <p className="text-gray-700 text-sm">{toolDescription}</p>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-sm text-gray-600">{toolDescription}</p>
                 </div>
               )}
-            </AlertDescription>
-          </Alert>
-          
-          {/* How it works section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-gray-900">How it works:</Label>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              {functionInfo.whatHappens.map((step, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-medium mt-0.5">
-                    {index + 1}
-                  </div>
-                  <p className="text-sm text-gray-700 flex-1">{step}</p>
-                </div>
-              ))}
             </div>
-          </div>
+          ) : (
+            /* Original User Guide Section */
+            <Alert className="border-blue-200 bg-blue-50/50">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="space-y-3">
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">What this does:</p>
+                  <p className="text-gray-700">{functionInfo.detailedDescription}</p>
+                </div>
+                
+                {toolDescription && (
+                  <div>
+                    <p className="font-medium text-gray-900 mb-1">Function details:</p>
+                    <p className="text-gray-700 text-sm">{toolDescription}</p>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Input Data Preview - Show when there's input data */}
+          {inputData && inputData.length > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <ChevronRight className="h-4 w-4" />
+                Input Data from Previous Steps
+              </h3>
+              <p className="text-sm text-gray-600 mb-2">
+                {inputData.length} record{inputData.length !== 1 ? 's' : ''} available
+              </p>
+              {inputData[0] && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Sample fields from first record:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.keys(inputData[0]).slice(0, 5).map(key => (
+                      <Badge key={key} variant="outline" className="text-xs">
+                        {key}
+                      </Badge>
+                    ))}
+                    {Object.keys(inputData[0]).length > 5 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{Object.keys(inputData[0]).length - 5} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* How it works section - Only show if no input config */}
+          {!hasInputConfig && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-gray-900">How it works:</Label>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                {functionInfo.whatHappens.map((step, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-medium mt-0.5">
+                      {index + 1}
+                    </div>
+                    <p className="text-sm text-gray-700 flex-1">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Requirements section */}
           {functionInfo.requirements && functionInfo.requirements.length > 0 && (
