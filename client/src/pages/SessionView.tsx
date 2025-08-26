@@ -1981,6 +1981,15 @@ export default function SessionView() {
           
           // Get all validations for the referenced step
           const stepValidations = validations.filter(v => {
+            // Must have an identifierId
+            if (!v.identifierId) return false;
+            
+            // Check if step_id matches (if it exists)
+            const stepId = (v as any).stepId || (v as any).step_id;
+            if (stepId && stepId !== referencedStep.id) {
+              return false; // Wrong step
+            }
+            
             // Find validations for the referenced step's values
             const isStepValidation = referencedStep.values?.some(val => {
               // Check all possible property names for compatibility
@@ -1988,6 +1997,7 @@ export default function SessionView() {
               const valueId = (v as any).value_id || (v as any).valueId || (v as any).fieldId || (v as any).field_id;
               return valueId === val.id;
             });
+            
             return isStepValidation;
           });
           
