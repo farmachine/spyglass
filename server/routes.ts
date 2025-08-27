@@ -2370,12 +2370,30 @@ except Exception as e:
                   toolInputs[key] = value;
                 }
               }
-              // Handle Reference Document - fetch when key is present OR value is @reference_document
-              else if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document') {
+              // Handle Reference Document - fetch when key is present OR value is @reference_document or value is an array (document IDs)
+              else if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document' || (Array.isArray(value) && key.includes('uir69thnel'))) {
                 console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
-                // Get reference documents from session or knowledge base
+                console.log(`  Key: ${key}, Value type: ${typeof value}, Is Array: ${Array.isArray(value)}`);
+                
+                // If value is an array of document IDs, fetch specific documents
+                let knowledgeDocs: any[] = [];
+                if (Array.isArray(value) && value.length > 0) {
+                  console.log(`  Fetching specific knowledge documents: ${value}`);
+                  // Fetch specific knowledge documents by IDs
+                  for (const docId of value) {
+                    const doc = await storage.getKnowledgeDocument(docId);
+                    if (doc) {
+                      knowledgeDocs.push(doc);
+                      console.log(`    Found document: ${doc.fileName}`);
+                    }
+                  }
+                } else {
+                  // Get all knowledge documents for the project
+                  knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
+                }
+                
+                // Get reference documents from session
                 const sessionDocs = await storage.getSessionDocuments(sessionId);
-                const knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
                 
                 console.log(`📚 Found ${sessionDocs.length} session documents`);
                 console.log(`📚 Found ${knowledgeDocs.length} knowledge documents`);
