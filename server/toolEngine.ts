@@ -711,15 +711,33 @@ ${JSON.stringify(batch, null, 2)}`;
       
       const prompt = this.buildTestPrompt(tool, inputs);
       
-      console.log('🧪 GEMINI AI PROMPT FOR TOOL TESTING');
+      console.log('\n🧪 GEMINI AI PROMPT FOR TOOL TESTING');
       console.log('='.repeat(80));
       console.log('📝 Tool Name:', tool.name);
-      console.log('📝 Tool AI Prompt:', tool.aiPrompt);
-      console.log('📝 Test Inputs:', JSON.stringify(inputs, null, 2).slice(0, 1000) + '...');
-      console.log('');
-      console.log('🎯 FULL TEST PROMPT SENT TO GEMINI:');
+      console.log('📝 Tool AI Prompt:', tool.aiPrompt?.slice(0, 500) || 'No AI prompt configured');
+      console.log('\n📋 Test Inputs Summary:');
+      Object.entries(inputs).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          console.log(`  - ${key}: Array with ${value.length} items`);
+          if (value.length > 0 && value.length <= 3) {
+            console.log(`    Sample:`, JSON.stringify(value, null, 2));
+          } else if (value.length > 3) {
+            console.log(`    First 3:`, JSON.stringify(value.slice(0, 3), null, 2));
+          }
+        } else if (typeof value === 'string') {
+          console.log(`  - ${key}: String (${value.length} chars)`);
+          if (value.length <= 200) {
+            console.log(`    Value: "${value}"`);
+          } else {
+            console.log(`    Preview: "${value.slice(0, 200)}..."`);
+          }
+        } else {
+          console.log(`  - ${key}:`, JSON.stringify(value, null, 2).slice(0, 200));
+        }
+      });
+      console.log('\n🎯 FULL TEST PROMPT SENT TO GEMINI:');
       console.log('-'.repeat(80));
-      console.log(prompt.slice(0, 2000) + '...');
+      console.log(prompt);
       console.log('-'.repeat(80));
       console.log('');
       
@@ -734,9 +752,11 @@ ${JSON.stringify(batch, null, 2)}`;
       
       let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      console.log('🎉 GEMINI TEST RESPONSE:');
+      console.log('\n🎉 RAW GEMINI RESPONSE:');
       console.log('-'.repeat(80));
-      console.log(result.slice(0, 1000) + '...');
+      console.log('Response length:', result.length, 'characters');
+      console.log('\nFull Response:');
+      console.log(result);
       console.log('-'.repeat(80));
       console.log('');
       
