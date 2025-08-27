@@ -1900,6 +1900,9 @@ export default function SessionView() {
       return;
     }
     
+    console.log('📝 ValueToRun object:', valueToRun);
+    console.log('📝 Value description:', valueToRun.description);
+    
     // Get the value index to determine if this is the first column
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
     
