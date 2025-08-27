@@ -270,25 +270,18 @@ export default function ExtractWizardModal({
                 </div>
               )}
             </div>
-          ) : (
-            /* Original User Guide Section */
+          ) : toolDescription ? (
+            /* Show value description if available */
             <Alert className="border-blue-200 bg-blue-50/50">
               <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="space-y-3">
+              <AlertDescription>
                 <div>
                   <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                  <p className="text-gray-700">{functionInfo.detailedDescription}</p>
+                  <p className="text-gray-700">{toolDescription}</p>
                 </div>
-                
-                {toolDescription && (
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Function details:</p>
-                    <p className="text-gray-700 text-sm">{toolDescription}</p>
-                  </div>
-                )}
               </AlertDescription>
             </Alert>
-          )}
+          ) : null}
           
           {/* Input Data Preview - Show when there's input data */}
           {inputData && inputData.length > 0 ? (
@@ -438,22 +431,6 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* How it works section - Only show if no input config */}
-          {!hasInputConfig && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-900">How it works:</Label>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                {functionInfo.whatHappens.map((step, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-medium mt-0.5">
-                      {index + 1}
-                    </div>
-                    <p className="text-sm text-gray-700 flex-1">{step}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           
           {/* Requirements section */}
           {functionInfo.requirements && functionInfo.requirements.length > 0 && (
