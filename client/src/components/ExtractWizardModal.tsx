@@ -218,19 +218,6 @@ export default function ExtractWizardModal({
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* Show value description at the top if available */}
-          {toolDescription && (
-            <Alert className="border-blue-200 bg-blue-50/50">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription>
-                <div>
-                  <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                  <p className="text-gray-700">{toolDescription}</p>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-          
           {/* Show Tool Configuration if available */}
           {hasInputConfig ? (
             <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
@@ -277,7 +264,22 @@ export default function ExtractWizardModal({
                 ))}
               </div>
             </div>
-          ) : null}
+          ) : (
+            <>
+              {/* Show value description if available */}
+              {toolDescription && (
+                <Alert className="border-blue-200 bg-blue-50/50">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">What this does:</p>
+                      <p className="text-gray-700">{toolDescription}</p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
           
           {/* Input Data Preview - Show when there's input data */}
           {inputData && inputData.length > 0 ? (
