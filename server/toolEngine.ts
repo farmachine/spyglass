@@ -974,10 +974,10 @@ ${JSON.stringify(batch, null, 2)}`;
         const inputArray = dataInputs[0][1] as any[];
         console.log(`⚠️ Creating ${inputArray.length} error placeholders to maintain data mapping`);
         
-        return inputArray.map((item, index) => ({
+        return inputArray.map((item: any) => ({
           identifierId: item.identifierId || null,
           extractedValue: null,
-          validationStatus: "invalid",
+          validationStatus: "invalid" as const,
           aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
           confidenceScore: 0,
           documentSource: "AI_ERROR"
@@ -987,7 +987,7 @@ ${JSON.stringify(batch, null, 2)}`;
       // Default single error result
       return [{
         extractedValue: null,
-        validationStatus: "invalid",
+        validationStatus: "invalid" as const,
         aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
         confidenceScore: 0,
         documentSource: "AI_ERROR"
