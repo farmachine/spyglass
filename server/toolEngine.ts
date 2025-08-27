@@ -500,34 +500,25 @@ export class ToolEngine {
               console.log(`    📊 First item in batch:`, batch[0]);
               console.log(`    📊 Last item in batch:`, batch[batch.length - 1]);
               
-              // Override the tool prompt for merged data to ensure proper handling
+              // Use the tool's actual AI prompt - DO NOT override it
               const basePrompt = tool.aiPrompt || '';
               
-              // Check if the base prompt already has proper structure for batch processing
-              const hasProperBatchStructure = basePrompt.includes('exactly the same number') || 
-                                             basePrompt.includes('exactly the same length');
+              console.log(`    📊 Using tool's actual AI prompt (not overriding)`);
               
-              console.log(`    📊 Base prompt has proper batch structure: ${hasProperBatchStructure}`);
-              
-              // Use the base prompt but format the data correctly for it
-              // The base prompt expects a "List Item" parameter, so we need to format our data accordingly
+              // Format the data as the tool expects
               const formattedData = batch.map((item, index) => {
-                const formatted: any = {
-                  identifierId: item.identifierId,
-                  "_index": index // Add index for tracking
-                };
+                const formatted: any = {};
                 
-                // If the item already has the correct field names, use them directly
-                if (item["Column Names"] !== undefined) {
-                  formatted["Column Names"] = item["Column Names"];
-                } else if (item[primaryFieldName] !== undefined) {
-                  formatted["Column Names"] = item[primaryFieldName];
+                // Always include identifierId if present
+                if (item.identifierId) {
+                  formatted.identifierId = item.identifierId;
                 }
                 
-                if (item["Worksheet Name"] !== undefined) {
-                  formatted["Worksheet Name"] = item["Worksheet Name"];
-                } else if (item[contextFieldName] !== undefined) {
-                  formatted["Worksheet Name"] = item[contextFieldName];
+                // Include all fields from the item
+                for (const [key, value] of Object.entries(item)) {
+                  if (key !== '_index') { // Skip internal tracking fields
+                    formatted[key] = value;
+                  }
                 }
                 
                 return formatted;
@@ -535,82 +526,69 @@ export class ToolEngine {
               
               console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
               
-              // Get other input parameters that should be included in the prompt
-              // Look for AI Query in the original inputs (not batchInputs which only has the data array)
-              const aiQuery = inputs['AI Query'] || 'Map each column name to its standard field equivalent';
+              // Get input parameters from the tool configuration
+              const aiQuery = inputs['AI Query'] || '';
               const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
+              const additionalInstructions = inputs['0.hb25dnz5dmd'] || ''; // Additional instructions from value config
               
               console.log(`    📊 AI Query: ${aiQuery}`);
+              console.log(`    📊 Additional Instructions: ${additionalInstructions}`);
               console.log(`    📊 Reference Document provided: ${referenceDoc ? 'Yes' : 'No'}`);
               
-              // Build the prompt with all necessary parameters
-              // The AI Query Against Document tool expects these specific parameters
-              batchPrompt = `You will be provided with a List Item, an AI Query, and a Reference Document. For each List Item, use the AI Query to extract information from the Reference Document.
+              // Build the prompt using the tool's actual prompt template
+              // Replace placeholders in the tool's prompt with actual values
+              let promptTemplate = basePrompt;
+              
+              // The tool expects these specific inputs based on its configuration
+              // We need to format the prompt according to what the tool's AI prompt expects
+              batchPrompt = promptTemplate;
+              
+              // If the prompt contains placeholders for the inputs, replace them
+              // Otherwise, construct the prompt with the expected format
+              if (promptTemplate.includes('`List Item`') && promptTemplate.includes('`AI Query`') && promptTemplate.includes('`Reference Document`')) {
+                // The prompt already has the structure, we just need to provide the data
+                batchPrompt = `${promptTemplate}
 
-AI QUERY: ${aiQuery}
+AI Query: ${aiQuery}
+${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
 
-REFERENCE DOCUMENT:
+Reference Document:
 ${referenceDoc}
 
-LIST ITEMS (${formattedData.length} items to process):
-${JSON.stringify(formattedData, null, 2)}
-
-CRITICAL INSTRUCTIONS:
-Only return items where you FOUND A MATCH in the Reference Document.
-Skip items that have no matching information - the system will handle those automatically.
-
-REQUIRED OUTPUT FORMAT:
-Return a JSON array containing ONLY the items where you found matches.
-Each matched object must have these fields:
-{
-  "identifierId": "copy the exact identifierId from the input item",
-  "extractedValue": "the mapped standard equivalent",
-  "validationStatus": "valid",
-  "aiReasoning": "max 10 words",
-  "confidenceScore": number between 0-100,
-  "documentSource": "Knowledge Document"
-}
-
-IMPORTANT:
-- ONLY include items where you found actual matches
-- DO NOT include "Not Found" entries
-- Keep aiReasoning VERY SHORT (max 10 words)
-- The system will automatically handle unmatched items
-
-Return ONLY the matched results as a JSON array.`;
+List Items (${formattedData.length} items):
+${JSON.stringify(formattedData, null, 2)}`;
             } else {
-              // Standard prompt for simple data
-              // Check if items have identifierId
-              const hasIdentifierId = batch.length > 0 && 
-                                     typeof batch[0] === 'object' && 
-                                     batch[0] !== null && 
-                                     'identifierId' in batch[0];
+              // Standard prompt for simple data - use tool's actual prompt
+              console.log(`    📊 Using tool's actual AI prompt for standard data`);
               
-              batchPrompt = `${tool.aiPrompt || ''}
+              // Get input parameters from the tool configuration
+              const aiQuery = inputs['AI Query'] || '';
+              const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
+              const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
+              
+              // Use the tool's actual prompt
+              const basePrompt = tool.aiPrompt || '';
+              
+              // Build prompt with tool's template
+              if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`') && basePrompt.includes('`Reference Document`')) {
+                // The prompt already has the structure, we just need to provide the data
+                batchPrompt = `${basePrompt}
 
-You are processing a batch of ${batch.length} items. Find matches for items where possible.
+AI Query: ${aiQuery}
+${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
 
-INPUT DATA (${batch.length} items):
-${JSON.stringify(batch, null, 2)}
+Reference Document:
+${referenceDoc}
 
-REQUIRED OUTPUT FORMAT:
-Return a JSON array containing ONLY items where you found matches or extracted valid data.
-Each matched object must follow this schema:
-{${hasIdentifierId ? '\n  "identifierId": "copy exactly from input",' : ''}
-  "extractedValue": "the extracted or matched value",
-  "validationStatus": "valid",
-  "aiReasoning": "max 10 words",
-  "confidenceScore": 0-100,
-  "documentSource": "source reference"
-}
+List Items (${batch.length} items):
+${JSON.stringify(batch, null, 2)}`;
+              } else {
+                // Fallback to simpler format if tool prompt doesn't have expected structure
+                batchPrompt = `${basePrompt}
 
-IMPORTANT:
-- ONLY include items where you found actual matches or extracted valid data
-- DO NOT include "Not Found" entries - the system handles those automatically
-- Keep aiReasoning VERY SHORT (max 10 words)
-- Each result must have all ${hasIdentifierId ? '6' : '5'} required fields${hasIdentifierId ? ' (including identifierId)' : ''}
-
-Return ONLY the matched results as a JSON array.`;
+Input Data (${batch.length} items):
+${JSON.stringify(batch, null, 2)}`;
+              }
             }
             
             // Add delay between batches to respect Gemini API rate limits
@@ -647,58 +625,32 @@ Return ONLY the matched results as a JSON array.`;
                 console.log(`    🔍 Last result:`, results[results.length - 1]);
               }
               
-              // CRITICAL: Process AI results - AI now only returns matches
-              console.log(`    🔍 PROCESSING AI RESULTS (AI returns matches only):`);
+              // Process AI results - The AI should return results for ALL items
+              console.log(`    🔍 PROCESSING AI RESULTS (AI should handle all items per tool prompt):`);
               
-              // Create a map of AI results by identifierId for lookup
-              const resultMap = new Map();
-              for (const result of results) {
-                if (result.identifierId) {
-                  resultMap.set(result.identifierId, result);
-                }
+              // The tool's prompt should already handle all items and return proper results
+              // including "Not Found" or appropriate status for unmatched items
+              // We should NOT override the AI's response
+              
+              console.log(`      AI returned ${results.length} results for ${batch.length} inputs`);
+              
+              // Verify the AI returned the expected number of results
+              if (results.length !== batch.length) {
+                console.warn(`      ⚠️ WARNING: AI returned ${results.length} results but expected ${batch.length}`);
+                console.warn(`      The tool's prompt should return results for ALL items`);
               }
               
-              console.log(`      AI found ${resultMap.size} matches out of ${batch.length} inputs`);
-              
-              // Now create properly ordered results based on input order
-              const orderedResults = [];
-              for (let idx = 0; idx < batch.length; idx++) {
+              // Log first few results for debugging
+              for (let idx = 0; idx < Math.min(5, results.length); idx++) {
+                const result = results[idx];
                 const input = batch[idx];
-                const expectedId = input.identifierId;
-                
-                // Check if AI found a match for this item
-                const matchingResult = resultMap.get(expectedId);
-                
-                if (matchingResult) {
-                  // AI found a match - use it as-is
-                  orderedResults.push(matchingResult);
-                } else {
-                  // AI didn't find a match - create "Not Found" entry
-                  const notFoundResult = {
-                    identifierId: expectedId,
-                    extractedValue: "Not Found",
-                    validationStatus: "invalid",
-                    aiReasoning: "No match in document",
-                    confidenceScore: 0,
-                    documentSource: "N/A"
-                  };
-                  orderedResults.push(notFoundResult);
-                }
-                
-                // Log first few for debugging
-                if (idx < 5) {
-                  const result = matchingResult || orderedResults[orderedResults.length - 1];
+                if (input && result) {
                   console.log(`      Item ${idx}:`);
-                  console.log(`        Input: ID=${expectedId}, Value="${input["Column Names"] || input.ID || input}"`);
-                  console.log(`        Output: ID=${result.identifierId}, Value="${result.extractedValue}"`);
+                  console.log(`        Input: ID=${input.identifierId}, Value="${input["Column Names"] || input.ID || JSON.stringify(input)}"`);
+                  console.log(`        Output: ID=${result.identifierId}, Value="${result.extractedValue}", Status="${result.validationStatus}"`);
                 }
               }
               
-              // Replace results with properly ordered results
-              results.length = 0;
-              results.push(...orderedResults);
-              
-              console.log(`    ✅ Created ${orderedResults.length} total results: ${resultMap.size} matches + ${orderedResults.length - resultMap.size} "Not Found" entries`);
               
               allResults.push(...results);
               console.log(`    ✅ Batch processed: ${results.length} results`);
