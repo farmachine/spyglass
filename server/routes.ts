@@ -2385,11 +2385,13 @@ except Exception as e:
                     if (doc) {
                       knowledgeDocs.push(doc);
                       console.log(`    Found document: ${doc.fileName}`);
+                      console.log(`    Document content preview: ${doc.extractedContent?.slice(0, 200)}...`);
                     }
                   }
                 } else {
                   // Get all knowledge documents for the project
                   knowledgeDocs = await storage.getKnowledgeDocuments(projectId);
+                  console.log(`  Fetched all ${knowledgeDocs.length} knowledge documents for project`);
                 }
                 
                 // Get reference documents from session

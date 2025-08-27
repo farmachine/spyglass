@@ -1,0 +1,1039 @@
+gs (not "Not Found")
+1:56:35 PM [express] POST /api/dev/console 200 in 2ms :: {"success":true}
+1:56:35 PM [browser] 📝 ❌ 185 records have "Not Found" in Standard Equivalent
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 Sample of data being sent (first 3 with valid mappings): []
+1:56:35 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:56:35 PM [browser] 📝 Sample of data being sent (first 3 with "Not Found"): []
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Session documents available: 1 documents
+1:56:35 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Documents: [{"id":"96c1c05e-a22a-4e48-898f-1a3ad3beea02","fileName":"Ersatz eighth (1).xlsx"}]
+1:56:35 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:56:35 PM [browser] ⚠️ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Running extraction for Standard Equivalent
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Document: 96c1c05e-a22a-4e48-898f-1a3ad3beea02
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Previous data: 185 records
+1:56:35 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:56:35 PM [browser] 📝 🎯 Sending extraction request for: Standard Equivalent (ccc1216b-3904-47a0-9121-138c47b8431a)
+1:56:35 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+📊 Running SINGLE column extraction for session 29e7713e-e4b9-4966-b414-5f4393164266
+   Step ID: e3c7f77d-910c-4e41-8668-e0fccf16fd45, Value ID: ccc1216b-3904-47a0-9121-138c47b8431a
+   ⚠️ IMPORTANT: This endpoint extracts ONLY the single value/column specified by valueId
+   ⚠️ It does NOT extract all values in the step - just this one value
+   Previous data records: 185
+   Document ID: 96c1c05e-a22a-4e48-898f-1a3ad3beea02
+   🎯 Extracting ONLY: "Standard Equivalent" (ccc1216b-3904-47a0-9121-138c47b8431a)
+   🚫 NOT extracting other values in step "Column Name Mapping"
+🔧 Using tool: AI Query Against Document (AI_ONLY)
+🎯 Processing inputValues: {
+  'AI Query': 'Map each column name to its standard field equivalent based on the column name and worksheet context.',
+  'List Item': null,
+  '0.4uir69thnel': [
+    '048ed9f2-a502-4781-a110-3185ccf0e5dc',
+    'ba859027-9d96-46b4-aaff-ed4619e755fa'
+  ],
+  '0.hb25dnz5dmd': "Map the values to the equivalent in the the standard fields mapping document. If you can't find a sensible mapping, just say 'Not Found'. Do not just copy the column value... i",
+  'Reference Document': '@reference_document'
+}
+🎯 Previous data available: 185 records
+➡️ Direct value for AI Query: Map each column name to its standard field equivalent based on the column name and worksheet context.
+➡️ Direct value for List Item: null
+🔄 Processing array parameter 0.4uir69thnel with 2 items
+➡️ Direct array value for 0.4uir69thnel: [
+  '048ed9f2-a502-4781-a110-3185ccf0e5dc',
+  'ba859027-9d96-46b4-aaff-ed4619e755fa'
+]
+➡️ Direct value for 0.hb25dnz5dmd: Map the values to the equivalent in the the standard fields mapping document. If you can't find a sensible mapping, just say 'Not Found'. Do not just copy the column value... i
+🔗 Processing reference: @reference_document -> reference_document
+📊 Sample previous data record: {
+  identifierId: '4401e093-d0dd-46a5-a268-a9daa04b842a',
+  ID: 'Date Of Exit From Active Service',
+  'Worksheet Name': 'New_Pensioners'
+}
+📊 Looking for column name: "reference_document"
+⚠️ Unexpected previousData format - no identifierId, no fieldName, and no reference_document property
+   Available properties: identifierId,ID,Worksheet Name
+🎯 AI tool expects List Item but input is null - using previousData with 185 records
+  First record: {
+  identifierId: '4401e093-d0dd-46a5-a268-a9daa04b842a',
+  ID: 'Date Of Exit From Active Service',
+  'Worksheet Name': 'New_Pensioners'
+}
+  Last record: {
+  identifierId: 'a44fc5f5-5c73-4551-bfb7-6a5978da530a',
+  ID: 'Postcode',
+  'Worksheet Name': 'New_Pensioners'
+}
+✅ Populated List Item with 185 records from previousData
+  Sample records: [
+  {
+    identifierId: '4401e093-d0dd-46a5-a268-a9daa04b842a',
+    'Column Name': 'Date Of Exit From Active Service',
+    'Worksheet Name': 'New_Pensioners'
+  },
+  {
+    identifierId: 'b190b857-a399-4af3-84a9-b02c0b65a54d',
+    'Column Name': 'Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service',
+    'Worksheet Name': 'New_Pensioners'
+  },
+  {
+    identifierId: '930df27f-c134-4a3d-9606-4fded15878cb',
+    'Column Name': 'Annual Post-5.4.1988 GMP Component At Date Of This Valuation',
+    'Worksheet Name': 'New_Pensioners'
+  }
+]
+📥 Tool inputs prepared: {
+  "AI Query": "Map each column name to its standard field equivalent based on the column name and worksheet context.",
+  "List Item": [
+    {
+      "identifierId": "4401e093-d0dd-46a5-a268-a9daa04b842a",
+      "Column Name": "Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "b190b857-a399-4af3-84a9-b02c0b65a54d",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "930df27f-c134-4a3d-9606-4fded15878cb",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "2efd0c15-bd92-4f35-bbf6-5c378c609f05",
+      "Column Name": "Total Pension Payable From Scheme At This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "5980c8de-4bfb-4b22-9e49-e9f1fb52f06a",
+      "Column Name": "Contingent Widow(er)'s Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "eaa612aa-842b-4e60-ba75-09c60520faab",
+      "Column Name": "Contingent Widow(er)'s Pension At This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "0be1113f-b11d-420d-b9d6-d35e46b9948b",
+      "Column Name": "Date Of Exit From Pensioner Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "db06f83f-be15-4275-9931-4d67efb34fa8",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "2ff4447c-6fa8-4529-bace-d065bfbabe79",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "0432a0b8-cdd0-40ec-93ed-dacd26089426",
+      "Column Name": "Date Became Pensioner",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "bdc10694-8be1-4732-b8be-596ce5fd07b0",
+      "Column Name": "Type Of Retirement",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "b3232fc7-3221-484f-bcc2-a5b893c3ff33",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "876db918-470c-40dc-8afa-e154fa00200a",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "c8ba447e-7c89-4d44-83af-3fccd8799c8d",
+      "Column Name": "Total Pension Payable From Scheme At Last Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "68c10ff6-de7d-484d-9549-ddeaad021b47",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "540eb41c-6fdb-4400-bc31-52fb49842882",
+      "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "87a00765-7d7b-483a-99ee-0602457697e6",
+      "Column Name": "Non-increasing pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "f99d4425-2077-49ad-bdf5-0849250708bb",
+      "Column Name": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "e397b77e-c1ab-4a98-94eb-61802608bace",
+      "Column Name": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "1be1955b-2e68-4ffa-91d0-4990b6215f00",
+      "Column Name": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "b98f7256-b737-44d3-9d5a-ac1c557f5106",
+      "Column Name": "Postcode",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "8f8e167a-f4de-4d06-acce-9a1f34d9264c",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "18129942-a45a-4eb6-9787-9af64d8d1798",
+      "Column Name": "Non-increasing TV-in pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "63725a08-3ee8-4603-9ef6-f675ec0d7795",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "d50061d7-fa44-450b-9f44-aa07592a17f5",
+      "Column Name": "Tax Free Cash taken at Retirement",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "ad30629f-2530-4ee4-8ac8-1a2b48f90ec5",
+      "Column Name": "Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "fbd5108a-b8c2-40bb-9c56-337033350100",
+      "Column Name": "Valuation Record Type",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "403066d6-a8ef-45a4-a058-5fdadc13ba15",
+      "Column Name": "Child's Date of Birth",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "83c1fb7c-aae2-4728-a18a-00fef33137df",
+      "Column Name": "Child's Reference No",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "06a105b7-cc7c-4b6b-be0a-1b0321ec159d",
+      "Column Name": "Code For Previous Status Of Deceased Member",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "a6d8dee5-b9e1-4ec3-8e76-7816de1f5258",
+      "Column Name": "Component Of Child's Pension At This Valuation Subject To RPI capped at 5% pa",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "d0a1ee0c-7bda-4711-8362-1e775c117a4d",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "9ca635dd-1487-4d87-9d37-7bfdf0834a60",
+      "Column Name": "Section B Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "8e7b87b0-bf76-4235-9a0f-5121b2c8ec81",
+      "Column Name": "Component of Child’s Pension At This Valuation Subject to CPI capped at 2_5% pa",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "c2fa0082-a94c-444f-bf20-efd31e251700",
+      "Column Name": "Code For Previous Status Of Deceased Member",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "f23f6ba8-9e78-4995-a5e2-2a5b2db50920",
+      "Column Name": "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "b1a48a50-6204-49d3-86bd-26d3d3eb2e96",
+      "Column Name": "Total Widow(er)'s Pension Payable From Scheme At This Valuation",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "61c68750-d611-407f-94fe-b5bf8ea867f1",
+      "Column Name": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "1a9ad56b-ac26-44b6-af4f-e1bf158d36d7",
+      "Column Name": "Code For Exit From Widow(er) Beneficiary Status",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "e2ebac8f-e915-4a48-9015-366b1054cdfd",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "6ab7c162-1e89-4f24-b0a4-7e53d3a2b72e",
+      "Column Name": "Component Of Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "d0ddeeb8-2b9c-41a2-bb7b-4c97e6af8031",
+      "Column Name": "Component Of Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "70659d11-06b8-48e0-8ec9-77dc61e83574",
+      "Column Name": "Valuation Record Type",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "d1aee6f4-ea0d-4508-a94d-9cc8084b8fec",
+      "Column Name": "Deceased members reference no",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "10f9e469-1ff0-4c1c-8349-4853981614fb",
+      "Column Name": "Date Child'sPension Commenced",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "133df57c-b453-45a1-bd2f-15030a3100cc",
+      "Column Name": "Child's Pension Payable From Scheme At This Valuation",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "f23b005f-c775-44df-a990-270f762cdf8d",
+      "Column Name": "Date Child's Pension Is To Cease Or Has Ceased",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "ec685da2-dceb-4dec-a716-5879bee87460",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "8ba99001-9de2-4f67-afc4-5030df1aa545",
+      "Column Name": "Component Of Child's Pension At This Valuation Subject To RPI capped at 2_5% pa",
+      "Worksheet Name": "Children"
+    },
+    {
+      "identifierId": "42e6e560-3c71-4171-b28e-793f71de5ff2",
+      "Column Name": "Type Of Retirement",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "88a23448-f6e3-4bb4-bd6a-ab858536f5e5",
+      "Column Name": "Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "65bf4b9a-aa44-44ba-90d6-00abef31c950",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "0530878f-b666-4488-af3c-63d68369fe4b",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "f3f63d04-db19-44cf-ace2-6c2a5e14e51a",
+      "Column Name": "Non-increasing pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "b864a845-e8b8-4f34-ac38-8335a1ee4779",
+      "Column Name": "Contingent Widow(er)'s Pension At This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "5a2f4e45-c66b-4e22-a091-fe840a37c7ef",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "d4baf711-eda5-4202-a992-d20b5dca5eb5",
+      "Column Name": "Widow(er)'s Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "8425d4e1-ceed-47b7-9710-648c0263b11f",
+      "Column Name": "Employer Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "e17daee7-f1ae-4270-b38a-dd393471331a",
+      "Column Name": "Benefits Scale Code",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "70583365-d8b1-42d3-969b-bd0df89ae8f7",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "69f23d0f-ed2e-445b-8c2f-b31acf324ae0",
+      "Column Name": "Date Of Birth",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "7af3ab25-68d1-41c0-b610-5f7f3a001a8a",
+      "Column Name": "Date Pensionable Service Commenced",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "046067be-b686-4441-b0f3-6e31ffc60cf5",
+      "Column Name": "Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "fc769f17-eaed-48eb-98b9-2b87237cc620",
+      "Column Name": "Code For Previous Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a462328d-66f2-46e4-91e1-24cc90ff87e8",
+      "Column Name": "Normal Retirement Date",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "903dc993-b05d-4c0d-9cfb-4ec7ff3402ed",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "27130bba-d31c-4f79-a6a7-dc2dd37adf5f",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "82acf6fd-b654-41eb-b278-5442739626f2",
+      "Column Name": "Total Deferred Pension Payable From Scheme At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "2d353c15-eae8-4c94-8d71-43c0d0e7cc0e",
+      "Column Name": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "8d5ea802-671a-4936-943e-f70a8ce91189",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Not Subject To Statutory Revaluation In Deferment",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "dcb0c7a8-69db-4ace-920d-64c3ac16c7e4",
+      "Column Name": "Total Pension Payable From Scheme At This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "5442ea49-ca41-40b9-b90c-5cbec3fdd421",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment (or fixed 5% pa in deferment and in payment for former Section B)",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "95062922-af99-489a-8f18-53603266242f",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment (or fixed 5% in deferment and CPI capped at 5% pa in payment for Section B members)",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "1418b568-35c6-48f3-a0e6-72bd085e1695",
+      "Column Name": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "e72a7225-999e-44c7-8cd8-3f5f78926fd8",
+      "Column Name": "Date Of Exit From Deferred Pensioner Status",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "3498b9d4-febf-4aa4-b389-402b1198e68a",
+      "Column Name": "Code For Exit From Deferred Pensioner Status",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "884a686c-a357-48d8-a0b9-ba66e5e98b9f",
+      "Column Name": "Date Became Widow(er) Beneficiary",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "7ef35959-01e8-473b-9aae-46eed420bfb8",
+      "Column Name": "Code For Exit From Pensioner Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "04e378a7-adf9-4772-80cd-66f4e0789494",
+      "Column Name": "Date Of Exit From Widow(er) Beneficiary Status",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "d040fe00-d837-441f-8b96-00b04352b49e",
+      "Column Name": "Widow's Allotment At Valuation Date Included In Pension",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "cf8c3c39-a17a-460f-954b-300354db7cb7",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "f814bbbc-a04f-4f2f-b0b0-817d67bd5899",
+      "Column Name": "Section B Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "d52aa7c4-486a-4d93-9ba2-3baf0c91970a",
+      "Column Name": "Postcode",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "88d045ae-dc0a-4890-9928-b04510d5fc7b",
+      "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "f1ef1f3b-aef5-44fb-85a5-00f509911363",
+      "Column Name": "Date Deceased Member Became Pensioner",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "22f932fe-72fd-4f5a-bf11-d644f1ef96f0",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a4c2f701-6b16-474c-9935-124140d0a2d3",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "ac234d5e-2090-42aa-9728-3c8f2909d66c",
+      "Column Name": "New Pension Date",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "4b56c5e3-f9ef-41db-bb5a-e60bd09a93cc",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment (or fixed 5% in deferment and CPI capped at 2.5% pa in payment for Section B members)",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "eb60c6f9-5479-4cf5-8922-1c684ddec577",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Deferred Pensioner Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "60d9bc7d-a7e2-4870-b090-e70f4d45d2bf",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "12babc28-44c2-4680-b532-d193f4e419a7",
+      "Column Name": "Section B indicator",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "c9be5b06-054b-4c2e-952d-1a8d0374393a",
+      "Column Name": "TV-in fixed Paid Up Pension at Normal Retirement Date",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "ead06831-c6da-44b2-8ed2-81fcadd39ef2",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Deferred Pensioner (or fixed 5% pa for former Section B members)",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "d9e63961-cec0-44df-987e-feff5e054d91",
+      "Column Name": "Postcode",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "f884f382-0217-4bcc-9139-274a4d86f581",
+      "Column Name": "Salary at date of leaving pensionable service",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "7a7c41ca-c3d2-4570-949f-65fb12543ef2",
+      "Column Name": "Section B Pre 21 July 1997 (Post 97 fixed 5% pa in deferment and payment pension)",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "543725f3-c88f-4b51-9b23-1d7aee9c4b9b",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "344b8c77-6f84-4489-b18b-b512e8f78de3",
+      "Column Name": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "aad8410f-9519-48dc-a0ca-440ac49e8e0e",
+      "Column Name": "Date Of Birth",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "0d367ece-942c-45c8-9830-e4c2b95f16be",
+      "Column Name": "Date Became Pensioner",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "1c6ea53b-2b91-4d22-aff8-d6a7da1b32b7",
+      "Column Name": "Code For Previous Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "ac5049c7-4d13-4de7-b3a1-718c9e82598e",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "59230aea-e63a-41f3-83d8-8a2111350bd0",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "304fdbbe-52e1-4331-868c-38fcd8adca13",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "cccb14d9-86ec-4147-8d60-20d4553497b8",
+      "Column Name": "Total Pension Payable From Scheme At Last Valuation",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "fdab39e9-dc42-4784-a805-4bcd0fc62733",
+      "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "42d5781e-f3e6-43df-8ea5-a0f95ad6de92",
+      "Column Name": "Contingent Widow(er)'s Date Of Birth",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "e7069c5f-c503-4f31-837c-1110bf2dceca",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "25cc2caa-b133-40ff-a9bc-cbe09a40b441",
+      "Column Name": "Contingent Widow(er)'s Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "6a24f017-4734-45d9-b014-c53b451f3a06",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "45f3edec-e133-418a-95b3-940827b62c1d",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "06d6d4fa-4d7c-4804-9b62-8983583af9f7",
+      "Column Name": "Non-increasing TV-in pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "5b42b098-085f-44da-83ff-bc1ed7e300cc",
+      "Column Name": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "dfe78e35-0ebb-4d7a-ae81-6d13ef6f15d6",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "73b0d615-0fce-4f3f-af0c-1798c42daf77",
+      "Column Name": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a62cd26a-43ba-4f29-954c-434a7ee86756",
+      "Column Name": "Tax Free Cash taken at Retirement",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "ec69de85-3cb0-4f54-a35e-bba5682ce467",
+      "Column Name": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "017850d8-40cd-416d-b406-de6197396232",
+      "Column Name": "Postcode",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "d5be17cf-994e-4fd6-8b03-166db6c3dd9f",
+      "Column Name": "Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "68ea6c92-14ba-4353-83ce-a85f2ae2b5d7",
+      "Column Name": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "8c9c3a3b-19ab-4d29-9e6f-f1fe15cefc3b",
+      "Column Name": "Widow(er)'s Reference No",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "2146b99f-8c8d-451d-92d7-ffffd99ee344",
+      "Column Name": "Deceased Member's Reference No",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "ca9fce57-7b36-45ee-9855-0cd0fd68f64e",
+      "Column Name": "Beneficiary's Code",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "7e9fac6c-1486-4fde-8522-51d0dae8c253",
+      "Column Name": "Widow(er)'s Date Of Birth",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "52a01796-44d9-40ee-a17a-700129a9b445",
+      "Column Name": "Total Widow(er)'s Pension Payable From Scheme At Last Valuation",
+      "Worksheet Name": "Widows"
+    },
+    {
+      "identifierId": "51a27082-8585-4c35-ba80-042c66d97d67",
+      "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "72a8bf19-5e08-44b6-bf21-c97f0ad98f5a",
+      "Column Name": "Contingent Widow(er)'s Date Of Birth",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "bf5d0429-b962-411f-9705-8b49c292c1df",
+      "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "b0ca1820-f18d-43ab-b6e2-241cd897bc21",
+      "Column Name": "Code For Exit From Pensioner Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "39cd776f-8266-4730-bd83-fa621826c0cc",
+      "Column Name": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "778bd824-3c53-45f4-887a-f0cf967e4a43",
+      "Column Name": "Date Pensionable Service Commenced",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "f1fe8e46-899c-44d9-b471-a9c49e64fc18",
+      "Column Name": "Code For Previous Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "59a33908-2728-4b2f-b938-8487e10f6370",
+      "Column Name": "Employer Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "2f15dc4a-2eaf-4a3a-b4b5-d407a772ee8d",
+      "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "581d8327-e1b9-4902-a3ba-e81971b798e0",
+      "Column Name": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "92d96632-c4c5-4d1f-80f1-7e0d5c4a5575",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "0ec9d703-9a77-40cd-b051-5c9050f6da4b",
+      "Column Name": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "1974f254-ce92-4dc7-8eb5-35c8884ccba4",
+      "Column Name": "Section B Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "9bc3274e-6aef-4073-9c3b-364a901f01cc",
+      "Column Name": "Employer Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "5abd24aa-3835-4f2a-b5b7-4b6cbec401d1",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "64f3b64e-e1ce-465b-9a0d-48a2ef1ca6c2",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "dd44d8e4-641c-41d9-8f40-a4836d9788ff",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a1d4a115-51c7-4189-a818-60927e78723f",
+      "Column Name": "Employer Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a33d1a9c-331a-4a82-9962-9f756b20450b",
+      "Column Name": "Benefits Scale Code",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "24ea13c5-83ae-4995-874d-9d3416cd317c",
+      "Column Name": "Date Of Exit From Pensioner Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "1099d067-134c-415f-8a2a-ab451bd91447",
+      "Column Name": "Section B Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "880768c1-de91-480c-8106-744a285f8ebb",
+      "Column Name": "Date Of Birth",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "a16d8cbf-81ba-4a96-bfba-2ef4862594ea",
+      "Column Name": "Valuation Record Type",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "8213b63a-3598-4650-9b8c-b31a728bb2a9",
+      "Column Name": "Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "12e300a2-3c26-48d6-8d9e-a34f0a747476",
+      "Column Name": "Normal Retirement Date",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "9692f2f1-ad22-4dc6-9fbd-fc30276a60b0",
+      "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "529a78b4-85ca-41cd-a93e-83f20f405150",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "551d2958-6e07-48aa-a838-006e7be068b5",
+      "Column Name": "Date Of Exit From Active Deferred Member Status",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "4cde8fcb-94f3-48a1-8639-6e215ae894f5",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "18641ba3-0a41-48c7-99b1-2f15d1bc2328",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "995ea652-edcb-4f24-b14b-1803794ab282",
+      "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To LPI2.5 Revaluation In Deferment And RPI capped at 2.5% pa in payment",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "f5ce4dc5-7b2e-487b-aafa-8e20473e5099",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "78392b24-e974-4524-9142-f92b89c4846e",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "c19c1bfe-0aec-4227-a1e3-0ae0c9997920",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "bc44d390-112e-42d3-8c2b-681d546e2507",
+      "Column Name": "Contingent Spouse's Benefit Marker",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "da07600a-b8c6-4542-b069-679236818e0c",
+      "Column Name": "Spouse's Date of Birth",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "4ee463a4-eb40-442f-9a63-ac376ffd67e6",
+      "Column Name": "Old Supplementary Fund Pension",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "42195490-4d59-447f-a135-ea2f2afdddab",
+      "Column Name": "VSS Current Pension Including GMP",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "cfa05a35-f950-4f2e-a755-daed5404228b",
+      "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Deferred Pensioner",
+      "Worksheet Name": "Deferreds"
+    },
+    {
+      "identifierId": "6d891c8d-abd9-49d7-b2da-11945e729096",
+      "Column Name": "Code For Exit From Active Deferred Member Status",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "81d6d6a2-90c2-4349-a16b-6276a7819347",
+      "Column Name": "Early Vesting Age",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "f47d9234-3609-4dfa-a6cb-e6f82f20442c",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "9e944604-aaa4-4615-80cd-841c14b41629",
+      "Column Name": "Married Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "87f86004-672f-4712-bd71-4a88a570c52d",
+      "Column Name": "New Pension Date",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "bc1b3025-abf9-497a-8911-03f6af2fb2a2",
+      "Column Name": "Date Of Buy-Out Of SBO Terms",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "b50d39ee-c27d-4c4f-aa8c-a47b89936bd4",
+      "Column Name": "Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "6c4613d3-9b72-4776-b440-3ad0dc4ef637",
+      "Column Name": "Valuation Record Type",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "daa7fb88-9067-4859-a87e-446ba04657b4",
+      "Column Name": "Old Member's Reference No",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "c715aba9-42f5-4f3b-843a-9d5b878e74aa",
+      "Column Name": "Member's Reference No",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "e895fe4b-12a3-4348-8b01-3e397f8f2a9f",
+      "Column Name": "Sex Code",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "8a4d0702-177c-41f1-8460-6aabe3ab07d6",
+      "Column Name": "Deferred Pension For Service To Buy-Out at this valuation date",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "b6a72ede-62ea-4ecd-8da1-cfef79f6a106",
+      "Column Name": "Final salary: Final Pensionable Salary At Exit From Active Status",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "85ce14e3-7734-43d4-96bc-b37f5e53eaa7",
+      "Column Name": "Contingent Spouse's Benefit Marker",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "6a8596d7-c39f-4d16-85b1-4463cf97aeaa",
+      "Column Name": "Spouse's Date of Birth",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "65a82dca-da33-42f1-9735-da25ad45f6ac",
+      "Column Name": "Old Supplementary Fund Indicator",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "474fd1ad-0192-4c4d-b9a3-47be7211c115",
+      "Column Name": "Early Vesting Age",
+      "Worksheet Name": "Active deferreds"
+    },
+    {
+      "identifierId": "9330d6ad-7771-45f3-8250-513d4d928a37",
+      "Column Name": "Date of Birth",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "c49b063e-1fba-4f55-b76d-45cc9f39efea",
+      "Column Name": "Code For Previous Status",
+      "Worksheet Name": "New_Pensioners"
+    },
+    {
+      "identifierId": "a44fc5f5-5c73-4551-bfb7-6a5978da530a",
+      "Column Name": "Postcode",
+      "Worksheet Name": "New_Pensioners"
+    }
+  ],
+  "0.4uir69thnel": [
+    "048ed9f2-a502-4781-a110-3185ccf0e5dc",
+    "ba859027-9d96-46b4-aaff-ed4619e755fa"
+  ],
+  "0.hb25dnz5dmd": "Map the values to the equivalent in the the standard fields mapping document. If you can't find a sensible mapping, just say 'Not Found'. Do not just copy the column value... i",
+  "Reference Document": []
+}
+Column extraction error: Error [TransformError]: Transform failed with 1 error:
+/home/runner/workspace/server/toolEngine.ts:963:4: ERROR: Expected "finally" but found "}"
+    at failureErrorWithLog (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:1476:15)
+    at /home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+1:56:36 PM [express] POST /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/extract-column 500 in 639ms :: {"message":"Failed to extract …
+1:56:36 PM [browser] ❌ Error running column extraction: {}
+1:56:36 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
