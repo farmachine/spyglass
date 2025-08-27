@@ -301,34 +301,44 @@ export default function ExtractWizardModal({
                 {inputData.length} record{inputData.length !== 1 ? 's' : ''} available from previous steps
               </p>
               
-              {/* Show sample records */}
+              {/* Show sample records in table format */}
               <div className="space-y-2">
                 <p className="text-xs font-medium text-gray-700">Sample records (first 3):</p>
-                <div className="bg-white rounded border border-gray-200 p-2 space-y-2 max-h-48 overflow-y-auto">
-                  {inputData.slice(0, 3).map((record, index) => (
-                    <div key={index} className="text-xs border-b last:border-b-0 pb-2 last:pb-0">
-                      <p className="font-medium text-gray-600 mb-1">Record {index + 1}:</p>
-                      <div className="grid grid-cols-2 gap-1 ml-2">
-                        {Object.entries(record).slice(0, 4).map(([key, value]) => (
-                          <div key={key} className="flex">
-                            <span className="font-medium text-gray-500 mr-1">{key}:</span>
-                            <span className="text-gray-700 truncate">
-                              {value === null || value === undefined ? 'null' : String(value)}
-                            </span>
-                          </div>
+                <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-medium text-gray-700">ID</th>
+                          {inputData.length > 0 && Object.keys(inputData[0]).filter(k => k !== 'identifierId').map(key => (
+                            <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700">
+                              {key === 'ID' ? 'Column Name' : key === 'Worksheet Name' ? 'Worksheet' : key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inputData.slice(0, 3).map((record, index) => (
+                          <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
+                            <td className="px-2 py-1.5 text-gray-600 font-mono">
+                              {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
+                            </td>
+                            {Object.entries(record).filter(([k]) => k !== 'identifierId').map(([key, value]) => (
+                              <td key={key} className="px-2 py-1.5 text-gray-700">
+                                <div className="max-w-[200px] truncate" title={String(value)}>
+                                  {value === null || value === undefined ? '-' : String(value)}
+                                </div>
+                              </td>
+                            ))}
+                          </tr>
                         ))}
-                        {Object.keys(record).length > 4 && (
-                          <div className="text-gray-400 col-span-2">
-                            ...and {Object.keys(record).length - 4} more fields
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      </tbody>
+                    </table>
+                  </div>
                   {inputData.length > 3 && (
-                    <p className="text-xs text-gray-500 pt-1">
+                    <div className="px-2 py-1.5 bg-gray-50 text-xs text-gray-500 border-t">
                       ...and {inputData.length - 3} more records
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -344,6 +354,37 @@ export default function ExtractWizardModal({
               </AlertDescription>
             </Alert>
           ) : null}
+          
+          {/* Reference Document Preview - Show when knowledge documents are available */}
+          {knowledgeDocuments && knowledgeDocuments.length > 0 && (
+            <div className="bg-purple-50/50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-purple-600" />
+                Reference Document
+              </h3>
+              {knowledgeDocuments.map((doc, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                      {doc.documentName}
+                    </Badge>
+                  </div>
+                  {/* Show document content preview if available in inputValues */}
+                  {inputValues && inputValues['Reference Document'] && (
+                    <div className="mt-2 bg-white rounded border border-purple-200 p-3">
+                      <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
+                      <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
+                        {typeof inputValues['Reference Document'] === 'string' 
+                          ? inputValues['Reference Document'].substring(0, 500) 
+                          : 'Document content not available'}
+                        {inputValues['Reference Document'] && inputValues['Reference Document'].length > 500 && '...'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           
           {/* How it works section - Only show if no input config */}
           {!hasInputConfig && (
