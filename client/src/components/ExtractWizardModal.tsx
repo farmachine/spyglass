@@ -21,7 +21,7 @@ interface ExtractWizardModalProps {
   isLoading?: boolean;
   needsDocument?: boolean;
   inputValues?: any;
-  knowledgeDocuments?: Array<{ id: string; documentName?: string; displayName?: string; fileName?: string; documentContent?: string }>;
+  knowledgeDocuments?: Array<{ id: string; documentName?: string; displayName?: string; fileName?: string; documentContent?: string; content?: string }>;
 }
 
 // Function type descriptions for user guidance
@@ -367,26 +367,31 @@ export default function ExtractWizardModal({
                     <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
                       {(() => {
                         // First check if the document has content directly
-                        let documentContent = doc.documentContent;
+                        let documentContent = doc.documentContent || doc.content;
+                        
+                        // Filter out placeholder references like "@reference_document"
+                        if (documentContent && documentContent === '@reference_document') {
+                          documentContent = null;
+                        }
                         
                         // If not, try to find the document content in inputValues
                         if (!documentContent && inputValues) {
                           // Check if it's directly in inputValues
                           if (inputValues['Reference Document']) {
-                            if (typeof inputValues['Reference Document'] === 'string') {
+                            if (typeof inputValues['Reference Document'] === 'string' && inputValues['Reference Document'] !== '@reference_document') {
                               documentContent = inputValues['Reference Document'];
                             } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
                               const firstDoc = inputValues['Reference Document'][0];
-                              if (typeof firstDoc === 'object' && firstDoc.documentContent) {
+                              if (typeof firstDoc === 'object' && firstDoc.documentContent && firstDoc.documentContent !== '@reference_document') {
                                 documentContent = firstDoc.documentContent;
-                              } else if (typeof firstDoc === 'object' && firstDoc.content) {
+                              } else if (typeof firstDoc === 'object' && firstDoc.content && firstDoc.content !== '@reference_document') {
                                 documentContent = firstDoc.content;
                               }
                             }
                           }
                           
                           // Check if we have a document property
-                          if (!documentContent && inputValues['document']) {
+                          if (!documentContent && inputValues['document'] && inputValues['document'] !== '@reference_document') {
                             documentContent = inputValues['document'];
                           }
                           
@@ -398,7 +403,7 @@ export default function ExtractWizardModal({
                               k.toLowerCase().includes('text')
                             );
                             for (const key of docKeys) {
-                              if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
+                              if (typeof inputValues[key] === 'string' && inputValues[key].length > 50 && inputValues[key] !== '@reference_document') {
                                 documentContent = inputValues[key];
                                 break;
                               }
@@ -406,7 +411,7 @@ export default function ExtractWizardModal({
                           }
                         }
                         
-                        if (documentContent) {
+                        if (documentContent && documentContent !== '@reference_document') {
                           return (
                             <>
                               {documentContent.substring(0, 500)}
