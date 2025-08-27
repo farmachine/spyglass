@@ -2204,7 +2204,7 @@ export default function SessionView() {
       previousData: previousColumnsData,
       needsDocument: needsDocument,
       toolType: toolInfo?.name || 'extraction',
-      toolDescription: toolInfo?.description || '',
+      toolDescription: valueToRun.description || '',
       toolId: valueToRun.toolId,
       inputValues: valueToRun.inputValues
     });
