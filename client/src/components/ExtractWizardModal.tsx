@@ -223,26 +223,24 @@ export default function ExtractWizardModal({
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 pt-4">
           {/* Extraction Purpose Section */}
           {toolDescription && (
-            <Alert className="border-slate-200 bg-slate-50">
-              <Info className="h-4 w-4" style={{ color: '#4F63A4' }} />
-              <AlertDescription>
-                <div>
-                  <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                  <p className="text-gray-700">{toolDescription}</p>
-                </div>
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-2">
+              <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                <Info className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                Extraction Used
+              </h3>
+              <p className="text-sm text-gray-700">{toolDescription}</p>
+            </div>
           )}
           
-          {/* Your Data Section - Show when there's input data */}
+          {/* Your Reference Data Section - Show when there's input data */}
           {inputData && inputData.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Your Data Ready for Processing
+                Your Reference Data
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                We'll use the <strong>{inputData.length} records</strong> you've prepared to extract the values you need
+                <strong>{inputData.length} records</strong> available from previous steps
               </p>
               
               <div className="bg-gray-50 rounded-lg p-4">
