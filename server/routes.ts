@@ -6954,13 +6954,13 @@ def extract_function(Column_Name, Excel_File):
       if (results && results.length > 0) {
         // Ensure all results have proper validation status
         const processedResults = results.map(result => {
-          // If extractedValue is null, undefined, or "Processing Error", set proper fallback
-          if (!result.extractedValue || result.extractedValue === "Processing Error") {
+          // Preserve null values properly - don't convert to "Not Found"
+          if (result.extractedValue === null || result.extractedValue === undefined || result.extractedValue === "Processing Error") {
             return {
               ...result,
-              extractedValue: result.extractedValue || "Not Found",
+              extractedValue: null, // Keep as null, don't convert to "Not Found"
               validationStatus: result.validationStatus || "invalid",
-              aiReasoning: result.aiReasoning || "No data found for this field",
+              aiReasoning: result.aiReasoning || "No matching value found",
               confidenceScore: result.confidenceScore || 0,
               documentSource: result.documentSource || "N/A"
             };

@@ -635,98 +635,65 @@ ${JSON.stringify(batch, null, 2)}`;
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
             
-            // Clean and parse batch results - handle multiple markdown formats
-            if (batchResult.includes('```')) {
-              // Try to extract JSON from markdown code blocks
-              const jsonMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-              if (jsonMatch) {
-                batchResult = jsonMatch[1].trim();
-              }
+            // Simple JSON extraction - AI should return clean JSON
+            let cleanJson = batchResult;
+            
+            // If wrapped in markdown code blocks, extract it
+            const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) {
+              cleanJson = codeBlockMatch[1];
             }
             
-            // Also clean up any remaining backticks at start/end
-            batchResult = batchResult.replace(/^`+|`+$/g, '').trim();
+            // Clean any remaining formatting
+            cleanJson = cleanJson.trim();
             
-            // Remove "json" prefix if present at the start
-            if (batchResult.startsWith('json')) {
-              batchResult = batchResult.substring(4).trim();
-            }
-            
-            // Remove any leading non-JSON text before the first [ or {
-            const jsonStart = batchResult.search(/[\[\{]/);
+            // Find where actual JSON starts ([ or {)
+            const jsonStart = cleanJson.search(/[\[\{]/);
             if (jsonStart > 0) {
-              batchResult = batchResult.substring(jsonStart);
+              cleanJson = cleanJson.substring(jsonStart);
             }
             
             try {
-              const parsed = batchResult.trim() ? JSON.parse(batchResult) : [];
-              const results = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+              // Parse the cleaned JSON
+              const parsed = cleanJson ? JSON.parse(cleanJson) : [];
+              const results = Array.isArray(parsed) ? parsed : [parsed];
               
-              console.log(`    🔍 AI returned ${results.length} results`);
-              console.log(`    🔍 First result:`, results[0]);
-              if (results.length > 1) {
-                console.log(`    🔍 Last result:`, results[results.length - 1]);
-              }
+              console.log(`    ✅ Parsed ${results.length} results from AI response`);
               
-              // Process AI results - The AI should return results for ALL items
-              console.log(`    🔍 PROCESSING AI RESULTS (AI should handle all items per tool prompt):`);
-              
-              // The tool's prompt should already handle all items and return proper results
-              // including "Not Found" or appropriate status for unmatched items
-              // We should NOT override the AI's response
-              
-              console.log(`      AI returned ${results.length} results for ${batch.length} inputs`);
-              
-              // Verify the AI returned the expected number of results
-              if (results.length !== batch.length) {
-                console.warn(`      ⚠️ WARNING: AI returned ${results.length} results but expected ${batch.length}`);
-                console.warn(`      The tool's prompt should return results for ALL items`);
-              }
-              
-              // Log first few results for debugging
-              for (let idx = 0; idx < Math.min(5, results.length); idx++) {
-                const result = results[idx];
+              // Ensure each result has required fields
+              const processedResults = results.map((result, idx) => {
                 const input = batch[idx];
-                if (input && result) {
-                  console.log(`      Item ${idx}:`);
-                  console.log(`        Input: ID=${input.identifierId}, Value="${input["Column Names"] || input.ID || JSON.stringify(input)}"`);
-                  console.log(`        Output: ID=${result.identifierId}, Value="${result.extractedValue}", Status="${result.validationStatus}"`);
-                }
-              }
+                return {
+                  identifierId: result.identifierId || input?.identifierId || null,
+                  extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
+                  validationStatus: result.validationStatus || (result.extractedValue ? "valid" : "invalid"),
+                  aiReasoning: result.aiReasoning || "",
+                  confidenceScore: result.confidenceScore || 0,
+                  documentSource: result.documentSource || ""
+                };
+              });
               
+              allResults.push(...processedResults);
+              console.log(`    ✅ Batch ${batchNumber}: Processed ${processedResults.length} items`);
               
-              allResults.push(...results);
-              console.log(`    ✅ Batch processed: ${results.length} results`);
-              
-              // Report progress after batch completes
+              // Report progress
               if (progressCallback) {
                 const itemsProcessed = Math.min(i + batch.length, dataArray.length);
-                progressCallback(itemsProcessed, dataArray.length, `Completed batch ${batchNumber} of ${totalBatches}`);
+                progressCallback(itemsProcessed, dataArray.length, `Batch ${batchNumber}/${totalBatches} complete`);
               }
-              
-              // Log the actual results from this batch
-              console.log(`    📋 Batch Results:`);
-              results.forEach((result: any, idx: number) => {
-                const itemIndex = i + idx;
-                const inputItem = batch[idx];
-                const extractedValue = result.extractedValue || result.result || 'no result';
-                // Format the input item properly for logging
-                const inputDisplay = typeof inputItem === 'object' ? JSON.stringify(inputItem) : inputItem;
-                console.log(`      • Item ${itemIndex + 1}: ${inputDisplay} → "${extractedValue}"`);
-              });
             } catch (e) {
-              console.error(`    ❌ Failed to parse batch results:`, e);
-              // Add placeholder results for failed batch with proper identifierIds
-              for (let j = 0; j < batch.length; j++) {
-                const itemIndex = i + j;
-                const inputItem = batch[j];
+              console.error(`    ❌ JSON parse error for batch ${batchNumber}:`, e);
+              console.error(`    Raw response snippet:`, cleanJson.substring(0, 200));
+              
+              // Create error results for this batch
+              for (const inputItem of batch) {
                 allResults.push({
                   identifierId: inputItem.identifierId || null,
                   extractedValue: null,
                   validationStatus: "invalid",
-                  aiReasoning: `Extraction failed: ${e instanceof Error ? e.message : 'Unknown error during processing'}`,
+                  aiReasoning: "Failed to parse AI response",
                   confidenceScore: 0,
-                  documentSource: "ERROR"
+                  documentSource: ""
                 });
               }
             }
