@@ -1149,6 +1149,7 @@ export default function SessionView() {
     toolDescription: string;
     toolId?: string;
     inputValues?: any;
+    knowledgeDocuments?: any[];
   } | null>(null);
 
   // Helper function to find schema field data
@@ -2190,6 +2191,33 @@ export default function SessionView() {
       orderIndex: valueToRun.orderIndex
     };
     
+    // Check if this value actually uses knowledge documents
+    let referencedKnowledgeDocs: any[] = [];
+    if (valueToRun.inputValues && project?.knowledgeDocuments) {
+      // Check if any input values reference knowledge documents
+      Object.entries(valueToRun.inputValues).forEach(([key, value]) => {
+        // Check for document references in arrays
+        if (Array.isArray(value)) {
+          value.forEach((v: any) => {
+            if (typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i)) {
+              // This looks like a UUID - check if it's a knowledge document
+              const knowledgeDoc = project.knowledgeDocuments?.find((d: any) => d.id === v);
+              if (knowledgeDoc && !referencedKnowledgeDocs.find(d => d.id === knowledgeDoc.id)) {
+                referencedKnowledgeDocs.push(knowledgeDoc);
+              }
+            }
+          });
+        }
+        // Check for single document reference
+        else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
+          const knowledgeDoc = project.knowledgeDocuments?.find((d: any) => d.id === value);
+          if (knowledgeDoc && !referencedKnowledgeDocs.find(d => d.id === knowledgeDoc.id)) {
+            referencedKnowledgeDocs.push(knowledgeDoc);
+          }
+        }
+      });
+    }
+    
     // Open the extraction wizard modal with the value's tool configuration
     setColumnExtractionModal({
       isOpen: true,
@@ -2201,7 +2229,8 @@ export default function SessionView() {
       toolType: toolInfo?.name || 'extraction',
       toolDescription: valueToRun.description || '',
       toolId: valueToRun.toolId,
-      inputValues: valueToRun.inputValues
+      inputValues: valueToRun.inputValues,
+      knowledgeDocuments: referencedKnowledgeDocs
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4740,7 +4769,7 @@ Thank you for your assistance.`;
           needsDocument={columnExtractionModal.needsDocument}
           isLoading={false}
           inputValues={columnExtractionModal.inputValues}
-          knowledgeDocuments={project?.knowledgeDocuments || []}
+          knowledgeDocuments={columnExtractionModal.knowledgeDocuments || []}
         />
       )}
       {/* AI Extraction Modal */}
