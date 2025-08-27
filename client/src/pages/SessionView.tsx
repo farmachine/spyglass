@@ -4395,7 +4395,6 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                const isNotFound = validation.extractedValue === "Not Found";
                                                 const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'manual';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
@@ -4425,12 +4424,11 @@ Thank you for your assistance.`;
                                                       </Tooltip>
                                                     </TooltipProvider>
                                                   );
-                                                } else if (hasValue || isNotFound) {
+                                                } else if (hasValue) {
                                                   // Show appropriate indicator based on confidence score availability
                                                   if (validation.confidenceScore) {
                                                     // Show colored confidence dot when there's a confidence score
-                                                    const colorClass = isNotFound ? 'bg-gray-500' : 
-                                                                     score >= 80 ? 'bg-green-500' : 
+                                                    const colorClass = score >= 80 ? 'bg-green-500' : 
                                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                     
                                                     return (
@@ -4449,7 +4447,7 @@ Thank you for your assistance.`;
                                                           }
                                                         }}
                                                         className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                        title={`${score}% confidence - ${isNotFound ? 'Not Found' : 'Click for AI analysis'}`}
+                                                        title={`${score}% confidence - Click for AI analysis`}
                                                       />
                                                     );
                                                   } else {
@@ -4459,7 +4457,7 @@ Thank you for your assistance.`;
                                                            title="Pending validation" />
                                                     );
                                                   }
-                                                } else if (!hasValue && !isNotFound) {
+                                                } else if (!hasValue) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
                                                     <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
