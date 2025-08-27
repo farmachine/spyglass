@@ -1675,8 +1675,8 @@ export default function SessionView() {
   };
 
   // Handler for field verification changes
-  const handleFieldVerification = (fieldName: string, isVerified: boolean) => {
-    const validation = getValidation(fieldName);
+  const handleFieldVerification = (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
+    const validation = getValidation(fieldName, identifierId);
     if (!validation) return;
     
     const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
@@ -2950,18 +2950,18 @@ Thank you for your assistance.`;
     setEditValue("");
   };
 
-  const handleVerificationToggle = async (fieldName: string, isVerified: boolean) => {
-    const validation = getValidation(fieldName);
+  const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
+    const validation = getValidation(fieldName, identifierId);
     if (validation) {
-      // Properly handle verification status for different field types
-      let newStatus: string;
+      // Use only schema-defined validation statuses
+      let newStatus: ValidationStatus;
       
       if (validation.manuallyUpdated) {
-        // For manually updated fields, use "manual-verified" when verified, "manual" when unverified
-        newStatus = isVerified ? "manual-verified" : "manual";
+        // For manually updated fields, use "manual" when verified or unverified
+        newStatus = "manual";
       } else {
-        // For AI-extracted fields, use "verified" when verified, "pending" when unverified
-        newStatus = isVerified ? "verified" : "pending";
+        // For AI-extracted fields, use "valid" when verified, "pending" when unverified
+        newStatus = isVerified ? "valid" : "pending";
       }
       
       // Optimistic update
@@ -2974,7 +2974,6 @@ Thank you for your assistance.`;
         );
       });
       
-      // Debug logging to see what we're sending
       console.log(`🔧 VERIFICATION UPDATE - Field: ${fieldName}`, {
         fieldName,
         currentStatus: validation.validationStatus,
@@ -3828,7 +3827,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleFieldVerification(fieldName, false)}
+                                              onClick={() => handleVerificationToggle(fieldName, false)}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -3856,9 +3855,12 @@ Thank you for your assistance.`;
                                               confidenceScore: validation.confidenceScore || 0,
                                               getFieldDisplayName,
                                               validation,
-                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                              onVerificationChange: (isVerified) => handleVerificationToggle(fieldName, isVerified),
                                               isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
                                             });
+                                          } else {
+                                            // If no reasoning available, just toggle verification
+                                            handleVerificationToggle(fieldName, true);
                                           }
                                         }}
                                         className={`w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
