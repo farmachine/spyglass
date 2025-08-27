@@ -591,6 +591,7 @@ Input Data (${batch.length} items):
 ${JSON.stringify(batch, null, 2)}`;
                 }
               }
+            }
             
             // Add delay between batches to respect Gemini API rate limits
             // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
