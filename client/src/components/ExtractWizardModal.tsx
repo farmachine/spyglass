@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle, Wand2 } from "lucide-react";
+import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle, Wand2, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -213,112 +213,68 @@ export default function ExtractWizardModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-3">
+        <DialogHeader className="pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Wand2 className="h-5 w-5" style={{ color: '#4F63A4' }} />
-            {title}
+            <Sparkles className="h-5 w-5" style={{ color: '#4F63A4' }} />
+            Extract: {title.replace('Extract ', '')}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* Show value description first if available */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1 pt-4">
+          {/* Extraction Purpose Section */}
           {toolDescription && (
-            <Alert className="border-slate-200 bg-slate-50">
-              <Info className="h-4 w-4" style={{ color: '#4F63A4' }} />
-              <AlertDescription>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: '#4F63A4' }} />
                 <div>
-                  <p className="font-medium text-gray-900 mb-1">What this does:</p>
-                  <p className="text-gray-700">{toolDescription}</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">What this extraction will do</h3>
+                  <p className="text-sm text-gray-700">{toolDescription}</p>
                 </div>
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {/* Show Tool Configuration only for non-AI tools */}
-          {hasInputConfig && !isAITool ? (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Tool Configuration
-              </h3>
-              
-              <div className="space-y-3">
-                {inputConfig.map((item, index) => (
-                  <div key={index} className="space-y-1">
-                    <Label className="text-sm font-medium text-gray-700">
-                      {item.key}:
-                    </Label>
-                    {item.type === 'prompt' ? (
-                      <div className="bg-white rounded border border-gray-200 p-3">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
-                          {item.value.substring(0, 200)}
-                          {item.value.length > 200 && '...'}
-                        </p>
-                      </div>
-                    ) : item.type === 'references' || item.type === 'reference' ? (
-                      <div className="flex flex-wrap gap-2">
-                        {item.value.split(', ').map((ref: string, i: number) => (
-                          <Badge key={i} variant="secondary" style={{ backgroundColor: 'rgba(79, 99, 164, 0.1)', color: '#4F63A4' }}>
-                            {ref}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : item.type === 'array' ? (
-                      <div className="flex flex-wrap gap-2">
-                        {item.value.split(', ').map((val: string, i: number) => (
-                          <Badge key={i} variant="outline">
-                            {val}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-white rounded border border-gray-200 px-3 py-1.5">
-                        <p className="text-sm text-gray-800">{item.value}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             </div>
-          ) : null}
+          )}
           
-          {/* Input Data Preview - Show when there's input data */}
-          {inputData && inputData.length > 0 ? (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                <ChevronRight className="h-4 w-4" />
-                Referenced Data Preview
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                {inputData.length} record{inputData.length !== 1 ? 's' : ''} available from previous steps
-              </p>
+          {/* Your Data Section - Show when there's input data */}
+          {inputData && inputData.length > 0 && (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                  Your Data Ready for Processing
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  We'll use the <strong>{inputData.length} records</strong> you've prepared to extract the values you need
+                </p>
+              </div>
               
-              {/* Show sample records in table format */}
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-700">Sample records (first 3):</p>
-                <div className="bg-white rounded border border-gray-200 overflow-hidden">
+              <div className="p-4 bg-white">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Preview of your data</p>
+                <div className="bg-gray-50 rounded border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-white border-b">
                         <tr>
-                          <th className="px-2 py-1.5 text-left font-medium text-gray-700">ID</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Record ID</th>
                           {inputData.length > 0 && Object.keys(inputData[0]).filter(k => k !== 'identifierId').map(key => (
-                            <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700">
-                              {key === 'ID' ? 'Column Name' : key === 'Worksheet Name' ? 'Worksheet' : key}
+                            <th key={key} className="px-3 py-2 text-left font-medium text-gray-700">
+                              {key === 'ID' ? 'Your Column' : key === 'Column Name' ? 'Your Column' : key}
                             </th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-gray-200">
                         {inputData.slice(0, 3).map((record, index) => (
-                          <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
-                            <td className="px-2 py-1.5 text-gray-600 font-mono">
-                              {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-gray-600 font-mono text-xs">
+                              {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `${index + 1}`}
                             </td>
                             {Object.entries(record).filter(([k]) => k !== 'identifierId').map(([key, value]) => (
-                              <td key={key} className="px-2 py-1.5 text-gray-700">
-                                <div className="max-w-[200px] truncate" title={String(value)}>
-                                  {value === null || value === undefined ? '-' : String(value)}
+                              <td key={key} className="px-3 py-2 text-gray-700">
+                                <div className="max-w-[250px] truncate" title={String(value)}>
+                                  {value === null || value === undefined ? 
+                                    <span className="text-gray-400 italic">empty</span> : 
+                                    String(value)
+                                  }
                                 </div>
                               </td>
                             ))}
@@ -328,189 +284,231 @@ export default function ExtractWizardModal({
                     </table>
                   </div>
                   {inputData.length > 3 && (
-                    <div className="px-2 py-1.5 bg-gray-50 text-xs text-gray-500 border-t">
-                      ...and {inputData.length - 3} more records
+                    <div className="px-3 py-2 bg-gray-100 text-xs text-gray-600 text-center">
+                      <strong>{inputData.length - 3} more records</strong> ready to process
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          ) : inputData && inputData.length === 0 ? (
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-sm">
-                <p className="font-medium mb-1">No data available from referenced steps</p>
-                <p className="text-xs text-gray-600">
-                  The referenced columns may not have any verified data yet. Please extract and verify data in the "Column Name Mapping" step first.
+          )}
+          
+          {/* No Data Warning */}
+          {inputData && inputData.length === 0 && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription>
+                <p className="font-semibold text-gray-900 mb-1">No data from previous steps</p>
+                <p className="text-sm text-gray-700">
+                  The previous extraction steps haven't been completed yet. Please run and verify those extractions first to provide data for this step.
                 </p>
               </AlertDescription>
             </Alert>
-          ) : null}
+          )}
           
-          {/* Reference Document Preview - Show when knowledge documents are available */}
+          {/* Your Knowledge Documents Section */}
           {knowledgeDocuments && knowledgeDocuments.length > 0 && (
-            <div className="bg-slate-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Reference Document
-              </h3>
-              {knowledgeDocuments.map((doc, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" style={{ backgroundColor: 'rgba(79, 99, 164, 0.1)', color: '#4F63A4' }}>
-                      {doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}
-                    </Badge>
-                  </div>
-                  {/* Show document content */}
-                  <div className="mt-2 bg-white rounded border border-slate-200 p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-1">{doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}:</p>
-                    <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
-                      {(() => {
-                        // First check if the document has content directly
-                        let documentContent = doc.documentContent || doc.content;
-                        
-                        // Filter out placeholder references like "@reference_document"
-                        if (documentContent && documentContent === '@reference_document') {
-                          documentContent = null;
-                        }
-                        
-                        // If not, try to find the document content in inputValues
-                        if (!documentContent && inputValues) {
-                          // Check if it's directly in inputValues
-                          if (inputValues['Reference Document']) {
-                            if (typeof inputValues['Reference Document'] === 'string' && inputValues['Reference Document'] !== '@reference_document') {
-                              documentContent = inputValues['Reference Document'];
-                            } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
-                              const firstDoc = inputValues['Reference Document'][0];
-                              if (typeof firstDoc === 'object' && firstDoc.documentContent && firstDoc.documentContent !== '@reference_document') {
-                                documentContent = firstDoc.documentContent;
-                              } else if (typeof firstDoc === 'object' && firstDoc.content && firstDoc.content !== '@reference_document') {
-                                documentContent = firstDoc.content;
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-green-50 px-4 py-3 border-b border-green-200">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                  Your Reference Documents
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  These documents contain the mapping rules and standards we'll use
+                </p>
+              </div>
+              
+              <div className="p-4 bg-white">
+                {knowledgeDocuments.map((doc, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        {doc.documentName || doc.displayName || doc.fileName || 'Mapping Document'}
+                      </Badge>
+                      <span className="text-xs text-gray-500">will be used for mapping</span>
+                    </div>
+                    
+                    <div className="mt-2 bg-gray-50 rounded border border-gray-200 p-3">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Document Preview</p>
+                      <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap bg-white p-2 rounded border border-gray-200">
+                        {(() => {
+                          let documentContent = doc.documentContent || doc.content;
+                          
+                          if (documentContent && documentContent === '@reference_document') {
+                            documentContent = null;
+                          }
+                          
+                          if (!documentContent && inputValues) {
+                            if (inputValues['Reference Document']) {
+                              if (typeof inputValues['Reference Document'] === 'string' && inputValues['Reference Document'] !== '@reference_document') {
+                                documentContent = inputValues['Reference Document'];
+                              } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
+                                const firstDoc = inputValues['Reference Document'][0];
+                                if (typeof firstDoc === 'object' && firstDoc.documentContent && firstDoc.documentContent !== '@reference_document') {
+                                  documentContent = firstDoc.documentContent;
+                                } else if (typeof firstDoc === 'object' && firstDoc.content && firstDoc.content !== '@reference_document') {
+                                  documentContent = firstDoc.content;
+                                }
+                              }
+                            }
+                            
+                            if (!documentContent && inputValues['document'] && inputValues['document'] !== '@reference_document') {
+                              documentContent = inputValues['document'];
+                            }
+                            
+                            if (!documentContent) {
+                              const docKeys = Object.keys(inputValues).filter(k => 
+                                k.toLowerCase().includes('doc') || 
+                                k.toLowerCase().includes('content') ||
+                                k.toLowerCase().includes('text')
+                              );
+                              for (const key of docKeys) {
+                                if (typeof inputValues[key] === 'string' && inputValues[key].length > 50 && inputValues[key] !== '@reference_document') {
+                                  documentContent = inputValues[key];
+                                  break;
+                                }
                               }
                             }
                           }
                           
-                          // Check if we have a document property
-                          if (!documentContent && inputValues['document'] && inputValues['document'] !== '@reference_document') {
-                            documentContent = inputValues['document'];
-                          }
-                          
-                          // Check in input config for any document-like content
-                          if (!documentContent) {
-                            const docKeys = Object.keys(inputValues).filter(k => 
-                              k.toLowerCase().includes('doc') || 
-                              k.toLowerCase().includes('content') ||
-                              k.toLowerCase().includes('text')
+                          if (documentContent && documentContent !== '@reference_document') {
+                            return (
+                              <>
+                                {documentContent.substring(0, 400)}
+                                {documentContent.length > 400 && (
+                                  <span className="text-gray-400 italic">... (document continues)</span>
+                                )}
+                              </>
                             );
-                            for (const key of docKeys) {
-                              if (typeof inputValues[key] === 'string' && inputValues[key].length > 50 && inputValues[key] !== '@reference_document') {
-                                documentContent = inputValues[key];
-                                break;
-                              }
-                            }
+                          } else {
+                            return (
+                              <span className="text-gray-500 italic">
+                                This document contains your standard field mappings. The extraction will use these mappings to convert your column names to standardized equivalents.
+                              </span>
+                            );
                           }
-                        }
-                        
-                        if (documentContent && documentContent !== '@reference_document') {
-                          return (
-                            <>
-                              {documentContent.substring(0, 500)}
-                              {documentContent.length > 500 && '...'}
-                            </>
-                          );
-                        } else {
-                          return (
-                            <span className="text-gray-500 italic">
-                              This knowledge document contains the standard field mappings that will be used to map your column names to their standard equivalents.
-                            </span>
-                          );
-                        }
-                      })()}
+                        })()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
           
-          
-          {/* Document Selection - Only show if needed */}
+          {/* Document Selection */}
           {needsDocument && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Select Document</Label>
-                <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a document to process" />
-                  </SelectTrigger>
-                  <SelectContent className="w-full" position="popper" sideOffset={4}>
-                    {documents.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span>{doc.name}</span>
-                          <Badge variant="outline" className="ml-2 text-xs">
-                            {doc.type}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {documents.length === 0 && (
-                  <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
-                )}
-              </div>
-            </>
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <Label className="text-sm font-semibold text-gray-900 mb-2 block">
+                Select Your Source Document
+              </Label>
+              <p className="text-xs text-gray-600 mb-3">
+                Choose the document that contains the data you want to extract from
+              </p>
+              <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Choose your document..." />
+                </SelectTrigger>
+                <SelectContent className="w-full" position="popper" sideOffset={4}>
+                  {documents.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">{doc.name}</span>
+                        <Badge variant="outline" className="ml-auto text-xs">
+                          {doc.type}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {documents.length === 0 && (
+                <Alert className="mt-3 border-yellow-200 bg-yellow-50">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-sm">
+                    <strong>No documents uploaded yet</strong> - Please upload your Excel or other documents first to begin extraction.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedDocument && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Document selected and ready</span>
+                </div>
+              )}
+            </div>
           )}
           
-          {/* Info message */}
-          <Alert className="border-gray-200">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
+          {/* What Happens Next */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" style={{ color: '#4F63A4' }} />
+              What happens when you run this extraction
+            </h3>
+            <div className="space-y-1.5 text-sm text-gray-700">
               {inputData && inputData.length > 0 ? (
                 <>
-                  The extraction will process <strong>{inputData.length} records</strong> from your input data.
-                  Each record will be processed individually to ensure accurate results.
+                  <p>• We'll process all <strong>{inputData.length} records</strong> from your data</p>
+                  {knowledgeDocuments && knowledgeDocuments.length > 0 && (
+                    <p>• Your reference document will guide the mapping process</p>
+                  )}
+                  <p>• Each value will be carefully extracted and validated</p>
+                  <p>• You'll see the results immediately in the table</p>
+                  <p>• You can review and adjust any values if needed</p>
                 </>
               ) : (
                 <>
-                  Select a document to begin the extraction process. The function will analyze the document
-                  and extract the requested information automatically.
+                  <p>• The selected document will be analyzed</p>
+                  <p>• Data will be extracted based on your configuration</p>
+                  <p>• Results will appear in the table for review</p>
+                  <p>• You can verify and edit extracted values</p>
                 </>
               )}
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         </div>
         
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleConfirm}
-            disabled={(needsDocument && !selectedDocument) || isLoading}
-            className="min-w-[140px]"
-            style={{ backgroundColor: '#4F63A4' }}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Extracting...
-              </>
+        <div className="flex justify-between items-center gap-3 pt-4 border-t bg-gray-50 px-6 py-4">
+          <div className="text-sm text-gray-600">
+            {needsDocument && !selectedDocument ? (
+              <span className="text-orange-600 font-medium">Please select a document to continue</span>
+            ) : inputData && inputData.length > 0 ? (
+              <span className="text-green-700 font-medium">Ready to process {inputData.length} records</span>
             ) : (
-              <>
-                Run Extraction
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </>
+              <span>Ready to extract</span>
             )}
-          </Button>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirm}
+              disabled={(needsDocument && !selectedDocument) || isLoading}
+              className="min-w-[160px]"
+              style={{ backgroundColor: '#4F63A4' }}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Extracting Data...
+                </>
+              ) : (
+                <>
+                  Start Extraction
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
