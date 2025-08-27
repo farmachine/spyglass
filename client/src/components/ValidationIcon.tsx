@@ -31,7 +31,7 @@ export default function ValidationIcon({
   const getStatusIcon = () => {
     const iconSizes = {
       sm: "h-3 w-3",
-      md: "h-4 w-4", 
+      md: "h-4 w-4",
       lg: "h-5 w-5"
     };
     const iconSize = iconSizes[size];
@@ -58,7 +58,7 @@ export default function ValidationIcon({
       valid: "bg-success/10 text-success border-success/20",
       verified: "bg-success/10 text-success border-success/20",
       invalid: "bg-destructive/10 text-destructive border-destructive/20",
-      unverified: "bg-destructive/10 text-destructive border-destructive/20", 
+      unverified: "bg-destructive/10 text-destructive border-destructive/20",
       manual: "bg-primary/10 text-primary border-primary/20",
       extracted: "bg-blue-100 text-blue-700 border-blue-200",
       pending: "bg-muted text-muted-foreground border-border"
@@ -75,8 +75,8 @@ export default function ValidationIcon({
     };
 
     return (
-      <Badge 
-        variant="outline" 
+      <Badge
+        variant="outline"
         className={`${badgeVariants[status]} text-xs`}
       >
         {statusLabels[status]}
@@ -97,24 +97,24 @@ export default function ValidationIcon({
             {status === "pending" && "Pending Validation"}
           </span>
         </div>
-        
+
         {reasoning && (
           <div className="text-sm text-gray-600">
             <span className="font-medium">AI Reasoning:</span>
             <p className="mt-1">{reasoning}</p>
           </div>
         )}
-        
+
         {confidenceScore > 0 && (
           <div className="text-sm text-gray-600">
             <span className="font-medium">Confidence:</span> {confidenceScore}%
           </div>
         )}
-        
+
         {onManualEdit && (isEmpty || status === "invalid" || status === "pending") && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onManualEdit}
             className="w-full mt-2"
           >
@@ -134,9 +134,9 @@ export default function ValidationIcon({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-auto p-1"
             onClick={(isEmpty || status === "invalid" || status === "pending") ? onManualEdit : undefined}
           >
@@ -168,21 +168,21 @@ export function ValidationProgress({
   manualFields
 }: ValidationProgressProps) {
   const completionPercentage = totalFields > 0 ? Math.round(((validFields + manualFields) / totalFields) * 100) : 0;
-  
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Validation Progress</span>
         <span className="text-sm text-gray-600">{completionPercentage}% Complete</span>
       </div>
-      
+
       <div className="w-full bg-gray-200 rounded-full h-2">
-        <div 
+        <div
           className="bg-success h-2 rounded-full transition-all duration-300"
           style={{ width: `${completionPercentage}%` }}
         />
       </div>
-      
+
       <div className="flex items-center gap-4 text-xs text-gray-600">
         <div className="flex items-center gap-1">
           <CheckCircle className="h-3 w-3 text-success" />
