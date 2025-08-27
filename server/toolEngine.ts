@@ -647,6 +647,17 @@ ${JSON.stringify(batch, null, 2)}`;
             // Also clean up any remaining backticks at start/end
             batchResult = batchResult.replace(/^`+|`+$/g, '').trim();
             
+            // Remove "json" prefix if present at the start
+            if (batchResult.startsWith('json')) {
+              batchResult = batchResult.substring(4).trim();
+            }
+            
+            // Remove any leading non-JSON text before the first [ or {
+            const jsonStart = batchResult.search(/[\[\{]/);
+            if (jsonStart > 0) {
+              batchResult = batchResult.substring(jsonStart);
+            }
+            
             try {
               const parsed = batchResult.trim() ? JSON.parse(batchResult) : [];
               const results = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
