@@ -6952,27 +6952,15 @@ def extract_function(Column_Name, Excel_File):
       
       // Save the results as field validations
       if (results && results.length > 0) {
-        // Ensure all results have proper validation status
-        const processedResults = results.map(result => {
-          // Preserve null values properly - don't convert to "Not Found"
-          if (result.extractedValue === null || result.extractedValue === undefined || result.extractedValue === "Processing Error") {
-            return {
-              ...result,
-              extractedValue: null, // Keep as null, don't convert to "Not Found"
-              validationStatus: result.validationStatus || "invalid",
-              aiReasoning: result.aiReasoning || "No matching value found",
-              confidenceScore: result.confidenceScore || 0,
-              documentSource: result.documentSource || "N/A"
-            };
-          }
-          
-          // Ensure validationStatus is set to valid/invalid, not other values
-          if (!result.validationStatus || !['valid', 'invalid', 'manual', 'verified'].includes(result.validationStatus)) {
-            result.validationStatus = result.confidenceScore >= 70 ? "valid" : "invalid";
-          }
-          
-          return result;
-        });
+        // Simple processing - ensure all results have required fields
+        const processedResults = results.map(result => ({
+          identifierId: result.identifierId || null,
+          extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
+          validationStatus: result.validationStatus || (result.extractedValue ? "valid" : "invalid"),
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 0,
+          documentSource: result.documentSource || ""
+        }));
         
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
@@ -7040,64 +7028,50 @@ def extract_function(Column_Name, Excel_File):
               );
           
           if (existingValidation) {
-            // Update existing validation - ensure proper fallback for null/error values
-            const extractedValue = result.extractedValue === "Processing Error" || result.extractedValue === null || result.extractedValue === undefined
-              ? null
-              : result.extractedValue;
-            
+            // Simple update - just pass through the result
             await storage.updateFieldValidation(existingValidation.id, {
-              extractedValue: extractedValue,
-              validationStatus: result.validationStatus || 'invalid',
+              extractedValue: result.extractedValue,
+              validationStatus: result.validationStatus,
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,
-              documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
-              originalExtractedValue: result.extractedValue,
-              originalAiReasoning: result.aiReasoning,
-              originalConfidenceScore: result.confidenceScore,
-              identifierId: identifierId, // Add identifier mapping
+              documentSource: result.documentSource,
+              identifierId: identifierId,
               extractedAt: new Date()
             });
-            console.log(`📝 Updated existing validation for ${fieldName}`);
+            console.log(`📝 Updated validation for ${fieldName}`);
           } else {
             // Create new validation
             // In the unified architecture, collectionId should be the stepId for Data Tables
             // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
-            // Ensure proper fallback for null/error values
-            const extractedValue = result.extractedValue === "Processing Error" || result.extractedValue === null || result.extractedValue === undefined
-              ? null
-              : result.extractedValue;
-            
+            // Simple create - use result directly
             await storage.createFieldValidation({
-              id: crypto.randomUUID(), // Always use crypto.randomUUID() for IDs
+              id: crypto.randomUUID(),
               sessionId: sessionId,
               fieldId: valueId,
               valueId: valueId,
               stepId: stepId,
-              collectionId: stepId, // Use stepId as the collection ID in unified architecture
-              fieldName: fieldName, // Add the properly formatted field name
-              recordIndex: recordIndex, // Use the correct record index
-              identifierId: identifierId, // Add identifier mapping
-              extractedValue: extractedValue,
+              collectionId: stepId,
+              fieldName: fieldName,
+              recordIndex: recordIndex,
+              identifierId: identifierId,
+              extractedValue: result.extractedValue,
               validationType: 'collection_property',
-              validationStatus: result.validationStatus || 'invalid',
-              dataType: 'text', // Default to text type for column extraction
+              validationStatus: result.validationStatus,
+              dataType: 'text',
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,
-              documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
-              originalExtractedValue: result.extractedValue,
-              originalAiReasoning: result.aiReasoning,
-              originalConfidenceScore: result.confidenceScore,
+              documentSource: result.documentSource,
               manuallyVerified: false,
               manuallyUpdated: false,
-              collectionName: step.stepName, // Add collection name for backward compatibility
+              collectionName: step.stepName,
               extractedAt: new Date()
             });
-            console.log(`✨ Created new validation for ${fieldName} with identifier ${identifierId}`);
+            console.log(`✨ Created validation for ${fieldName}`);
           }
         }
         
-        console.log(`💾 Saved ${results.length} validation records`);
+        console.log(`💾 Saved ${processedResults.length} validation records`);
       }
       
       res.json({ 
