@@ -369,18 +369,68 @@ export default function ExtractWizardModal({
                       {doc.documentName}
                     </Badge>
                   </div>
-                  {/* Show document content preview if available in inputValues */}
-                  {inputValues && inputValues['Reference Document'] && (
-                    <div className="mt-2 bg-white rounded border border-purple-200 p-3">
-                      <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
-                      <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
-                        {typeof inputValues['Reference Document'] === 'string' 
-                          ? inputValues['Reference Document'].substring(0, 500) 
-                          : 'Document content not available'}
-                        {inputValues['Reference Document'] && inputValues['Reference Document'].length > 500 && '...'}
-                      </div>
-                    </div>
-                  )}
+                  {/* Show document content preview - check different possible locations */}
+                  {(() => {
+                    // Try to find the document content in different possible locations
+                    let documentContent = null;
+                    
+                    // Check if it's directly in inputValues
+                    if (inputValues && inputValues['Reference Document']) {
+                      if (typeof inputValues['Reference Document'] === 'string') {
+                        documentContent = inputValues['Reference Document'];
+                      } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
+                        // If it's an array, try to get the first item's content
+                        const firstDoc = inputValues['Reference Document'][0];
+                        if (typeof firstDoc === 'object' && firstDoc.documentContent) {
+                          documentContent = firstDoc.documentContent;
+                        } else if (typeof firstDoc === 'object' && firstDoc.content) {
+                          documentContent = firstDoc.content;
+                        }
+                      }
+                    }
+                    
+                    // Check if we have a document property
+                    if (!documentContent && inputValues && inputValues['document']) {
+                      documentContent = inputValues['document'];
+                    }
+                    
+                    // Check in input config for any document-like content
+                    if (!documentContent && inputValues) {
+                      // Look for any key that might contain document content
+                      const docKeys = Object.keys(inputValues).filter(k => 
+                        k.toLowerCase().includes('doc') || 
+                        k.toLowerCase().includes('content') ||
+                        k.toLowerCase().includes('text')
+                      );
+                      for (const key of docKeys) {
+                        if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
+                          documentContent = inputValues[key];
+                          break;
+                        }
+                      }
+                    }
+                    
+                    if (documentContent) {
+                      return (
+                        <div className="mt-2 bg-white rounded border border-purple-200 p-3">
+                          <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
+                          <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
+                            {documentContent.substring(0, 500)}
+                            {documentContent.length > 500 && '...'}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="mt-2 bg-white rounded border border-purple-200 p-3">
+                          <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
+                          <div className="text-xs text-gray-500 italic">
+                            @reference_document
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               ))}
             </div>
@@ -444,52 +494,6 @@ export default function ExtractWizardModal({
               {documents.length === 0 && (
                 <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
               )}
-            </div>
-          )}
-          
-          {/* Reference Data Preview - Show when we have previous column data */}
-          {inputData && inputData.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Reference Data ({inputData.length} records)</Label>
-                <Badge variant="secondary" className="text-xs">
-                  From Previous Steps
-                </Badge>
-              </div>
-              <ScrollArea className="h-48 border rounded-lg bg-blue-50/30">
-                <div className="p-3 space-y-3">
-                  {inputData.slice(0, 3).map((record, index) => {
-                    // Format the record to show only relevant fields
-                    const displayRecord = { ...record };
-                    // Remove internal fields
-                    delete displayRecord.identifierId;
-                    delete displayRecord._recordIndex;
-                    
-                    return (
-                      <div key={index} className="border-b border-blue-100 last:border-0 pb-3 last:pb-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-blue-700">
-                            Record {index + 1}
-                          </span>
-                        </div>
-                        <div className="bg-white rounded border border-blue-200 p-2">
-                          {Object.entries(displayRecord).map(([key, value]) => (
-                            <div key={key} className="flex gap-2 text-xs py-0.5">
-                              <span className="font-medium text-gray-600 min-w-[120px]">{key}:</span>
-                              <span className="text-gray-900">{String(value)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {inputData.length > 3 && (
-                    <p className="text-xs text-gray-500 text-center pt-2">
-                      ... and {inputData.length - 3} more records
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
             </div>
           )}
           
