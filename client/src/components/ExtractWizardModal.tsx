@@ -421,11 +421,13 @@ export default function ExtractWizardModal({
                         </div>
                       );
                     } else {
+                      // The reference document content will be loaded from the database during extraction
                       return (
                         <div className="mt-2 bg-white rounded border border-purple-200 p-3">
                           <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
-                          <div className="text-xs text-gray-500 italic">
-                            @reference_document
+                          <div className="text-xs text-gray-500">
+                            <p className="italic mb-2">The reference document will be loaded automatically during extraction.</p>
+                            <p className="text-gray-600">This knowledge document contains the standard field mappings that will be used to map your column names to their standard equivalents.</p>
                           </div>
                         </div>
                       );
