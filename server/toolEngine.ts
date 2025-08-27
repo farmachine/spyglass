@@ -558,22 +558,22 @@ ${referenceDoc}
 
 List Items (${formattedData.length} items):
 ${JSON.stringify(formattedData, null, 2)}`;
-            } else {
-              // Standard prompt for simple data - use tool's actual prompt
-              console.log(`    📊 Using tool's actual AI prompt for standard data`);
-              
-              // Get input parameters from the tool configuration
-              const aiQuery = inputs['AI Query'] || '';
-              const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
-              const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
-              
-              // Use the tool's actual prompt
-              const basePrompt = tool.aiPrompt || '';
-              
-              // Build prompt with tool's template
-              if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`') && basePrompt.includes('`Reference Document`')) {
-                // The prompt already has the structure, we just need to provide the data
-                batchPrompt = `${basePrompt}
+              } else {
+                // Standard prompt for simple data - use tool's actual prompt
+                console.log(`    📊 Using tool's actual AI prompt for standard data`);
+                
+                // Get input parameters from the tool configuration
+                const aiQuery = inputs['AI Query'] || '';
+                const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
+                const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
+                
+                // Use the tool's actual prompt
+                const basePrompt = tool.aiPrompt || '';
+                
+                // Build prompt with tool's template
+                if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`') && basePrompt.includes('`Reference Document`')) {
+                  // The prompt already has the structure, we just need to provide the data
+                  batchPrompt = `${basePrompt}
 
 AI Query: ${aiQuery}
 ${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
@@ -583,14 +583,14 @@ ${referenceDoc}
 
 List Items (${batch.length} items):
 ${JSON.stringify(batch, null, 2)}`;
-              } else {
-                // Fallback to simpler format if tool prompt doesn't have expected structure
-                batchPrompt = `${basePrompt}
+                } else {
+                  // Fallback to simpler format if tool prompt doesn't have expected structure
+                  batchPrompt = `${basePrompt}
 
 Input Data (${batch.length} items):
 ${JSON.stringify(batch, null, 2)}`;
+                }
               }
-            }
             
             // Add delay between batches to respect Gemini API rate limits
             // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
