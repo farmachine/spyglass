@@ -299,15 +299,15 @@ export default function ExtractWizardModal({
             </Alert>
           )}
           
-          {/* Your Knowledge Documents Section */}
+          {/* Your Organization's Reference Documents Section */}
           {knowledgeDocuments && knowledgeDocuments.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Your Reference Documents
+                Your Organization's Reference Documents
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                These documents contain the mapping rules and standards we'll use
+                These have been set as reference knowledge for this extraction
               </p>
               
               <div className="bg-slate-50 rounded-lg p-4">
@@ -385,12 +385,12 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* Document Selection */}
+          {/* User Input Documents Section - Only show if needed */}
           {needsDocument && (
             <div className="space-y-2">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Select Your Source Document
+                Select Your Input Document
               </h3>
               <p className="text-sm text-gray-600 mb-3">
                 Choose the document that contains the data you want to extract from
