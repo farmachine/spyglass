@@ -688,10 +688,6 @@ ${JSON.stringify(batch, null, 2)}`;
           
           console.log(`✅ Processing complete. Total results: ${allResults.length}`);
           return allResults;
-        } else if (Array.isArray(dataArray) && dataArray.length > AI_BATCH_THRESHOLD) {
-          // Original batching logic for non-AI tools (if needed)
-          console.log(`📦 Non-AI Tool: Array detected (${dataArray.length} items). Processing in batches...`);
-          // Keep existing batching logic here for non-AI tools if needed
         }
       }
       
