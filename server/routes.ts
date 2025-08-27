@@ -4696,7 +4696,7 @@ except Exception as e:
                 originalExtractedValue: propertyValue !== undefined ? propertyValue : null,
                 originalConfidenceScore: propertyValue ? 95 : 20,
                 originalAiReasoning: propertyValue ? "Extracted during AI processing" : "Not found in document",
-                validationStatus: "unverified",
+                validationStatus: "pending",
                 aiReasoning: "Pending validation",
                 manuallyVerified: false,
                 confidenceScore: propertyValue ? 95 : 20 // Set proper initial confidence
