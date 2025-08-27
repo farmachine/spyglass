@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -212,7 +212,7 @@ export default function ExtractWizardModal({
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Icon className="h-5 w-5 text-blue-600" />
+            <Wand2 className="h-5 w-5" style={{ color: '#4F63A4' }} />
             {title}
           </DialogTitle>
         </DialogHeader>
@@ -220,9 +220,9 @@ export default function ExtractWizardModal({
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
           {/* Show Tool Configuration if available */}
           {hasInputConfig ? (
-            <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4 text-blue-600" />
+                <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
                 Tool Configuration
               </h3>
               
@@ -242,7 +242,7 @@ export default function ExtractWizardModal({
                     ) : item.type === 'references' || item.type === 'reference' ? (
                       <div className="flex flex-wrap gap-2">
                         {item.value.split(', ').map((ref: string, i: number) => (
-                          <Badge key={i} variant="secondary" className="bg-purple-100 text-purple-800">
+                          <Badge key={i} variant="secondary" style={{ backgroundColor: 'rgba(79, 99, 164, 0.1)', color: '#4F63A4' }}>
                             {ref}
                           </Badge>
                         ))}
@@ -268,8 +268,8 @@ export default function ExtractWizardModal({
           
           {/* Show value description if available - Always show this above Referenced Data */}
           {toolDescription && (
-            <Alert className="border-blue-200 bg-blue-50/50">
-              <Info className="h-4 w-4 text-blue-600" />
+            <Alert className="border-slate-200 bg-slate-50">
+              <Info className="h-4 w-4" style={{ color: '#4F63A4' }} />
               <AlertDescription>
                 <div>
                   <p className="font-medium text-gray-900 mb-1">What this does:</p>
@@ -346,15 +346,15 @@ export default function ExtractWizardModal({
           
           {/* Reference Document Preview - Show when knowledge documents are available */}
           {knowledgeDocuments && knowledgeDocuments.length > 0 && (
-            <div className="bg-purple-50/50 rounded-lg p-4">
+            <div className="bg-slate-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4 text-purple-600" />
+                <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
                 Reference Document
               </h3>
               {knowledgeDocuments.map((doc, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                    <Badge variant="secondary" style={{ backgroundColor: 'rgba(79, 99, 164, 0.1)', color: '#4F63A4' }}>
                       {doc.documentName}
                     </Badge>
                   </div>
@@ -401,7 +401,7 @@ export default function ExtractWizardModal({
                     
                     if (documentContent) {
                       return (
-                        <div className="mt-2 bg-white rounded border border-purple-200 p-3">
+                        <div className="mt-2 bg-white rounded border border-slate-200 p-3">
                           <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
                           <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
                             {documentContent.substring(0, 500)}
@@ -412,7 +412,7 @@ export default function ExtractWizardModal({
                     } else {
                       // The reference document content will be loaded from the database during extraction
                       return (
-                        <div className="mt-2 bg-white rounded border border-purple-200 p-3">
+                        <div className="mt-2 bg-white rounded border border-slate-200 p-3">
                           <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
                           <div className="text-xs text-gray-500">
                             <p className="italic mb-2">The reference document will be loaded automatically during extraction.</p>
@@ -491,6 +491,7 @@ export default function ExtractWizardModal({
             onClick={handleConfirm}
             disabled={(needsDocument && !selectedDocument) || isLoading}
             className="min-w-[140px]"
+            style={{ backgroundColor: '#4F63A4' }}
           >
             {isLoading ? (
               <>
