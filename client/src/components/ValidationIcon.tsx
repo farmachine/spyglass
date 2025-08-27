@@ -38,11 +38,15 @@ export default function ValidationIcon({
 
     switch (status) {
       case "valid":
+      case "verified":
         return <CheckCircle className={`${iconSize} text-success`} />;
       case "invalid":
+      case "unverified":
         return <AlertCircle className={`${iconSize} text-destructive`} />;
       case "manual":
         return <Edit2 className={`${iconSize} text-primary`} />;
+      case "extracted":
+        return <CheckCircle className={`${iconSize} text-blue-500`} />;
       case "pending":
       default:
         return <Clock className={`${iconSize} text-muted-foreground`} />;
@@ -52,15 +56,21 @@ export default function ValidationIcon({
   const getStatusBadge = () => {
     const badgeVariants = {
       valid: "bg-success/10 text-success border-success/20",
-      invalid: "bg-destructive/10 text-destructive border-destructive/20", 
+      verified: "bg-success/10 text-success border-success/20",
+      invalid: "bg-destructive/10 text-destructive border-destructive/20",
+      unverified: "bg-destructive/10 text-destructive border-destructive/20", 
       manual: "bg-primary/10 text-primary border-primary/20",
+      extracted: "bg-blue-100 text-blue-700 border-blue-200",
       pending: "bg-muted text-muted-foreground border-border"
     };
 
     const statusLabels = {
       valid: "Valid",
+      verified: "Verified",
       invalid: "Invalid",
+      unverified: "Unverified",
       manual: "Manual",
+      extracted: "Extracted",
       pending: "Pending"
     };
 
@@ -80,9 +90,10 @@ export default function ValidationIcon({
         <div className="flex items-center gap-2">
           {getStatusIcon()}
           <span className="font-medium">
-            {status === "valid" && "Valid Field"}
-            {status === "invalid" && "Invalid Field"}
+            {(status === "valid" || status === "verified") && "Valid Field"}
+            {(status === "invalid" || status === "unverified") && "Invalid Field"}
             {status === "manual" && "Manually Verified"}
+            {status === "extracted" && "Extracted Field"}
             {status === "pending" && "Pending Validation"}
           </span>
         </div>
