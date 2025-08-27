@@ -428,48 +428,35 @@ export default function ExtractWizardModal({
           )}
           
           
-          {/* Requirements section */}
-          {functionInfo.requirements && functionInfo.requirements.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-900">Requirements:</Label>
-              <div className="flex flex-wrap gap-2">
-                {functionInfo.requirements.map((req, index) => (
-                  <Badge key={index} variant="secondary" className="bg-gray-100">
-                    {req}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <Separator />
-          
           {/* Document Selection - Only show if needed */}
           {needsDocument && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Select Document</Label>
-              <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a document to process" />
-                </SelectTrigger>
-                <SelectContent>
-                  {documents.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id}>
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <span>{doc.name}</span>
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {doc.type}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {documents.length === 0 && (
-                <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
-              )}
-            </div>
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Document</Label>
+                <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a document to process" />
+                  </SelectTrigger>
+                  <SelectContent align="start" sideOffset={5}>
+                    {documents.map((doc) => (
+                      <SelectItem key={doc.id} value={doc.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <span>{doc.name}</span>
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {doc.type}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {documents.length === 0 && (
+                  <p className="text-sm text-gray-500">No documents available. Please upload documents first.</p>
+                )}
+              </div>
+            </>
           )}
           
           {/* Info message */}

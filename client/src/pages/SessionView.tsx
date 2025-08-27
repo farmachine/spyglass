@@ -1881,45 +1881,19 @@ export default function SessionView() {
 
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
-    console.log(`\n🎯🎯🎯 WAND ICON CLICKED 🎯🎯🎯`);
-    console.log(`🎯 Column: ${valueName}`);
-    console.log(`🎯 Value ID: ${valueId}`);
-    console.log(`🎯 Step: ${stepName}`);
-    
-    // Debug: Check if project exists and has workflow steps
-    console.log('📝 Project exists?', !!project);
-    console.log('📝 WorkflowSteps exists?', !!project?.workflowSteps);
-    console.log('📝 WorkflowSteps count:', project?.workflowSteps?.length || 0);
-    if (project?.workflowSteps) {
-      console.log('📝 WorkflowStep names:', project.workflowSteps.map(s => s.stepName));
-    }
-    
     // Get the workflow step
     const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
     if (!workflowStep) {
       console.error('Workflow step not found:', stepName);
-      console.error('Available steps:', project?.workflowSteps?.map(s => s.stepName));
       return;
     }
-    
-    console.log('📝 Found workflow step:', workflowStep.stepName);
-    console.log('📝 Step has values?', !!workflowStep.values);
-    console.log('📝 Values count:', workflowStep.values?.length || 0);
     
     // Get the specific value to run
     const valueToRun = workflowStep.values?.find(v => v.id === valueId);
     if (!valueToRun) {
       console.error('Value not found:', valueId);
-      console.error('Available value IDs:', workflowStep.values?.map(v => v.id));
       return;
     }
-    
-    console.log('📝 ValueToRun object:', JSON.stringify(valueToRun, null, 2));
-    console.log('📝 Value description:', valueToRun.description);
-    console.log('📝 Value description type:', typeof valueToRun.description);
-    console.log('📝 Value description is null?', valueToRun.description === null);
-    console.log('📝 Value description is undefined?', valueToRun.description === undefined);
-    console.log('📝 Value description is empty string?', valueToRun.description === '');
     
     // Get the value index to determine if this is the first column
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
