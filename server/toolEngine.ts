@@ -1,4 +1,3 @@
-// Force recompile Wed Aug 27 02:03:36 PM UTC 2025
 // Unified Tool Engine - Simple 2-Branch Architecture
 import { GoogleGenAI } from "@google/genai";
 import { spawn } from 'child_process';
@@ -93,14 +92,43 @@ export class ToolEngine {
     const { db } = await import('./db');
     const { sampleDocuments } = await import('@shared/schema');
     const { eq, and } = await import('drizzle-orm');
+    const { loadReferenceDocuments, extractDocumentIds } = await import('./referenceDocumentLoader');
+    
+    // Check for project ID in inputs for reference document loading
+    const projectId = rawInputs.projectId || '';
     
     for (const param of tool.inputParameters) {
       // Try to get input value by parameter ID first, then by name
       const paramId = (param as any).id || param.name;
       const inputValue = rawInputs[paramId] || rawInputs[param.name];
       
-      // If this is a document parameter, check for extracted content first
-      if (param.type === 'document') {
+      // Special handling for Reference Document parameter
+      if (param.name === 'Reference Document' || paramId === '0.4uir69thnel' || paramId === 'Reference Document') {
+        console.log(`🔍 Processing reference document for parameter: ${param.name} (${paramId})`);
+        
+        // Check various input keys for reference documents
+        const refDocValue = rawInputs['Reference Document'] || 
+                           rawInputs['0.4uir69thnel'] || 
+                           rawInputs[paramId] || 
+                           inputValue;
+        
+        // Extract document IDs from the value
+        const documentIds = extractDocumentIds(refDocValue);
+        console.log(`📚 Extracted document IDs:`, documentIds);
+        
+        // Load reference documents with their content
+        const content = await loadReferenceDocuments(documentIds.length > 0 ? documentIds : undefined, projectId);
+        
+        // Set the content for the parameter and also common reference keys
+        preparedInputs[param.name] = content;
+        preparedInputs['Reference Document'] = content;
+        preparedInputs['0.4uir69thnel'] = content;
+        
+        console.log(`✅ Set reference document content: ${content.length} chars`);
+        if (content.length > 0) {
+          console.log(`📄 Content preview: ${content.substring(0, 300)}...`);
+        }
+      } else if (param.type === 'document') {
         try {
           // Check if inputValue is an array of knowledge document IDs
           if (Array.isArray(inputValue) && inputValue.length > 0) {
@@ -120,16 +148,14 @@ export class ToolEngine {
                 .where(inArray(knowledgeDocuments.id, inputValue));
               
               if (knowledgeDocs.length > 0) {
-                // Combine content from all selected knowledge documents
-                const combinedContent = knowledgeDocs
-                  .map(doc => `=== ${doc.displayName || doc.fileName} ===\n${doc.content || 'No content'}`)
-                  .join('\n\n');
+                // Use centralized loader for better content extraction
+                const content = await loadReferenceDocuments(inputValue, projectId);
+                preparedInputs[param.name] = content;
                 
-                console.log(`📄 Using knowledge document content for ${param.name} (${combinedContent.length} chars)`);
-                console.log(`📄 First 500 chars of content: ${combinedContent.substring(0, 500)}`);
-                console.log(`📚 CRITICAL: Reference document loaded - ${knowledgeDocs.length} document(s), total content length: ${combinedContent.length} characters`);
-                console.log(`📚 Document names: ${knowledgeDocs.map(d => d.displayName || d.fileName).join(', ')}`);
-                preparedInputs[param.name] = combinedContent;
+                console.log(`📄 Using knowledge document content for ${param.name} (${content.length} chars)`);
+                if (content.length > 0) {
+                  console.log(`📄 First 500 chars of content: ${content.substring(0, 500)}`);
+                }
               } else {
                 console.log(`⚠️ No knowledge documents found for IDs: ${inputValue.join(', ')}`);
                 preparedInputs[param.name] = '';

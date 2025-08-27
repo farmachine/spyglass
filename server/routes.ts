@@ -6607,9 +6607,32 @@ def extract_function(Column_Name, Excel_File):
       // Prepare inputs for the tool
       let toolInputs: any = {};
       
+      // Import validation filter
+      const { filterVerifiedValidations, shouldIncludeUnverifiedData } = await import('./validationFilter');
+      
+      // Get all validations for the session to determine filtering strategy
+      const allSessionValidations = await storage.getFieldValidations(sessionId);
+      const includeExtracted = shouldIncludeUnverifiedData(allSessionValidations, stepId);
+      
       // If this tool expects previous column data, format it appropriately
       if (value.inputValues && Object.keys(value.inputValues).length > 0) {
         console.log(`🎯 Processing inputValues:`, value.inputValues);
+        
+        // Filter previous data to only include verified/valid records if we have them
+        if (previousData && previousData.length > 0) {
+          console.log(`🔍 Filtering previous data: ${previousData.length} records before filtering`);
+          
+          // Apply validation filtering if previousData is in validation format
+          if (previousData[0].validationStatus) {
+            previousData = filterVerifiedValidations(previousData, {
+              includeManual: true,
+              includeValid: true,
+              includeVerified: true,
+              includeExtracted: includeExtracted // Only include extracted if no verified data exists
+            });
+            console.log(`✅ After filtering: ${previousData.length} verified/valid records`);
+          }
+        }
         console.log(`🎯 Previous data available:`, previousData ? `${previousData.length} records` : 'None');
         
         // Look for references to previous columns (e.g., @Column Names)
@@ -6850,6 +6873,46 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
+      // Handle reference documents - check if any parameter expects them
+      const refDocParam = tool.inputParameters?.find(p => 
+        p.name === 'Reference Document' || 
+        p.id === '0.4uir69thnel' ||
+        p.name === 'reference_documents'
+      );
+      
+      if (refDocParam && !toolInputs['Reference Document'] && !toolInputs['0.4uir69thnel']) {
+        console.log('🔍 Tool expects reference documents but none provided in toolInputs');
+        console.log('  Checking for reference document IDs in inputValues...');
+        
+        // Check if there are reference document IDs in the value's inputValues
+        const refDocIds = value.inputValues?.['0.4uir69thnel'] || 
+                         value.inputValues?.['Reference Document'] ||
+                         value.inputValues?.reference_documents;
+        
+        if (refDocIds) {
+          const { loadReferenceDocuments, extractDocumentIds } = await import('./referenceDocumentLoader');
+          const documentIds = extractDocumentIds(refDocIds);
+          
+          if (documentIds.length > 0) {
+            console.log(`📚 Loading ${documentIds.length} reference documents...`);
+            const content = await loadReferenceDocuments(documentIds, session.projectId);
+            
+            // Set reference document content for all possible keys
+            toolInputs['Reference Document'] = content;
+            toolInputs['0.4uir69thnel'] = content;
+            toolInputs[refDocParam.name] = content;
+            
+            console.log(`✅ Loaded reference document content: ${content.length} chars`);
+            if (content.length > 0) {
+              console.log(`📄 Content preview: ${content.substring(0, 300)}...`);
+            }
+          }
+        }
+      }
+      
+      // Also pass project ID for tools that may need it
+      toolInputs.projectId = session.projectId;
+      
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
       
@@ -6927,14 +6990,14 @@ def extract_function(Column_Name, Excel_File):
             if (identifierId) {
               console.log(`🔗 Using identifierId from previousData for index ${i}: ${identifierId}`);
             } else {
-              // Fallback if we don't have an identifier for this row - generate proper UUID
+              // Fallback if we don't have an identifier for this row - always use crypto.randomUUID()
               identifierId = crypto.randomUUID();
-              console.log(`⚠️ No identifierId found in previousData for index ${i}, generating new UUID: ${identifierId}`);
+              console.log(`⚠️ No identifierId found in previousData for index ${i}, generated proper UUID: ${identifierId}`);
             }
           } else {
-            // This is the first column being extracted - generate proper UUID identifiers
+            // This is the first column being extracted - always use proper UUID
             identifierId = crypto.randomUUID();
-            console.log(`🔗 Generated new identifierId for first column at index ${i}: ${identifierId}`);
+            console.log(`🔗 Generated new UUID identifierId for first column at index ${i}: ${identifierId}`);
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
@@ -6975,7 +7038,7 @@ def extract_function(Column_Name, Excel_File):
             // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
             await storage.createFieldValidation({
-              id: crypto.randomUUID(),
+              id: crypto.randomUUID(), // Always use crypto.randomUUID() for IDs
               sessionId: sessionId,
               fieldId: valueId,
               valueId: valueId,
