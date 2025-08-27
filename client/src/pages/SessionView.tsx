@@ -3276,7 +3276,8 @@ Thank you for your assistance.`;
                            validation.extractedValue !== undefined && 
                            validation.extractedValue !== "" && 
                            validation.extractedValue !== "null" && 
-                           validation.extractedValue !== "undefined";
+                           validation.extractedValue !== "undefined" &&
+                           validation.extractedValue !== "Not Found";
             
             // Force console logging to debug - this will help us understand the issue
             if (fieldName === 'Document Date') {
