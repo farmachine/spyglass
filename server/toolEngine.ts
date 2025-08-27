@@ -440,7 +440,7 @@ export class ToolEngine {
         const [dataKey, dataArray] = dataInputs[0];
         
         // For AI tools, send ALL items in a single request
-        if (tool.toolType === 'AI' && Array.isArray(dataArray) && dataArray.length > 0) {
+        if (tool.toolType === 'AI_ONLY' && Array.isArray(dataArray) && dataArray.length > 0) {
           console.log(`📦 AI Tool: Processing ALL ${dataArray.length} items in a SINGLE API call...`);
           
           // Process ALL items in a single batch for AI tools
