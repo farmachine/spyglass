@@ -358,70 +358,65 @@ export default function ExtractWizardModal({
                       {doc.documentName}
                     </Badge>
                   </div>
-                  {/* Show document content preview - check different possible locations */}
-                  {(() => {
-                    // Try to find the document content in different possible locations
-                    let documentContent = null;
-                    
-                    // Check if it's directly in inputValues
-                    if (inputValues && inputValues['Reference Document']) {
-                      if (typeof inputValues['Reference Document'] === 'string') {
-                        documentContent = inputValues['Reference Document'];
-                      } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
-                        // If it's an array, try to get the first item's content
-                        const firstDoc = inputValues['Reference Document'][0];
-                        if (typeof firstDoc === 'object' && firstDoc.documentContent) {
-                          documentContent = firstDoc.documentContent;
-                        } else if (typeof firstDoc === 'object' && firstDoc.content) {
-                          documentContent = firstDoc.content;
+                  {/* Show document content */}
+                  <div className="mt-2 bg-white rounded border border-slate-200 p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">{doc.documentName}:</p>
+                    <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      {(() => {
+                        // Try to find the document content in different possible locations
+                        let documentContent = null;
+                        
+                        // Check if it's directly in inputValues
+                        if (inputValues && inputValues['Reference Document']) {
+                          if (typeof inputValues['Reference Document'] === 'string') {
+                            documentContent = inputValues['Reference Document'];
+                          } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
+                            const firstDoc = inputValues['Reference Document'][0];
+                            if (typeof firstDoc === 'object' && firstDoc.documentContent) {
+                              documentContent = firstDoc.documentContent;
+                            } else if (typeof firstDoc === 'object' && firstDoc.content) {
+                              documentContent = firstDoc.content;
+                            }
+                          }
                         }
-                      }
-                    }
-                    
-                    // Check if we have a document property
-                    if (!documentContent && inputValues && inputValues['document']) {
-                      documentContent = inputValues['document'];
-                    }
-                    
-                    // Check in input config for any document-like content
-                    if (!documentContent && inputValues) {
-                      // Look for any key that might contain document content
-                      const docKeys = Object.keys(inputValues).filter(k => 
-                        k.toLowerCase().includes('doc') || 
-                        k.toLowerCase().includes('content') ||
-                        k.toLowerCase().includes('text')
-                      );
-                      for (const key of docKeys) {
-                        if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
-                          documentContent = inputValues[key];
-                          break;
+                        
+                        // Check if we have a document property
+                        if (!documentContent && inputValues && inputValues['document']) {
+                          documentContent = inputValues['document'];
                         }
-                      }
-                    }
-                    
-                    if (documentContent) {
-                      return (
-                        <div className="mt-2 bg-white rounded border border-slate-200 p-3">
-                          <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
-                          <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
-                            {documentContent.substring(0, 500)}
-                            {documentContent.length > 500 && '...'}
-                          </div>
-                        </div>
-                      );
-                    } else {
-                      // The reference document content will be loaded from the database during extraction
-                      return (
-                        <div className="mt-2 bg-white rounded border border-slate-200 p-3">
-                          <p className="text-xs font-medium text-gray-600 mb-1">Document Content Preview:</p>
-                          <div className="text-xs text-gray-500">
-                            <p className="italic mb-2">The reference document will be loaded automatically during extraction.</p>
-                            <p className="text-gray-600">This knowledge document contains the standard field mappings that will be used to map your column names to their standard equivalents.</p>
-                          </div>
-                        </div>
-                      );
-                    }
-                  })()}
+                        
+                        // Check in input config for any document-like content
+                        if (!documentContent && inputValues) {
+                          const docKeys = Object.keys(inputValues).filter(k => 
+                            k.toLowerCase().includes('doc') || 
+                            k.toLowerCase().includes('content') ||
+                            k.toLowerCase().includes('text')
+                          );
+                          for (const key of docKeys) {
+                            if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
+                              documentContent = inputValues[key];
+                              break;
+                            }
+                          }
+                        }
+                        
+                        if (documentContent) {
+                          return (
+                            <>
+                              {documentContent.substring(0, 500)}
+                              {documentContent.length > 500 && '...'}
+                            </>
+                          );
+                        } else {
+                          return (
+                            <span className="text-gray-500 italic">
+                              This knowledge document contains the standard field mappings that will be used to map your column names to their standard equivalents.
+                            </span>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -438,7 +433,7 @@ export default function ExtractWizardModal({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a document to process" />
                   </SelectTrigger>
-                  <SelectContent align="start" sideOffset={5}>
+                  <SelectContent align="start" side="bottom" sideOffset={5} alignOffset={-5}>
                     {documents.map((doc) => (
                       <SelectItem key={doc.id} value={doc.id}>
                         <div className="flex items-center gap-2">
