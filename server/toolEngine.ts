@@ -689,6 +689,8 @@ ${JSON.stringify(batch, null, 2)}`;
           console.log(`✅ Processing complete. Total results: ${allResults.length}`);
           return allResults;
         }
+        
+        // If we reach here, fall through to normal processing
       }
       
       // Normal processing for small arrays or non-array inputs
