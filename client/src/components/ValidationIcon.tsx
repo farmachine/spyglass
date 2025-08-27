@@ -1,4 +1,4 @@
-import { CheckCircle, AlertCircle, Clock, Edit2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, Edit2, CheckCircle2, Edit3, User, Zap, XCircle, AlertTriangle, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
