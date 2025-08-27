@@ -21,7 +21,7 @@ interface ExtractWizardModalProps {
   isLoading?: boolean;
   needsDocument?: boolean;
   inputValues?: any;
-  knowledgeDocuments?: Array<{ id: string; documentName: string }>;
+  knowledgeDocuments?: Array<{ id: string; documentName?: string; displayName?: string; fileName?: string; documentContent?: string }>;
 }
 
 // Function type descriptions for user guidance
@@ -358,47 +358,50 @@ export default function ExtractWizardModal({
                 <div key={index} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" style={{ backgroundColor: 'rgba(79, 99, 164, 0.1)', color: '#4F63A4' }}>
-                      {doc.documentName}
+                      {doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}
                     </Badge>
                   </div>
                   {/* Show document content */}
                   <div className="mt-2 bg-white rounded border border-slate-200 p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-1">{doc.documentName}:</p>
+                    <p className="text-xs font-medium text-gray-600 mb-1">{doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}:</p>
                     <div className="text-xs text-gray-700 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
                       {(() => {
-                        // Try to find the document content in different possible locations
-                        let documentContent = null;
+                        // First check if the document has content directly
+                        let documentContent = doc.documentContent;
                         
-                        // Check if it's directly in inputValues
-                        if (inputValues && inputValues['Reference Document']) {
-                          if (typeof inputValues['Reference Document'] === 'string') {
-                            documentContent = inputValues['Reference Document'];
-                          } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
-                            const firstDoc = inputValues['Reference Document'][0];
-                            if (typeof firstDoc === 'object' && firstDoc.documentContent) {
-                              documentContent = firstDoc.documentContent;
-                            } else if (typeof firstDoc === 'object' && firstDoc.content) {
-                              documentContent = firstDoc.content;
+                        // If not, try to find the document content in inputValues
+                        if (!documentContent && inputValues) {
+                          // Check if it's directly in inputValues
+                          if (inputValues['Reference Document']) {
+                            if (typeof inputValues['Reference Document'] === 'string') {
+                              documentContent = inputValues['Reference Document'];
+                            } else if (Array.isArray(inputValues['Reference Document']) && inputValues['Reference Document'].length > 0) {
+                              const firstDoc = inputValues['Reference Document'][0];
+                              if (typeof firstDoc === 'object' && firstDoc.documentContent) {
+                                documentContent = firstDoc.documentContent;
+                              } else if (typeof firstDoc === 'object' && firstDoc.content) {
+                                documentContent = firstDoc.content;
+                              }
                             }
                           }
-                        }
-                        
-                        // Check if we have a document property
-                        if (!documentContent && inputValues && inputValues['document']) {
-                          documentContent = inputValues['document'];
-                        }
-                        
-                        // Check in input config for any document-like content
-                        if (!documentContent && inputValues) {
-                          const docKeys = Object.keys(inputValues).filter(k => 
-                            k.toLowerCase().includes('doc') || 
-                            k.toLowerCase().includes('content') ||
-                            k.toLowerCase().includes('text')
-                          );
-                          for (const key of docKeys) {
-                            if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
-                              documentContent = inputValues[key];
-                              break;
+                          
+                          // Check if we have a document property
+                          if (!documentContent && inputValues['document']) {
+                            documentContent = inputValues['document'];
+                          }
+                          
+                          // Check in input config for any document-like content
+                          if (!documentContent) {
+                            const docKeys = Object.keys(inputValues).filter(k => 
+                              k.toLowerCase().includes('doc') || 
+                              k.toLowerCase().includes('content') ||
+                              k.toLowerCase().includes('text')
+                            );
+                            for (const key of docKeys) {
+                              if (typeof inputValues[key] === 'string' && inputValues[key].length > 50) {
+                                documentContent = inputValues[key];
+                                break;
+                              }
                             }
                           }
                         }

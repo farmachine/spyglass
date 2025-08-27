@@ -2199,20 +2199,39 @@ export default function SessionView() {
         // Check for document references in arrays
         if (Array.isArray(value)) {
           value.forEach((v: any) => {
+            // Check for UUID references
             if (typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i)) {
-              // This looks like a UUID - check if it's a knowledge document
               const knowledgeDoc = project.knowledgeDocuments?.find((d: any) => d.id === v);
               if (knowledgeDoc && !referencedKnowledgeDocs.find(d => d.id === knowledgeDoc.id)) {
                 referencedKnowledgeDocs.push(knowledgeDoc);
               }
             }
+            // Check for @reference_document references
+            else if (typeof v === 'string' && v === '@reference_document') {
+              // This is a reference to knowledge documents, add all knowledge documents
+              project.knowledgeDocuments?.forEach((doc: any) => {
+                if (!referencedKnowledgeDocs.find(d => d.id === doc.id)) {
+                  referencedKnowledgeDocs.push(doc);
+                }
+              });
+            }
           });
         }
         // Check for single document reference
-        else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-          const knowledgeDoc = project.knowledgeDocuments?.find((d: any) => d.id === value);
-          if (knowledgeDoc && !referencedKnowledgeDocs.find(d => d.id === knowledgeDoc.id)) {
-            referencedKnowledgeDocs.push(knowledgeDoc);
+        else if (typeof value === 'string') {
+          if (value.match(/^[a-f0-9-]{36}$/i)) {
+            const knowledgeDoc = project.knowledgeDocuments?.find((d: any) => d.id === value);
+            if (knowledgeDoc && !referencedKnowledgeDocs.find(d => d.id === knowledgeDoc.id)) {
+              referencedKnowledgeDocs.push(knowledgeDoc);
+            }
+          }
+          else if (value === '@reference_document') {
+            // This is a reference to knowledge documents, add all knowledge documents
+            project.knowledgeDocuments?.forEach((doc: any) => {
+              if (!referencedKnowledgeDocs.find(d => d.id === doc.id)) {
+                referencedKnowledgeDocs.push(doc);
+              }
+            });
           }
         }
       });
