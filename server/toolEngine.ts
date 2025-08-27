@@ -635,13 +635,17 @@ ${JSON.stringify(batch, null, 2)}`;
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
             
-            // Clean and parse batch results
-            if (batchResult.includes('```json')) {
-              const jsonMatch = batchResult.match(/```json\s*([\s\S]*?)\s*```/);
+            // Clean and parse batch results - handle multiple markdown formats
+            if (batchResult.includes('```')) {
+              // Try to extract JSON from markdown code blocks
+              const jsonMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
               if (jsonMatch) {
                 batchResult = jsonMatch[1].trim();
               }
             }
+            
+            // Also clean up any remaining backticks at start/end
+            batchResult = batchResult.replace(/^`+|`+$/g, '').trim();
             
             try {
               const parsed = batchResult.trim() ? JSON.parse(batchResult) : [];

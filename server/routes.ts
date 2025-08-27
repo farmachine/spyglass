@@ -6953,7 +6953,7 @@ def extract_function(Column_Name, Excel_File):
       // Save the results as field validations
       if (results && results.length > 0) {
         // Ensure all results have proper validation status
-        results = results.map(result => {
+        const processedResults = results.map(result => {
           // If extractedValue is null, undefined, or "Processing Error", set proper fallback
           if (!result.extractedValue || result.extractedValue === "Processing Error") {
             return {
@@ -6995,8 +6995,8 @@ def extract_function(Column_Name, Excel_File):
         }
         
         // Create new validations for each result
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
+        for (let i = 0; i < processedResults.length; i++) {
+          const result = processedResults[i];
           
           // Get the identifier ID based on whether this is the first column or a subsequent one
           let identifierId: string | null = null;
