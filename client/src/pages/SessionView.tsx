@@ -4425,31 +4425,40 @@ Thank you for your assistance.`;
                                                       </Tooltip>
                                                     </TooltipProvider>
                                                   );
-                                                } else if ((hasValue || isNotFound) && validation.confidenceScore) {
-                                                  // Show colored confidence dot when not verified (including for "Not Found" values)
-                                                  const colorClass = isNotFound ? 'bg-gray-500' : 
-                                                                   score >= 80 ? 'bg-green-500' : 
-                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                                  
-                                                  return (
-                                                    <button
-                                                      onClick={() => {
-                                                        if (validation.aiReasoning) {
-                                                          setSelectedReasoning({
-                                                            reasoning: validation.aiReasoning,
-                                                            fieldName,
-                                                            confidenceScore: validation.confidenceScore || 0,
-                                                            getFieldDisplayName,
-                                                            validation,
-                                                            onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
-                                                            isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
-                                                          });
-                                                        }
-                                                      }}
-                                                      className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                      title={`${score}% confidence - ${isNotFound ? 'Not Found' : 'Click for AI analysis'}`}
-                                                    />
-                                                  );
+                                                } else if (hasValue || isNotFound) {
+                                                  // Show appropriate indicator based on confidence score availability
+                                                  if (validation.confidenceScore) {
+                                                    // Show colored confidence dot when there's a confidence score
+                                                    const colorClass = isNotFound ? 'bg-gray-500' : 
+                                                                     score >= 80 ? 'bg-green-500' : 
+                                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                    
+                                                    return (
+                                                      <button
+                                                        onClick={() => {
+                                                          if (validation.aiReasoning) {
+                                                            setSelectedReasoning({
+                                                              reasoning: validation.aiReasoning,
+                                                              fieldName,
+                                                              confidenceScore: validation.confidenceScore || 0,
+                                                              getFieldDisplayName,
+                                                              validation,
+                                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                                              isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
+                                                            });
+                                                          }
+                                                        }}
+                                                        className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
+                                                        title={`${score}% confidence - ${isNotFound ? 'Not Found' : 'Click for AI analysis'}`}
+                                                      />
+                                                    );
+                                                  } else {
+                                                    // Show gray pending indicator when no confidence score
+                                                    return (
+                                                      <div className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full" 
+                                                           title="Pending validation" />
+                                                    );
+                                                  }
                                                 } else if (!hasValue && !isNotFound) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
