@@ -6952,6 +6952,28 @@ def extract_function(Column_Name, Excel_File):
       
       // Save the results as field validations
       if (results && results.length > 0) {
+        // Ensure all results have proper validation status
+        results = results.map(result => {
+          // If extractedValue is null, undefined, or "Processing Error", set proper fallback
+          if (!result.extractedValue || result.extractedValue === "Processing Error") {
+            return {
+              ...result,
+              extractedValue: result.extractedValue || "Not Found",
+              validationStatus: result.validationStatus || "invalid",
+              aiReasoning: result.aiReasoning || "No data found for this field",
+              confidenceScore: result.confidenceScore || 0,
+              documentSource: result.documentSource || "N/A"
+            };
+          }
+          
+          // Ensure validationStatus is set to valid/invalid, not other values
+          if (!result.validationStatus || !['valid', 'invalid', 'manual', 'verified'].includes(result.validationStatus)) {
+            result.validationStatus = result.confidenceScore >= 70 ? "valid" : "invalid";
+          }
+          
+          return result;
+        });
+        
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
         
@@ -7018,10 +7040,14 @@ def extract_function(Column_Name, Excel_File):
               );
           
           if (existingValidation) {
-            // Update existing validation
+            // Update existing validation - ensure proper fallback for null/error values
+            const extractedValue = result.extractedValue === "Processing Error" || result.extractedValue === null || result.extractedValue === undefined
+              ? null
+              : result.extractedValue;
+            
             await storage.updateFieldValidation(existingValidation.id, {
-              extractedValue: result.extractedValue,
-              validationStatus: result.validationStatus || 'pending',
+              extractedValue: extractedValue,
+              validationStatus: result.validationStatus || 'invalid',
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,
               documentSource: result.documentSource || documentToUse?.fileName || 'unknown',
@@ -7037,6 +7063,11 @@ def extract_function(Column_Name, Excel_File):
             // In the unified architecture, collectionId should be the stepId for Data Tables
             // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
+            // Ensure proper fallback for null/error values
+            const extractedValue = result.extractedValue === "Processing Error" || result.extractedValue === null || result.extractedValue === undefined
+              ? null
+              : result.extractedValue;
+            
             await storage.createFieldValidation({
               id: crypto.randomUUID(), // Always use crypto.randomUUID() for IDs
               sessionId: sessionId,
@@ -7047,9 +7078,9 @@ def extract_function(Column_Name, Excel_File):
               fieldName: fieldName, // Add the properly formatted field name
               recordIndex: recordIndex, // Use the correct record index
               identifierId: identifierId, // Add identifier mapping
-              extractedValue: result.extractedValue,
+              extractedValue: extractedValue,
               validationType: 'collection_property',
-              validationStatus: result.validationStatus || 'pending',
+              validationStatus: result.validationStatus || 'invalid',
               dataType: 'text', // Default to text type for column extraction
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,

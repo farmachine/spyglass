@@ -701,12 +701,15 @@ ${JSON.stringify(batch, null, 2)}`;
               });
             } catch (e) {
               console.error(`    ❌ Failed to parse batch results:`, e);
-              // Add placeholder results for failed batch
+              // Add placeholder results for failed batch with proper identifierIds
               for (let j = 0; j < batch.length; j++) {
+                const itemIndex = i + j;
+                const inputItem = batch[j];
                 allResults.push({
-                  extractedValue: "Processing Error",
+                  identifierId: inputItem.identifierId || null,
+                  extractedValue: null,
                   validationStatus: "invalid",
-                  aiReasoning: "Failed to process this item in batch",
+                  aiReasoning: `Extraction failed: ${e instanceof Error ? e.message : 'Unknown error during processing'}`,
                   confidenceScore: 0,
                   documentSource: "ERROR"
                 });
