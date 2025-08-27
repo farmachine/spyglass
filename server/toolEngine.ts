@@ -958,6 +958,9 @@ ${JSON.stringify(batch, null, 2)}`;
       
       console.log(`🎯 Returning ${results.length} results from testAITool`);
       return results;
+    }
+    }
+    }
       
     } catch (error) {
       console.error('❌ ERROR in testAITool:', error);
