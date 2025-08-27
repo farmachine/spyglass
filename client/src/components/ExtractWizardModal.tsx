@@ -433,7 +433,7 @@ export default function ExtractWizardModal({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a document to process" />
                   </SelectTrigger>
-                  <SelectContent align="start" side="bottom" sideOffset={5} alignOffset={-5}>
+                  <SelectContent className="w-full" position="popper" sideOffset={4}>
                     {documents.map((doc) => (
                       <SelectItem key={doc.id} value={doc.id}>
                         <div className="flex items-center gap-2">
