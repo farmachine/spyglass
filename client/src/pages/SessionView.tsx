@@ -4276,7 +4276,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-24 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 border-r border-gray-300 dark:border-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-16 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 border-r border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
