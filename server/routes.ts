@@ -6873,6 +6873,16 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
+      // For CODE tools, check if any parameter is of type 'document' and needs session document content
+      if (tool.toolType === 'CODE') {
+        for (const param of tool.inputParameters || []) {
+          if (param.type === 'document' && documentContent) {
+            console.log(`📄 Adding session document content for CODE tool parameter: ${param.name}`);
+            toolInputs[param.name] = documentContent;
+          }
+        }
+      }
+      
       // Handle reference documents - check if any parameter expects them
       const refDocParam = tool.inputParameters?.find(p => 
         p.name === 'Reference Document' || 
