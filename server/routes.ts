@@ -2339,25 +2339,43 @@ except Exception as e:
                 const refParts = value.substring(1).split('.');
                 let referencedValueName = refParts[refParts.length - 1];
                 
-                // Find the referenced value's data
-                if (referencedValueName === 'ID') {
-                  // Get ID column data
-                  const idValidations = existingValidations.filter((v: any) => 
-                    v.valueId === '3a91ea85-ed02-41cf-a607-a8d9a21d6fdf'
-                  );
+                console.log(`📌 Looking for value named: "${referencedValueName}"`);
+                
+                // Find the step that contains the current value to get other values in the same step
+                const currentStepId = workflowValue.stepId;
+                if (currentStepId) {
+                  const stepValues = await storage.getStepValues(currentStepId);
+                  console.log(`📌 Found ${stepValues.length} values in current step`);
                   
-                  if (idValidations.length > 0) {
-                    const columnData = idValidations.map((v: any) => ({
-                      identifierId: v.identifierId || `record-${v.recordIndex}`,
-                      extractedValue: v.extractedValue || '',
-                      recordIndex: v.recordIndex
-                    }));
-                    toolInputs[key] = columnData;
-                    console.log(`📌 Resolved @ID reference to ${columnData.length} items`);
+                  // Find the referenced value by name
+                  const referencedValue = stepValues.find(v => v.valueName === referencedValueName);
+                  if (referencedValue) {
+                    console.log(`📌 Found referenced value: ${referencedValue.valueName} (ID: ${referencedValue.id})`);
+                    
+                    // Get validations for this value
+                    const referencedValidations = existingValidations.filter((v: any) => 
+                      v.valueId === referencedValue.id
+                    );
+                    
+                    if (referencedValidations.length > 0) {
+                      const referencedData = referencedValidations.map((v: any) => ({
+                        identifierId: v.identifierId || `record-${v.recordIndex}`,
+                        extractedValue: v.extractedValue || '',
+                        recordIndex: v.recordIndex
+                      }));
+                      toolInputs[key] = referencedData;
+                      console.log(`📌 Resolved @${referencedValueName} reference to ${referencedData.length} items`);
+                    } else {
+                      console.log(`⚠️ No validations found for referenced value: ${referencedValueName}`);
+                      toolInputs[key] = [];
+                    }
+                  } else {
+                    console.log(`⚠️ Referenced value "${referencedValueName}" not found in current step`);
+                    toolInputs[key] = [];
                   }
                 } else {
-                  console.log(`⚠️ Unknown reference: ${value}`);
-                  toolInputs[key] = value;
+                  console.log(`⚠️ No stepId found for current value`);
+                  toolInputs[key] = [];
                 }
               }
               // Handle Reference Document - fetch when key is present OR value is @reference_document or value is an array (document IDs)
