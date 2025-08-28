@@ -2993,6 +2993,17 @@ Thank you for your assistance.`;
       // Simple toggle: if valid -> pending, if pending -> valid
       const newStatus: ValidationStatus = validation.validationStatus === 'valid' ? 'pending' : 'valid';
       
+      // OPTIMISTIC UPDATE - immediately update UI
+      queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((v: any) => {
+          if (v.id === validation.id) {
+            return { ...v, validationStatus: newStatus };
+          }
+          return v;
+        });
+      });
+      
       try {
         await updateValidationMutation.mutateAsync({
           id: validation.id,
@@ -3002,6 +3013,8 @@ Thank you for your assistance.`;
         });
       } catch (error) {
         console.error('Failed to toggle verification:', error);
+        // On error, invalidate and refetch to get correct state
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       }
     }
   };
@@ -4429,7 +4442,7 @@ Thank you for your assistance.`;
                                                                validation.extractedValue !== "" && 
                                                                validation.extractedValue !== "null" && 
                                                                validation.extractedValue !== "undefined";
-                                                const isVerified = validation.validationStatus === 'valid' || validation.validationStatus === 'manual';
+                                                const isVerified = validation.validationStatus === 'valid';
                                                 const score = Math.round(validation.confidenceScore || 0);
 
                                                 if (wasManuallyUpdated) {
@@ -4445,7 +4458,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleFieldVerification(fieldName, false, rowIdentifierId)}
+                                                            onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
                                                             className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
@@ -4467,28 +4480,19 @@ Thank you for your assistance.`;
                                                     
                                                     return (
                                                       <button
-                                                        onClick={() => {
-                                                          if (validation.aiReasoning) {
-                                                            setSelectedReasoning({
-                                                              reasoning: validation.aiReasoning,
-                                                              fieldName,
-                                                              confidenceScore: validation.confidenceScore || 0,
-                                                              getFieldDisplayName,
-                                                              validation,
-                                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified, rowIdentifierId),
-                                                              isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
-                                                            });
-                                                          }
-                                                        }}
-                                                        className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity`}
-                                                        title={`${score}% confidence - Click for AI analysis`}
+                                                        onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                        className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                        title={`Click to validate. ${validation.aiReasoning || ''}`}
                                                       />
                                                     );
                                                   } else {
                                                     // Show gray pending indicator when no confidence score
                                                     return (
-                                                      <div className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full" 
-                                                           title="Pending validation" />
+                                                      <button
+                                                        onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                        className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                        title={`Click to validate. ${validation.aiReasoning || ''}`}
+                                                      />
                                                     );
                                                   }
                                                 } else if (!hasValue) {
