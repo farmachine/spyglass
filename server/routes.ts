@@ -6924,6 +6924,20 @@ def extract_function(Column_Name, Excel_File):
       toolInputs.projectId = session.projectId;
       
       
+      // Replace 'user_document' placeholders with actual session document content
+      if (documentContent) {
+        console.log(`🔄 Checking for 'user_document' placeholders to replace...`);
+        for (const [key, value] of Object.entries(toolInputs)) {
+          if (Array.isArray(value) && value.includes('user_document')) {
+            console.log(`📄 Replacing 'user_document' placeholder in ${key} with session document content`);
+            toolInputs[key] = documentContent;
+          } else if (value === 'user_document') {
+            console.log(`📄 Replacing 'user_document' placeholder in ${key} with session document content`);
+            toolInputs[key] = documentContent;
+          }
+        }
+      }
+      
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
       
       // Execute the tool using the tool engine
