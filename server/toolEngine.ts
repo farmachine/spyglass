@@ -466,26 +466,30 @@ export class ToolEngine {
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
         const [dataKey, dataArray] = dataInputs[0];
         
-        // For AI tools, send ALL items in a single request
+        // For AI tools, send ALL items in a single request (limited to 50 for performance)
         if (tool.toolType === 'AI_ONLY' && Array.isArray(dataArray) && dataArray.length > 0) {
-          console.log(`📦 AI Tool: Processing ALL ${dataArray.length} items in a SINGLE API call...`);
+          const AI_RECORD_LIMIT = 50;
+          const originalLength = dataArray.length;
+          const limitedArray = dataArray.slice(0, AI_RECORD_LIMIT);
           
-          // Process ALL items in a single batch for AI tools
-          const batch = dataArray; // Use the entire array as one batch
+          console.log(`📦 AI Tool: Processing ${limitedArray.length} items${originalLength > AI_RECORD_LIMIT ? ` (limited from ${originalLength} for performance)` : ''} in a SINGLE API call...`);
+          
+          // Process limited items in a single batch for AI tools
+          const batch = limitedArray;
           const allResults: ToolResult[] = [];
           
           // No loop needed - process everything at once
           {
             const i = 0;
-            const batchEnd = dataArray.length;
+            const batchEnd = limitedArray.length;
             const batchNumber = 1;
             const totalBatches = 1;
             
-            console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
+            console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${limitedArray.length}`);
             
             // Report progress if callback provided
             if (progressCallback) {
-              progressCallback(i, dataArray.length, `Processing batch ${batchNumber} of ${totalBatches}`);
+              progressCallback(i, limitedArray.length, `Processing batch ${batchNumber} of ${totalBatches}`);
             }
             
             // Create inputs for this batch
