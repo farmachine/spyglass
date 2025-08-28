@@ -236,7 +236,7 @@ export default function ExtractWizardModal({
                 Your Reference Data
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                <strong>{inputData.length} records</strong> available from previous steps
+                <strong>{isAITool && inputData.length > 50 ? `50 records (limited from ${inputData.length} for performance)` : `${inputData.length} records`}</strong> available from previous steps
               </p>
               
               <div className="bg-gray-50 rounded-lg p-4">
