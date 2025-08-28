@@ -2960,88 +2960,39 @@ Thank you for your assistance.`;
     const currentBulkFields = bulkValidationState[columnKey] || new Set();
     const isCurrentlyBulkValidated = currentBulkFields.size > 0;
     
-    // If currently bulk validated, toggle off (set to pending only those that were bulk validated)
+    // Toggle validation for all fields in column
+    const targetStatus = isCurrentlyBulkValidated ? 'pending' : 'valid';
+    const targetVerified = !isCurrentlyBulkValidated;
+    
+    // Simple approach: just call the mutation for each field
+    const fieldsToProcess = isCurrentlyBulkValidated 
+      ? columnValidations.filter(v => currentBulkFields.has(v.id))
+      : columnValidations.filter(v => v.validationStatus !== 'manual');
+    
+    // Update bulk state
     if (isCurrentlyBulkValidated) {
-      for (const validation of columnValidations) {
-        if (currentBulkFields.has(validation.id)) {
-          const newStatus = validation.manuallyUpdated ? 'manual' : 'pending';
-          
-          // Optimistic update
-          queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-            if (!oldData) return oldData;
-            return oldData.map((v: any) => 
-              v.id === validation.id 
-                ? { ...v, validationStatus: newStatus, manuallyVerified: false }
-                : v
-            );
-          });
-          
-          queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
-            if (!oldData) return oldData;
-            return oldData.map((v: any) => 
-              v.id === validation.id 
-                ? { ...v, validationStatus: newStatus, manuallyVerified: false }
-                : v
-            );
-          });
-          
-          // API call
-          updateValidationMutation.mutate({
-            id: validation.id,
-            data: { validationStatus: newStatus, manuallyVerified: false }
-          });
-        }
-      }
-      
-      // Clear bulk state for this column
       setBulkValidationState(prev => {
         const newState = { ...prev };
         delete newState[columnKey];
         return newState;
       });
     } else {
-      // Bulk validate all fields in column (only those not already manually validated)
-      const fieldsToValidate = columnValidations.filter(v => 
-        v.validationStatus !== 'manual' // Don't override manual validations
-      );
-      
-      const newBulkFields = new Set<string>();
-      
-      for (const validation of fieldsToValidate) {
-        const newStatus = validation.manuallyUpdated ? 'manual' : 'valid';
-        newBulkFields.add(validation.id);
-        
-        // Optimistic update
-        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((v: any) => 
-            v.id === validation.id 
-              ? { ...v, validationStatus: newStatus, manuallyVerified: true }
-              : v
-          );
-        });
-        
-        queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((v: any) => 
-            v.id === validation.id 
-              ? { ...v, validationStatus: newStatus, manuallyVerified: true }
-              : v
-          );
-        });
-        
-        // API call
-        updateValidationMutation.mutate({
-          id: validation.id,
-          data: { validationStatus: newStatus, manuallyVerified: true }
-        });
-      }
-      
-      // Update bulk state for this column
+      const newBulkFields = new Set(fieldsToProcess.map(v => v.id));
       setBulkValidationState(prev => ({
         ...prev,
         [columnKey]: newBulkFields
       }));
+    }
+    
+    // Process each field
+    for (const validation of fieldsToProcess) {
+      updateValidationMutation.mutate({
+        id: validation.id,
+        data: { 
+          validationStatus: targetStatus, 
+          manuallyVerified: targetVerified 
+        }
+      });
     }
   };
 
@@ -3383,18 +3334,6 @@ Thank you for your assistance.`;
                            validation.extractedValue !== "undefined" &&
                            validation.extractedValue !== "Not Found";
             
-            // Force console logging to debug - this will help us understand the issue
-            if (fieldName === 'Document Date') {
-              console.log(`🐛 ICON LOGIC DEBUG - Field: ${fieldName}`, {
-                wasManuallyUpdated,
-                isVerified,
-                validationStatus: validation.validationStatus,
-                manuallyVerified: validation.manuallyVerified,
-                willShowUserIcon: wasManuallyUpdated && !isVerified,
-                willShowGreenCheck: wasManuallyUpdated && isVerified,
-                currentTime: new Date().toISOString()
-              });
-            }
             
             // Only show user icon if manually updated AND not verified
             if (wasManuallyUpdated && !isVerified) {
@@ -4239,7 +4178,6 @@ Thank you for your assistance.`;
                   
                   // Debug logging
                   if (item.itemName === 'Column Name Mapping') {
-                    console.log(`🔍 DEBUG: Collection "${item.itemName}"`);
                     console.log(`🔍 Total validations: ${validations.length}`);
                     console.log(`🔍 Matching validations: ${collectionValidations.length}`);
                     
