@@ -106,7 +106,12 @@ Keep responses concise and focused on the user's question. Use the session data 
       config: {
         systemInstruction: systemPrompt,
       },
-      contents: message,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: message }]
+        }
+      ],
     });
 
     return response.text || "I apologize, but I couldn't generate a response. Please try again.";

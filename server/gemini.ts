@@ -39,7 +39,12 @@ export async function testAIOnlyTool(
 
     const response = await genAI.models.generateContent({
       model: "gemini-1.5-flash",
-      contents: prompt
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ]
     });
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     
@@ -92,7 +97,12 @@ Return only the Python function code, no explanations.`;
 
     const response = await genAI.models.generateContent({
       model: "gemini-1.5-flash",
-      contents: prompt
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ]
     });
     
     console.log("🔍 Raw response:", JSON.stringify(response, null, 2));

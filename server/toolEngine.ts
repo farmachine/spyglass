@@ -361,7 +361,12 @@ export class ToolEngine {
     
     const response = await genAI.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: prompt
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ]
     });
     
     let content = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -643,7 +648,12 @@ ${JSON.stringify(batch, null, 2)}`;
             
             const response = await genAI.models.generateContent({
               model: tool.llmModel || "gemini-2.0-flash",
-              contents: batchPrompt
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: batchPrompt }]
+                }
+              ]
             });
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -883,7 +893,12 @@ ${JSON.stringify(batch, null, 2)}`;
       
       const response = await genAI.models.generateContent({
         model: llmModel,
-        contents: prompt
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
       });
       
       let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
