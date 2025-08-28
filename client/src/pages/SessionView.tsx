@@ -1698,37 +1698,8 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
-    const validation = getValidation(fieldName, identifierId);
-    if (!validation) return;
-    
-    const newStatus: ValidationStatus = isVerified ? 'valid' : 'pending';
-    
-    // Optimistic update: immediately update the UI
-    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-      if (!oldData) return oldData;
-      return oldData.map((v: any) => 
-        v.id === validation.id 
-          ? { ...v, validationStatus: newStatus }
-          : v
-      );
-    });
-    
-    updateValidationMutation.mutate({
-      id: validation.id,
-      data: { validationStatus: newStatus }
-    }, {
-      onError: () => {
-        // Revert optimistic update on error
-        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((v: any) => 
-            v.id === validation.id 
-              ? { ...v, validationStatus: validation.validationStatus }
-              : v
-          );
-        });
-      }
-    });
+    // Use the proper handleVerificationToggle function that has complete logic
+    handleVerificationToggle(fieldName, isVerified, identifierId);
   };
 
   // Handler for bulk item verification (status column click)
