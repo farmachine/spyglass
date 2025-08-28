@@ -1909,84 +1909,60 @@ export default function SessionView() {
     const valueToCheck = workflowStep.values?.find(v => v.id === valueId);
     if (!valueToCheck) return true;
     
-    // Get the value index to determine if this is the first column
-    const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
-    
-    // First column is never disabled (it doesn't depend on previous data)
-    if (valueIndex === 0) return false;
-    
-    // Special case: Worksheet Name column should never be disabled (it reads directly from document)
-    if (valueToCheck.valueName === 'Worksheet Name') return false;
-    
-    // Check if this value has @ references that need data from other steps
-    const hasColumnReferences = valueToCheck.inputValues && 
-      Object.values(valueToCheck.inputValues).some(value => {
-        if (typeof value === 'string' && value.includes('@')) return true;
-        if (Array.isArray(value)) {
-          return value.some(v => typeof v === 'string' && v.includes('@'));
-        }
-        return false;
-      });
-    
-    // If no column references, it doesn't depend on previous data (e.g., document-based extractions)
-    if (!hasColumnReferences) return false;
-    
-    // Check if there are any valid records from referenced steps
-    const referencedSteps = new Set<string>();
+    // Check if this value has @ references to other values (data type inputs only)
+    const referencedValues: string[] = [];
     if (valueToCheck.inputValues) {
       Object.values(valueToCheck.inputValues).forEach(value => {
         if (typeof value === 'string' && value.includes('@')) {
-          const match = value.match(/@([^.]+)\./);
-          if (match) referencedSteps.add(match[1]);
+          referencedValues.push(value);
         } else if (Array.isArray(value)) {
           value.forEach(v => {
             if (typeof v === 'string' && v.includes('@')) {
-              const match = v.match(/@([^.]+)\./);
-              if (match) referencedSteps.add(match[1]);
+              referencedValues.push(v);
             }
           });
         }
       });
     }
     
-    // Check if any referenced step has valid data
-    let hasValidPreviousData = false;
-    for (const referencedStepName of referencedSteps) {
-      const referencedStep = project?.workflowSteps?.find(s => s.stepName === referencedStepName);
-      if (referencedStep) {
-        // Get all validations for the referenced step's field IDs
-        const allStepValidations = validations.filter(v => {
-          if (!v.identifierId) return false;
-          const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
-          return referencedStep.values?.some(val => val.id === fieldId);
-        });
-        
-        // Group by identifierId to check if ANY records have ALL columns verified
-        const identifierGroups = new Map<string, any[]>();
-        allStepValidations.forEach(v => {
-          if (!identifierGroups.has(v.identifierId)) {
-            identifierGroups.set(v.identifierId, []);
-          }
-          identifierGroups.get(v.identifierId)?.push(v);
-        });
-        
-        // Check if any identifier group has all columns verified
-        for (const [identifierId, validationGroup] of identifierGroups) {
-          const allVerified = validationGroup.every(v => 
-            v.validationStatus === 'valid' || v.validationStatus === 'manual'
-          );
-          if (allVerified) {
-            hasValidPreviousData = true;
-            break;
-          }
-        }
-        
-        if (hasValidPreviousData) break;
+    // If no @ references, this value doesn't depend on other values - it's always enabled
+    if (referencedValues.length === 0) return false;
+    
+    // For each referenced value, check if it has valid field_validations
+    for (const reference of referencedValues) {
+      // Parse the reference like "@Column Name Mapping.ID"
+      const match = reference.match(/@([^.]+)\.(.+)/);
+      if (!match) continue;
+      
+      const [, stepName, valueName] = match;
+      
+      // Find the referenced step and value
+      const referencedStep = project?.workflowSteps?.find(s => s.stepName === stepName);
+      if (!referencedStep) continue;
+      
+      const referencedValue = referencedStep.values?.find(v => v.valueName === valueName);
+      if (!referencedValue) continue;
+      
+      // Check if this referenced value has any valid field_validations
+      const referencedValueValidations = validations.filter(v => {
+        const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+        return fieldId === referencedValue.id && (
+          v.validationStatus === 'valid' || v.validationStatus === 'manual'
+        );
+      });
+      
+      // If this referenced value has no valid validations, disable this column
+      if (referencedValueValidations.length === 0) {
+        console.log(`🚫 Column "${valueToCheck.valueName}" disabled: referenced value "${reference}" has no valid field_validations`);
+        return true;
       }
+      
+      console.log(`✅ Referenced value "${reference}" has ${referencedValueValidations.length} valid field_validations`);
     }
     
-    // Disable if no valid previous data is available
-    return !hasValidPreviousData;
+    // All referenced values have valid data - enable this column
+    console.log(`✅ Column "${valueToCheck.valueName}" enabled: all referenced values have valid data`);
+    return false;
   };
 
   // Handler for preparing column extraction and opening modal
