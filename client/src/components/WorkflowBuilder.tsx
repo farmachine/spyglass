@@ -600,7 +600,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-gray-700 hover:border-[#4F63A4]/60 dark:hover:border-[#5A70B5]/60 hover:shadow-md transition-all">
+            <Card className="relative w-full bg-white dark:bg-slate-900 border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
             {/* Logo dot in top left corner */}
             <div className="absolute top-4 left-4 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
             
@@ -753,7 +753,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 ))}
 
                 {step.values.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-[#4F63A4]/30 dark:border-[#5A70B5]/30 rounded-lg">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-[#C5D3E8] dark:border-[#9AACC6] rounded-lg">
                     No values defined. Click "Add Value" to create one.
                   </div>
                 )}
@@ -830,7 +830,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
             </div>
             
-            <Card className="p-12 w-3/4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all">
+            <Card className="p-12 w-3/4 bg-gray-50 dark:bg-slate-900 border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-sm transition-all">
               <div className="text-center">
                 <Layers className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No workflow steps yet</h3>
@@ -969,7 +969,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border-2 border-gray-200 dark:border-gray-700 hover:border-[#4F63A4]/50 dark:hover:border-[#5A70B5]/50 hover:shadow-md transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-slate-900 relative">
+    <div className="border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-md transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-slate-900 relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
