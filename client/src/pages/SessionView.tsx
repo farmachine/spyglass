@@ -4188,17 +4188,19 @@ Thank you for your assistance.`;
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
                                 
-                                return columnsToDisplay
-                                  .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                  .map((column) => {
+                                const sortedColumns = columnsToDisplay.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+                                
+                                return sortedColumns
+                                  .map((column, index) => {
                                     const columnId = column.id;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
+                                    const isLastColumn = index === sortedColumns.length - 1;
                                     
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800 border-b border-[#4F63A4]"
+                                        className={`relative bg-gray-100 dark:bg-gray-800 border-b border-[#4F63A4] ${!isLastColumn ? 'border-r border-gray-300 dark:border-gray-600/30' : ''}`}
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
