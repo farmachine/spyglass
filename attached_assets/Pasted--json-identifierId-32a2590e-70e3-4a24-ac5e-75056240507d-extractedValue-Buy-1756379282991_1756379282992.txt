@@ -1,0 +1,455 @@
+```json
+[
+  {
+    "identifierId": "32a2590e-70e3-4a24-ac5e-75056240507d",
+    "extractedValue": "Buy-Out Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Of Buy-Out Of SBO Terms\" is semantically similar to \"Buy-Out Date\".  The phrase \"Of SBO Terms\" is contextually relevant to pension buy-outs but can be omitted for simplification, maintaining the core meaning.  The worksheet name \"Active deferreds\" supports this interpretation.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "09518443-0547-4f3e-a4be-58920a2c346e",
+    "extractedValue": "Deferred Pension Amount",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Deferred Pension For Service To Buy-Out at this valuation date\" is simplified to \"Deferred Pension Amount\". The additional context details are omitted as they are not essential for the core meaning and might be handled separately. The Worksheet Name \"Active deferreds\" supports this interpretation.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "346e4f00-ad4c-44fd-8211-9653a5f1718b",
+    "extractedValue": "Annual Post-1988 GMP Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Annual Post-5.4.1988 up to 31.5.1995 GMP Component At Date Of This Valuation\" is shortened to \"Annual Post-1988 GMP Component\" for clarity and conciseness. The specific dates are omitted as they are less critical for the core meaning and can be handled separately. The worksheet name \"Active deferreds\" supports this interpretation.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "2b668c17-a5f1-4ea5-af2e-88a605f8825f",
+    "extractedValue": "Deferred Pension Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input \"Date Became Deferred Pensioner\" directly maps to \"Deferred Pension Start Date\". The worksheet name \"Deferreds\" is consistent with this interpretation.",
+    "confidenceScore": 95,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "6185830f-b8d5-4882-be89-d521da608adb",
+    "extractedValue": "Previous Status Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Code For Previous Status\" is a direct match to \"Previous Status Code\".",
+    "confidenceScore": 90,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "e7a3d711-f1c6-419c-9601-1c3b257e530d",
+    "extractedValue": "Normal Retirement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "968e64d5-a639-4cc8-963e-386c2206e2b5",
+    "extractedValue": "Annual Pre-1988 GMP Component at Deferred Pension Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field  \"Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner\" is mapped to \"Annual Pre-1988 GMP Component at Deferred Pension Start Date\" for clarity.  The specific date is replaced with a more generic term for consistency. The worksheet name \"Deferreds\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "2f724b06-5d83-4d1a-9955-04b0784c6e09",
+    "extractedValue": "Annual Post-1988 GMP Component at Deferred Pension Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Similar to the previous entry, the input field is simplified and the specific date is replaced with a more standard term.  The worksheet name \"Deferreds\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "1ce621f1-89bf-4b79-a937-fe9576b8ed3d",
+    "extractedValue": "Total Deferred Pension at Deferred Pension Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified for better clarity and consistency. The worksheet name \"Deferreds\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "2e431807-3ce2-4ecd-95f1-7a5489b3df59",
+    "extractedValue": "Total Contingent Widow(er) Pension at Deferred Pension Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified for better clarity and consistency. The worksheet name \"Deferreds\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "1096959e-e78a-4540-9e28-3ea738367d80",
+    "extractedValue": "Annual Post-1988 GMP Component at Exit Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified by removing unnecessary date specifics. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "620ed869-2ed9-49fe-84a0-1d33f0d0c6ea",
+    "extractedValue": "Annual Pre-1988 GMP Component at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "67b67039-ed8b-4f0d-9ff8-60969c05410a",
+    "extractedValue": "Annual Post-1988 GMP Component at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "d587e14f-871f-4e0a-b48b-901a9312655b",
+    "extractedValue": "Total Pension at Last Valuation",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "3bb59fc0-df67-45b0-8af0-b048b460f4d8",
+    "extractedValue": "Total Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "d717e192-3ac4-4d5e-b6af-0e8b99e5b7a0",
+    "extractedValue": "RPI/CPI-Indexed Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified to capture the essence of the component. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "d32efcac-f402-47d0-89fe-3bc7869431db",
+    "extractedValue": "Contingent Widow(er)'s Sex Code",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "380b9f78-cdef-4381-97d8-f76a6c03b526",
+    "extractedValue": "Contingent Widow(er)'s Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "baa511b9-3bb1-41fc-90dd-5a1ddac190cf",
+    "extractedValue": "Contingent Widow(er)'s Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "d6de5247-9202-4273-9ae9-ae44dc5d291f",
+    "extractedValue": "RPI/CPI-Indexed Contingent Widow(er)'s Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified to capture the essence of the component. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "c0394c25-8d7f-42be-b77f-d4ca2eb5ffd5",
+    "extractedValue": "Pensioner Exit Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "61b66d13-9253-40dc-a3d4-7e1333039639",
+    "extractedValue": "Pensioner Exit Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "b247227c-2a56-4be1-a4d0-d521843988d7",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "3e456a7d-14a4-4d2c-ad95-40eb015c1e06",
+    "extractedValue": "CPI-Indexed Contingent Widow(er)'s Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified.  The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "872ae429-b02d-4156-b7a2-0a5e8def9741",
+    "extractedValue": "Total Pension at Retirement (Pre-Tax)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified for better clarity and consistency. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "efbca0a3-d4c1-449d-8947-38e886b9a28f",
+    "extractedValue": "Widow's Allotment at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Widows\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "660b0995-58ea-4cb7-9338-7fb8183af767",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "1aa29713-081d-49fa-bbbb-b29f9943f4b1",
+    "extractedValue": "Deceased Member's Previous Status Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is clarified. The worksheet name \"Widows\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "35214b5b-c4fc-41c6-855b-eb72d620d51e",
+    "extractedValue": "Child's Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Children\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "4c5ad79c-88b4-4332-9d94-d4956cfc58a3",
+    "extractedValue": "RPI-Indexed Child's Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Children\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "a3be51bc-17c1-49cd-ade4-cde2a90c008f",
+    "extractedValue": "Child's Pension Cessation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Children\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "8b9c25b7-6270-42eb-a449-79ec277ac864",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "7860329a-01a9-41e2-9bb4-60a0c7f0d40a",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "82c89c1f-2ae3-4b01-b562-f86913fe9b1a",
+    "extractedValue": "Section B Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "cfd6745f-c5e0-4847-921e-e26c0fa51115",
+    "extractedValue": "RPI-Indexed Child's Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Children\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "8288295e-28d7-43bb-a3a9-2d5c6b069b9b",
+    "extractedValue": "CPI-Indexed Child's Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Children\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "a75276aa-f926-42cc-a3ac-2e96b05a5866",
+    "extractedValue": "Active Deferred Member Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Active deferreds\" is relevant.",
+    "confidenceScore": 90,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "7ba67c0e-3f1d-44b4-955e-3f6c13fb7181",
+    "extractedValue": "Widow(er) Beneficiary Exit Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Widows\" is relevant.",
+    "confidenceScore": 85,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "fca826ab-6e40-4ed1-887a-38b002f1815d",
+    "extractedValue": "Excess Deferred Pension Component (Non-Revalued)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"Deferreds\" is relevant.",
+    "confidenceScore": 70,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "949f77e1-19d3-4770-abc3-08cb3e3a5fe2",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "75c20229-12e7-4bbc-bb1e-b94326e58e92",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "1fb90c56-106c-4981-9ff0-fb7c941d1c1f",
+    "extractedValue": "Married Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "32d121ab-7d72-4b67-a5aa-7dd6a41afa5f",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "3cace7ee-28eb-41f7-ae95-0c4938753f89",
+    "extractedValue": "RPI-Indexed Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "5a1393bc-f8f8-4aab-a664-e97f327ba683",
+    "extractedValue": "RPI-Indexed Contingent Widow(er)'s Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is simplified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 75,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "3c55ff37-ce91-4263-ae71-3863c302088c",
+    "extractedValue": "Non-Increasing Pension Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is slightly clarified. The worksheet name \"New_Pensioners\" is relevant.",
+    "confidenceScore": 80,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "8b350607-80e6-4240-b3ff-62858dd8c8f0",
+    "extractedValue": "Spouse's Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "8120a557-1c69-4659-8b56-5295b1a4e5de",
+    "extractedValue": "Married Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "22a70296-decd-43c9-a258-f0016b85cfeb",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  },
+  {
+    "identifierId": "aa5fff70-7d97-4690-abe6-125176f7e928",
+    "extractedValue": "New Pension Date",
+    "validationStatus": "valid",
+    "aiReasoning": "This is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  }
+]
+```
+
+====================================================================================================
+    🧹 Extracted from markdown, new length: 17812
+    📊 Final cleaned JSON length: 17812
+    📊 Final JSON preview: [
+  {
+    "identifierId": "32a2590e-70e3-4a24-ac5e-75056240507d",
+    "extractedValue": "Buy-Out Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Of Buy-Out Of SBO Terms\" is semantically similar to \"Buy-Out Date\".  The phrase \"Of SBO Terms\" is contextually rele...
+    📊 Final JSON ending: ...ct match.",
+    "confidenceScore": 100,
+    "documentSource": "Generic Pension Data Standards"
+  }
+]
+    ✅ Parsed 50 results from AI response
+    ✅ Batch 1: Processed 50 items
+✅ Processing complete. Total results: 50
+✅ Tool execution completed. Results count: 50
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "identifierId": "32a2590e-70e3-4a24-ac5e-75056240507d",
+  "extractedValue": "Buy-Out Date",
+  "validationStatus": "valid",
+  "aiReasoning": "The input field \"Date Of Buy-Out Of SBO Terms\" is semantically similar to \"Buy-Out Date\".  The phrase \"Of SBO Terms\" is contextually relevant to pension buy-outs but can be omitted for simplification, maintaining the core meaning.  The worksheet name \"Active deferreds\" supports this interpretation.",
+  "confidenceScore": 80,
+  "documentSource": "Generic Pension Data Standards"
+}
+  Second result: {
+  "identifierId": "09518443-0547-4f3e-a4be-58920a2c346e",
+  "extractedValue": "Deferred Pension Amount",
+  "validationStatus": "valid",
+  "aiReasoning": "The input field \"Deferred Pension For Service To Buy-Out at this valuation date\" is simplified to \"Deferred Pension Amount\". The additional context details are omitted as they are not essential for the core meaning and might be handled separately. The Worksheet Name \"Active deferreds\" supports this interpretation.",
+  "confidenceScore": 75,
+  "documentSource": "Generic Pension Data Standards"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Using identifierIds from previousData (185 records)
+  Record 0 -> 32a2590e-70e3-4a24-ac5e-75056240507d
+  Record 1 -> 09518443-0547-4f3e-a4be-58920a2c346e
+  Record 2 -> 346e4f00-ad4c-44fd-8211-9653a5f1718b
+  Record 3 -> 2b668c17-a5f1-4ea5-af2e-88a605f8825f
+  Record 4 -> 6185830f-b8d5-4882-be89-d521da608adb
+📊 Found 185 identifierIds from previousData
+📊 Processing 50 actual AI results (not creating validations for unprocessed records)
+🔗 Using identifierId from result at index 0: 32a2590e-70e3-4a24-ac5e-75056240507d
+📝 Updated validation for Column Name Mapping.Standard Equivalent[0]

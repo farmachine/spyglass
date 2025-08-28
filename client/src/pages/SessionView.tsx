@@ -4775,7 +4775,17 @@ Thank you for your assistance.`;
               setColumnExtractionModal(null);
               
               // Refresh validations to show the new extracted data
+              console.log('🔄 Invalidating validation queries...');
+              
+              // Small delay to ensure backend operations complete
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+              
+              // Force refetch to ensure UI updates
+              await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              console.log('✅ Validation queries refreshed');
               
             } catch (error) {
               console.error('Error running column extraction:', error);
