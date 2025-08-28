@@ -266,7 +266,7 @@ export default function ExtractWizardModal({
                           <th className="px-2 py-1.5 text-left font-medium text-gray-700">ID</th>
                           {inputData.length > 0 && Object.keys(inputData[0]).filter(k => k !== 'identifierId').map(key => (
                             <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700">
-                              {key === 'ID' ? 'Column Name' : key === 'Worksheet Name' ? 'Worksheet' : key}
+                              {key}
                             </th>
                           ))}
                         </tr>
