@@ -18,7 +18,7 @@
   --primary-foreground: hsl(0, 0%, 100%); /* White text on primary */
   --secondary: hsl(199, 95%, 74%); /* #BAE6FD - Lighter blue */
   --secondary-foreground: hsl(223, 84%, 18%); /* Dark text on light secondary */
-  --accent: hsl(199, 95%, 74%); /* #BAE6FD */
+  --accent: hsl(0, 0%, 95%); /* Light grey for hover states */
   --accent-foreground: hsl(223, 84%, 18%); /* #0F172A */
   --destructive: hsl(0, 84%, 60%); /* #EF4444 - Error Red */
   --destructive-foreground: hsl(0, 0%, 100%);
