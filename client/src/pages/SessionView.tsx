@@ -3716,27 +3716,6 @@ Thank you for your assistance.`;
                   </span>
                 </div>
                 
-                <Link href={`/sessions/${sessionId}/debug`}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                    title="View AI debugging data"
-                  >
-                    <Bug className="h-4 w-4" />
-                    Debug
-                  </Button>
-                </Link>
-                
-                <Button 
-                  onClick={() => setShowReasoningDialog(true)} 
-                  variant="ghost" 
-                  size="sm"
-                  className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  title="View extraction reasoning"
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
                 <Button
                   onClick={() => setDocumentUploadModalOpen(true)}
                   variant="ghost"
@@ -3766,21 +3745,6 @@ Thank you for your assistance.`;
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">General Information</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenAIExtraction(
-                          'General Information',
-                          project?.schemaFields?.map(field => ({
-                            id: field.id,
-                            name: field.fieldName,
-                            type: field.fieldType
-                          })) || []
-                        )}
-                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 text-[#5065a6] dark:text-blue-400"
-                      >
-                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                      </Button>
                     </CardTitle>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
@@ -4155,21 +4119,6 @@ Thank you for your assistance.`;
                               {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAIExtraction(
-                              collection.collectionName,
-                              collection.properties?.map(prop => ({
-                                id: prop.id,
-                                name: prop.propertyName,
-                                type: prop.propertyType
-                              })) || []
-                            )}
-                            className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-gray-700"
-                          >
-                            <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                          </Button>
                         </CardTitle>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
