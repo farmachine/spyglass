@@ -4216,8 +4216,8 @@ Thank you for your assistance.`;
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-1 flex-1 min-w-0">
-                                      <div className="flex items-center gap-1">
+                                    <div className="flex items-center justify-between flex-1 min-w-0">
+                                      <div className="flex items-center">
                                         {(() => {
                                           // Get all validations for this column
                                           const columnValidations = validations.filter(v => 
@@ -4248,9 +4248,9 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
+                                        <span className="truncate text-blue-900 dark:text-blue-100 pl-1">{columnName}</span>
                                       </div>
-                                      <span className="truncate text-blue-900 dark:text-blue-100 px-2 py-1">{columnName}</span>
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-1 ml-2">
                                         <button
                                           onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
                                           className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
