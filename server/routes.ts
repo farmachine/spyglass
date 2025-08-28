@@ -4836,14 +4836,17 @@ except Exception as e:
       if (updatedValidation.collectionName && updatedValidation.recordIndex !== null && updatedValidation.recordIndex !== undefined) {
         try {
           // Get all existing validations for this collection and record index
+          // Need to get collectionId from the updatedValidation
           const existingValidations = await storage.getValidationsByCollectionAndIndex(
             updatedValidation.sessionId, 
-            updatedValidation.collectionName, 
+            updatedValidation.collectionId || '', // Use collectionId instead of collectionName
             updatedValidation.recordIndex
           );
 
           // Get the collection properties to determine what fields should exist
-          const collection = await storage.getCollectionByName(updatedValidation.collectionName);
+          const collection = updatedValidation.collectionId ? 
+            await storage.getCollection(updatedValidation.collectionId) : 
+            await storage.getCollectionByName(updatedValidation.collectionName);
           if (collection && collection.properties) {
             const existingFieldNames = existingValidations.map(v => {
               // Extract property name from field name (e.g., "Collection.Property[0]" -> "Property")
@@ -7095,7 +7098,7 @@ def extract_function(Column_Name, Excel_File):
         const processedResults = results.map(result => ({
           identifierId: result.identifierId || null,
           extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
-          validationStatus: result.validationStatus || (result.extractedValue ? "valid" : "invalid"),
+          validationStatus: result.validationStatus || "pending", // Always default to pending for new extractions
           aiReasoning: result.aiReasoning || "",
           confidenceScore: result.confidenceScore || 0,
           documentSource: result.documentSource || ""
