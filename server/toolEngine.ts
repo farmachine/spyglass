@@ -635,11 +635,21 @@ ${JSON.stringify(batch, null, 2)}`;
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
             
+            // Log complete raw response for batch processing
+            console.log(`\n🎉 RAW GEMINI BATCH RESPONSE FOR TOOL: ${tool.name} (Batch ${batchNumber})`);
+            console.log('=' .repeat(100));
+            console.log(`🤖 Model Used: ${tool.llmModel || "gemini-2.0-flash"}`);
+            console.log(`📊 Batch size: ${batch.length} items`);
+            console.log(`📊 Response length: ${batchResult.length} chars`);
+            console.log('');
+            console.log('📝 COMPLETE RAW BATCH RESPONSE:');
+            console.log('-'.repeat(80));
+            console.log(batchResult);
+            console.log('-'.repeat(80));
+            console.log('=' .repeat(100));
+            
             // Robust JSON extraction and parsing
             let cleanJson = batchResult;
-            
-            console.log(`    📊 Raw AI response length: ${batchResult.length} chars`);
-            console.log(`    📊 Raw response preview: ${batchResult.substring(0, 500)}...`);
             
             // Step 1: Extract from markdown code blocks if present
             const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -872,13 +882,23 @@ ${JSON.stringify(batch, null, 2)}`;
       
       let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      console.log('\n🎉 RAW GEMINI RESPONSE:');
+      console.log('\n🎉 RAW GEMINI AI RESPONSE FOR TOOL:', tool.name);
+      console.log('=' .repeat(100));
+      console.log('🤖 Model Used:', llmModel);
+      console.log('📊 Response length:', result.length, 'characters');
+      console.log('🔢 Tool output type:', tool.outputType);
+      console.log('');
+      console.log('📝 COMPLETE RAW RESPONSE:');
       console.log('-'.repeat(80));
-      console.log('Response length:', result.length, 'characters');
-      console.log('\nFull Response:');
       console.log(result);
       console.log('-'.repeat(80));
       console.log('');
+      console.log('🔍 Response metadata:');
+      console.log('  - Has candidates:', !!response.candidates);
+      console.log('  - Candidates count:', response.candidates?.length || 0);
+      console.log('  - First candidate has content:', !!response.candidates?.[0]?.content);
+      console.log('  - Content parts count:', response.candidates?.[0]?.content?.parts?.length || 0);
+      console.log('=' .repeat(100));
       
       // Store original for debugging
       const originalResult = result;
