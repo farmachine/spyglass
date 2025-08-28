@@ -409,7 +409,7 @@ export class ToolEngine {
     console.log('  Prepared inputs keys:', Object.keys(preparedInputs));
     
     if (tool.toolType === "AI_ONLY") {
-      console.log('  → Calling testAITool');
+      console.log(`  → Calling AI tool: ${tool.name}`);
       return this.testAITool(tool, preparedInputs, progressCallback);
     } else {
       console.log('  → Calling testCodeTool');
@@ -426,8 +426,8 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      console.log('🔍 testAITool - Inputs received:', Object.keys(inputs));
-      console.log('🔍 testAITool - Tool output type:', tool.outputType);
+      console.log(`🔍 ${tool.name} - Inputs received:`, Object.keys(inputs));
+      console.log(`🔍 ${tool.name} - Tool output type:`, tool.outputType);
       
       // Log each input to understand what we're working with
       for (const [key, value] of Object.entries(inputs)) {
@@ -1078,11 +1078,11 @@ ${JSON.stringify(batch, null, 2)}`;
         console.log(`✅ Ensured ${results.length} results with proper identifierId mapping`);
       }
       
-      console.log(`🎯 Returning ${results.length} results from testAITool`);
+      console.log(`🎯 Returning ${results.length} results from ${tool.name}`);
       return results;
       
     } catch (error) {
-      console.error('❌ ERROR in testAITool:', error);
+      console.error(`❌ ERROR in ${tool.name}:`, error);
       console.error('Error details:', error instanceof Error ? error.stack : String(error));
       
       // Check if we have data inputs that we should create placeholder results for
