@@ -1965,12 +1965,22 @@ export default function SessionView() {
             identifierGroups.get(v.identifierId)?.push(v);
           });
           
-          // Check each identifier group - only include records where ALL columns are verified
+          // Check each identifier group - only include records where ALL columns are verified AND have valid values
           identifierGroups.forEach((validations, identifierId) => {
-            const allVerified = validations.every(v => 
-              v.validationStatus === 'valid' || 
-              v.validationStatus === 'manual'
-            );
+            const allVerified = validations.every(v => {
+              // Check validation status
+              const statusValid = v.validationStatus === 'valid' || v.validationStatus === 'manual';
+              
+              // Check that the actual extracted value is not invalid
+              const valueValid = v.extractedValue && 
+                               v.extractedValue !== 'Not Found' && 
+                               v.extractedValue !== '' && 
+                               v.extractedValue !== null && 
+                               v.extractedValue !== undefined;
+              
+              return statusValid && valueValid;
+            });
+            
             if (allVerified) {
               verifiedIdentifierIds.add(identifierId);
             }
