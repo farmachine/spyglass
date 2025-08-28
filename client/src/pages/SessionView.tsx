@@ -4354,6 +4354,8 @@ Thank you for your assistance.`;
                                         const currentBulkFields = bulkValidationState[columnKey] || new Set();
                                         const isCurrentlyBulkValidated = currentBulkFields.size > 0;
                                         
+                                        console.log(`Column ${columnName}: bulk validated = ${isCurrentlyBulkValidated}, bulk fields count = ${currentBulkFields.size}`);
+                                        
                                         return isCurrentlyBulkValidated ? (
                                           <Check
                                             onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
