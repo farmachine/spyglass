@@ -4831,61 +4831,7 @@ except Exception as e:
         return res.status(404).json({ message: "Validation not found" });
       }
 
-      // If this is a collection field validation and we're creating/updating a value
-      // check if we need to create null validations for other properties in the same collection
-      if (updatedValidation.collectionName && updatedValidation.recordIndex !== null && updatedValidation.recordIndex !== undefined) {
-        try {
-          // Get all existing validations for this collection and record index
-          // Need to get collectionId from the updatedValidation
-          const existingValidations = await storage.getValidationsByCollectionAndIndex(
-            updatedValidation.sessionId, 
-            updatedValidation.collectionId || '', // Use collectionId instead of collectionName
-            updatedValidation.recordIndex
-          );
-
-          // Get the collection properties to determine what fields should exist
-          const collection = updatedValidation.collectionId ? 
-            await storage.getCollection(updatedValidation.collectionId) : 
-            await storage.getCollectionByName(updatedValidation.collectionName);
-          if (collection && collection.properties) {
-            const existingFieldNames = existingValidations.map(v => {
-              // Extract property name from field name (e.g., "Collection.Property[0]" -> "Property")
-              const match = v.fieldName.match(/\.([^[\]]+)(?:\[\d+\])?$/);
-              return match ? match[1] : v.fieldName;
-            });
-
-            // Create validations for missing properties
-            for (const property of collection.properties) {
-              if (!existingFieldNames.includes(property.propertyName)) {
-                const newFieldName = `${updatedValidation.collectionName}.${property.propertyName}[${updatedValidation.recordIndex}]`;
-                
-                const newValidation = {
-                  sessionId: updatedValidation.sessionId,
-                  validationType: "collection_property" as const,
-                  dataType: property.propertyType || "TEXT", // Use propertyType from collection property
-                  fieldId: property.id,
-                  collectionName: updatedValidation.collectionName,
-                  recordIndex: updatedValidation.recordIndex,
-                  extractedValue: null,
-                  validationStatus: "pending" as const,
-                  confidenceScore: 0,
-                  aiReasoning: null,
-                  manuallyVerified: false,
-                  manuallyUpdated: false,
-                  originalExtractedValue: null,
-                  originalConfidenceScore: null,
-                  originalAiReasoning: null
-                };
-                
-                await storage.createFieldValidation(newValidation);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error creating null validations for new collection item:", error);
-          // Don't fail the main update if this fails - just log the error
-        }
-      }
+      // Simplified validation system - only update the existing validation, don't create new ones
 
       res.json(updatedValidation);
     } catch (error) {

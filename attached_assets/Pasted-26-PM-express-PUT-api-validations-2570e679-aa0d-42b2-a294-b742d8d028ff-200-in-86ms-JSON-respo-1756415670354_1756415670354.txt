@@ -1,0 +1,42 @@
+26 PM [express] PUT /api/validations/2570e679-aa0d-42b2-a294-b742d8d028ff 200 in 86ms :: [JSON response - 876 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:26 PM [express] PUT /api/validations/2fa95ba5-55b0-4255-983a-2073fcf20ca2 200 in 86ms :: [JSON response - 871 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:27 PM [express] PUT /api/validations/4b11bdb1-191b-4441-bf73-af59ed95ab76 200 in 85ms :: [JSON response - 897 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:27 PM [express] PUT /api/validations/5b0175b5-f736-49a5-af90-7f4b26251d85 200 in 86ms :: [JSON response - 887 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:27 PM [express] PUT /api/validations/b20d7883-1f56-4f1f-9f66-23479368eb1c 200 in 94ms :: [JSON response - 931 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:27 PM [express] PUT /api/validations/d5519dbc-d32b-440f-8fa0-1d94ba37de54 200 in 87ms :: [JSON response - 940 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:28 PM [express] PUT /api/validations/3fc36c82-060d-46f9-ab36-4d1b252752d4 200 in 86ms :: [JSON response - 984 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:28 PM [express] PUT /api/validations/198cd5fe-8532-462b-8558-701ebbd3e1dd 200 in 86ms :: [JSON response - 1104 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:28 PM [express] PUT /api/validations/988cd81b-d955-40bf-8609-c250defb6c5c 200 in 86ms :: [JSON response - 977 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:28 PM [express] PUT /api/validations/b8f4ee55-b8b1-4b4a-a7b1-390aa179d77f 200 in 86ms :: [JSON response - 912 chars]
+Error creating null validations for new collection item: TypeError: storage.getCollection is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:4848:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+9:14:28 PM [express] PUT /api/validations/e7dacf72-fa05-4537-a505-daf8d4667954 200 in 86ms :: [JSON response - 900 chars]
+Error creating null validations for new collection item: TypeError: storage.getColl
