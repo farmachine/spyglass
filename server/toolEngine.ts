@@ -129,9 +129,8 @@ export class ToolEngine {
           console.log(`📄 Content preview: ${content.substring(0, 300)}...`);
         }
       } else if (param.type === 'document') {
-        try {
-          // Check if inputValue is an array of knowledge document IDs
-          if (Array.isArray(inputValue) && inputValue.length > 0) {
+        // Check if inputValue is an array of knowledge document IDs
+        if (Array.isArray(inputValue) && inputValue.length > 0) {
             // Check if these are knowledge document IDs
             const firstValue = inputValue[0];
             if (typeof firstValue === 'string' && firstValue.length === 36) { // UUID check
@@ -328,9 +327,8 @@ export class ToolEngine {
                 // Last resort fallback
                 preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
               }
-            } else {
-              preparedInputs[param.name] = inputValue;
-            }
+          } else {
+            preparedInputs[param.name] = inputValue;
           }
       } else {
         preparedInputs[param.name] = inputValue;
