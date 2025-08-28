@@ -199,20 +199,17 @@ export function filterRecordsWithAllPreviousValuesValidated(
   const validatedRecordIds: string[] = [];
   
   for (const [identifierId, validations] of recordValidations) {
-    // Check if all validations for this record are properly validated (not pending)
+    // Check if all validations for this record have valid extracted values
     const allValidated = validations.every(v => {
-      // Check validation status - must be validated, not pending
-      const statusValid = (v.validationStatus === 'valid' || v.validationStatus === 'manual') && 
-                         v.validationStatus !== 'pending';
-      
-      // Check that the actual extracted value is not invalid  
+      // For validation filtering, check the actual extracted value
+      // Records with "Not Found" should be excluded regardless of validation status
       const valueValid = v.extractedValue && 
                         v.extractedValue !== 'Not Found' && 
                         v.extractedValue !== '' && 
                         v.extractedValue !== null && 
                         v.extractedValue !== undefined;
       
-      return statusValid && valueValid;
+      return valueValid;
     });
     
     if (allValidated && validations.length > 0) {

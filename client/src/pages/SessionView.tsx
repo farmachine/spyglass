@@ -1965,29 +1965,19 @@ export default function SessionView() {
             identifierGroups.get(v.identifierId)?.push(v);
           });
           
-          // Check each identifier group - only include records where ALL columns are verified AND have valid values
+          // Check each identifier group - only include records where ALL columns have valid values (not "Not Found")
           identifierGroups.forEach((validations, identifierId) => {
-            // Debug: Log validation statuses to see what we're working with
-            const statuses = validations.map(v => `${v.validationStatus}:${v.extractedValue?.substring(0, 20)}...`);
-            console.log(`    Record ${identifierId} validations:`, statuses);
-            
             const allVerified = validations.every(v => {
-              // Check validation status - must be explicitly validated (clicked to valid)
-              const statusValid = v.validationStatus === 'valid';
-              
-              // Check that the actual extracted value is not invalid
+              // For validation filtering, we need to check the actual extracted value
+              // Records with "Not Found" should be excluded regardless of validation status
               const valueValid = v.extractedValue && 
                                v.extractedValue !== 'Not Found' && 
                                v.extractedValue !== '' && 
                                v.extractedValue !== null && 
                                v.extractedValue !== undefined;
               
-              console.log(`      Field validation: status=${v.validationStatus}, statusValid=${statusValid}, valueValid=${valueValid}, value="${v.extractedValue}"`);
-              
-              return statusValid && valueValid;
+              return valueValid;
             });
-            
-            console.log(`    Record ${identifierId} allVerified:`, allVerified);
             
             if (allVerified) {
               verifiedIdentifierIds.add(identifierId);
