@@ -6624,7 +6624,12 @@ def extract_function(Column_Name, Excel_File):
       
       // If this tool expects previous column data, format it appropriately
       if (value.inputValues && Object.keys(value.inputValues).length > 0) {
-        console.log(`🎯 Processing inputValues:`, value.inputValues);
+        console.log(`🎯 Processing inputValues for ${value.valueName}:`, value.inputValues);
+        console.log(`🎯 Previous data received: ${previousData ? previousData.length : 0} records`);
+        if (previousData && previousData.length > 0) {
+          console.log(`🎯 First previousData record structure:`, Object.keys(previousData[0]));
+          console.log(`🎯 First previousData record sample:`, previousData[0]);
+        }
         
         // Filter previous data to only include verified/valid records if we have them
         if (previousData && previousData.length > 0) {
@@ -6632,6 +6637,7 @@ def extract_function(Column_Name, Excel_File):
           
           // Apply validation filtering if previousData is in validation format
           if (previousData[0].validationStatus) {
+            console.log(`🔍 Data has validationStatus - applying filter`);
             previousData = filterVerifiedValidations(previousData, {
               includeManual: true,
               includeValid: true,
@@ -6639,9 +6645,11 @@ def extract_function(Column_Name, Excel_File):
               includeExtracted: includeExtracted // Only include extracted if no verified data exists
             });
             console.log(`✅ After filtering: ${previousData.length} verified/valid records`);
+          } else {
+            console.log(`🔍 Data does NOT have validationStatus - skipping filter`);
           }
         }
-        console.log(`🎯 Previous data available:`, previousData ? `${previousData.length} records` : 'None');
+        console.log(`🎯 Previous data available after filtering:`, previousData ? `${previousData.length} records` : 'None');
         
         // Look for references to previous columns (e.g., @Column Names)
         for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
@@ -6981,6 +6989,26 @@ def extract_function(Column_Name, Excel_File):
       if (documentContent) {
         toolInputs.sessionDocumentContent = documentContent;
         console.log(`📄 Added sessionDocumentContent for user_document replacement (${documentContent.length} chars)`);
+      }
+      
+      // Log what we're about to send to the tool
+      console.log(`🔧 FINAL tool inputs being sent to ${tool.name}:`);
+      for (const [key, value] of Object.entries(toolInputs)) {
+        if (Array.isArray(value)) {
+          console.log(`  ${key}: Array with ${value.length} items`);
+          if (value.length > 0 && value.length <= 5) {
+            console.log(`    Items:`, value);
+          } else if (value.length > 0) {
+            console.log(`    First 3 items:`, value.slice(0, 3));
+          }
+        } else if (typeof value === 'string') {
+          console.log(`  ${key}: String (${value.length} chars)`);
+          if (value.length <= 100) {
+            console.log(`    Content: "${value}"`);
+          }
+        } else {
+          console.log(`  ${key}:`, value);
+        }
       }
       
       console.log(`🚀 REACHED REPLACEMENT SECTION - this should always appear`);
