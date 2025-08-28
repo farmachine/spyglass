@@ -2,6 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq, asc } from "drizzle-orm";
+import { workflowSteps, stepValues } from "@shared/schema";
 import { 
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
@@ -8475,10 +8478,55 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Debug endpoint for fixing orderIndex based on creation time
+  app.get('/debug-fix-orderindex-by-creation', async (req, res) => {
+    try {
+      console.log('🔧 Starting orderIndex fix by creation time...');
+      
+      // Get all workflow steps
+      const steps = await db.select().from(workflowSteps);
+      console.log(`Found ${steps.length} workflow steps`);
+      
+      for (const step of steps) {
+        console.log(`\n🔧 Processing step: ${step.stepName}`);
+        
+        // Get all values for this step, ordered by creation time
+        const values = await db
+          .select()
+          .from(stepValues)
+          .where(eq(stepValues.stepId, step.id))
+          .orderBy(asc(stepValues.createdAt));
+        
+        console.log(`Found ${values.length} values in step ${step.stepName}`);
+        
+        // Update orderIndex based on creation order
+        for (let i = 0; i < values.length; i++) {
+          const value = values[i];
+          console.log(`Setting ${value.valueName} orderIndex to ${i} (was ${value.orderIndex})`);
+          
+          await db
+            .update(stepValues)
+            .set({ orderIndex: i })
+            .where(eq(stepValues.id, value.id));
+        }
+        
+        console.log(`✅ Updated ${values.length} values for step ${step.stepName}`);
+      }
+      
+      console.log('🎉 OrderIndex fix completed!');
+      res.json({ 
+        success: true, 
+        message: 'OrderIndex values fixed based on creation time',
+        stepsProcessed: steps.length
+      });
+      
+    } catch (error) {
+      console.error('Error fixing orderIndex:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
 };
-
-          // Execute the function using the extraction wizardry system
-          const { spawn } = await import('child_process');
