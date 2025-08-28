@@ -1899,6 +1899,93 @@ export default function SessionView() {
     }
   };
 
+  // Helper function to check if a column should be disabled based on previous data availability
+  const isColumnExtractionDisabled = (stepName: string, valueId: string): boolean => {
+    // Get the workflow step
+    const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+    if (!workflowStep) return true;
+    
+    // Get the specific value to check
+    const valueToCheck = workflowStep.values?.find(v => v.id === valueId);
+    if (!valueToCheck) return true;
+    
+    // Get the value index to determine if this is the first column
+    const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;
+    
+    // First column is never disabled (it doesn't depend on previous data)
+    if (valueIndex === 0) return false;
+    
+    // Check if this value has @ references that need data from other steps
+    const hasColumnReferences = valueToCheck.inputValues && 
+      Object.values(valueToCheck.inputValues).some(value => {
+        if (typeof value === 'string' && value.includes('@')) return true;
+        if (Array.isArray(value)) {
+          return value.some(v => typeof v === 'string' && v.includes('@'));
+        }
+        return false;
+      });
+    
+    // If no column references, it doesn't depend on previous data
+    if (!hasColumnReferences) return false;
+    
+    // Check if there are any valid records from referenced steps
+    const referencedSteps = new Set<string>();
+    if (valueToCheck.inputValues) {
+      Object.values(valueToCheck.inputValues).forEach(value => {
+        if (typeof value === 'string' && value.includes('@')) {
+          const match = value.match(/@([^.]+)\./);
+          if (match) referencedSteps.add(match[1]);
+        } else if (Array.isArray(value)) {
+          value.forEach(v => {
+            if (typeof v === 'string' && v.includes('@')) {
+              const match = v.match(/@([^.]+)\./);
+              if (match) referencedSteps.add(match[1]);
+            }
+          });
+        }
+      });
+    }
+    
+    // Check if any referenced step has valid data
+    let hasValidPreviousData = false;
+    for (const referencedStepName of referencedSteps) {
+      const referencedStep = project?.workflowSteps?.find(s => s.stepName === referencedStepName);
+      if (referencedStep) {
+        // Get all validations for the referenced step's field IDs
+        const allStepValidations = validations.filter(v => {
+          if (!v.identifierId) return false;
+          const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+          return referencedStep.values?.some(val => val.id === fieldId);
+        });
+        
+        // Group by identifierId to check if ANY records have ALL columns verified
+        const identifierGroups = new Map<string, any[]>();
+        allStepValidations.forEach(v => {
+          if (!identifierGroups.has(v.identifierId)) {
+            identifierGroups.set(v.identifierId, []);
+          }
+          identifierGroups.get(v.identifierId)?.push(v);
+        });
+        
+        // Check if any identifier group has all columns verified
+        for (const [identifierId, validationGroup] of identifierGroups) {
+          const allVerified = validationGroup.every(v => 
+            v.validationStatus === 'valid' || v.validationStatus === 'manual'
+          );
+          if (allVerified) {
+            hasValidPreviousData = true;
+            break;
+          }
+        }
+        
+        if (hasValidPreviousData) break;
+      }
+    }
+    
+    // Disable if no valid previous data is available
+    return !hasValidPreviousData;
+  };
+
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
     // Get the workflow step
@@ -4264,13 +4351,30 @@ Thank you for your assistance.`;
                                       <span className="truncate">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
                                     </button>
-                                    <button
-                                      onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                      className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
-                                      title={`Run extraction for ${columnName}`}
-                                    >
-                                      <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                                    </button>
+                                    {(() => {
+                                      const isDisabled = isColumnExtractionDisabled(collection.collectionName, columnId);
+                                      return (
+                                        <button
+                                          onClick={() => !isDisabled && handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                          disabled={isDisabled}
+                                          className={`h-7 w-7 p-0 rounded transition-colors flex items-center justify-center flex-shrink-0 ${
+                                            isDisabled 
+                                              ? 'cursor-not-allowed opacity-50' 
+                                              : 'hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer'
+                                          }`}
+                                          title={
+                                            isDisabled 
+                                              ? `Cannot extract ${columnName} - no valid data from previous columns` 
+                                              : `Run extraction for ${columnName}`
+                                          }
+                                        >
+                                          <Wand2 
+                                            className="h-4 w-4" 
+                                            style={{ color: isDisabled ? '#9CA3AF' : '#4F63A4' }} 
+                                          />
+                                        </button>
+                                      );
+                                    })()}
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
