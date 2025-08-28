@@ -162,11 +162,19 @@ const ValidationIndicator = ({
         )}
       </button>
       {/* Show reasoning on hover */}
-      {reasoning && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[300px]">
-          <div className="text-wrap">{reasoning}</div>
+      {(reasoning || validation?.confidenceScore) && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
+          <div className="whitespace-pre-line leading-relaxed">
+            {reasoning && (
+              <div className="mb-2">{reasoning}</div>
+            )}
+            {validation?.confidenceScore && (
+              <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
+            )}
+            <div className="text-xs text-blue-700">Click icon to {validation?.validationStatus === 'valid' ? 'mark as pending' : 'validate'}</div>
+          </div>
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-            <div className="border-4 border-transparent border-t-gray-900"></div>
+            <div className="border-4 border-transparent border-t-[#4F63A4]"></div>
           </div>
         </div>
       )}
@@ -4465,8 +4473,14 @@ Thank you for your assistance.`;
                                                             <span className="text-xs font-bold">✓</span>
                                                           </button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          Verified with {score}% confidence
+                                                        <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                          <div className="whitespace-pre-line leading-relaxed">
+                                                            {validation.aiReasoning && (
+                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                            )}
+                                                            <div className="mb-2 font-medium">Confidence: {score}%</div>
+                                                            <div className="text-xs text-blue-700">Click icon to mark as pending</div>
+                                                          </div>
                                                         </TooltipContent>
                                                       </Tooltip>
                                                     </TooltipProvider>
@@ -4479,20 +4493,49 @@ Thank you for your assistance.`;
                                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                     
                                                     return (
-                                                      <button
-                                                        onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                        className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
-                                                        title={`Click to validate. ${validation.aiReasoning || ''}`}
-                                                      />
+                                                      <div className="relative group">
+                                                        <button
+                                                          onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                          className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                        />
+                                                        {(validation.aiReasoning || validation.confidenceScore) && (
+                                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
+                                                            <div className="whitespace-pre-line leading-relaxed">
+                                                              {validation.aiReasoning && (
+                                                                <div className="mb-2">{validation.aiReasoning}</div>
+                                                              )}
+                                                              {validation.confidenceScore && (
+                                                                <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
+                                                              )}
+                                                              <div className="text-xs text-blue-700">Click icon to validate</div>
+                                                            </div>
+                                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                                              <div className="border-4 border-transparent border-t-[#4F63A4]"></div>
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                      </div>
                                                     );
                                                   } else {
                                                     // Show gray pending indicator when no confidence score
                                                     return (
-                                                      <button
-                                                        onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                        className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
-                                                        title={`Click to validate. ${validation.aiReasoning || ''}`}
-                                                      />
+                                                      <div className="relative group">
+                                                        <button
+                                                          onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                          className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                        />
+                                                        {validation.aiReasoning && (
+                                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
+                                                            <div className="whitespace-pre-line leading-relaxed">
+                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                              <div className="text-xs text-blue-700">Click icon to validate</div>
+                                                            </div>
+                                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                                              <div className="border-4 border-transparent border-t-[#4F63A4]"></div>
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                      </div>
                                                     );
                                                   }
                                                 } else if (!hasValue) {
