@@ -1151,6 +1151,7 @@ export default function SessionView() {
     inputValues?: any;
     knowledgeDocuments?: any[];
   } | null>(null);
+  const [isColumnExtracting, setIsColumnExtracting] = useState(false);
 
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
@@ -4744,6 +4745,8 @@ Thank you for your assistance.`;
             console.log(`🎯 Previous data: ${previousData.length} records`);
             
             try {
+              setIsColumnExtracting(true);
+              
               // Get the workflow step
               const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
               if (!workflowStep) {
@@ -4776,6 +4779,8 @@ Thank you for your assistance.`;
               
             } catch (error) {
               console.error('Error running column extraction:', error);
+            } finally {
+              setIsColumnExtracting(false);
             }
           }}
           title={`Extract ${columnExtractionModal.valueName}`}
@@ -4788,7 +4793,7 @@ Thank you for your assistance.`;
           })) || []}
           inputData={columnExtractionModal.previousData}
           needsDocument={columnExtractionModal.needsDocument}
-          isLoading={false}
+          isLoading={isColumnExtracting}
           inputValues={columnExtractionModal.inputValues}
           knowledgeDocuments={columnExtractionModal.knowledgeDocuments || []}
         />

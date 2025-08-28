@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { Info, FileText, Table, Database, FileSearch, ChevronRight, Loader2, AlertCircle, Wand2, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -219,6 +220,23 @@ export default function ExtractWizardModal({
             Extract: {title.replace('Extract ', '')}
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Loading Progress Bar */}
+        {isLoading && (
+          <div className="px-6 py-4 bg-blue-50 border-b">
+            <div className="flex items-center gap-3 mb-3">
+              <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#4F63A4' }} />
+              <span className="text-sm font-medium text-gray-900">Processing extraction...</span>
+            </div>
+            <Progress value={75} className="h-2" />
+            <p className="text-xs text-gray-600 mt-2">
+              {isAITool && inputData.length > 50 
+                ? `Analyzing first 50 records with AI for optimal performance`
+                : `Processing ${inputData.length} records`
+              }
+            </p>
+          </div>
+        )}
         
         <div className="flex-1 overflow-y-auto space-y-6 pr-1 pt-6">
           {/* Extraction Description - Stand alone without header */}
