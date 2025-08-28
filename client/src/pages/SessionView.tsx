@@ -4251,6 +4251,13 @@ Thank you for your assistance.`;
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
                                 
+                                // Debug: Log current orderIndex values for troubleshooting
+                                if (collection.collectionName === 'Column Name Mapping') {
+                                  console.log('🔍 DEBUG: Column orderIndex values:', columnsToDisplay?.map(col => ({
+                                    name: workflowStep ? col.valueName : (col as any).propertyName,
+                                    orderIndex: col.orderIndex || 0
+                                  })));
+                                }
 
                                 
                                 return columnsToDisplay
