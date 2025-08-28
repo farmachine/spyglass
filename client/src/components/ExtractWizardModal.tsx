@@ -240,7 +240,6 @@ export default function ExtractWizardModal({
               </p>
               
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-xs font-medium text-gray-700 mb-2">Sample records (first 3):</p>
                 <div className="bg-white rounded border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
@@ -255,28 +254,35 @@ export default function ExtractWizardModal({
                         </tr>
                       </thead>
                       <tbody>
-                        {inputData.slice(0, 3).map((record, index) => (
-                          <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
-                            <td className="px-2 py-1.5 text-gray-600 font-mono">
-                              {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
-                            </td>
-                            {Object.entries(record).filter(([k]) => k !== 'identifierId').map(([key, value]) => (
-                              <td key={key} className="px-2 py-1.5 text-gray-700">
-                                <div className="max-w-[200px] truncate" title={String(value)}>
-                                  {value === null || value === undefined ? '-' : String(value)}
-                                </div>
+                        {(() => {
+                          const dataToShow = isAITool && inputData.length > 50 ? inputData.slice(0, 50) : inputData;
+                          return dataToShow.slice(0, 3).map((record, index) => (
+                            <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
+                              <td className="px-2 py-1.5 text-gray-600 font-mono">
+                                {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
                               </td>
-                            ))}
-                          </tr>
-                        ))}
+                              {Object.entries(record).filter(([k]) => k !== 'identifierId').map(([key, value]) => (
+                                <td key={key} className="px-2 py-1.5 text-gray-700">
+                                  <div className="max-w-[200px] truncate" title={String(value)}>
+                                    {value === null || value === undefined ? '-' : String(value)}
+                                  </div>
+                                </td>
+                              ))}
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
-                  {inputData.length > 3 && (
-                    <div className="px-2 py-1.5 bg-gray-50 text-xs text-gray-500 border-t">
-                      ...and {inputData.length - 3} more records
-                    </div>
-                  )}
+                  {(() => {
+                    const dataToShow = isAITool && inputData.length > 50 ? inputData.slice(0, 50) : inputData;
+                    const remainingCount = dataToShow.length - 3;
+                    return remainingCount > 0 && (
+                      <div className="px-2 py-1.5 bg-gray-50 text-xs text-gray-500 border-t">
+                        ...and {remainingCount} more records
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
