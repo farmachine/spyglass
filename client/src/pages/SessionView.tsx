@@ -1967,10 +1967,13 @@ export default function SessionView() {
           
           // Check each identifier group - only include records where ALL columns are verified AND have valid values
           identifierGroups.forEach((validations, identifierId) => {
+            // Debug: Log validation statuses to see what we're working with
+            const statuses = validations.map(v => `${v.validationStatus}:${v.extractedValue?.substring(0, 20)}...`);
+            console.log(`    Record ${identifierId} validations:`, statuses);
+            
             const allVerified = validations.every(v => {
-              // Check validation status - must be validated, not pending
-              const statusValid = (v.validationStatus === 'valid' || v.validationStatus === 'manual') && 
-                                v.validationStatus !== 'pending';
+              // Check validation status - must be explicitly validated (clicked to valid)
+              const statusValid = v.validationStatus === 'valid';
               
               // Check that the actual extracted value is not invalid
               const valueValid = v.extractedValue && 
@@ -1979,8 +1982,12 @@ export default function SessionView() {
                                v.extractedValue !== null && 
                                v.extractedValue !== undefined;
               
+              console.log(`      Field validation: status=${v.validationStatus}, statusValid=${statusValid}, valueValid=${valueValid}, value="${v.extractedValue}"`);
+              
               return statusValid && valueValid;
             });
+            
+            console.log(`    Record ${identifierId} allVerified:`, allVerified);
             
             if (allVerified) {
               verifiedIdentifierIds.add(identifierId);
