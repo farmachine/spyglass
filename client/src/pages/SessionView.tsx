@@ -134,7 +134,47 @@ const AIReasoningModal = ({
   );
 };
 
-// Badge Components
+// Simplified Validation Indicator Component
+const ValidationIndicator = ({ 
+  validation,
+  onToggle,
+  fieldName
+}: { 
+  validation: FieldValidation | undefined;
+  onToggle: () => void;
+  fieldName: string;
+}) => {
+  // All fields start as pending, clicking toggles between pending and valid
+  const isValid = validation?.validationStatus === 'valid';
+  const reasoning = validation?.aiReasoning;
+  
+  return (
+    <div className="relative inline-flex">
+      <button
+        onClick={onToggle}
+        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+        title={reasoning || 'Click to toggle validation status'}
+      >
+        {isValid ? (
+          <Check className="h-4 w-4 text-green-600" />
+        ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-gray-400" />
+        )}
+      </button>
+      {/* Show reasoning on hover */}
+      {reasoning && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[300px]">
+          <div className="text-wrap">{reasoning}</div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+            <div className="border-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Legacy Badge Components (kept for compatibility but simplified)
 const ConfidenceBadge = ({ 
   confidenceScore, 
   reasoning, 
@@ -152,50 +192,13 @@ const ConfidenceBadge = ({
   onVerificationChange: (isVerified: boolean) => void;
   isVerified: boolean;
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const getConfidenceLevel = (score: number) => {
-    if (score >= 80) {
-      return { level: "high", color: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200", description: "High confidence" };
-    } else if (score >= 50) {
-      return { level: "medium", color: "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200", description: "Medium confidence" };
-    } else {
-      return { level: "low", color: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200", description: "Low confidence" };
-    }
-  };
-
-  const confidence = getConfidenceLevel(confidenceScore);
-  
+  // Simply use the new ValidationIndicator
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${confidence.color}`}
-        title={`${confidence.description} - Click for AI analysis and verification`}
-      >
-        Confidence: {confidenceScore}%
-      </button>
-      
-      {/* Verification indicator - green tick in bottom right */}
-      {isVerified && (
-        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-600 rounded-full flex items-center justify-center">
-          <CheckCircle className="h-3 w-3 text-white" />
-        </div>
-      )}
-      
-      {reasoning && (
-        <AIReasoningModal 
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          reasoning={reasoning}
-          fieldName={fieldName}
-          confidenceScore={confidenceScore}
-          getFieldDisplayName={getFieldDisplayName}
-          validation={validation}
-          onVerificationChange={onVerificationChange}
-        />
-      )}
-    </div>
+    <ValidationIndicator 
+      validation={validation}
+      onToggle={() => onVerificationChange(!isVerified)}
+      fieldName={fieldName}
+    />
   );
 };
 
@@ -2064,7 +2067,7 @@ export default function SessionView() {
               }
               
               // Check if validation is truly invalid (error or pending)
-              if (validation.validationStatus === 'pending' || validation.validationStatus === 'error') {
+              if (validation.validationStatus === 'pending' || validation.validationStatus === 'invalid') {
                 allPreviousColumnsValid = false;
                 break;
               }
@@ -2929,78 +2932,52 @@ Thank you for your assistance.`;
     setEditValue("");
   };
 
-  // Bulk column validation handler - TEMPORARILY DISABLED
+  // Bulk column validation handler - toggles all fields in column between pending and valid
   const handleBulkColumnValidation = async (collectionName: string, columnName: string, columnId: string) => {
-    // Temporarily disabled to fix query loop
-    toast({
-      title: "Bulk validation temporarily disabled",
-      description: "This feature is being optimized to prevent performance issues.",
-      variant: "default",
-    });
+    // Get all validations for this column
+    const columnValidations = validations.filter(v => 
+      v.fieldName?.includes(`${collectionName}.${columnName}[`) &&
+      v.extractedValue !== null && 
+      v.extractedValue !== undefined && 
+      v.extractedValue !== "" && 
+      v.extractedValue !== "null" && 
+      v.extractedValue !== "undefined"
+    );
+    
+    if (columnValidations.length === 0) return;
+    
+    // Check if all fields are currently valid
+    const allValid = columnValidations.every(v => v.validationStatus === 'valid');
+    
+    // Toggle all fields: if all valid -> make pending, otherwise -> make valid
+    const targetStatus = allValid ? 'pending' : 'valid';
+    
+    // Update each field
+    for (const validation of columnValidations) {
+      await updateValidationMutation.mutateAsync({
+        id: validation.id,
+        data: { 
+          validationStatus: targetStatus
+        }
+      });
+    }
   };
 
+  // Simple toggle handler - toggles between pending and valid
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
     const validation = getValidation(fieldName, identifierId);
     if (validation) {
-      // Use only schema-defined validation statuses
-      let newStatus: ValidationStatus;
-      
-      if (validation.manuallyUpdated) {
-        // For manually updated fields, use "manual" when verified or unverified
-        newStatus = "manual";
-      } else {
-        // For AI-extracted fields, use "valid" when verified, "pending" when unverified
-        newStatus = isVerified ? "valid" : "pending";
-      }
-      
-      // Optimistic update for both session and project-level validations
-      queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((v: any) => 
-          v.id === validation.id 
-            ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified }
-            : v
-        );
-      });
-
-      queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((v: any) => 
-          v.id === validation.id 
-            ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified }
-            : v
-        );
-      });
-      
+      // Simple toggle: if valid -> pending, if pending -> valid
+      const newStatus: ValidationStatus = validation.validationStatus === 'valid' ? 'pending' : 'valid';
       
       try {
         await updateValidationMutation.mutateAsync({
           id: validation.id,
           data: {
-            validationStatus: newStatus,
-            manuallyVerified: isVerified
+            validationStatus: newStatus
           }
         });
       } catch (error) {
-        // Revert optimistic update on error for both queries
-        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((v: any) => 
-            v.id === validation.id 
-              ? { ...v, validationStatus: validation.validationStatus, manuallyVerified: validation.manuallyVerified }
-              : v
-          );
-        });
-        
-        queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((v: any) => 
-            v.id === validation.id 
-              ? { ...v, validationStatus: validation.validationStatus, manuallyVerified: validation.manuallyVerified }
-              : v
-          );
-        });
-        
         console.error('Failed to toggle verification:', error);
       }
     }
@@ -3262,62 +3239,32 @@ Thank you for your assistance.`;
             
 
             
-            // Check if field was manually updated by user (uses dedicated manually_updated flag)
-            const wasManuallyUpdated = validation.manuallyUpdated;
+            // Simple validation display - just show the ValidationIndicator
+            const handleToggle = () => {
+              const isValid = validation.validationStatus === 'valid';
+              handleVerificationToggle(fieldName, !isValid, validation.identifierId);
+            };
             
-            // Check if field is verified (including manually verified fields)
-            const isVerified = validation.validationStatus === 'valid' || 
-                              validation.validationStatus === 'manual';
-            
-            // Check if field has actual value - if it has a value, it should never show "Not Extracted"
-            const hasValue = validation.extractedValue !== null && 
-                           validation.extractedValue !== undefined && 
-                           validation.extractedValue !== "" && 
-                           validation.extractedValue !== "null" && 
-                           validation.extractedValue !== "undefined" &&
-                           validation.extractedValue !== "Not Found";
-            
-            
-            // Only show user icon if manually updated AND not verified
-            if (wasManuallyUpdated && !isVerified) {
-              
-              return (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                    <User className="h-2 w-2 text-white" />
-                  </div>
-                  {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
-                    <button
-                      onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
-                      title="Revert to original AI extracted value"
-                    >
-                      <RotateCcw className="h-3 w-3 text-black dark:text-white" />
-                    </button>
-                  )}
-                </div>
-              );
-            } else if (wasManuallyUpdated && isVerified) {
-              // Show green checkmark for verified manually updated fields
-              return (
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-500" />
-                  {validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null && (
-                    <button
-                      onClick={() => handleRevertToAI(fieldName)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
-                      title="Revert to original AI extracted value"
-                    >
-                      <RotateCcw className="h-3 w-3 text-black dark:text-white" />
-                    </button>
-                  )}
-                </div>
-              );
-            } else {
-              // Always show confidence badge - use 0% for null/empty values, otherwise use validation confidence
-              const effectiveConfidence = hasValue ? validation.confidenceScore : 0;
-              return <ConfidenceBadge confidenceScore={effectiveConfidence} reasoning={validation.aiReasoning} fieldName={fieldName} getFieldDisplayName={getFieldDisplayName} />;
-            }
+            return (
+              <div className="flex items-center gap-2">
+                <ValidationIndicator 
+                  validation={validation}
+                  onToggle={handleToggle}
+                  fieldName={fieldName}
+                />
+                {validation.originalExtractedValue !== undefined && 
+                 validation.originalExtractedValue !== null && 
+                 validation.manuallyUpdated && (
+                  <button
+                    onClick={() => handleRevertToAI(fieldName)}
+                    className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                    title="Revert to original AI extracted value"
+                  >
+                    <RotateCcw className="h-3 w-3 text-black dark:text-white" />
+                  </button>
+                )}
+              </div>
+            );
           })()}
         </div>
       </div>
@@ -4205,9 +4152,7 @@ Thank you for your assistance.`;
                                     </button>
                                     <div className="flex items-center gap-1">
                                       {(() => {
-                                        const columnKey = `${collection.collectionName}.${columnName}`;
-                                        
-                                        // Check if ALL fields in this column are currently validated
+                                        // Get all validations for this column
                                         const columnValidations = validations.filter(v => 
                                           v.fieldName?.includes(`${collection.collectionName}.${columnName}[`) &&
                                           v.extractedValue !== null && 
@@ -4217,30 +4162,23 @@ Thank you for your assistance.`;
                                           v.extractedValue !== "undefined"
                                         );
                                         
-                                        const allValidated = columnValidations.length > 0 && 
-                                          columnValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'manual');
+                                        // Check if all fields are valid
+                                        const allValid = columnValidations.length > 0 && 
+                                          columnValidations.every(v => v.validationStatus === 'valid');
                                         
-                                        // Check if this column has bulk validation state
-                                        const currentBulkFields = bulkValidationState[columnKey] || new Set();
-                                        const hasBulkState = currentBulkFields.size > 0;
-                                        
-                                        // Show checkmark if all are validated OR if we have bulk state
-                                        const showCheckmark = allValidated || hasBulkState;
-                                        
-                                        return showCheckmark ? (
-                                          <Check
+                                        return (
+                                          <button
                                             onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                            className="w-3 h-3 cursor-pointer hover:opacity-80 transition-opacity"
-                                            style={{ color: '#4F63A4' }}
-                                            title={`Click to unvalidate bulk validated fields in ${columnName}`}
-                                          />
-                                        ) : (
-                                          <div
-                                            onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                            className="w-2 h-2 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                                            style={{ backgroundColor: '#4F63A4', opacity: 0.6 }}
-                                            title={`Click to bulk validate all ${columnName} fields`}
-                                          />
+                                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            title={allValid ? 
+                                              `All ${columnName} fields are valid. Click to set all to pending` : 
+                                              `Click to validate all ${columnName} fields`}
+                                          >
+                                            <div 
+                                              className="w-2 h-2 rounded-full"
+                                              style={{ backgroundColor: '#4F63A4' }}
+                                            />
+                                          </button>
                                         );
                                       })()}
                                       <button
