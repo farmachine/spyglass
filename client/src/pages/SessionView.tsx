@@ -1915,6 +1915,9 @@ export default function SessionView() {
     // First column is never disabled (it doesn't depend on previous data)
     if (valueIndex === 0) return false;
     
+    // Special case: Worksheet Name column should never be disabled (it reads directly from document)
+    if (valueToCheck.valueName === 'Worksheet Name') return false;
+    
     // Check if this value has @ references that need data from other steps
     const hasColumnReferences = valueToCheck.inputValues && 
       Object.values(valueToCheck.inputValues).some(value => {
@@ -1925,7 +1928,7 @@ export default function SessionView() {
         return false;
       });
     
-    // If no column references, it doesn't depend on previous data
+    // If no column references, it doesn't depend on previous data (e.g., document-based extractions)
     if (!hasColumnReferences) return false;
     
     // Check if there are any valid records from referenced steps
