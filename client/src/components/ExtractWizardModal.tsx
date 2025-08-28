@@ -220,16 +220,10 @@ export default function ExtractWizardModal({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1 pt-4">
-          {/* Extraction Purpose Section */}
+        <div className="flex-1 overflow-y-auto space-y-6 pr-1 pt-6">
+          {/* Extraction Description - Stand alone without header */}
           {toolDescription && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                <Info className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Extraction Used
-              </h3>
-              <p className="text-sm text-gray-700">{toolDescription}</p>
-            </div>
+            <p className="font-medium text-gray-900 px-1">{toolDescription}</p>
           )}
           
           {/* Your Reference Data Section - Show only when there's actual input data with meaningful content */}
@@ -389,12 +383,12 @@ export default function ExtractWizardModal({
           
           {/* User Input Documents Section - Only show if needed */}
           {needsDocument && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
                 Select Your Input Document
               </h3>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-gray-600">
                 Choose the document that contains the data you want to extract from
               </p>
               <Select value={selectedDocument} onValueChange={setSelectedDocument}>
@@ -423,32 +417,9 @@ export default function ExtractWizardModal({
                   </AlertDescription>
                 </Alert>
               )}
-              {selectedDocument && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Document selected and ready</span>
-                </div>
-              )}
             </div>
           )}
           
-          {/* Info message about what will happen */}
-          <Alert className="border-gray-200">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              {inputData && inputData.length > 0 ? (
-                <>
-                  The extraction will process <strong>{inputData.length} records</strong> from your input data.
-                  Each record will be processed individually to ensure accurate results.
-                </>
-              ) : (
-                <>
-                  Select a document to begin the extraction process. The function will analyze the document
-                  and extract the requested information automatically.
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
         </div>
         
         {/* Action Buttons */}
