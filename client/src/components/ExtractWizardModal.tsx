@@ -232,8 +232,10 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* Your Reference Data Section - Show when there's input data */}
-          {inputData && inputData.length > 0 && (
+          {/* Your Reference Data Section - Show only when there's actual input data with meaningful content */}
+          {inputData && inputData.length > 0 && inputData.some(record => 
+            Object.keys(record).some(key => key !== 'identifierId' && key !== '_recordIndex')
+          ) && (
             <div className="space-y-2">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
