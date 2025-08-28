@@ -8436,6 +8436,47 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Debug endpoint to fix orderIndex values for Column Name Mapping workflow step
+  app.post("/api/debug/fix-column-order", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = "915d87a3-dd55-401e-8f8b-df38132c2215"; // Your project ID
+      const project = await storage.getProjectWithDetails(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      
+      const workflowStep = project.workflowSteps?.find(step => step.stepName === 'Column Name Mapping');
+      if (!workflowStep || !workflowStep.values) {
+        return res.status(404).json({ error: 'Column Name Mapping workflow step not found' });
+      }
+      
+      // Define correct order
+      const correctOrder = ['Column Name', 'Worksheet Name', 'Standard Equivalent', 'Reasoning'];
+      
+      // Update orderIndex for each value
+      const updates = [];
+      for (const [index, expectedName] of correctOrder.entries()) {
+        const value = workflowStep.values.find(v => v.valueName === expectedName);
+        if (value) {
+          console.log(`Updating ${value.valueName} from orderIndex ${value.orderIndex} to ${index}`);
+          await storage.updateStepValue(value.id, { orderIndex: index });
+          updates.push(`${expectedName}: ${value.orderIndex} → ${index}`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Fixed column order', 
+        updates: updates 
+      });
+      
+    } catch (error) {
+      console.error('Error fixing column order:', error);
+      res.status(500).json({ error: 'Failed to fix column order' });
+    }
+  });
+
   // Development console forwarding endpoint
   app.post("/api/dev/console", (req, res) => {
     try {

@@ -1105,6 +1105,30 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
+  
+  // Temporary function to test column order fix (call from browser console: window.fixColumnOrder())
+  useEffect(() => {
+    (window as any).fixColumnOrder = async () => {
+      try {
+        const response = await fetch('/api/debug/fix-column-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const result = await response.json();
+        console.log('✅ Column order fix result:', result);
+        window.location.reload(); // Reload to see changes
+      } catch (error) {
+        console.error('❌ Error fixing column order:', error);
+      }
+    };
+    
+    return () => {
+      delete (window as any).fixColumnOrder;
+    };
+  }, []);
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -4250,15 +4274,6 @@ Thank you for your assistance.`;
                                 
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
-                                
-                                // Debug: Log current orderIndex values for troubleshooting
-                                if (collection.collectionName === 'Column Name Mapping') {
-                                  console.log('🔍 DEBUG: Column orderIndex values:', columnsToDisplay?.map(col => ({
-                                    name: workflowStep ? col.valueName : (col as any).propertyName,
-                                    orderIndex: col.orderIndex || 0
-                                  })));
-                                }
-
                                 
                                 return columnsToDisplay
                                   .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
