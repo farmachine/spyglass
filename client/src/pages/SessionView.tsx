@@ -1498,18 +1498,12 @@ export default function SessionView() {
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
-    onSuccess: (data) => {
-      console.log(`Session ${sessionId} - Validations loaded:`, data.length);
-      if (data.length > 0) {
-        console.log('Sample validation:', data[0]);
-        console.log('All field names:', data.map(v => v.fieldName));
-        console.log('Collection validations:', data.filter(v => v.validationType === 'collection_property').map(v => ({
-          fieldName: v.fieldName,
-          recordIndex: v.recordIndex,
-          collectionName: v.collectionName
-        })));
-      }
-    }
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000 // 10 minutes
   });
 
   // Query for session documents
@@ -1559,11 +1553,6 @@ export default function SessionView() {
         method: 'PUT',
         body: JSON.stringify(params.data)
       });
-    },
-    onSuccess: () => {
-      // Only invalidate necessary queries - let React Query handle the refetching
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
     },
     onError: (error: any) => {
       console.error('Failed to update field:', error);
@@ -2940,60 +2929,14 @@ Thank you for your assistance.`;
     setEditValue("");
   };
 
-  // Bulk column validation handler
+  // Bulk column validation handler - TEMPORARILY DISABLED
   const handleBulkColumnValidation = async (collectionName: string, columnName: string, columnId: string) => {
-    const columnKey = `${collectionName}.${columnName}`;
-    
-    // Get all validations for this column
-    const columnValidations = validations.filter(v => 
-      v.fieldName?.includes(`${collectionName}.${columnName}[`) &&
-      v.extractedValue !== null && 
-      v.extractedValue !== undefined && 
-      v.extractedValue !== "" && 
-      v.extractedValue !== "null" && 
-      v.extractedValue !== "undefined"
-    );
-    
-    if (columnValidations.length === 0) return;
-    
-    // Check current bulk state for this column
-    const currentBulkFields = bulkValidationState[columnKey] || new Set();
-    const isCurrentlyBulkValidated = currentBulkFields.size > 0;
-    
-    // Toggle validation for all fields in column
-    const targetStatus = isCurrentlyBulkValidated ? 'pending' : 'valid';
-    const targetVerified = !isCurrentlyBulkValidated;
-    
-    // Simple approach: just call the mutation for each field
-    const fieldsToProcess = isCurrentlyBulkValidated 
-      ? columnValidations.filter(v => currentBulkFields.has(v.id))
-      : columnValidations.filter(v => v.validationStatus !== 'manual');
-    
-    // Update bulk state
-    if (isCurrentlyBulkValidated) {
-      setBulkValidationState(prev => {
-        const newState = { ...prev };
-        delete newState[columnKey];
-        return newState;
-      });
-    } else {
-      const newBulkFields = new Set(fieldsToProcess.map(v => v.id));
-      setBulkValidationState(prev => ({
-        ...prev,
-        [columnKey]: newBulkFields
-      }));
-    }
-    
-    // Process each field
-    for (const validation of fieldsToProcess) {
-      updateValidationMutation.mutate({
-        id: validation.id,
-        data: { 
-          validationStatus: targetStatus, 
-          manuallyVerified: targetVerified 
-        }
-      });
-    }
+    // Temporarily disabled to fix query loop
+    toast({
+      title: "Bulk validation temporarily disabled",
+      description: "This feature is being optimized to prevent performance issues.",
+      variant: "default",
+    });
   };
 
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
@@ -4176,32 +4119,6 @@ Thank you for your assistance.`;
                     (v.validationStatus === 'valid' || v.validationStatus === 'pending')
                   );
                   
-                  // Debug logging
-                  if (item.itemName === 'Column Name Mapping') {
-                    console.log(`🔍 Total validations: ${validations.length}`);
-                    console.log(`🔍 Matching validations: ${collectionValidations.length}`);
-                    
-                    // Show record indexes and extracted values
-                    const recordIndexes = collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null);
-                    const uniqueRecordIndexes = [...new Set(recordIndexes)].sort((a, b) => a - b);
-                    console.log(`🔍 Unique record indexes (${uniqueRecordIndexes.length}):`, uniqueRecordIndexes.slice(0, 20));
-                    
-                    // Check Standard Equivalent values specifically
-                    const standardEquivValidations = collectionValidations.filter(v => 
-                      v.valueId && project?.workflowSteps?.some(step => 
-                        step.values?.some(val => val.id === v.valueId && val.valueName === 'Standard Equivalent')
-                      )
-                    );
-                    console.log(`🔍 Standard Equivalent validations: ${standardEquivValidations.length}`);
-                    console.log(`🔍 Sample Standard Equivalent values:`, 
-                      standardEquivValidations.slice(0, 5).map(v => ({
-                        recordIndex: v.recordIndex,
-                        extractedValue: v.extractedValue,
-                        validationStatus: v.validationStatus,
-                        updatedAt: v.updatedAt
-                      }))
-                    );
-                  }
                   
                   const validationIndices = collectionValidations.length > 0 ? 
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
