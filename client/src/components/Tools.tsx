@@ -542,7 +542,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       
                       {param.type === 'data' && param.sampleData && (
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">Sample Data:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Session Data:</p>
                           {/* Check if sampleData is already in structured format */}
                           {Array.isArray(param.sampleData) ? (
                             // New structured format with identifierId
@@ -620,7 +620,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                               </table>
                             </div>
                           ) : (
-                            <div className="text-sm text-gray-500">No sample data available</div>
+                            <div className="text-sm text-gray-500">No session data available</div>
                           )}
                         </div>
                       )}
@@ -654,7 +654,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                     {testingTool?.outputType === 'multiple' ? (
                       // Multiple records - display as table
                       (() => {
-                        // Get sample data columns from the first data input parameter
+                        // Get session data columns from the first data input parameter
                         const dataParam = testingTool?.inputParameters?.find((p: any) => p.type === 'data' && p.sampleData);
                         const sampleColumns = dataParam?.sampleData?.columns || [];
                         const sampleRows = dataParam?.sampleData?.rows || [];
@@ -769,7 +769,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p className="text-sm">Click "Run Test" to execute the tool with sample data and see the results.</p>
+                    <p className="text-sm">Click "Run Test" to execute the tool with session data and see the results.</p>
                   </div>
                 )}
 
