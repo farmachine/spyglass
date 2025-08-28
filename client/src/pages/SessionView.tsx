@@ -4876,6 +4876,16 @@ Thank you for your assistance.`;
           isLoading={isColumnExtracting}
           inputValues={columnExtractionModal.inputValues}
           knowledgeDocuments={columnExtractionModal.knowledgeDocuments || []}
+          columnOrder={(() => {
+            // Get the correct column order from the workflow step that generated the reference data
+            const workflowStep = project?.workflowSteps?.find(step => step.stepName === 'Column Name Mapping');
+            if (workflowStep?.values) {
+              return workflowStep.values
+                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                .map(value => value.valueName);
+            }
+            return ['Column Name', 'Worksheet Name', 'Standard Equivalent', 'Reasoning']; // fallback order
+          })()}
         />
       )}
       {/* AI Extraction Modal */}

@@ -25,6 +25,7 @@ interface ExtractWizardModalProps {
   knowledgeDocuments?: Array<{ id: string; documentName?: string; displayName?: string; fileName?: string; documentContent?: string; content?: string }>;
   extractedCount?: number;
   totalAvailable?: number;
+  columnOrder?: string[]; // Array of column names in the correct order
 }
 
 // Function type descriptions for user guidance
@@ -113,7 +114,8 @@ export default function ExtractWizardModal({
   inputValues,
   knowledgeDocuments = [],
   extractedCount = 0,
-  totalAvailable = 0
+  totalAvailable = 0,
+  columnOrder
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -301,11 +303,21 @@ export default function ExtractWizardModal({
                       <thead className="bg-gray-50 border-b">
                         <tr>
                           <th className="px-2 py-1.5 text-left font-medium text-gray-700">ID</th>
-                          {inputData.length > 0 && Object.keys(inputData[0]).filter(k => k !== 'identifierId').map(key => (
-                            <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700">
-                              {key}
-                            </th>
-                          ))}
+                          {(() => {
+                            if (inputData.length === 0) return null;
+                            
+                            // Use provided column order if available, otherwise fall back to Object.keys
+                            const allKeys = Object.keys(inputData[0]).filter(k => k !== 'identifierId');
+                            const orderedKeys = columnOrder 
+                              ? columnOrder.filter(col => allKeys.includes(col)) // Only include columns that exist in data
+                              : allKeys;
+                              
+                            return orderedKeys.map(key => (
+                              <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700">
+                                {key}
+                              </th>
+                            ));
+                          })()}
                         </tr>
                       </thead>
                       <tbody>
@@ -316,13 +328,24 @@ export default function ExtractWizardModal({
                               <td className="px-2 py-1.5 text-gray-600 font-mono">
                                 {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
                               </td>
-                              {Object.entries(record).filter(([k]) => k !== 'identifierId').map(([key, value]) => (
-                                <td key={key} className="px-2 py-1.5 text-gray-700">
-                                  <div className="max-w-[200px] truncate" title={String(value)}>
-                                    {value === null || value === undefined ? '-' : String(value)}
-                                  </div>
-                                </td>
-                              ))}
+                              {(() => {
+                                // Use the same column ordering for data rows
+                                const allKeys = Object.keys(record).filter(k => k !== 'identifierId');
+                                const orderedKeys = columnOrder 
+                                  ? columnOrder.filter(col => allKeys.includes(col)) // Only include columns that exist in data
+                                  : allKeys;
+                                  
+                                return orderedKeys.map(key => {
+                                  const value = record[key];
+                                  return (
+                                    <td key={key} className="px-2 py-1.5 text-gray-700">
+                                      <div className="max-w-[200px] truncate" title={String(value)}>
+                                        {value === null || value === undefined ? '-' : String(value)}
+                                      </div>
+                                    </td>
+                                  );
+                                });
+                              })()}
                             </tr>
                           ));
                         })()}
