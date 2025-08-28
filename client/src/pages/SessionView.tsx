@@ -4104,7 +4104,7 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between text-[#4F63A4] dark:text-[#5A70B5]">
+                        <CardTitle className="flex items-center justify-between text-[#071e54] dark:text-[#5A70B5]">
                           <div className="flex items-center gap-2">
                             {collection.collectionName}
                             <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
