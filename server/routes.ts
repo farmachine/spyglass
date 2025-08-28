@@ -6982,7 +6982,10 @@ def extract_function(Column_Name, Excel_File):
           console.log(`📊 Found ${previousDataIdentifiers.size} identifierIds from previousData`);
         }
         
-        // Create new validations for each result
+        // Create new validations ONLY for the actual AI results returned
+        // Important: processedResults contains only the records that AI actually processed
+        console.log(`📊 Processing ${processedResults.length} actual AI results (not creating validations for unprocessed records)`);
+        
         for (let i = 0; i < processedResults.length; i++) {
           const result = processedResults[i];
           

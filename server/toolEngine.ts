@@ -643,7 +643,10 @@ ${JSON.stringify(batch, null, 2)}`;
             let cleanJson = batchResult;
             
             console.log(`    📊 Raw AI response length: ${batchResult.length} chars`);
-            console.log(`    📊 Raw response preview: ${batchResult.substring(0, 500)}...`);
+            console.log(`    📊 FULL RAW AI RESPONSE:`);
+            console.log('='.repeat(100));
+            console.log(batchResult);
+            console.log('='.repeat(100));
             
             // Step 1: Extract from markdown code blocks if present
             const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
