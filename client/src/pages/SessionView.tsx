@@ -4300,7 +4300,7 @@ Thank you for your assistance.`;
                                 >
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((column) => {
+                                    .map((column, columnIndex) => {
                                     const columnId = column.id;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
@@ -4365,9 +4365,10 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
+                                          <div className={`table-cell-content w-full pr-8 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}
+                                          style={{ paddingLeft: columnIndex === 0 ? '24px' : '16px' }}>
                                             <span className={
                                               formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''
                                             }>
