@@ -1899,75 +1899,6 @@ export default function SessionView() {
     }
   };
 
-  // Helper function to check if a column should be disabled based on previous data availability
-  const isColumnExtractionDisabled = (stepName: string, valueId: string): boolean => {
-    // Get the workflow step
-    const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
-    if (!workflowStep) return true;
-    
-    // Get the specific value to check
-    const valueToCheck = workflowStep.values?.find(v => v.id === valueId);
-    if (!valueToCheck) return true;
-    
-    // Check if this value has @ references to other values (data type inputs only)
-    const referencedValues: string[] = [];
-    if (valueToCheck.inputValues) {
-      Object.values(valueToCheck.inputValues).forEach(value => {
-        if (typeof value === 'string' && value.includes('@')) {
-          referencedValues.push(value);
-        } else if (Array.isArray(value)) {
-          value.forEach(v => {
-            if (typeof v === 'string' && v.includes('@')) {
-              referencedValues.push(v);
-            }
-          });
-        }
-      });
-    }
-    
-    // If no @ references, this value doesn't depend on other values - it's always enabled
-    if (referencedValues.length === 0) return false;
-    
-    // For each referenced value, check if it has valid field_validations
-    for (const reference of referencedValues) {
-      // Parse the reference like "@Column Name Mapping.ID"
-      const match = reference.match(/@([^.]+)\.(.+)/);
-      if (!match) continue;
-      
-      const [, stepName, valueName] = match;
-      
-      // Find the referenced step and value
-      const referencedStep = project?.workflowSteps?.find(s => s.stepName === stepName);
-      if (!referencedStep) continue;
-      
-      const referencedValue = referencedStep.values?.find(v => v.valueName === valueName);
-      if (!referencedValue) continue;
-      
-      // Check if this referenced value has any valid field_validations with actual data
-      const referencedValueValidations = validations.filter(v => {
-        const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
-        return fieldId === referencedValue.id && (
-          v.validationStatus === 'valid' || v.validationStatus === 'manual'
-        ) && v.extractedValue && 
-        v.extractedValue !== 'Not Found' && 
-        v.extractedValue !== '' && 
-        v.extractedValue !== null;
-      });
-      
-      // If this referenced value has no valid validations with actual data, disable this column
-      if (referencedValueValidations.length === 0) {
-        console.log(`🚫 Column "${valueToCheck.valueName}" disabled: referenced value "${reference}" has no valid field_validations with actual data`);
-        return true;
-      }
-      
-      console.log(`✅ Referenced value "${reference}" has ${referencedValueValidations.length} valid field_validations`);
-    }
-    
-    // All referenced values have valid data - enable this column
-    console.log(`✅ Column "${valueToCheck.valueName}" enabled: all referenced values have valid data`);
-    return false;
-  };
-
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
     // Get the workflow step
@@ -4333,30 +4264,13 @@ Thank you for your assistance.`;
                                       <span className="truncate">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
                                     </button>
-                                    {(() => {
-                                      const isDisabled = isColumnExtractionDisabled(collection.collectionName, columnId);
-                                      return (
-                                        <button
-                                          onClick={() => !isDisabled && handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                          disabled={isDisabled}
-                                          className={`h-7 w-7 p-0 rounded transition-colors flex items-center justify-center flex-shrink-0 ${
-                                            isDisabled 
-                                              ? 'cursor-not-allowed opacity-50' 
-                                              : 'hover:bg-slate-100 dark:hover:bg-gray-700 cursor-pointer'
-                                          }`}
-                                          title={
-                                            isDisabled 
-                                              ? `Cannot extract ${columnName} - no valid data from previous columns` 
-                                              : `Run extraction for ${columnName}`
-                                          }
-                                        >
-                                          <Wand2 
-                                            className="h-4 w-4" 
-                                            style={{ color: isDisabled ? '#9CA3AF' : '#4F63A4' }} 
-                                          />
-                                        </button>
-                                      );
-                                    })()}
+                                    <button
+                                      onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                      className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                      title={`Run extraction for ${columnName}`}
+                                    >
+                                      <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                                    </button>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
