@@ -1,0 +1,61 @@
+ 🎯 Extracting ONLY: "ID" (3a91ea85-ed02-41cf-a607-a8d9a21d6fdf)
+   🚫 NOT extracting other values in step "Column Name Mapping"
+🔧 Using tool: Get Column Names (CODE)
+📊 Step e3c7f77d-910c-4e41-8668-e0fccf16fd45: 0/1 verified (0%)
+  ✅ Including extracted values for this step
+🎯 Processing inputValues: { '0.my684050njo': [ 'user_document' ] }
+🔍 Filtering previous data: 1 records before filtering
+🎯 Previous data available: 1 records
+🔄 Processing array parameter 0.my684050njo with 1 items
+➡️ Direct array value for 0.my684050njo: [ 'user_document' ]
+📥 Tool inputs prepared: {
+  "0.my684050njo": [
+    "user_document"
+  ],
+  "projectId": "915d87a3-dd55-401e-8f8b-df38132c2215"
+}
+🚀 ToolEngine.testTool called
+  Tool Name: Get Column Names
+  Tool Type: CODE
+  Output Type: multiple
+  Prepared inputs keys: [ 'Excel File' ]
+  → Calling testCodeTool
+Python stdout length: 225
+Python stderr: DEBUG: Function name: get_column_names
+DEBUG: Inputs keys: ['Excel File']
+DEBUG: Input content preview: {'Excel File': ['user_document']}...
+DEBUG: output_type=multiple, data_params count=0
+DEBUG: has_sample_data=False, records to process=0
+
+Found JSON array in output, extracting...
+Parsed result type: array
+Parsed result length: 1
+🐍 CODE TOOL RESULTS: 1 items returned
+  First item: {
+  extractedValue: null,
+  validationStatus: 'invalid',
+  aiReasoning: 'Function received list input instead of string content. Expected extracted text content.',
+  confidenceScore: 0,
+  documentSource: 'Input Type Error'
+}
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Function received list input instead of string content. Expected extracted text content.",
+  "confidenceScore": 0,
+  "documentSource": "Input Type Error"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Using identifierIds from previousData (1 records)
+  Record 0 -> 01db16a4-da4f-4911-8148-a54d3956d0c6
+📊 Found 1 identifierIds from previousData
+📊 Processing 1 actual AI results (not creating validations for unprocessed records)
+🔗 Using identifierId from previousData for index 0: 01db16a4-da4f-4911-8148-a54d3956d0c6
+📝 Updated validation for Column Name Mapping.ID[0]
+💾 Saved 1 validation records

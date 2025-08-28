@@ -165,33 +165,46 @@ export class ToolEngine {
               preparedInputs[param.name] = inputValue;
             }
           } else {
-            // Always check sample_documents table for pre-extracted content first
-            const [sampleDoc] = await db
-              .select()
-              .from(sampleDocuments)
-              .where(
-                and(
-                  eq(sampleDocuments.functionId, tool.id),
-                  eq(sampleDocuments.parameterName, param.name)
-                )
-              );
-            
-            if (sampleDoc?.extractedContent) {
-              console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
-              preparedInputs[param.name] = sampleDoc.extractedContent;
-            } else if (inputValue && typeof inputValue === 'string') {
-              // If we have a non-empty string value, use it
-              preparedInputs[param.name] = inputValue;
-            } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
-              // Fallback to metadata if available
-              const extractedContent = tool.metadata.sampleDocumentContent[param.name];
-              console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
-              preparedInputs[param.name] = extractedContent;
-            } else if (param.sampleFileURL) {
-              // Fallback: fetch and extract content if not already stored
-              console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
+            // Check if this is a 'user_document' placeholder that needs session document content
+            if (Array.isArray(inputValue) && inputValue.includes('user_document')) {
+              console.log(`🔍 Found 'user_document' placeholder for ${param.name} - need session document content`);
+              // This should be provided by the calling endpoint via rawInputs.sessionDocumentContent
+              const sessionDocContent = rawInputs.sessionDocumentContent;
+              if (sessionDocContent) {
+                console.log(`📄 Using session document content for ${param.name} (${sessionDocContent.length} chars)`);
+                preparedInputs[param.name] = sessionDocContent;
+              } else {
+                console.log(`⚠️ 'user_document' placeholder found but no sessionDocumentContent provided in rawInputs`);
+                preparedInputs[param.name] = '';
+              }
+            } else {
+              // Always check sample_documents table for pre-extracted content first
+              const [sampleDoc] = await db
+                .select()
+                .from(sampleDocuments)
+                .where(
+                  and(
+                    eq(sampleDocuments.functionId, tool.id),
+                    eq(sampleDocuments.parameterName, param.name)
+                  )
+                );
               
-              try {
+              if (sampleDoc?.extractedContent) {
+                console.log(`📄 Using pre-extracted content for ${param.name} (${sampleDoc.extractedContent.length} chars)`);
+                preparedInputs[param.name] = sampleDoc.extractedContent;
+              } else if (inputValue && typeof inputValue === 'string') {
+                // If we have a non-empty string value, use it
+                preparedInputs[param.name] = inputValue;
+              } else if (tool.metadata?.sampleDocumentContent?.[param.name]) {
+                // Fallback to metadata if available
+                const extractedContent = tool.metadata.sampleDocumentContent[param.name];
+                console.log(`📄 Using pre-extracted content from metadata for ${param.name} (${extractedContent.length} chars)`);
+                preparedInputs[param.name] = extractedContent;
+              } else if (param.sampleFileURL) {
+                // Fallback: fetch and extract content if not already stored
+                console.log(`⚠️ No pre-extracted content found for ${param.name}, attempting to extract now...`);
+                
+                try {
                 // Extract content using document_extractor.py
                 const { ObjectStorageService, objectStorageClient } = await import("./objectStorage");
                 const urlParts = new URL(param.sampleFileURL);
