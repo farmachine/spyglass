@@ -614,7 +614,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <div className="flex flex-col items-center">
                 {/* Dot and Title - Centered */}
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-[#071e54] dark:bg-[#5A70B5] rounded-full"></div>
+                  <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
                   
                   {editingStepId === step.id ? (
                     <Input
