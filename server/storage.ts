@@ -140,6 +140,7 @@ export interface IStorage {
 
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
+  getKnowledgeDocument(id: string): Promise<KnowledgeDocument | undefined>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
   updateKnowledgeDocument(id: string, document: Partial<InsertKnowledgeDocument>): Promise<KnowledgeDocument | undefined>;
   deleteKnowledgeDocument(id: string): Promise<boolean>;
@@ -1391,6 +1392,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.knowledgeDocuments.values())
       .filter(doc => doc.projectId === projectId)
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  }
+
+  async getKnowledgeDocument(id: string): Promise<KnowledgeDocument | undefined> {
+    return this.knowledgeDocuments.get(id);
   }
 
   async createKnowledgeDocument(insertDocument: InsertKnowledgeDocument): Promise<KnowledgeDocument> {
@@ -2709,6 +2714,15 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(knowledgeDocuments.projectId, projectId))
       .orderBy(knowledgeDocuments.uploadedAt);
     return result;
+  }
+
+  async getKnowledgeDocument(id: string): Promise<KnowledgeDocument | undefined> {
+    const result = await this.db
+      .select()
+      .from(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.id, id))
+      .limit(1);
+    return result[0];
   }
   async createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument> { 
     const result = await this.db.insert(knowledgeDocuments).values(document).returning();
