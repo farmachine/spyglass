@@ -4115,7 +4115,7 @@ Thank you for your assistance.`;
                         <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
                       <CardContent className="p-0">
-                        <div className="border-t border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="border-t-2 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
                           <Table className="session-table">
                           <TableHeader>
                             <TableRow>
