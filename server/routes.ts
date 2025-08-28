@@ -6923,6 +6923,7 @@ def extract_function(Column_Name, Excel_File):
       // Also pass project ID for tools that may need it
       toolInputs.projectId = session.projectId;
       
+      console.log(`🚀 REACHED REPLACEMENT SECTION - this should always appear`);
       
       // Replace 'user_document' placeholders with actual session document content
       console.log(`🔍 Debug - documentContent available: ${!!documentContent}, length: ${documentContent?.length || 0}`);
