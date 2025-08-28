@@ -135,6 +135,9 @@ export interface IStorage {
   updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined>;
   deleteSessionDocument(id: string): Promise<boolean>;
 
+  // Step value operations for reference resolution
+  getStepValueById(valueId: string): Promise<{ valueName: string } | undefined>;
+
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
   createKnowledgeDocument(document: InsertKnowledgeDocument): Promise<KnowledgeDocument>;
@@ -1376,6 +1379,11 @@ export class MemStorage implements IStorage {
 
   async deleteSessionDocument(id: string): Promise<boolean> {
     return this.sessionDocuments.delete(id);
+  }
+
+  async getStepValueById(valueId: string): Promise<{ valueName: string } | undefined> {
+    const value = this.stepValues.get(valueId);
+    return value ? { valueName: value.valueName } : undefined;
   }
 
   // Knowledge Documents
@@ -3133,6 +3141,14 @@ class PostgreSQLStorage implements IStorage {
       .delete(sessionDocuments)
       .where(eq(sessionDocuments.id, id));
     return result.rowCount > 0;
+  }
+
+  async getStepValueById(valueId: string): Promise<{ valueName: string } | undefined> {
+    const result = await this.db
+      .select({ valueName: stepValues.valueName })
+      .from(stepValues)
+      .where(eq(stepValues.id, valueId));
+    return result.length > 0 ? { valueName: result[0].valueName } : undefined;
   }
 
   // Chat Messages

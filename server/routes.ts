@@ -6766,11 +6766,27 @@ def extract_function(Column_Name, Excel_File):
             // Handle different reference formats
             let actualColumnName = referencedColumn;
             
-            // If the reference is in format "StepName.ColumnName", extract just the column name
-            if (referencedColumn.includes('.')) {
-              const parts = referencedColumn.split('.');
-              actualColumnName = parts[parts.length - 1]; // Get the last part after the dot
-              console.log(`📊 Extracted column name from reference: ${actualColumnName}`);
+            // Check if this is a valueId reference (UUID format)
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (uuidRegex.test(referencedColumn)) {
+              console.log(`🆔 ValueId reference detected: ${referencedColumn}`);
+              
+              // Look up the value name for this valueId in current session/project
+              const valueInfo = await storage.getStepValueById(referencedColumn);
+              if (valueInfo && valueInfo.valueName) {
+                actualColumnName = valueInfo.valueName;
+                console.log(`✅ Resolved valueId ${referencedColumn} to column name: ${actualColumnName}`);
+              } else {
+                console.log(`❌ Could not resolve valueId ${referencedColumn}`);
+                actualColumnName = referencedColumn; // Fallback to the ID itself
+              }
+            } else {
+              // If the reference is in format "StepName.ColumnName", extract just the column name
+              if (referencedColumn.includes('.')) {
+                const parts = referencedColumn.split('.');
+                actualColumnName = parts[parts.length - 1]; // Get the last part after the dot
+                console.log(`📊 Extracted column name from reference: ${actualColumnName}`);
+              }
             }
             
             // Extract the values from previousData for this column
