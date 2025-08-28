@@ -4146,7 +4146,12 @@ Thank you for your assistance.`;
                   const collection = item; // Use item as collection for compatibility
                   const collectionData = extractedData[item.itemName];
                   const collectionValidations = validations.filter(v => 
-                    v.collectionName === item.itemName
+                    v.collectionName === item.itemName &&
+                    // Only include valid, verified, or manual validations (exclude invalid, pending)
+                    (v.validationStatus === 'valid' || 
+                     v.validationStatus === 'verified' || 
+                     v.validationStatus === 'manual' ||
+                     v.manuallyVerified === true)
                   );
                   
                   // Debug logging
@@ -4154,7 +4159,27 @@ Thank you for your assistance.`;
                     console.log(`🔍 DEBUG: Collection "${item.itemName}"`);
                     console.log(`🔍 Total validations: ${validations.length}`);
                     console.log(`🔍 Matching validations: ${collectionValidations.length}`);
-                    console.log(`🔍 Sample validations:`, collectionValidations.slice(0, 5));
+                    
+                    // Show record indexes and extracted values
+                    const recordIndexes = collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null);
+                    const uniqueRecordIndexes = [...new Set(recordIndexes)].sort((a, b) => a - b);
+                    console.log(`🔍 Unique record indexes (${uniqueRecordIndexes.length}):`, uniqueRecordIndexes.slice(0, 20));
+                    
+                    // Check Standard Equivalent values specifically
+                    const standardEquivValidations = collectionValidations.filter(v => 
+                      v.valueId && project?.workflowSteps?.some(step => 
+                        step.values?.some(val => val.id === v.valueId && val.valueName === 'Standard Equivalent')
+                      )
+                    );
+                    console.log(`🔍 Standard Equivalent validations: ${standardEquivValidations.length}`);
+                    console.log(`🔍 Sample Standard Equivalent values:`, 
+                      standardEquivValidations.slice(0, 5).map(v => ({
+                        recordIndex: v.recordIndex,
+                        extractedValue: v.extractedValue,
+                        validationStatus: v.validationStatus,
+                        updatedAt: v.updatedAt
+                      }))
+                    );
                   }
                   
                   const validationIndices = collectionValidations.length > 0 ? 
