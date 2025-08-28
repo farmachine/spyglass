@@ -4146,8 +4146,7 @@ Thank you for your assistance.`;
                   const collection = item; // Use item as collection for compatibility
                   const collectionData = extractedData[item.itemName];
                   const collectionValidations = validations.filter(v => 
-                    v.collectionName === item.itemName || 
-                    (v.fieldName && v.fieldName.startsWith(item.itemName + '.'))
+                    v.collectionName === item.itemName
                   );
                   
                   const validationIndices = collectionValidations.length > 0 ? 
