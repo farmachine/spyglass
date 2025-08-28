@@ -2269,6 +2269,25 @@ except Exception as e:
                 const stepValues = await storage.getStepValues(stepId);
                 console.log(`📊 Found ${stepValues.length} values in this step:`, stepValues.map(v => v.valueName));
                 
+                // Import validation filter to check for validated previous step values
+                const { filterRecordsWithAllPreviousValuesValidated } = await import('./validationFilter');
+                
+                // Get previous step IDs that this step depends on
+                const allWorkflowSteps = project_data?.workflowSteps || [];
+                const currentStepIndex = allWorkflowSteps.findIndex((s: any) => s.id === stepId);
+                const previousStepIds = currentStepIndex > 0 
+                  ? allWorkflowSteps.slice(0, currentStepIndex).map((s: any) => s.id)
+                  : [];
+                
+                console.log(`📊 Current step index: ${currentStepIndex}, Previous step IDs: ${previousStepIds.join(', ')}`);
+                
+                // Get only records where ALL previous step values are validated
+                const validatedRecordIds = filterRecordsWithAllPreviousValuesValidated(
+                  existingValidations,
+                  previousStepIds,
+                  project_id
+                );
+                
                 // Build merged data by getting validations for each value in the step
                 const valueValidationMap: Record<string, any[]> = {};
                 
@@ -2286,7 +2305,14 @@ except Exception as e:
                 if (identifierValue && valueValidationMap[identifierValue.valueName]) {
                   const identifierValidations = valueValidationMap[identifierValue.valueName];
                   
-                  const mergedData = identifierValidations.map((identifierVal: any) => {
+                  // Filter to only include records with validated previous step values
+                  const filteredIdentifierValidations = validatedRecordIds.length > 0
+                    ? identifierValidations.filter((v: any) => validatedRecordIds.includes(v.identifierId))
+                    : identifierValidations; // If no previous steps, include all
+                  
+                  console.log(`📊 Filtered to ${filteredIdentifierValidations.length} records with validated previous values (from ${identifierValidations.length} total)`);
+                  
+                  const mergedData = filteredIdentifierValidations.map((identifierVal: any) => {
                     const record: any = {
                       identifierId: identifierVal.identifierId || `record-${identifierVal.recordIndex}`
                     };

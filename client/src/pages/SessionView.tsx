@@ -1965,24 +1965,24 @@ export default function SessionView() {
             identifierGroups.get(v.identifierId)?.push(v);
           });
           
-          // Check each identifier group - include records with at least some verified columns
+          // Check each identifier group - only include records where ALL columns are verified
           identifierGroups.forEach((validations, identifierId) => {
-            const hasVerifiedColumns = validations.some(v => 
+            const allVerified = validations.every(v => 
               v.validationStatus === 'valid' || 
               v.validationStatus === 'manual'
             );
-            if (hasVerifiedColumns) {
+            if (allVerified) {
               verifiedIdentifierIds.add(identifierId);
             }
           });
           
-          // Filter to only include records that have at least some verified columns
+          // Filter to only include records where ALL previous step values are verified
           const stepValidations = allStepValidations.filter(v => 
             verifiedIdentifierIds.has(v.identifierId) &&
             (v.validationStatus === 'valid' || v.validationStatus === 'manual')
           );
           
-          console.log(`  - Found ${verifiedIdentifierIds.size} records with at least some verified columns`);
+          console.log(`  - Found ${verifiedIdentifierIds.size} records with ALL previous values verified`);
           console.log(`  - Total validations for these verified records: ${stepValidations.length}`);
           
           // Group by identifier ID to compile records
@@ -2138,18 +2138,33 @@ export default function SessionView() {
       console.log(`📊 Excluded ${uniqueTotalRecords - previousColumnsData.length} records that have incomplete data in previous columns`);
     }
     
-    // Show which records have valid Standard Equivalent values (not "Not Found")
-    const recordsWithValidMappings = previousColumnsData.filter(record => 
-      record['Standard Equivalent'] && record['Standard Equivalent'] !== 'Not Found'
-    );
-    console.log(`✅ ${recordsWithValidMappings.length} records have valid Standard Equivalent mappings (not "Not Found")`);
-    console.log(`❌ ${previousColumnsData.length - recordsWithValidMappings.length} records have "Not Found" in Standard Equivalent`);
+    // Filter to only include records where ALL previous step values are validated (not "Not Found", empty, etc.)
+    const originalCount = previousColumnsData.length;
+    
+    // Apply validation-based filtering to ensure only fully validated records proceed
+    previousColumnsData = previousColumnsData.filter(record => {
+      // Check each field in the record to ensure it's properly validated
+      const allFieldsValid = Object.entries(record).every(([key, value]) => {
+        // Skip meta fields like identifierId and _recordIndex
+        if (key === 'identifierId' || key.startsWith('_')) return true;
+        
+        // Check if the field value indicates a validation failure
+        return value && 
+               value !== 'Not Found' && 
+               value !== '' && 
+               value !== null && 
+               value !== undefined;
+      });
+      
+      return allFieldsValid;
+    });
+    
+    console.log(`✅ ${previousColumnsData.length} records have ALL previous values validated (filtered from ${originalCount})`);
+    console.log(`❌ ${originalCount - previousColumnsData.length} records have invalid/missing previous values and were excluded`);
     
     // Log sample data to see what we're actually sending
-    console.log(`Sample of data being sent (first 3 with valid mappings):`, 
-      recordsWithValidMappings.slice(0, 3));
-    console.log(`Sample of data being sent (first 3 with "Not Found"):`, 
-      previousColumnsData.filter(r => r['Standard Equivalent'] === 'Not Found').slice(0, 3));
+    console.log(`Sample of validated data being sent (first 3):`, 
+      previousColumnsData.slice(0, 3));
     
     // Get tool information if available
     const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);

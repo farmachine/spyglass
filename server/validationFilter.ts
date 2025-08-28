@@ -157,3 +157,58 @@ export function shouldIncludeUnverifiedData(
   
   return includeExtracted;
 }
+
+/**
+ * Filter records to only include those where ALL previous step values are validated
+ * This ensures sequential validation workflow where each step builds on validated data from previous steps
+ */
+export function filterRecordsWithAllPreviousValuesValidated(
+  sessionValidations: FieldValidation[],
+  previousStepIds: string[],
+  projectId: string
+): string[] {
+  console.log(`🔍 Filtering records requiring ALL previous values validated`);
+  console.log(`   Previous step IDs: ${previousStepIds.join(', ')}`);
+  
+  if (previousStepIds.length === 0) {
+    console.log(`   No previous steps - allowing all records`);
+    return [];
+  }
+  
+  // Get all validations for previous steps
+  const previousStepValidations = sessionValidations.filter(v => 
+    previousStepIds.includes(v.stepId || '') && v.projectId === projectId
+  );
+  
+  console.log(`   Found ${previousStepValidations.length} validations from previous steps`);
+  
+  // Group by identifierId
+  const recordValidations = new Map<string, FieldValidation[]>();
+  
+  for (const validation of previousStepValidations) {
+    if (validation.identifierId) {
+      const existing = recordValidations.get(validation.identifierId) || [];
+      existing.push(validation);
+      recordValidations.set(validation.identifierId, existing);
+    }
+  }
+  
+  console.log(`   Grouped into ${recordValidations.size} unique records`);
+  
+  // Filter to only records where ALL previous step fields are validated
+  const validatedRecordIds: string[] = [];
+  
+  for (const [identifierId, validations] of recordValidations) {
+    // Check if all validations for this record are in 'valid' status
+    const allValidated = validations.every(v => v.validationStatus === 'valid');
+    
+    if (allValidated && validations.length > 0) {
+      validatedRecordIds.push(identifierId);
+    }
+  }
+  
+  console.log(`   ✅ ${validatedRecordIds.length} records have ALL previous values validated`);
+  console.log(`   ❌ ${recordValidations.size - validatedRecordIds.length} records have pending/invalid previous values`);
+  
+  return validatedRecordIds;
+}
