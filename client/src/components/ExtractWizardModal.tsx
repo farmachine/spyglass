@@ -272,21 +272,30 @@ export default function ExtractWizardModal({
               </h3>
               <p className="text-sm text-gray-600 mb-3">
                 {(() => {
-                  const remainingRecords = inputData.length;
-                  const startIndex = extractedCount + 1;
-                  const endIndex = Math.min(extractedCount + (isAITool ? Math.min(remainingRecords, 50) : remainingRecords), totalAvailable || extractedCount + remainingRecords);
+                  // Calculate how many records still need extraction
+                  const remainingToExtract = Math.max(0, (totalAvailable || 0) - (extractedCount || 0));
                   
-                  if (extractedCount > 0) {
-                    const recordsToProcess = isAITool && remainingRecords > 50 ? 50 : remainingRecords;
+                  if (remainingToExtract === 0) {
+                    // All records are already extracted - show completion status
                     return (
                       <>
-                        <strong>Records {startIndex}-{extractedCount + recordsToProcess} of {totalAvailable}</strong> ready for extraction
-                        {extractedCount > 0 && (
-                          <> <span className="text-green-600">({extractedCount} already extracted)</span></>
-                        )}
+                        <strong>All {totalAvailable} records</strong> have been extracted
+                        <span className="text-green-600"> ✓ Complete</span>
+                      </>
+                    );
+                  } else if (extractedCount && extractedCount > 0) {
+                    // Some records extracted, some remaining
+                    const recordsToProcess = isAITool && remainingToExtract > 50 ? 50 : remainingToExtract;
+                    const startIndex = extractedCount + 1;
+                    const endIndex = extractedCount + recordsToProcess;
+                    return (
+                      <>
+                        <strong>Records {startIndex}-{endIndex} of {totalAvailable}</strong> ready for extraction
+                        <span className="text-green-600"> ({extractedCount} already extracted)</span>
                       </>
                     );
                   } else {
+                    // No records extracted yet
                     return (
                       <>
                         <strong>{isAITool && inputData.length > 50 ? `50 records (limited from ${inputData.length} for performance)` : `${inputData.length} records`}</strong> available from previous steps
