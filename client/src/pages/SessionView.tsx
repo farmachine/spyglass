@@ -4147,8 +4147,8 @@ Thank you for your assistance.`;
                   const collectionData = extractedData[item.itemName];
                   const collectionValidations = validations.filter(v => 
                     v.collectionName === item.itemName &&
-                    // Only include valid validations (exclude invalid, pending)
-                    v.validationStatus === 'valid'
+                    // Include valid and pending validations (exclude invalid)
+                    (v.validationStatus === 'valid' || v.validationStatus === 'pending')
                   );
                   
                   // Debug logging
