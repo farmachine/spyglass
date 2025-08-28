@@ -1499,8 +1499,12 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0, llm_model=
             else:
                 # Get document IDs from the documents data
                 document_ids = [doc['id'] for doc in documents]
+                # Limit identifier references to first 50 records for AI tools to improve performance
+                limited_identifier_references = incoming_identifier_references[:50] if incoming_identifier_references else []
+                if len(incoming_identifier_references or []) > 50:
+                    print(f"🔧 Limited AI input from {len(incoming_identifier_references)} to 50 records for better performance")
                 # Pass document IDs and identifier targets to AI extraction
-                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets, incoming_identifier_references)
+                ai_result = ai_document_extraction(document_ids, session_id, identifier_targets, limited_identifier_references)
             
             # Clean JSON and extract identifiers
             processed_results = clean_json_and_extract_identifiers(ai_result, identifier_targets)
