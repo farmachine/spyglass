@@ -4355,13 +4355,12 @@ Thank you for your assistance.`;
                                         const isCurrentlyBulkValidated = currentBulkFields.size > 0;
                                         
                                         return (
-                                          <button
+                                          <div
                                             onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                            className="h-7 w-7 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                            className="w-2 h-2 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                                            style={{ backgroundColor: '#4F63A4', opacity: isCurrentlyBulkValidated ? 1 : 0.6 }}
                                             title={isCurrentlyBulkValidated ? `Click to unvalidate bulk validated fields in ${columnName}` : `Click to bulk validate all ${columnName} fields`}
-                                          >
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4', opacity: isCurrentlyBulkValidated ? 1 : 0.6 }} />
-                                          </button>
+                                          />
                                         );
                                       })()}
                                       <button
