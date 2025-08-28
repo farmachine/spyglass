@@ -328,9 +328,8 @@ export class ToolEngine {
                 // Last resort fallback
                 preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
               }
-              } else {
-                preparedInputs[param.name] = inputValue;
-              }
+            } else {
+              preparedInputs[param.name] = inputValue;
             }
           }
       } else {
