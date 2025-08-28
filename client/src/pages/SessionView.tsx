@@ -4174,7 +4174,7 @@ Thank you for your assistance.`;
                         <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
                       <CardContent>
-                        <div className="border border-[#4F63A4] rounded-md overflow-hidden">
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
                           <Table className="session-table">
                           <TableHeader>
                             <TableRow>
@@ -4220,7 +4220,7 @@ Thank you for your assistance.`;
                                       onClick={() => handleSort(columnName, collection.id)}
                                       className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
                                     >
-                                      <span className="truncate text-blue-900 dark:text-blue-100 font-bold">{columnName}</span>
+                                      <span className="truncate text-blue-900 dark:text-blue-100">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
                                     </button>
                                     <div className="flex items-center gap-1">
