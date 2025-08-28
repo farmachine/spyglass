@@ -4141,7 +4141,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600"
+                                        className="relative bg-gray-50 dark:bg-gray-800 border-t-2 border-b-2 border-gray-300 dark:border-gray-600"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4217,7 +4217,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-16 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                              <TableHead className="w-16 bg-gray-50 dark:bg-gray-800 border-t-2 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <Button
                                     size="sm"
