@@ -1556,38 +1556,10 @@ export default function SessionView() {
         body: JSON.stringify(params.data)
       });
     },
-    onSuccess: async () => {
-      // First invalidate and wait for the validations to update
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      
-      // Also invalidate the AllData project-level validation query
-      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
-      
-      // Force refetch of the AllData query
-      await queryClient.refetchQueries({ queryKey: ['/api/validations/project', projectId] });
-      
-      // Small delay to ensure query cache is updated
-      setTimeout(async () => {
-        const updatedValidations = queryClient.getQueryData<FieldValidation[]>(['/api/sessions', sessionId, 'validations']);
-        if (updatedValidations && updatedValidations.length > 0) {
-          const allVerified = updatedValidations.every(v => v.validationStatus === 'valid');
-          const newStatus = allVerified ? 'verified' : 'in_progress';
-          
-          // Update session status in database
-          await apiRequest(`/api/sessions/${sessionId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ status: newStatus })
-          });
-          
-          // Invalidate session query to update UI
-          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-          
-          // Invalidate project query to update AllData component
-          queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-        }
-      }, 100);
-      
-
+    onSuccess: () => {
+      // Only invalidate necessary queries - let React Query handle the refetching
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
     },
     onError: (error: any) => {
       console.error('Failed to update field:', error);
@@ -1698,7 +1670,6 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
-    console.log('🔧 handleFieldVerification called:', { fieldName, isVerified, identifierId });
     // Use the proper handleVerificationToggle function that has complete logic
     handleVerificationToggle(fieldName, isVerified, identifierId);
   };
@@ -2966,9 +2937,7 @@ Thank you for your assistance.`;
   };
 
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
-    console.log('🔧 handleVerificationToggle called:', { fieldName, isVerified, identifierId });
     const validation = getValidation(fieldName, identifierId);
-    console.log('🔧 Found validation:', validation ? { id: validation.id, status: validation.validationStatus } : 'null');
     if (validation) {
       // Use only schema-defined validation statuses
       let newStatus: ValidationStatus;
@@ -2981,7 +2950,7 @@ Thank you for your assistance.`;
         newStatus = isVerified ? "valid" : "pending";
       }
       
-      // Optimistic update
+      // Optimistic update for both session and project-level validations
       queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
         if (!oldData) return oldData;
         return oldData.map((v: any) => 
@@ -2990,15 +2959,16 @@ Thank you for your assistance.`;
             : v
         );
       });
-      
-      console.log(`🔧 VERIFICATION UPDATE - Field: ${fieldName}`, {
-        fieldName,
-        currentStatus: validation.validationStatus,
-        currentManuallyUpdated: validation.manuallyUpdated,
-        newStatus,
-        isVerified,
-        validationId: validation.id
+
+      queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((v: any) => 
+          v.id === validation.id 
+            ? { ...v, validationStatus: newStatus, manuallyVerified: isVerified }
+            : v
+        );
       });
+      
       
       try {
         await updateValidationMutation.mutateAsync({
@@ -3009,8 +2979,17 @@ Thank you for your assistance.`;
           }
         });
       } catch (error) {
-        // Revert optimistic update on error
+        // Revert optimistic update on error for both queries
         queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((v: any) => 
+            v.id === validation.id 
+              ? { ...v, validationStatus: validation.validationStatus, manuallyVerified: validation.manuallyVerified }
+              : v
+          );
+        });
+        
+        queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
           if (!oldData) return oldData;
           return oldData.map((v: any) => 
             v.id === validation.id 
@@ -4500,10 +4479,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => {
-                                                              console.log('🔧 Green checkmark clicked:', fieldName);
-                                                              handleFieldVerification(fieldName, false);
-                                                            }}
+                                                            onClick={() => handleFieldVerification(fieldName, false)}
                                                             className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
