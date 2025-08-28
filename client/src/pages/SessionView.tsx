@@ -2952,14 +2952,37 @@ Thank you for your assistance.`;
     // Toggle all fields: if all valid -> make pending, otherwise -> make valid
     const targetStatus = allValid ? 'pending' : 'valid';
     
-    // Update each field
-    for (const validation of columnValidations) {
-      await updateValidationMutation.mutateAsync({
+    // OPTIMISTIC UPDATE - immediately update UI
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return oldData.map((validation: any) => {
+        const isInColumn = columnValidations.some(cv => cv.id === validation.id);
+        if (isInColumn) {
+          return { ...validation, validationStatus: targetStatus };
+        }
+        return validation;
+      });
+    });
+    
+    // Fire all server updates simultaneously (not awaiting each one)
+    const updatePromises = columnValidations.map(validation => 
+      updateValidationMutation.mutateAsync({
         id: validation.id,
         data: { 
           validationStatus: targetStatus
         }
-      });
+      }).catch(error => {
+        console.error(`Failed to update validation ${validation.id}:`, error);
+        // On error, the query will be invalidated and data refetched
+      })
+    );
+    
+    // Wait for all to complete, but UI already shows the changes
+    try {
+      await Promise.all(updatePromises);
+    } catch (error) {
+      // If any updates failed, invalidate and refetch to get correct state
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
     }
   };
 
