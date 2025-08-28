@@ -6769,6 +6769,9 @@ def extract_function(Column_Name, Excel_File):
             if (previousData && previousData.length > 0) {
               console.log(`📊 Sample previous data record:`, previousData[0]);
               console.log(`📊 Looking for column name: "${actualColumnName}"`);
+              console.log(`📊 Available properties in first record:`, Object.keys(previousData[0]));
+              console.log(`📊 Does record have "${actualColumnName}" property?:`, previousData[0][actualColumnName] !== undefined);
+              console.log(`📊 Value of "${actualColumnName}" property:`, previousData[0][actualColumnName]);
               
               // Check if previousData is already in the correct format (has identifierId and column values directly)
               if (previousData[0].identifierId && previousData[0][actualColumnName] !== undefined) {
