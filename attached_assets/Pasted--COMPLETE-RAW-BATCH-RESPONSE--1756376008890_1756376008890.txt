@@ -1,0 +1,568 @@
+📝 COMPLETE RAW BATCH RESPONSE:
+--------------------------------------------------------------------------------
+```json
+[
+  {
+    "identifierId": "32a2590e-70e3-4a24-ac5e-75056240507d",
+    "extractedValue": "Buy-Out Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Of Buy-Out Of SBO Terms\" is semantically similar to \"Buy-Out Date\".  The phrase \"Of SBO Terms\" is considered extraneous detail and is not essential for identifying the core meaning of the date of the buyout.  The reference documents (assumed) would contain similar terms like \"Buy-out Date\", \"Date of Buyout\", etc.  No other competing matches are present based on the context.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "09518443-0547-4f3e-a4be-58920a2c346e",
+    "extractedValue": "Deferred Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Deferred Pension For Service To Buy-Out at this valuation date\" is conceptually mapped to \"Deferred Pension at Valuation Date\". The phrase \"For Service To Buy-Out\" is contextual information and not part of the core data element,  which is the value of the deferred pension at a specific valuation date. This interpretation prioritizes semantic similarity over exact string matching.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "346e4f00-ad4c-44fd-8211-9653a5f1718b",
+    "extractedValue": "Annual Post-1988 GMP Component at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description containing specific dates. The core meaning is the annual GMP component post-1988 at the valuation date.  The specific dates are interpreted as contextual details. The standardized field name is generalized to reflect the main data point.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2b668c17-a5f1-4ea5-af2e-88a605f8825f",
+    "extractedValue": "Deferred Pensioner Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Became Deferred Pensioner\" directly translates to \"Deferred Pensioner Start Date\". This is a clear and unambiguous match.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6185830f-b8d5-4882-be89-d521da608adb",
+    "extractedValue": "Previous Status Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Code For Previous Status\" is a direct match for the standardized field \"Previous Status Code\".",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "e7a3d711-f1c6-419c-9601-1c3b257e530d",
+    "extractedValue": "Normal Retirement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is an exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "968e64d5-a639-4cc8-963e-386c2206e2b5",
+    "extractedValue": "Annual Pre-1988 GMP Component at Deferred Pensioner Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Similar to previous entries, the core data element is identified and mapped.  The specific date is contextual information clarified by mapping to \"Deferred Pensioner Start Date\".",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2f724b06-5d83-4d1a-9955-04b0784c6e09",
+    "extractedValue": "Annual Post-1988 GMP Component at Deferred Pensioner Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is mapped based on semantic similarity and contextual understanding. The date is standardized using the previously defined field.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1ce621f1-89bf-4b79-a937-fe9576b8ed3d",
+    "extractedValue": "Total Deferred Pension Payable at Deferred Pensioner Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core information is the total deferred pension payable at the start date of deferred pensioner status. This is mapped to the corresponding standardized field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2e431807-3ce2-4ecd-95f1-7a5489b3df59",
+    "extractedValue": "Total Contingent Widow(er) Pension Payable at Deferred Pensioner Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Similar to the previous entry, the core data element is identified and mapped. The date is standardized using the previously defined field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1096959e-e78a-4540-9e28-3ea738367d80",
+    "extractedValue": "Annual Post-1988 GMP Component at Exit from Active Service",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field's core meaning is extracted and mapped accordingly. The specific dates are interpreted as contextual information.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "620ed869-2ed9-49fe-84a0-1d33f0d0c6ea",
+    "extractedValue": "Annual Pre-1988 GMP Component at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field's core meaning is extracted and mapped accordingly. The specific dates are interpreted as contextual information.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "67b67039-ed8b-4f0d-9ff8-60969c05410a",
+    "extractedValue": "Annual Post-1988 GMP Component at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field's core meaning is extracted and mapped accordingly. The specific dates are interpreted as contextual information.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d587e14f-871f-4e0a-b48b-901a9312655b",
+    "extractedValue": "Total Pension Payable at Last Valuation",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Total Pension Payable From Scheme At Last Valuation\" is mapped to the standardized field \"Total Pension Payable at Last Valuation\". The phrase \"From Scheme\" is considered redundant in this context.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3bb59fc0-df67-45b0-8af0-b048b460f4d8",
+    "extractedValue": "Total Pension Payable at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is mapped based on semantic similarity.  The phrase \"From Scheme\" is considered extraneous.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d717e192-3ac4-4d5e-b6af-0e8b99e5b7a0",
+    "extractedValue": "Pension Component Subject to RPI/CPI capped at 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d32efcac-f402-47d0-89fe-3bc7869431db",
+    "extractedValue": "Contingent Widow(er)'s Sex Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "380b9f78-cdef-4381-97d8-f76a6c03b526",
+    "extractedValue": "Contingent Widow(er)'s Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "baa511b9-3bb1-41fc-90dd-5a1ddac190cf",
+    "extractedValue": "Contingent Widow(er)'s Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field's core meaning is extracted and mapped to the standardized field. The phrase \"From Scheme\" is considered redundant.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d6de5247-9202-4273-9ae9-ae44dc5d291f",
+    "extractedValue": "Contingent Widow(er)'s Pension Component Subject to RPI/CPI capped at 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "c0394c25-8d7f-42be-b77f-d4ca2eb5ffd5",
+    "extractedValue": "Date of Exit from Pensioner Status",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "61b66d13-9253-40dc-a3d4-7e1333039639",
+    "extractedValue": "Code for Exit from Pensioner Status",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "b247227c-2a56-4be1-a4d0-d521843988d7",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3e456a7d-14a4-4d2c-ad95-40eb015c1e06",
+    "extractedValue": "Contingent Widow(er)'s Pension Component Subject to CPI capped at 2.5% or fixed 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "872ae429-b02d-4156-b7a2-0a5e8def9741",
+    "extractedValue": "Total Pension Payable at Retirement (Before Tax-Free Cash Reduction)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "efbca0a3-d4c1-449d-8947-38e886b9a28f",
+    "extractedValue": "Widow's Allotment at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Widow's Allotment At Valuation Date Included In Pension\" is mapped to the standardized field \"Widow's Allotment at Valuation Date\". The phrase \"Included In Pension\" is considered redundant.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "660b0995-58ea-4cb7-9338-7fb8183af767",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1aa29713-081d-49fa-bbbb-b29f9943f4b1",
+    "extractedValue": "Deceased Member's Previous Status Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Code For Previous Status Of Deceased Member\" is mapped to the standardized field \"Deceased Member's Previous Status Code\".",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "35214b5b-c4fc-41c6-855b-eb72d620d51e",
+    "extractedValue": "Child's Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is mapped based on semantic similarity. The phrase \"Payable From Scheme\" is considered extraneous.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "4c5ad79c-88b4-4332-9d94-d4956cfc58a3",
+    "extractedValue": "Child's Pension Component Subject to RPI capped at 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a3be51bc-17c1-49cd-ade4-cde2a90c008f",
+    "extractedValue": "Child's Pension Cessation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Child's Pension Is To Cease Or Has Ceased\" is mapped to the standardized field \"Child's Pension Cessation Date\".",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8b9c25b7-6270-42eb-a449-79ec277ac864",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "7860329a-01a9-41e2-9bb4-60a0c7f0d40a",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "82c89c1f-2ae3-4b01-b562-f86913fe9b1a",
+    "extractedValue": "Section B Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "cfd6745f-c5e0-4847-921e-e26c0fa51115",
+    "extractedValue": "Child's Pension Component Subject to RPI capped at 2.5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8288295e-28d7-43bb-a3a9-2d5c6b069b9b",
+    "extractedValue": "Child's Pension Component Subject to CPI capped at 2.5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a75276aa-f926-42cc-a3ac-2e96b05a5866",
+    "extractedValue": "Active Deferred Member Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Became Active Deferred Member\" is mapped to the standardized field \"Active Deferred Member Start Date\".",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "7ba67c0e-3f1d-44b4-955e-3f6c13fb7181",
+    "extractedValue": "Code for Exit from Widow(er) Beneficiary Status",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "fca826ab-6e40-4ed1-887a-38b002f1815d",
+    "extractedValue": "Excess Deferred Pension Component (Not Subject to Statutory Revaluation)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "949f77e1-19d3-4770-abc3-08cb3e3a5fe2",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "75c20229-12e7-4bbc-bb1e-b94326e58e92",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1fb90c56-106c-4981-9ff0-fb7c941d1c1f",
+    "extractedValue": "Married Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "32d121ab-7d72-4b67-a5aa-7dd6a41afa5f",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3cace7ee-28eb-41f7-ae95-0c4938753f89",
+    "extractedValue": "Pension Component Subject to RPI capped at 2.5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "5a1393bc-f8f8-4aab-a664-e97f327ba683",
+    "extractedValue": "Contingent Widow(er)'s Pension Component Subject to RPI capped at 2.5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3c55ff37-ce91-4263-ae71-3863c302088c",
+    "extractedValue": "Non-Increasing Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8b350607-80e6-4240-b3ff-62858dd8c8f0",
+    "extractedValue": "Spouse's Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8120a557-1c69-4659-8b56-5295b1a4e5de",
+    "extractedValue": "Married Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "22a70296-decd-43c9-a258-f0016b85cfeb",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "aa5fff70-7d97-4690-abe6-125176f7e928",
+    "extractedValue": "New Pension Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a1ca6d43-78af-4eb6-9260-fc9ad48b6062",
+    "extractedValue": "Excess Deferred Pension Component (Subject to LPI5 Revaluation and RPI capped at 2.5%)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6cde961a-50c3-42e8-91db-89e2bbded42c",
+    "extractedValue": "Excess Deferred Pension Component (Subject to LPI2.5 Revaluation and RPI capped at 2.5%)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6000584b-38e1-42ed-a40c-e9bcde67e04e",
+    "extractedValue": "Contingent Widow(er)'s Pension (Subject to RPI capped at 2.5%) at Active Deferred Member Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field, using previously defined fields to clarify context.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "375f6879-93d2-4744-96c5-0e48f29fcd78",
+    "extractedValue": "Section B Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "9b69ab27-d5af-4563-8ea8-1f88bbcc3452",
+    "extractedValue": "TV-in Fixed Paid-Up Pension at Normal Retirement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"TV-in fixed Paid Up Pension at Normal Retirement Date\" is mapped to the standardized field \"TV-in Fixed Paid-Up Pension at Normal Retirement Date\".",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "cd474af8-eebd-4d23-b2c3-3c68de97d473",
+    "extractedValue": "Contingent Widow(er)'s Pension (Subject to CPI capped at 2.5% or fixed 5%) at Active Deferred Member Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field is a lengthy description. The core meaning is extracted and mapped to the corresponding standardized field, using previously defined fields to clarify context.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8d9b8b8f-1fef-4dee-afc7-8d90171f1e4e",
+    "extractedValue": "Postcode",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "ecd3e0c5-a436-4168-963e-1295eb667af4",
+    "extractedValue": "Beneficiary's Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d30a2f8d-8722-4cf8-a778-e9fad54954f9",
+    "extractedValue": "Pension Component Subject to RPI/CPI capped at 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8e8641b0-352b-4b06-9b9b-4cbf77669a8c",
+    "extractedValue": "Contingent Widow(er)'s Sex Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6623dfec-399b-4678-9baf-145bfcd1474f",
+    "extractedValue": "Contingent Widow(er)'s Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "05434189-64d8-4edf-b35c-ea8fc69dfc2f",
+    "extractedValue": "Contingent Widow(er)'s Pension at Valuation Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field's core meaning is extracted and mapped to the standardized field. The phrase \"From Scheme\" is considered redundant.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6e23a320-7a7c-412f-93fd-3fb846a1c1b0",
+    "extractedValue": "Contingent Widow(er)'s Pension Component Subject to RPI/CPI capped at 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1c66626c-4112-4f8a-8e47-965d7cc542a8",
+    "extractedValue": "Date of Exit from Pensioner Status",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8338c3b1-44c1-4e4f-9505-f7be68aed8f1",
+    "extractedValue": "Code for Exit from Pensioner Status",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "e50b4898-8a81-454b-a9e0-22846d6cfae7",
+    "extractedValue": "Non-Increasing TV-in Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "ba1e21f1-711c-4163-8555-0e40243a1fde",
+    "extractedValue": "Pension Component Subject to CPI capped at 2.5% or fixed 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "119fc7ca-5b48-472e-9c36-790f0a4f1326",
+    "extractedValue": "Contingent Widow(er)'s Pension Component Subject to CPI capped at 2.5% or fixed 5%",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component. The lengthy description is summarized for clarity.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "da124e46-66c6-423
+--------------------------------------------------------------------------------
+====================================================================================================
+    🧹 Trimmed prefix, new length: 24444
+    📊 Final cleaned JSON length: 24444
+    📊 Final JSON preview: [
+  {
+    "identifierId": "32a2590e-70e3-4a24-ac5e-75056240507d",
+    "extractedValue": "Buy-Out Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field \"Date Of Buy-Out Of SBO Terms\" is semantically similar to \"Buy-Out Date\".  The phrase \"Of SBO Terms\" is considered extran...
+    📊 Final JSON ending: ...re": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "da124e46-66c6-423
+    ❌ JSON parse error for batch 1: SyntaxError: Unterminated string in JSON at position 24444
+    at JSON.parse (<anonymous>)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:717:47)
