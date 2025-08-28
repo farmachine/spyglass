@@ -156,9 +156,9 @@ const ValidationIndicator = ({
         title={reasoning || 'Click to toggle validation status'}
       >
         {isValid ? (
-          <Check className="h-4 w-4 text-green-600" />
+          <Check className="h-3 w-3 text-green-600" />
         ) : (
-          <div className="w-4 h-4 rounded-full border-2 border-gray-400" />
+          <div className="w-3 h-3 rounded-full border-2 border-gray-400" />
         )}
       </button>
       {/* Show reasoning on hover */}
