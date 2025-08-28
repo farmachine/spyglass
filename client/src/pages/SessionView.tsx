@@ -4197,7 +4197,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800"
+                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800 border-t-2 border-t-gray-300 dark:border-t-gray-600"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4217,7 +4217,7 @@ Thank you for your assistance.`;
                                       onClick={() => handleSort(columnName, collection.id)}
                                       className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
                                     >
-                                      <span className="truncate">{columnName}</span>
+                                      <span className="truncate text-blue-900 dark:text-blue-100 font-bold">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
                                     </button>
                                     <div className="flex items-center gap-1">
@@ -4268,7 +4268,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-24 border-r border-gray-300 bg-gray-100 dark:bg-gray-800" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-24 bg-gray-100 dark:bg-gray-800 border-t-2 border-t-gray-300 dark:border-t-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
@@ -4617,22 +4617,7 @@ Thank you for your assistance.`;
                                         
                                         // Removed verbose verification status logging
                                         
-                                        return (
-                                          <button
-                                            onClick={() => {
-                                              console.log(`Button clicked for ${collection.collectionName}[${originalIndex}], currently verified: ${allVerified}`);
-                                              handleItemVerification(collection.collectionName, originalIndex, !allVerified);
-                                            }}
-                                            className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                            title={allVerified ? "Click to mark all fields as unverified" : "Click to mark all fields as verified"}
-                                          >
-                                            {allVerified ? (
-                                              <CheckCircle className="h-5 w-5 text-green-600" />
-                                            ) : (
-                                              <CheckCircle className="h-5 w-5 text-gray-400" />
-                                            )}
-                                          </button>
-                                        );
+                                        return null; // Removed verification button with green tick circle
                                       })()}
                                       <Button
                                         size="sm"
