@@ -457,27 +457,29 @@ export class ToolEngine {
       
       console.log(`🔍 Found ${dataInputs.length} data inputs that are arrays`);
       
-      // For AI tools, use smaller batches to avoid response length limits
-      // Gemini has response length limits that can truncate large JSON responses
-      const AI_BATCH_THRESHOLD = 15; // Process in smaller batches
-      const AI_BATCH_SIZE = 15; // Process 15 items at once for AI tools
+      // For AI tools, we send ALL data in one call to minimize API requests
+      // NO BATCHING for AI tools - send everything at once
+      const AI_BATCH_THRESHOLD = 999999; // Effectively disable batching for AI tools
+      const AI_BATCH_SIZE = 999999; // Process ALL items at once for AI tools
       
       // If we have large arrays, check if we need special handling
       if (dataInputs.length > 0 && tool.outputType === 'multiple') {
         const [dataKey, dataArray] = dataInputs[0];
         
-        // For AI tools, use batching to avoid response length limits
-        if (tool.toolType === 'AI_ONLY' && Array.isArray(dataArray) && dataArray.length > AI_BATCH_THRESHOLD) {
-          console.log(`📦 AI Tool: Processing ${dataArray.length} items in batches of ${AI_BATCH_SIZE}...`);
+        // For AI tools, send ALL items in a single request
+        if (tool.toolType === 'AI_ONLY' && Array.isArray(dataArray) && dataArray.length > 0) {
+          console.log(`📦 AI Tool: Processing ALL ${dataArray.length} items in a SINGLE API call...`);
           
+          // Process ALL items in a single batch for AI tools
+          const batch = dataArray; // Use the entire array as one batch
           const allResults: ToolResult[] = [];
-          const totalBatches = Math.ceil(dataArray.length / AI_BATCH_SIZE);
           
-          // Process in batches
-          for (let i = 0; i < dataArray.length; i += AI_BATCH_SIZE) {
-            const batchEnd = Math.min(i + AI_BATCH_SIZE, dataArray.length);
-            const batch = dataArray.slice(i, batchEnd);
-            const batchNumber = Math.floor(i / AI_BATCH_SIZE) + 1;
+          // No loop needed - process everything at once
+          {
+            const i = 0;
+            const batchEnd = dataArray.length;
+            const batchNumber = 1;
+            const totalBatches = 1;
             
             console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
             
@@ -633,21 +635,11 @@ ${JSON.stringify(batch, null, 2)}`;
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
             
-            // Log complete raw response for batch processing
-            console.log(`\n🎉 RAW GEMINI BATCH RESPONSE FOR TOOL: ${tool.name} (Batch ${batchNumber})`);
-            console.log('=' .repeat(100));
-            console.log(`🤖 Model Used: ${tool.llmModel || "gemini-2.0-flash"}`);
-            console.log(`📊 Batch size: ${batch.length} items`);
-            console.log(`📊 Response length: ${batchResult.length} chars`);
-            console.log('');
-            console.log('📝 COMPLETE RAW BATCH RESPONSE:');
-            console.log('-'.repeat(80));
-            console.log(batchResult);
-            console.log('-'.repeat(80));
-            console.log('=' .repeat(100));
-            
             // Robust JSON extraction and parsing
             let cleanJson = batchResult;
+            
+            console.log(`    📊 Raw AI response length: ${batchResult.length} chars`);
+            console.log(`    📊 Raw response preview: ${batchResult.substring(0, 500)}...`);
             
             // Step 1: Extract from markdown code blocks if present
             const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -811,7 +803,6 @@ ${JSON.stringify(batch, null, 2)}`;
               }
             }
           } // End of single batch processing block
-          } // End of batching loop
           
           console.log(`✅ Processing complete. Total results: ${allResults.length}`);
           return allResults;
@@ -881,23 +872,13 @@ ${JSON.stringify(batch, null, 2)}`;
       
       let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      console.log('\n🎉 RAW GEMINI AI RESPONSE FOR TOOL:', tool.name);
-      console.log('=' .repeat(100));
-      console.log('🤖 Model Used:', llmModel);
-      console.log('📊 Response length:', result.length, 'characters');
-      console.log('🔢 Tool output type:', tool.outputType);
-      console.log('');
-      console.log('📝 COMPLETE RAW RESPONSE:');
+      console.log('\n🎉 RAW GEMINI RESPONSE:');
       console.log('-'.repeat(80));
+      console.log('Response length:', result.length, 'characters');
+      console.log('\nFull Response:');
       console.log(result);
       console.log('-'.repeat(80));
       console.log('');
-      console.log('🔍 Response metadata:');
-      console.log('  - Has candidates:', !!response.candidates);
-      console.log('  - Candidates count:', response.candidates?.length || 0);
-      console.log('  - First candidate has content:', !!response.candidates?.[0]?.content);
-      console.log('  - Content parts count:', response.candidates?.[0]?.content?.parts?.length || 0);
-      console.log('=' .repeat(100));
       
       // Store original for debugging
       const originalResult = result;
