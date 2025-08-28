@@ -4351,12 +4351,28 @@ Thank you for your assistance.`;
                                     <div className="flex items-center gap-1">
                                       {(() => {
                                         const columnKey = `${collection.collectionName}.${columnName}`;
+                                        
+                                        // Check if ALL fields in this column are currently validated
+                                        const columnValidations = validations.filter(v => 
+                                          v.fieldName?.includes(`${collection.collectionName}.${columnName}[`) &&
+                                          v.extractedValue !== null && 
+                                          v.extractedValue !== undefined && 
+                                          v.extractedValue !== "" && 
+                                          v.extractedValue !== "null" && 
+                                          v.extractedValue !== "undefined"
+                                        );
+                                        
+                                        const allValidated = columnValidations.length > 0 && 
+                                          columnValidations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'manual');
+                                        
+                                        // Check if this column has bulk validation state
                                         const currentBulkFields = bulkValidationState[columnKey] || new Set();
-                                        const isCurrentlyBulkValidated = currentBulkFields.size > 0;
+                                        const hasBulkState = currentBulkFields.size > 0;
                                         
-                                        console.log(`Column ${columnName}: bulk validated = ${isCurrentlyBulkValidated}, bulk fields count = ${currentBulkFields.size}`);
+                                        // Show checkmark if all are validated OR if we have bulk state
+                                        const showCheckmark = allValidated || hasBulkState;
                                         
-                                        return isCurrentlyBulkValidated ? (
+                                        return showCheckmark ? (
                                           <Check
                                             onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
                                             className="w-3 h-3 cursor-pointer hover:opacity-80 transition-opacity"
