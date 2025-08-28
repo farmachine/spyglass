@@ -4197,7 +4197,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300 dark:border-gray-600/30"
+                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4268,7 +4268,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-24 border-r border-gray-300" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-24 border-r border-gray-300 bg-gray-100 dark:bg-gray-800" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
@@ -4295,15 +4295,7 @@ Thank you for your assistance.`;
                                         itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'manual');
                                     });
                                     
-                                    return (
-                                      <button
-                                        onClick={() => handleVerifyAllCollectionItems(collection.collectionName, !allItemsVerified)}
-                                        className="flex items-center justify-center hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                                        title={allItemsVerified ? "Click to mark all items as unverified" : "Click to mark all items as verified"}
-                                      >
-                                        <CheckCircle className={`h-5 w-5 ${allItemsVerified ? 'text-green-600' : 'text-gray-400'}`} />
-                                      </button>
-                                    );
+                                    return null; // Validation button removed
                                   })()}
                                   <Button
                                     size="sm"
@@ -4330,7 +4322,7 @@ Thank you for your assistance.`;
                                         onClick={() => handleDeleteAllCollectionData(collection.collectionName)}
                                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                       >
-                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        <X className="h-4 w-4 mr-2 text-gray-600" />
                                         Delete all data
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -4649,7 +4641,7 @@ Thank you for your assistance.`;
                                         className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                         title="Delete this item"
                                       >
-                                        <Trash2 className="h-4 w-4" />
+                                        <X className="h-4 w-4 text-gray-600" />
                                       </Button>
                                     </div>
                                   </TableCell>
