@@ -2284,7 +2284,7 @@ export default function SessionView() {
       stepName: stepName,
       valueId: valueId,
       valueName: valueName,
-      previousData: remainingData,
+      previousData: previousColumnsData, // Show ALL reference data, not just remaining
       needsDocument: needsDocument,
       toolType: toolInfo?.name || 'extraction',
       toolDescription: valueToRun.description || '',
