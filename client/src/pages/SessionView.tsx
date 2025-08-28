@@ -4479,7 +4479,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            onClick={() => handleFieldVerification(fieldName, false, rowIdentifierId)}
                                                             className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
@@ -4509,7 +4509,7 @@ Thank you for your assistance.`;
                                                               confidenceScore: validation.confidenceScore || 0,
                                                               getFieldDisplayName,
                                                               validation,
-                                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified),
+                                                              onVerificationChange: (isVerified) => handleFieldVerification(fieldName, isVerified, rowIdentifierId),
                                                               isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
                                                             });
                                                           }
