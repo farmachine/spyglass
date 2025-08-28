@@ -36,18 +36,17 @@ export default function ValidationIcon({
     };
     const iconSize = iconSizes[size];
 
-    switch (status) {
-      case "valid":
-        return <CheckCircle className={`${iconSize} text-success`} />;
-      case "invalid":
-        return <AlertCircle className={`${iconSize} text-destructive`} />;
-      case "manual":
-        return <Edit2 className={`${iconSize} text-primary`} />;
-      case "pending":
-      default:
-        // Handle any legacy or unexpected status values as pending
-        return <Clock className={`${iconSize} text-muted-foreground`} />;
-    }
+    // Get color based on confidence score
+    const getConfidenceColor = () => {
+      if (confidenceScore >= 70) return 'bg-green-500';
+      if (confidenceScore >= 35) return 'bg-amber-500';
+      return 'bg-red-500';
+    };
+
+    // Show colored circle based on confidence score
+    return (
+      <div className={`${iconSize} ${getConfidenceColor()} rounded-full`} />
+    );
   };
 
   const getStatusBadge = () => {
