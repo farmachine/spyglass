@@ -397,9 +397,6 @@ export default function ExtractWizardModal({
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">{doc.name}</span>
-                        <Badge variant="outline" className="ml-auto text-xs">
-                          {doc.type}
-                        </Badge>
                       </div>
                     </SelectItem>
                   ))}
