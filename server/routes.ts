@@ -7176,7 +7176,7 @@ def extract_function(Column_Name, Excel_File):
             // Simple update - just pass through the result
             await storage.updateFieldValidation(existingValidation.id, {
               extractedValue: result.extractedValue,
-              validationStatus: result.validationStatus,
+              validationStatus: 'pending', // Always set to pending for new extractions
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,
               documentSource: result.documentSource,
@@ -7202,7 +7202,7 @@ def extract_function(Column_Name, Excel_File):
               identifierId: identifierId,
               extractedValue: result.extractedValue,
               validationType: 'collection_property',
-              validationStatus: result.validationStatus,
+              validationStatus: 'pending', // Always set to pending for new extractions
               dataType: 'text',
               aiReasoning: result.aiReasoning,
               confidenceScore: result.confidenceScore,
