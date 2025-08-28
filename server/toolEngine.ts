@@ -475,10 +475,9 @@ export class ToolEngine {
           
           // Process in batches
           for (let i = 0; i < dataArray.length; i += AI_BATCH_SIZE) {
-            const i = 0;
-            const batchEnd = dataArray.length;
-            const batchNumber = 1;
-            const totalBatches = 1;
+            const batchEnd = Math.min(i + AI_BATCH_SIZE, dataArray.length);
+            const batch = dataArray.slice(i, batchEnd);
+            const batchNumber = Math.floor(i / AI_BATCH_SIZE) + 1;
             
             console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${dataArray.length}`);
             
@@ -812,6 +811,7 @@ ${JSON.stringify(batch, null, 2)}`;
               }
             }
           } // End of single batch processing block
+          } // End of batching loop
           
           console.log(`✅ Processing complete. Total results: ${allResults.length}`);
           return allResults;
