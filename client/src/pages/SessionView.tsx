@@ -1968,8 +1968,9 @@ export default function SessionView() {
           // Check each identifier group - only include records where ALL columns are verified AND have valid values
           identifierGroups.forEach((validations, identifierId) => {
             const allVerified = validations.every(v => {
-              // Check validation status
-              const statusValid = v.validationStatus === 'valid' || v.validationStatus === 'manual';
+              // Check validation status - must be validated, not pending
+              const statusValid = (v.validationStatus === 'valid' || v.validationStatus === 'manual') && 
+                                v.validationStatus !== 'pending';
               
               // Check that the actual extracted value is not invalid
               const valueValid = v.extractedValue && 
