@@ -4493,13 +4493,16 @@ Thank you for your assistance.`;
                                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                                     
                                                     return (
-                                                      <div className="relative group">
-                                                        <button
-                                                          onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                          className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
-                                                        />
-                                                        {(validation.aiReasoning || validation.confidenceScore) && (
-                                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
+                                                      <TooltipProvider>
+                                                        <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                            <button
+                                                              onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                              className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              aria-label="Click to validate"
+                                                            />
+                                                          </TooltipTrigger>
+                                                          <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
                                                             <div className="whitespace-pre-line leading-relaxed">
                                                               {validation.aiReasoning && (
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
@@ -4509,33 +4512,32 @@ Thank you for your assistance.`;
                                                               )}
                                                               <div className="text-xs text-blue-700">Click icon to validate</div>
                                                             </div>
-                                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                                                              <div className="border-4 border-transparent border-t-[#4F63A4]"></div>
-                                                            </div>
-                                                          </div>
-                                                        )}
-                                                      </div>
+                                                          </TooltipContent>
+                                                        </Tooltip>
+                                                      </TooltipProvider>
                                                     );
                                                   } else {
                                                     // Show gray pending indicator when no confidence score
                                                     return (
-                                                      <div className="relative group">
-                                                        <button
-                                                          onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                          className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
-                                                        />
-                                                        {validation.aiReasoning && (
-                                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
-                                                            <div className="whitespace-pre-line leading-relaxed">
-                                                              <div className="mb-2">{validation.aiReasoning}</div>
-                                                              <div className="text-xs text-blue-700">Click icon to validate</div>
-                                                            </div>
-                                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                                                              <div className="border-4 border-transparent border-t-[#4F63A4]"></div>
-                                                            </div>
-                                                          </div>
-                                                        )}
-                                                      </div>
+                                                      <TooltipProvider>
+                                                        <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                            <button
+                                                              onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
+                                                              className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              aria-label="Click to validate"
+                                                            />
+                                                          </TooltipTrigger>
+                                                          {validation.aiReasoning && (
+                                                            <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                              <div className="whitespace-pre-line leading-relaxed">
+                                                                <div className="mb-2">{validation.aiReasoning}</div>
+                                                                <div className="text-xs text-blue-700">Click icon to validate</div>
+                                                              </div>
+                                                            </TooltipContent>
+                                                          )}
+                                                        </Tooltip>
+                                                      </TooltipProvider>
                                                     );
                                                   }
                                                 } else if (!hasValue) {
