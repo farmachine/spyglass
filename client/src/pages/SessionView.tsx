@@ -4475,15 +4475,15 @@ Thank you for your assistance.`;
                                                         </TooltipTrigger>
                                                         <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
                                                           <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
-                                                            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                                                            <span className="text-sm font-semibold">Information</span>
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                                                            <span className="text-sm font-semibold">Analysis</span>
                                                           </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
                                                             {validation.aiReasoning && (
                                                               <div className="mb-2">{validation.aiReasoning}</div>
                                                             )}
                                                             <div className="mb-2 font-medium">Confidence: {score}%</div>
-                                                            <div className="text-xs text-blue-700">Click icon to mark as pending</div>
+                                                            <div className="text-xs text-blue-700">Click indicator to mark as pending</div>
                                                           </div>
                                                         </TooltipContent>
                                                       </Tooltip>
@@ -4522,7 +4522,7 @@ Thank you for your assistance.`;
                                                               {validation.confidenceScore && (
                                                                 <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
                                                               )}
-                                                              <div className="text-xs text-blue-700">Click icon to validate</div>
+                                                              <div className="text-xs text-blue-700">Click indicator to validate</div>
                                                             </div>
                                                           </TooltipContent>
                                                         </Tooltip>
@@ -4548,7 +4548,7 @@ Thank you for your assistance.`;
                                                               </div>
                                                               <div className="whitespace-pre-line leading-relaxed">
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
-                                                                <div className="text-xs text-blue-700">Click icon to validate</div>
+                                                                <div className="text-xs text-blue-700">Click indicator to validate</div>
                                                               </div>
                                                             </TooltipContent>
                                                           )}
