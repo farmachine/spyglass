@@ -4216,51 +4216,54 @@ Thank you for your assistance.`;
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
-                                    <button
-                                      onClick={() => handleSort(columnName, collection.id)}
-                                      className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded flex-1 min-w-0"
-                                    >
-                                      <span className="truncate text-blue-900 dark:text-blue-100">{columnName}</span>
-                                      {getSortIcon(columnName, collection.id)}
-                                    </button>
-                                    <div className="flex items-center gap-1">
-                                      {(() => {
-                                        // Get all validations for this column
-                                        const columnValidations = validations.filter(v => 
-                                          v.fieldName?.includes(`${collection.collectionName}.${columnName}[`) &&
-                                          v.extractedValue !== null && 
-                                          v.extractedValue !== undefined && 
-                                          v.extractedValue !== "" && 
-                                          v.extractedValue !== "null" && 
-                                          v.extractedValue !== "undefined"
-                                        );
-                                        
-                                        // Check if all fields are valid
-                                        const allValid = columnValidations.length > 0 && 
-                                          columnValidations.every(v => v.validationStatus === 'valid');
-                                        
-                                        return (
-                                          <button
-                                            onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                            title={allValid ? 
-                                              `All ${columnName} fields are valid. Click to set all to pending` : 
-                                              `Click to validate all ${columnName} fields`}
-                                          >
-                                            <div 
-                                              className="w-2 h-2 rounded-full"
-                                              style={{ backgroundColor: '#4F63A4' }}
-                                            />
-                                          </button>
-                                        );
-                                      })()}
-                                      <button
-                                        onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                        className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
-                                        title={`Run extraction for ${columnName}`}
-                                      >
-                                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                                      </button>
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <span className="truncate text-blue-900 dark:text-blue-100 px-2 py-1">{columnName}</span>
+                                      <div className="flex items-center gap-1">
+                                        {(() => {
+                                          // Get all validations for this column
+                                          const columnValidations = validations.filter(v => 
+                                            v.fieldName?.includes(`${collection.collectionName}.${columnName}[`) &&
+                                            v.extractedValue !== null && 
+                                            v.extractedValue !== undefined && 
+                                            v.extractedValue !== "" && 
+                                            v.extractedValue !== "null" && 
+                                            v.extractedValue !== "undefined"
+                                          );
+                                          
+                                          // Check if all fields are valid
+                                          const allValid = columnValidations.length > 0 && 
+                                            columnValidations.every(v => v.validationStatus === 'valid');
+                                          
+                                          return (
+                                            <button
+                                              onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
+                                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                              title={allValid ? 
+                                                `All ${columnName} fields are valid. Click to set all to pending` : 
+                                                `Click to validate all ${columnName} fields`}
+                                            >
+                                              <div 
+                                                className="w-2 h-2 rounded-full"
+                                                style={{ backgroundColor: '#4F63A4' }}
+                                              />
+                                            </button>
+                                          );
+                                        })()}
+                                        <button
+                                          onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                          className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                          title={`Run extraction for ${columnName}`}
+                                        >
+                                          <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleSort(columnName, collection.id)}
+                                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                          title={`Sort by ${columnName}`}
+                                        >
+                                          {getSortIcon(columnName, collection.id)}
+                                        </button>
+                                      </div>
                                     </div>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
