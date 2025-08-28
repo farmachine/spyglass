@@ -234,7 +234,11 @@ export default function ExtractWizardModal({
               <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#4F63A4' }} />
               <span className="text-sm font-medium text-gray-900">Processing extraction...</span>
             </div>
-            <Progress value={75} className="h-2" />
+            <Progress 
+              value={75} 
+              className="h-2 bg-slate-200 dark:bg-slate-700" 
+              style={{"--indicator-color": "#4F63A4"}}
+            />
             <p className="text-xs text-gray-600 mt-2">
               {(() => {
                 const remainingRecords = inputData.length;
