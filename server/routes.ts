@@ -6925,9 +6925,13 @@ def extract_function(Column_Name, Excel_File):
       
       
       // Replace 'user_document' placeholders with actual session document content
+      console.log(`🔍 Debug - documentContent available: ${!!documentContent}, length: ${documentContent?.length || 0}`);
+      console.log(`🔍 Debug - toolInputs before replacement:`, JSON.stringify(toolInputs, null, 2));
+      
       if (documentContent) {
         console.log(`🔄 Checking for 'user_document' placeholders to replace...`);
         for (const [key, value] of Object.entries(toolInputs)) {
+          console.log(`🔍 Checking ${key}:`, value);
           if (Array.isArray(value) && value.includes('user_document')) {
             console.log(`📄 Replacing 'user_document' placeholder in ${key} with session document content`);
             toolInputs[key] = documentContent;
@@ -6936,6 +6940,9 @@ def extract_function(Column_Name, Excel_File):
             toolInputs[key] = documentContent;
           }
         }
+        console.log(`🔍 Debug - toolInputs after replacement:`, JSON.stringify(toolInputs, null, 2));
+      } else {
+        console.log(`⚠️ No documentContent available - cannot replace 'user_document' placeholders`);
       }
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
