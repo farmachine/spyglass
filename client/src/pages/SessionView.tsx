@@ -4174,7 +4174,7 @@ Thank you for your assistance.`;
                         <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
                       <CardContent>
-                        <Table className="session-table">
+                        <Table className="session-table border border-[#4F63A4] rounded-md overflow-hidden">
                           <TableHeader>
                             <TableRow>
 
@@ -4197,7 +4197,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800 border-t-2 border-t-gray-300 dark:border-t-gray-600 border-b-2 border-b-gray-300 dark:border-b-gray-600"
+                                        className="relative border-r border-gray-300 dark:border-gray-600/30 bg-gray-100 dark:bg-gray-800 border-t border-t-gray-300 dark:border-t-gray-600 border-b border-b-gray-300 dark:border-b-gray-600"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4268,7 +4268,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-24 bg-gray-100 dark:bg-gray-800 border-t-2 border-t-gray-300 dark:border-t-gray-600 border-b-2 border-b-gray-300 dark:border-b-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-24 bg-gray-100 dark:bg-gray-800 border-t border-t-gray-300 dark:border-t-gray-600 border-b border-b-gray-300 dark:border-b-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
