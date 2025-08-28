@@ -322,13 +322,15 @@ export class ToolEngine {
                   }
                 }
                 
-              } catch (extractError) {
-                console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
-                // Last resort fallback
-                preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
+                } catch (extractError) {
+                  console.error(`Failed to extract content from ${param.sampleFile}:`, extractError);
+                  // Last resort fallback
+                  preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
+                }
+              } else {
+                preparedInputs[param.name] = inputValue;
               }
-          } else {
-            preparedInputs[param.name] = inputValue;
+            }
           }
       } else {
         preparedInputs[param.name] = inputValue;
