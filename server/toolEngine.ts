@@ -328,14 +328,11 @@ export class ToolEngine {
                 // Last resort fallback
                 preparedInputs[param.name] = `[Failed to extract content from ${param.sampleFile}]`;
               }
-            } else {
-              preparedInputs[param.name] = inputValue;
+              } else {
+                preparedInputs[param.name] = inputValue;
+              }
             }
           }
-        } catch (error) {
-          console.error(`Failed to prepare document for ${param.name}:`, error);
-          preparedInputs[param.name] = inputValue; // Fall back to original value
-        }
       } else {
         preparedInputs[param.name] = inputValue;
       }
