@@ -385,7 +385,7 @@ export default function ExtractWizardModal({
           {needsDocument && (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
-                Select document
+                Select source content for extraction
               </p>
               <Select value={selectedDocument} onValueChange={setSelectedDocument}>
                 <SelectTrigger className="w-full bg-white">
