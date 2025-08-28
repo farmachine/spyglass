@@ -1965,18 +1965,21 @@ export default function SessionView() {
             identifierGroups.get(v.identifierId)?.push(v);
           });
           
-          // Check each identifier group - only include records where ALL columns have valid values (not "Not Found")
+          // Check each identifier group - only include records where ALL values are explicitly validated AND have valid content
           identifierGroups.forEach((validations, identifierId) => {
             const allVerified = validations.every(v => {
-              // For validation filtering, we need to check the actual extracted value
-              // Records with "Not Found" should be excluded regardless of validation status
+              // Check validation status - must be explicitly validated (clicked to valid)
+              const statusValid = v.validationStatus === 'valid';
+              
+              // Check that the actual extracted value is valid (not "Not Found", empty, etc.)
               const valueValid = v.extractedValue && 
                                v.extractedValue !== 'Not Found' && 
                                v.extractedValue !== '' && 
                                v.extractedValue !== null && 
                                v.extractedValue !== undefined;
               
-              return valueValid;
+              // Both status AND content must be valid
+              return statusValid && valueValid;
             });
             
             if (allVerified) {
