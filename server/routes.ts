@@ -2220,12 +2220,16 @@ except Exception as e:
             console.log('📝 Processing input values for tool:', JSON.stringify(workflowValue.inputValues, null, 2));
             console.log('📝 Input value keys:', Object.keys(workflowValue.inputValues));
             
-            // First, check if this is the ID extraction - needs the Excel document
-            if (workflowValue.valueName === 'ID') {
-              console.log('📊 Preparing Excel document for ID extraction');
+            // Check if tool needs document content (Excel file)
+            const documentParam = tool.inputParameters?.find(p => 
+              p.name === 'Excel File' || p.id === '0.my684050njo' || 
+              p.name === 'document' || p.type === 'document'
+            );
+            
+            if (documentParam) {
+              console.log('📊 Tool requires document content');
               
-              // The ID extraction tool needs the Excel file
-              // Check if we have Excel files in the session
+              // Find Excel file in session documents
               const excelFile = convertedFiles.find((f: any) => 
                 f.file_type?.includes('excel') || 
                 f.file_type?.includes('spreadsheet') ||
@@ -2235,103 +2239,89 @@ except Exception as e:
               
               if (excelFile) {
                 console.log(`📊 Found Excel file: ${excelFile.original_name}`);
-                // Set the Excel file content for the tool
-                // The tool expects the parameter ID "0.my684050njo" for Excel File
+                // Set document content for various parameter names
                 toolInputs['0.my684050njo'] = excelFile.file_content || '';
                 toolInputs['Excel File'] = excelFile.file_content || '';
+                toolInputs['document'] = excelFile.file_content || '';
                 console.log(`📊 Set Excel file content (${excelFile.file_content?.length || 0} chars)`);
               } else {
-                console.error('❌ No Excel file found in session documents!');
+                console.log('⚠️ No Excel file found in session documents');
                 // Try to use any available document content
                 if (convertedFiles.length > 0) {
                   toolInputs['0.my684050njo'] = convertedFiles[0].file_content || '';
                   toolInputs['Excel File'] = convertedFiles[0].file_content || '';
+                  toolInputs['document'] = convertedFiles[0].file_content || '';
                   console.log('⚠️ Using first available document as fallback');
                 }
               }
             }
-            // For Worksheet Name, we need the Excel document AND the Column Name data
-            else if (workflowValue.valueName === 'Worksheet Name') {
-              console.log('📊 Preparing Excel document and Column Name data for Worksheet Name extraction');
+            // For AI tools that need merged data from previous step values
+            else if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
+              console.log('🔄 Building dynamic merged data for AI tool based on step values');
               
-              // First, set the Excel document (Worksheet Name needs it to find which worksheet each column is from)
-              const excelFile = convertedFiles.find((f: any) => 
-                f.file_type?.includes('excel') || 
-                f.file_type?.includes('spreadsheet') ||
-                f.original_name?.endsWith('.xlsx') ||
-                f.original_name?.endsWith('.xls')
-              );
-              
-              if (excelFile) {
-                console.log(`📊 Found Excel file for worksheet extraction: ${excelFile.original_name}`);
-                // Set the Excel file for the worksheet extraction tool (expects "document" parameter)
-                toolInputs['document'] = excelFile.file_content || '';
-                console.log(`📊 Set Excel file content (${excelFile.file_content?.length || 0} chars)`);
-              }
-              
-              // Get ID column data from existing validations
-              const idValidations = existingValidations.filter((v: any) => 
-                v.valueId === '3a91ea85-ed02-41cf-a607-a8d9a21d6fdf' // ID value
-              );
-              
-              console.log(`📊 Found ${idValidations.length} ID column records`);
-              
-              if (idValidations.length > 0) {
-                // Map ID values for the tool
-                const columnData = idValidations.map((v: any) => ({
-                  identifierId: v.identifierId || `record-${v.recordIndex}`,
-                  extractedValue: v.extractedValue || '',
-                  recordIndex: v.recordIndex
-                }));
+              // Get the current step to find all its values
+              const stepId = workflowValue.stepId;
+              if (stepId) {
+                console.log(`📊 Getting step values for stepId: ${stepId}`);
+                const stepValues = await storage.getStepValues(stepId);
+                console.log(`📊 Found ${stepValues.length} values in this step:`, stepValues.map(v => v.valueName));
                 
-                // The Worksheet Name tool expects column reference "@ID"
-                toolInputs['column'] = columnData;
-                toolInputs['@ID'] = columnData;
-                console.log(`📊 Set ${columnData.length} column names from @ID reference`);
+                // Build merged data by getting validations for each value in the step
+                const valueValidationMap: Record<string, any[]> = {};
+                
+                for (const stepValue of stepValues) {
+                  const validationsForValue = existingValidations.filter((v: any) => 
+                    v.valueId === stepValue.id
+                  );
+                  
+                  console.log(`📊 Found ${validationsForValue.length} validations for value "${stepValue.valueName}"`);
+                  valueValidationMap[stepValue.valueName] = validationsForValue;
+                }
+                
+                // Create merged data based on the identifier value (first value in step)
+                const identifierValue = stepValues.find(v => v.isIdentifier) || stepValues[0];
+                if (identifierValue && valueValidationMap[identifierValue.valueName]) {
+                  const identifierValidations = valueValidationMap[identifierValue.valueName];
+                  
+                  const mergedData = identifierValidations.map((identifierVal: any) => {
+                    const record: any = {
+                      identifierId: identifierVal.identifierId || `record-${identifierVal.recordIndex}`
+                    };
+                    
+                    // Add data from each value in the step
+                    for (const stepValue of stepValues) {
+                      const valueName = stepValue.valueName;
+                      const validationsForValue = valueValidationMap[valueName];
+                      
+                      // Find matching validation by record index
+                      const matchingValidation = validationsForValue.find((v: any) => 
+                        v.recordIndex === identifierVal.recordIndex
+                      );
+                      
+                      if (matchingValidation) {
+                        record[valueName] = matchingValidation.extractedValue || '';
+                      } else {
+                        record[valueName] = '';
+                      }
+                    }
+                    
+                    return record;
+                  });
+                  
+                  console.log(`📊 Created ${mergedData.length} merged records with ${stepValues.length} fields each`);
+                  if (mergedData.length > 0) {
+                    console.log('📊 Sample merged record:', mergedData[0]);
+                    console.log('📊 Record fields:', Object.keys(mergedData[0]));
+                  }
+                  
+                  // Set the merged data as List Item input
+                  toolInputs['List Item'] = mergedData;
+                } else {
+                  console.log('⚠️ No identifier value found or no validations for identifier');
+                }
               } else {
-                console.error('❌ No ID column data found for Worksheet Name extraction!');
+                console.log('⚠️ No stepId found for this value');
               }
-            }
-            // For Standard Equivalent, we need to merge Column Name and Worksheet Name data
-            else if (workflowValue.valueName === 'Standard Equivalent') {
-              console.log('🔄 Preparing merged data for Standard Equivalent extraction');
-              
-              // Get Column Name and Worksheet Name data from existing validations
-              const columnNameValidations = existingValidations.filter((v: any) => 
-                v.valueId && v.collectionName === 'Column Name Mapping' && 
-                v.fieldName?.includes('Column Name')
-              );
-              
-              const worksheetValidations = existingValidations.filter((v: any) => 
-                v.valueId && v.collectionName === 'Column Name Mapping' && 
-                v.fieldName?.includes('Worksheet Name')
-              );
-              
-              console.log(`📊 Found ${columnNameValidations.length} Column Name records`);
-              console.log(`📊 Found ${worksheetValidations.length} Worksheet Name records`);
-              
-              // Create merged data array with identifierId for tracking
-              const mergedData = columnNameValidations.map((colVal: any) => {
-                // Find matching worksheet validation by record index
-                const wsVal = worksheetValidations.find((w: any) => 
-                  w.recordIndex === colVal.recordIndex
-                );
-                
-                return {
-                  identifierId: colVal.identifierId || `record-${colVal.recordIndex}`,
-                  "ID": colVal.extractedValue || '',  // ✅ Use "ID" so it gets renamed to "Column Name" correctly
-                  "Worksheet Name": wsVal?.extractedValue || ''
-                };
-              });
-              
-              console.log(`📊 Created ${mergedData.length} merged records for AI processing`);
-              if (mergedData.length > 0) {
-                console.log('📊 Sample merged record:', mergedData[0]);
-              }
-              
-              // Set the merged data as List Item input
-              toolInputs['List Item'] = mergedData;
-              toolInputs['0.0qv7jjabq7on'] = mergedData; // Also set by ID in case needed
             }
             
             // Process other input values
