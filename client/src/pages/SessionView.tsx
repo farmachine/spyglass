@@ -1943,17 +1943,20 @@ export default function SessionView() {
       const referencedValue = referencedStep.values?.find(v => v.valueName === valueName);
       if (!referencedValue) continue;
       
-      // Check if this referenced value has any valid field_validations
+      // Check if this referenced value has any valid field_validations with actual data
       const referencedValueValidations = validations.filter(v => {
         const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
         return fieldId === referencedValue.id && (
           v.validationStatus === 'valid' || v.validationStatus === 'manual'
-        );
+        ) && v.extractedValue && 
+        v.extractedValue !== 'Not Found' && 
+        v.extractedValue !== '' && 
+        v.extractedValue !== null;
       });
       
-      // If this referenced value has no valid validations, disable this column
+      // If this referenced value has no valid validations with actual data, disable this column
       if (referencedValueValidations.length === 0) {
-        console.log(`🚫 Column "${valueToCheck.valueName}" disabled: referenced value "${reference}" has no valid field_validations`);
+        console.log(`🚫 Column "${valueToCheck.valueName}" disabled: referenced value "${reference}" has no valid field_validations with actual data`);
         return true;
       }
       
