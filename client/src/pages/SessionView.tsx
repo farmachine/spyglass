@@ -1405,7 +1405,21 @@ export default function SessionView() {
   const sortCollectionData = (itemsWithIndices: any[], collection: any, sortConfig: any) => {
     if (!sortConfig || sortConfig.collectionId !== collection.id) return itemsWithIndices;
     
-    const property = collection.properties.find((p: any) => p.propertyName === sortConfig.key);
+    // Check if we have workflow steps with values
+    const workflowStep = project?.workflowSteps?.find(
+      step => step.stepName === collection.collectionName
+    );
+    
+    // Find the column/property being sorted
+    let property;
+    if (workflowStep) {
+      // For workflow steps, use valueName
+      property = workflowStep.values?.find((v: any) => v.valueName === sortConfig.key);
+    } else {
+      // For legacy collections, use propertyName
+      property = collection.properties.find((p: any) => p.propertyName === sortConfig.key);
+    }
+    
     if (!property) return itemsWithIndices;
     
     return [...itemsWithIndices].sort((a, b) => {
@@ -1422,18 +1436,22 @@ export default function SessionView() {
         v.identifierId
       )?.identifierId || null;
       
-      // Get values for comparison using original indices
-      const aValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${a.originalIndex}]`, aIdentifierId);
-      const bValidation = getValidation(`${collection.collectionName}.${property.propertyName}[${b.originalIndex}]`, bIdentifierId);
+      // Get the property name and type based on whether it's a workflow step or legacy collection
+      const propertyName = workflowStep ? property.valueName : property.propertyName;
+      const propertyType = workflowStep ? property.dataType : property.propertyType;
       
-      let aValue = aValidation?.extractedValue || a.item[property.propertyName] || '';
-      let bValue = bValidation?.extractedValue || b.item[property.propertyName] || '';
+      // Get values for comparison using original indices
+      const aValidation = getValidation(`${collection.collectionName}.${propertyName}[${a.originalIndex}]`, aIdentifierId);
+      const bValidation = getValidation(`${collection.collectionName}.${propertyName}[${b.originalIndex}]`, bIdentifierId);
+      
+      let aValue = aValidation?.extractedValue || a.item[propertyName] || '';
+      let bValue = bValidation?.extractedValue || b.item[propertyName] || '';
       
       // Handle different field types
-      if (property.propertyType === 'NUMBER') {
+      if (propertyType === 'NUMBER') {
         aValue = parseFloat(aValue) || 0;
         bValue = parseFloat(bValue) || 0;
-      } else if (property.propertyType === 'DATE') {
+      } else if (propertyType === 'DATE') {
         aValue = new Date(aValue).getTime() || 0;
         bValue = new Date(bValue).getTime() || 0;
       } else {
