@@ -1316,6 +1316,10 @@ export default function SessionView() {
   } | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<{ columnId: string; startX: number; startWidth: number } | null>(null);
+  
+  // State for tracking bulk validation per column
+  const [bulkValidationState, setBulkValidationState] = useState<Record<string, Set<string>>>({});
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -2936,6 +2940,111 @@ Thank you for your assistance.`;
     setEditValue("");
   };
 
+  // Bulk column validation handler
+  const handleBulkColumnValidation = async (collectionName: string, columnName: string, columnId: string) => {
+    const columnKey = `${collectionName}.${columnName}`;
+    
+    // Get all validations for this column
+    const columnValidations = validations.filter(v => 
+      v.fieldName?.includes(`${collectionName}.${columnName}[`) &&
+      v.extractedValue !== null && 
+      v.extractedValue !== undefined && 
+      v.extractedValue !== "" && 
+      v.extractedValue !== "null" && 
+      v.extractedValue !== "undefined"
+    );
+    
+    if (columnValidations.length === 0) return;
+    
+    // Check current bulk state for this column
+    const currentBulkFields = bulkValidationState[columnKey] || new Set();
+    const isCurrentlyBulkValidated = currentBulkFields.size > 0;
+    
+    // If currently bulk validated, toggle off (set to pending only those that were bulk validated)
+    if (isCurrentlyBulkValidated) {
+      for (const validation of columnValidations) {
+        if (currentBulkFields.has(validation.id)) {
+          const newStatus = validation.manuallyUpdated ? 'manual' : 'pending';
+          
+          // Optimistic update
+          queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+            if (!oldData) return oldData;
+            return oldData.map((v: any) => 
+              v.id === validation.id 
+                ? { ...v, validationStatus: newStatus, manuallyVerified: false }
+                : v
+            );
+          });
+          
+          queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
+            if (!oldData) return oldData;
+            return oldData.map((v: any) => 
+              v.id === validation.id 
+                ? { ...v, validationStatus: newStatus, manuallyVerified: false }
+                : v
+            );
+          });
+          
+          // API call
+          updateValidationMutation.mutate({
+            id: validation.id,
+            data: { validationStatus: newStatus, manuallyVerified: false }
+          });
+        }
+      }
+      
+      // Clear bulk state for this column
+      setBulkValidationState(prev => {
+        const newState = { ...prev };
+        delete newState[columnKey];
+        return newState;
+      });
+    } else {
+      // Bulk validate all fields in column (only those not already manually validated)
+      const fieldsToValidate = columnValidations.filter(v => 
+        v.validationStatus !== 'manual' // Don't override manual validations
+      );
+      
+      const newBulkFields = new Set<string>();
+      
+      for (const validation of fieldsToValidate) {
+        const newStatus = validation.manuallyUpdated ? 'manual' : 'valid';
+        newBulkFields.add(validation.id);
+        
+        // Optimistic update
+        queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((v: any) => 
+            v.id === validation.id 
+              ? { ...v, validationStatus: newStatus, manuallyVerified: true }
+              : v
+          );
+        });
+        
+        queryClient.setQueryData(['/api/validations/project', projectId], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((v: any) => 
+            v.id === validation.id 
+              ? { ...v, validationStatus: newStatus, manuallyVerified: true }
+              : v
+          );
+        });
+        
+        // API call
+        updateValidationMutation.mutate({
+          id: validation.id,
+          data: { validationStatus: newStatus, manuallyVerified: true }
+        });
+      }
+      
+      // Update bulk state for this column
+      setBulkValidationState(prev => ({
+        ...prev,
+        [columnKey]: newBulkFields
+      }));
+    }
+  };
+
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
     const validation = getValidation(fieldName, identifierId);
     if (validation) {
@@ -4239,13 +4348,30 @@ Thank you for your assistance.`;
                                       <span className="truncate">{columnName}</span>
                                       {getSortIcon(columnName, collection.id)}
                                     </button>
-                                    <button
-                                      onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                      className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
-                                      title={`Run extraction for ${columnName}`}
-                                    >
-                                      <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                      {(() => {
+                                        const columnKey = `${collection.collectionName}.${columnName}`;
+                                        const currentBulkFields = bulkValidationState[columnKey] || new Set();
+                                        const isCurrentlyBulkValidated = currentBulkFields.size > 0;
+                                        
+                                        return (
+                                          <button
+                                            onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
+                                            className="h-7 w-7 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                            title={isCurrentlyBulkValidated ? `Click to unvalidate bulk validated fields in ${columnName}` : `Click to bulk validate all ${columnName} fields`}
+                                          >
+                                            <div className={`h-3 w-3 rounded-full ${isCurrentlyBulkValidated ? 'bg-blue-600' : 'bg-blue-400'} hover:opacity-80 transition-opacity`} />
+                                          </button>
+                                        );
+                                      })()}
+                                      <button
+                                        onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                        className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                        title={`Run extraction for ${columnName}`}
+                                      >
+                                        <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                                      </button>
+                                    </div>
                                     <div
                                       className="column-resizer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onMouseDown={(e) => handleMouseDown(e, `${collection.id}-${columnId}`)}
