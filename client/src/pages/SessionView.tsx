@@ -4227,33 +4227,6 @@ Thank you for your assistance.`;
                               })()}
                               <TableHead className="w-16 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 border-r border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
-                                  {(() => {
-                                    // Handle empty collections
-                                    if (uniqueIndices.length === 0) {
-                                      return (
-                                        <button
-                                          disabled
-                                          className="flex items-center justify-center px-2 py-1 rounded transition-colors opacity-50 cursor-not-allowed"
-                                          title="No items to verify"
-                                        >
-                                          <CheckCircle className="h-5 w-5 text-gray-400" />
-                                        </button>
-                                      );
-                                    }
-                                    
-                                    // Calculate if all items in this collection are verified (only for existing indices)
-                                    const allItemsVerified = uniqueIndices.every(index => {
-                                      const itemValidations = collection.properties.map(property => {
-                                        const fieldName = `${collection.collectionName}.${property.propertyName}[${index}]`;
-                                        return getValidation(fieldName);
-                                      }).filter(Boolean);
-                                      
-                                      return itemValidations.length > 0 && 
-                                        itemValidations.every(v => v?.validationStatus === 'valid' || v?.validationStatus === 'manual');
-                                    });
-                                    
-                                    return null; // Validation button removed
-                                  })()}
                                   <Button
                                     size="sm"
                                     variant="ghost"
