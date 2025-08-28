@@ -4173,7 +4173,7 @@ Thank you for your assistance.`;
                         </CardTitle>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
                       </CardHeader>
-                      <CardContent className="p-0">
+                      <CardContent>
                         <Table className="session-table">
                           <TableHeader>
                             <TableRow>
