@@ -262,9 +262,15 @@ export default function ExtractWizardModal({
           )}
           
           {/* Your Reference Data Section - Show only when there's actual input data with meaningful content */}
-          {inputData && inputData.length > 0 && inputData.some(record => 
-            Object.keys(record).some(key => key !== 'identifierId' && key !== '_recordIndex')
-          ) && (
+          {inputData && ((
+            inputData.length > 0 && inputData.some(record => 
+              Object.keys(record).some(key => key !== 'identifierId' && key !== '_recordIndex')
+            )
+          ) || (() => {
+            // Show data table if tool references previous step data, even if empty
+            const config = getInputConfig();
+            return config.some(item => item.type === 'references' || item.type === 'reference');
+          })()) && (
             <div className="space-y-2">
               <h3 className="font-medium text-gray-900 flex items-center gap-2">
                 <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
@@ -375,11 +381,11 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* No Data Warning - Only show if tool actually requires previous step data */}
-          {inputData && inputData.length === 0 && (() => {
+          {/* No Data Warning - Only show if tool requires previous step data but has none */}
+          {(() => {
             const config = getInputConfig();
             const hasFieldReferences = config.some(item => item.type === 'references' || item.type === 'reference');
-            return hasFieldReferences;
+            return hasFieldReferences && inputData && inputData.length === 0;
           })() && (
             <Alert className="border-orange-200 bg-orange-50">
               <AlertCircle className="h-4 w-4 text-orange-600" />
