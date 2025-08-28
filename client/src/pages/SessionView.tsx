@@ -1908,7 +1908,7 @@ export default function SessionView() {
     console.log(`  - RESULT: needsDocument = ${needsDocument}`);
     
     // Compile previous column data as input
-    const previousColumnsData: any[] = [];
+    let previousColumnsData: any[] = [];
     
     // Check if this value has @ references that need data from other steps
     const referencedSteps = new Set<string>();
