@@ -2098,12 +2098,17 @@ export default function SessionView() {
             const prevValue = workflowStep.values[i];
             
             // Find the validation for this column and record
-            // Check all possible field name variations for workflow steps
+            // FIXED: Use step-based validation lookup for workflow values
             const validation = validations.find(v => {
-              const fieldIdMatch = (v as any).fieldId === prevValue.id || (v as any).field_id === prevValue.id;
-              const valueIdMatch = v.valueId === prevValue.id || (v as any).value_id === prevValue.id;
+              // For workflow steps, match by step ID and value ID combination
+              const stepIdMatch = v.stepId === workflowStep.id;
+              const valueIdMatch = v.valueId === prevValue.id || (v as any).value_id === prevValue.id || (v as any).fieldId === prevValue.id || (v as any).field_id === prevValue.id;
               const identifierMatch = v.identifierId === recordData.identifierId;
-              return (fieldIdMatch || valueIdMatch) && identifierMatch;
+              
+              // Also check field name patterns as fallback
+              const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+              
+              return (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
             });
             
             console.log(`Looking for validation: valueId/fieldId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
