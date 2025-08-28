@@ -3517,13 +3517,9 @@ Thank you for your assistance.`;
                       ).length;
                       const totalCount = infoValidations.length;
                       
-                      if (totalCount > 0 && verifiedCount === totalCount) {
-                        return <Check className="w-5 h-5 text-green-600 dark:text-green-500" />;
-                      } else {
-                        return <div className={`w-2 h-2 rounded-full ${
-                          activeTab === 'info' ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
-                        }`}></div>;
-                      }
+                      return <div className={`w-2 h-2 rounded-full ${
+                        activeTab === 'info' ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
+                      }`}></div>;
                     })()}
                   </div>
                   
@@ -3597,13 +3593,9 @@ Thank you for your assistance.`;
                         
                         {/* Circular icon - solid dot without border */}
                         <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                          {totalCount > 0 && verifiedCount === totalCount ? (
-                            <Check className="w-5 h-5 text-green-600 dark:text-green-500" />
-                          ) : (
-                            <div className={`w-2 h-2 rounded-full ${
-                              activeTab === item.name ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
-                            }`}></div>
-                          )}
+                          <div className={`w-2 h-2 rounded-full ${
+                            activeTab === item.name ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
+                          }`}></div>
                         </div>
                         
                         {/* Tab button */}
