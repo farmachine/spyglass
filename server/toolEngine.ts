@@ -635,23 +635,72 @@ ${JSON.stringify(batch, null, 2)}`;
             
             let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
             
-            // Simple JSON extraction - AI should return clean JSON
+            // Robust JSON extraction and parsing
             let cleanJson = batchResult;
             
-            // If wrapped in markdown code blocks, extract it
+            console.log(`    📊 Raw AI response length: ${batchResult.length} chars`);
+            console.log(`    📊 Raw response preview: ${batchResult.substring(0, 500)}...`);
+            
+            // Step 1: Extract from markdown code blocks if present
             const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
             if (codeBlockMatch) {
               cleanJson = codeBlockMatch[1];
+              console.log(`    🧹 Extracted from markdown, new length: ${cleanJson.length}`);
             }
             
-            // Clean any remaining formatting
+            // Step 2: Clean whitespace and find JSON boundaries
             cleanJson = cleanJson.trim();
             
             // Find where actual JSON starts ([ or {)
             const jsonStart = cleanJson.search(/[\[\{]/);
             if (jsonStart > 0) {
               cleanJson = cleanJson.substring(jsonStart);
+              console.log(`    🧹 Trimmed prefix, new length: ${cleanJson.length}`);
             }
+            
+            // Step 3: Find where JSON ends (matching bracket)
+            let jsonEnd = cleanJson.length;
+            if (cleanJson.startsWith('[')) {
+              // Find matching closing bracket
+              let bracketCount = 0;
+              for (let i = 0; i < cleanJson.length; i++) {
+                if (cleanJson[i] === '[') bracketCount++;
+                if (cleanJson[i] === ']') bracketCount--;
+                if (bracketCount === 0) {
+                  jsonEnd = i + 1;
+                  break;
+                }
+              }
+            } else if (cleanJson.startsWith('{')) {
+              // Find matching closing brace
+              let braceCount = 0;
+              for (let i = 0; i < cleanJson.length; i++) {
+                if (cleanJson[i] === '{') braceCount++;
+                if (cleanJson[i] === '}') braceCount--;
+                if (braceCount === 0) {
+                  jsonEnd = i + 1;
+                  break;
+                }
+              }
+            }
+            
+            if (jsonEnd < cleanJson.length) {
+              cleanJson = cleanJson.substring(0, jsonEnd);
+              console.log(`    🧹 Trimmed suffix, final length: ${cleanJson.length}`);
+            }
+            
+            // Step 4: Fix common JSON issues
+            // Remove any trailing commas before closing brackets/braces
+            cleanJson = cleanJson.replace(/,(\s*[\}\]])/g, '$1');
+            
+            // Fix unterminated strings at the end
+            if (cleanJson.endsWith(',')) {
+              cleanJson = cleanJson.slice(0, -1);
+            }
+            
+            console.log(`    📊 Final cleaned JSON length: ${cleanJson.length}`);
+            console.log(`    📊 Final JSON preview: ${cleanJson.substring(0, 300)}...`);
+            console.log(`    📊 Final JSON ending: ...${cleanJson.substring(Math.max(0, cleanJson.length - 100))}`);
             
             try {
               // Parse the cleaned JSON
@@ -683,18 +732,74 @@ ${JSON.stringify(batch, null, 2)}`;
               }
             } catch (e) {
               console.error(`    ❌ JSON parse error for batch ${batchNumber}:`, e);
-              console.error(`    Raw response snippet:`, cleanJson.substring(0, 200));
+              console.error(`    📊 Parse error details:`, e.message);
+              console.error(`    📊 Error position:`, e.message.includes('position') ? e.message.match(/position (\d+)/)?.[1] : 'unknown');
+              console.error(`    📊 Cleaned JSON length:`, cleanJson.length);
+              console.error(`    📊 First 500 chars:`, cleanJson.substring(0, 500));
+              console.error(`    📊 Last 500 chars:`, cleanJson.substring(Math.max(0, cleanJson.length - 500)));
               
-              // Create error results for this batch
-              for (const inputItem of batch) {
-                allResults.push({
-                  identifierId: inputItem.identifierId || null,
-                  extractedValue: null,
-                  validationStatus: "invalid",
-                  aiReasoning: "Failed to parse AI response",
-                  confidenceScore: 0,
-                  documentSource: ""
-                });
+              // Try to extract partial results if possible
+              const partialResults = [];
+              try {
+                // Look for individual objects in the malformed JSON
+                const objectMatches = cleanJson.match(/\{[^{}]*"identifierId"[^{}]*\}/g);
+                if (objectMatches && objectMatches.length > 0) {
+                  console.log(`    🔄 Found ${objectMatches.length} potential result objects, attempting to parse individually`);
+                  
+                  for (const objStr of objectMatches) {
+                    try {
+                      const obj = JSON.parse(objStr);
+                      if (obj.identifierId) {
+                        partialResults.push({
+                          identifierId: obj.identifierId,
+                          extractedValue: obj.extractedValue || "Partial Parse Error",
+                          validationStatus: "invalid",
+                          aiReasoning: "Recovered from malformed JSON",
+                          confidenceScore: 0,
+                          documentSource: ""
+                        });
+                      }
+                    } catch (objError) {
+                      // Skip individual objects that can't be parsed
+                    }
+                  }
+                }
+              } catch (recoveryError) {
+                console.error(`    ❌ Recovery attempt failed:`, recoveryError);
+              }
+              
+              // If we recovered some results, use them; otherwise create error placeholders
+              if (partialResults.length > 0) {
+                console.log(`    ✅ Recovered ${partialResults.length} partial results from malformed JSON`);
+                allResults.push(...partialResults);
+                
+                // Fill in missing results with error placeholders
+                const recoveredIds = new Set(partialResults.map(r => r.identifierId));
+                for (const inputItem of batch) {
+                  if (!recoveredIds.has(inputItem.identifierId)) {
+                    allResults.push({
+                      identifierId: inputItem.identifierId || null,
+                      extractedValue: "JSON Parse Error",
+                      validationStatus: "invalid",
+                      aiReasoning: "Failed to parse AI response - no recovery possible",
+                      confidenceScore: 0,
+                      documentSource: ""
+                    });
+                  }
+                }
+              } else {
+                // Create error results for entire batch
+                console.log(`    ❌ No partial recovery possible, creating ${batch.length} error placeholders`);
+                for (const inputItem of batch) {
+                  allResults.push({
+                    identifierId: inputItem.identifierId || null,
+                    extractedValue: "JSON Parse Error",
+                    validationStatus: "invalid",
+                    aiReasoning: "Failed to parse AI response",
+                    confidenceScore: 0,
+                    documentSource: ""
+                  });
+                }
               }
             }
           } // End of single batch processing block
