@@ -375,8 +375,12 @@ export default function ExtractWizardModal({
             </div>
           )}
           
-          {/* No Data Warning */}
-          {inputData && inputData.length === 0 && (
+          {/* No Data Warning - Only show if tool actually requires previous step data */}
+          {inputData && inputData.length === 0 && (() => {
+            const config = getInputConfig();
+            const hasFieldReferences = config.some(item => item.type === 'references' || item.type === 'reference');
+            return hasFieldReferences;
+          })() && (
             <Alert className="border-orange-200 bg-orange-50">
               <AlertCircle className="h-4 w-4 text-orange-600" />
               <AlertDescription>
@@ -481,7 +485,7 @@ export default function ExtractWizardModal({
                 Select source content for extraction
               </p>
               <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-                <SelectTrigger className="w-full bg-white">
+                <SelectTrigger className="w-full bg-white focus:ring-0 focus:ring-offset-0 focus:border-gray-300">
                   <SelectValue placeholder="Choose your document..." />
                 </SelectTrigger>
                 <SelectContent className="w-full" position="popper" sideOffset={4}>
