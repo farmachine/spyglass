@@ -1147,13 +1147,13 @@ function ValueEditor({
                                     key={valueRef} 
                                     className={`flex items-center gap-1.5 ${
                                       isIdentifier 
-                                        ? 'bg-gray-700 text-white border-gray-700' 
-                                        : 'bg-gray-100 text-gray-900 border-gray-300 hover:bg-gray-50'
+                                        ? 'bg-[#071e54] text-white border-[#071e54] dark:bg-[#5A70B5] dark:border-[#5A70B5]' 
+                                        : 'bg-[#E8EDF7] text-[#071e54] border-[#B8C5E0] hover:bg-[#DDE4F2] dark:bg-[#2A3550] dark:text-[#C5D3E8] dark:border-[#5A70B5]'
                                     }`}
                                   >
-                                    <span>{parts[0]}</span>
+                                    <span className={isIdentifier ? 'font-medium' : ''}>{parts[0]}</span>
                                     <div className={`w-1.5 h-1.5 rounded-full ${
-                                      isIdentifier ? 'bg-gray-400' : 'bg-slate-500'
+                                      isIdentifier ? 'bg-white/60 dark:bg-white/40' : 'bg-[#4F63A4] dark:bg-[#8B9DC3]'
                                     }`} />
                                     <span>{parts[1]}</span>
                                     {!isIdentifier && (
@@ -1218,9 +1218,9 @@ function ValueEditor({
                             return availableValues.map((availableValue) => (
                               <SelectItem key={availableValue.id} value={availableValue.id} className="focus:bg-gray-100">
                                 <div className="flex items-center gap-1.5">
-                                  <span>{availableValue.stepName}</span>
-                                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                                  <span>{availableValue.name}</span>
+                                  <span className="text-[#071e54] dark:text-[#5A70B5]">{availableValue.stepName}</span>
+                                  <div className="w-1.5 h-1.5 bg-[#4F63A4] dark:bg-[#8B9DC3] rounded-full" />
+                                  <span className="text-[#071e54] dark:text-[#5A70B5]">{availableValue.name}</span>
                                 </div>
                               </SelectItem>
                             ));
