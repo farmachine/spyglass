@@ -2018,23 +2018,24 @@ export default function SessionView() {
             identifierGroups.get(v.identifierId)?.push(v);
           });
           
-          // Check each identifier group - ALL columns must be verified
+          // Check each identifier group - include records with at least some verified columns
           identifierGroups.forEach((validations, identifierId) => {
-            const allVerified = validations.every(v => 
+            const hasVerifiedColumns = validations.some(v => 
               v.validationStatus === 'valid' || 
               v.validationStatus === 'manual'
             );
-            if (allVerified) {
+            if (hasVerifiedColumns) {
               verifiedIdentifierIds.add(identifierId);
             }
           });
           
-          // Filter to only include records where ALL columns have green checkmarks
+          // Filter to only include records that have at least some verified columns
           const stepValidations = allStepValidations.filter(v => 
-            verifiedIdentifierIds.has(v.identifierId)
+            verifiedIdentifierIds.has(v.identifierId) &&
+            (v.validationStatus === 'valid' || v.validationStatus === 'manual')
           );
           
-          console.log(`  - Found ${verifiedIdentifierIds.size} records where ALL columns have green checkmarks`);
+          console.log(`  - Found ${verifiedIdentifierIds.size} records with at least some verified columns`);
           console.log(`  - Total validations for these verified records: ${stepValidations.length}`);
           
           // Group by identifier ID to compile records
