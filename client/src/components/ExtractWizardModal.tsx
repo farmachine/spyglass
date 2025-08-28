@@ -275,16 +275,8 @@ export default function ExtractWizardModal({
                   // Calculate how many records still need extraction
                   const remainingToExtract = Math.max(0, (totalAvailable || 0) - (extractedCount || 0));
                   
-                  if (remainingToExtract === 0 && inputData.length > 0) {
-                    // All records extracted but we have data to re-extract - cycling back
-                    return (
-                      <>
-                        <strong>Re-extracting first {inputData.length} records</strong> for iterative improvement
-                        <span className="text-blue-600"> 🔄 Cycling</span>
-                      </>
-                    );
-                  } else if (remainingToExtract === 0) {
-                    // All records are already extracted and no data to cycle
+                  if (remainingToExtract === 0) {
+                    // All records are already extracted - show completion status
                     return (
                       <>
                         <strong>All {totalAvailable} records</strong> have been extracted
