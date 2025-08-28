@@ -1698,6 +1698,7 @@ export default function SessionView() {
 
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
+    console.log('🔧 handleFieldVerification called:', { fieldName, isVerified, identifierId });
     // Use the proper handleVerificationToggle function that has complete logic
     handleVerificationToggle(fieldName, isVerified, identifierId);
   };
@@ -2965,7 +2966,9 @@ Thank you for your assistance.`;
   };
 
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
+    console.log('🔧 handleVerificationToggle called:', { fieldName, isVerified, identifierId });
     const validation = getValidation(fieldName, identifierId);
+    console.log('🔧 Found validation:', validation ? { id: validation.id, status: validation.validationStatus } : 'null');
     if (validation) {
       // Use only schema-defined validation statuses
       let newStatus: ValidationStatus;
@@ -4497,7 +4500,10 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleFieldVerification(fieldName, false)}
+                                                            onClick={() => {
+                                                              console.log('🔧 Green checkmark clicked:', fieldName);
+                                                              handleFieldVerification(fieldName, false);
+                                                            }}
                                                             className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
