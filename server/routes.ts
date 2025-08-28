@@ -2319,7 +2319,7 @@ except Exception as e:
                 
                 return {
                   identifierId: colVal.identifierId || `record-${colVal.recordIndex}`,
-                  "Column Names": colVal.extractedValue || '',
+                  "ID": colVal.extractedValue || '',  // ✅ Use "ID" so it gets renamed to "Column Name" correctly
                   "Worksheet Name": wsVal?.extractedValue || ''
                 };
               });
