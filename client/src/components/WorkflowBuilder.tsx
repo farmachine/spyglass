@@ -1318,7 +1318,7 @@ function ValueEditor({
                         </SelectContent>
                       </Select>
                     </div>
-                  ) : param.type === 'textarea' ? (
+                  ) : param.type === 'textarea' || param.multiline === true ? (
                     <Textarea
                       value={value.inputValues[param.id] || ''}
                       onChange={(e) => onUpdate({
@@ -1326,7 +1326,7 @@ function ValueEditor({
                       })}
                       placeholder={param.description || `Enter ${param.name}...`}
                       className="mt-1"
-                      rows={2}
+                      rows={param.multiline ? 4 : 2}
                     />
                   ) : (
                     <Input
