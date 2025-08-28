@@ -1,0 +1,403 @@
+```json
+[
+  {
+    "identifierId": "3a59f502-160b-4e97-b738-15de5b562c5b",
+    "extractedValue": "Member Reference Number",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field 'Member's Reference No' is a close match to the standardized field 'Member Reference Number'.  The possessive apostrophe is a minor difference that does not affect semantic meaning. The context 'Worksheet Name: New_Pensioners' further supports this mapping.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "04e1f15f-ee58-4f00-a0fe-425e1439bf2b",
+    "extractedValue": "Gender Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Sex Code' is semantically equivalent to 'Gender Code'. 'Sex' and 'Gender' are synonyms in this context. The worksheet name 'New_Pensioners' provides context indicating demographic information.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d2689fc8-5ec4-48e3-80f9-3f0f4b14f8ca",
+    "extractedValue": "Pension Commencement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Date Became Pensioner' clearly refers to the date when pension payments began.  'Pension Commencement Date' is a more formal and standardized equivalent.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "fb64e38b-9df9-4ae3-af5f-7dc4d51fa88a",
+    "extractedValue": "Retirement Type",
+    "validationStatus": "valid",
+    "aiReasoning": "This is a direct synonym replacement. Both refer to the type of retirement.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d7559673-b328-4957-b3c5-027aa4aa4f9c",
+    "extractedValue": "Pre-1988 GMP Component (Date of Exit)",
+    "validationStatus": "valid",
+    "aiReasoning": "The lengthy input field describes a specific GMP component at a particular date. The output provides a more concise and standardized label while preserving the key information.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3c26e9f0-8018-4373-ac53-82de8dd95100",
+    "extractedValue": "Pre-1988 GMP Component (Valuation Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "Similar to the previous entry, this field specifies a GMP component at the valuation date. The standardized name clarifies this aspect.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "383aef1b-c6de-4b8c-97c9-890433c494bb",
+    "extractedValue": "CPI-Capped Pension Component",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pension component subject to CPI capped at 2.5% or fixed at 5%. The output simplifies the description while retaining the essential information.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "09c2f9b6-9ee8-4963-883c-79a1d35dd702",
+    "extractedValue": "Total Pension Payable (Pre-Tax)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input specifies the total pension before tax deductions. The output is a more concise and clearer representation.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2f3c3e2b-db13-4eb6-8b26-bcb3d1e2cd56",
+    "extractedValue": "Commuted Pension (Tax-Free Cash)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes the pension portion commuted for tax-free cash. The output is a more concise and standardized version.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2a6cb8a4-125d-47b0-a316-a326689602f1",
+    "extractedValue": "Postcode",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "e916e16a-edb6-49e0-ad82-e572a460a216",
+    "extractedValue": "Section B Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "55b41b55-e717-4cc7-a799-1ecf9e574d9b",
+    "extractedValue": "Member Reference Number",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field 'Member's Reference No' is a close match to the standardized field 'Member Reference Number'.  The possessive apostrophe is a minor difference that does not affect semantic meaning. The context 'Worksheet Name: New_Pensioners' further supports this mapping.",
+    "confidenceScore": 95,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6ea5c93b-7495-48d5-862a-cd179c8052ab",
+    "extractedValue": "Benefits Scale Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "fc50be99-668c-4361-80dc-fe78423099c2",
+    "extractedValue": "Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "70ddcadd-4269-49a2-9979-5ba55739e599",
+    "extractedValue": "Active Deferred Member Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Date Became Active Deferred Member' refers to the start date of active deferred membership.  The output provides a more standardized and clearer label.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "14e6d553-1501-4e0c-892f-018b24db78db",
+    "extractedValue": "Normal Retirement Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "e4d47be7-4157-4ee7-9eef-31139e5a0815",
+    "extractedValue": "Post-1988 GMP Component (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a post-1988 GMP component at the date of becoming an active deferred member. The standardized name clarifies this.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "95735686-8857-4ad2-8577-52461a634eb4",
+    "extractedValue": "Contingent Widow(er) Pension (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes a contingent widow(er) pension at the active deferred start date.  The output provides a more standardized label.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "c621d99f-a22b-4455-b05f-0ce39b7f54be",
+    "extractedValue": "Excess Deferred Pension Component (Revaluation & RPI)",
+    "validationStatus": "valid",
+    "aiReasoning": "This lengthy input describes a specific component of deferred pension with details on revaluation and RPI. The output is a more concise and standardized name.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "3185ec95-9e97-4518-801f-b59969492e81",
+    "extractedValue": "Active Deferred Member End Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field refers to the date of exit from active deferred member status.  The output provides a more concise and standardized name.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a652c4b7-8b2b-450e-8029-2753f3b4539d",
+    "extractedValue": "Contingent Widow(er)'s Pension (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes a contingent widow(er)'s pension at the active deferred start date.  The output provides a more standardized label.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "dbdad256-3ceb-4671-a91b-3187c7dbe0d0",
+    "extractedValue": "Contingent Spouse Benefit Marker",
+    "validationStatus": "valid",
+    "aiReasoning": "Minor wording adjustment for standardization.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "db2735a2-51ae-4159-af7f-2097a56702d5",
+    "extractedValue": "Spouse's Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "ef8d9509-e19d-4f6d-ac8d-657dd83f75ef",
+    "extractedValue": "Gender Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Sex Code' is semantically equivalent to 'Gender Code'. 'Sex' and 'Gender' are synonyms in this context. The worksheet name 'New_Pensioners' provides context indicating demographic information.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6446ef05-8d65-432c-a64f-50b673c032c5",
+    "extractedValue": "Pensionable Service Start Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Date Pensionable Service Commenced' refers to the start date of pensionable service.  The output is a more concise and standardized name.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "51ff26ad-62b2-4977-8aeb-cc56d6221370",
+    "extractedValue": "Previous Status Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Minor wording adjustment for standardization.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "9678f776-c8f1-4aea-9e54-fee4680ed33c",
+    "extractedValue": "Pre-1988 GMP Component (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input field describes a pre-1988 GMP component at the date of becoming an active deferred member. The standardized name clarifies this.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "100acc20-8eef-468e-a8c2-302f770834de",
+    "extractedValue": "Total Deferred Pension Payable (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input specifies the total deferred pension payable at the active deferred start date.  The output provides a more standardized label.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "ca877fb2-b740-439d-b3f8-3b518e784eff",
+    "extractedValue": "Excess Deferred Pension Component (Revaluation & CPI)",
+    "validationStatus": "valid",
+    "aiReasoning": "This lengthy input describes a specific component of deferred pension with details on revaluation and CPI. The output is a more concise and standardized name.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "4e94e4b9-9775-4600-8ca7-548096871f18",
+    "extractedValue": "Member's Total Normal Contributions (Valuation Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input specifies the member's total normal contributions at the valuation date. The output is a more standardized name.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8868da28-4316-4ca7-9b0c-18944f970a40",
+    "extractedValue": "Active Deferred Member Exit Code",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Code For Exit From Active Deferred Member Status' is a descriptive field name.  The output provides a more concise and standardized name.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "2439382a-a327-4cda-9fd4-80866e7364f3",
+    "extractedValue": "Early Vesting Age",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "c799d2dd-7f10-4174-bc63-f93d02421a76",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "275fdaf2-8532-4775-9d3b-d858f4d60d7e",
+    "extractedValue": "Marital Status Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Married Indicator' is a simplified term.  The output provides a more comprehensive and standardized term.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "fafa617c-e33f-4652-974e-1c3ac709c8d7",
+    "extractedValue": "New Pension Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "328a167f-56c1-430d-b551-3e7735aba005",
+    "extractedValue": "Excess Deferred Pension Component (LPI & RPI)",
+    "validationStatus": "valid",
+    "aiReasoning": "This lengthy input describes a specific component of deferred pension with details on LPI and RPI. The output is a more concise and standardized name.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d51e1d21-c66e-4e6a-891c-cb7eed28d4be",
+    "extractedValue": "Contingent Widow(er)'s Pension (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes a contingent widow(er)'s pension at the active deferred start date.  The output provides a more standardized label.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "492de752-c1cc-4b65-a7d9-bd4f41078200",
+    "extractedValue": "SBO Buy-Out Date",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Date Of Buy-Out Of SBO Terms' is a descriptive field name. The output provides a more concise and standardized label.",
+    "confidenceScore": 85,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "c4cb653a-d65d-412c-91db-7213d797b1fd",
+    "extractedValue": "Post-1988 GMP Component (Valuation Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes a post-1988 GMP component at the valuation date. The output is a more concise and standardized name.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "67889159-8b27-4367-a6d1-7c78e0a6bc8e",
+    "extractedValue": "Valuation Record Type",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a8542b81-10d0-4c5f-b386-7887c0c3377a",
+    "extractedValue": "Employer Code",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "6fdd8288-4bf8-446e-9fbe-c0fe7f2da220",
+    "extractedValue": "Old Supplementary Fund Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1c301fa1-e6f5-45da-bfcb-d0eaea759a4b",
+    "extractedValue": "Marital Status Indicator",
+    "validationStatus": "valid",
+    "aiReasoning": "The input 'Married Indicator' is a simplified term.  The output provides a more comprehensive and standardized term.",
+    "confidenceScore": 80,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "4075a769-c1c7-4a23-91d3-9a240a94936f",
+    "extractedValue": "New Pension Date",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "525d0f06-5718-4045-8435-55c412f2529a",
+    "extractedValue": "Contingent Spouse Benefit Marker",
+    "validationStatus": "valid",
+    "aiReasoning": "Minor wording adjustment for standardization.",
+    "confidenceScore": 90,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "f78dbd62-34f9-4724-bd88-888bef8acc9c",
+    "extractedValue": "Spouse's Date of Birth",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "d06e3b2e-4afc-457c-baf3-1dde68cdcc6a",
+    "extractedValue": "Old Supplementary Fund Pension",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "1a161fd5-5dc1-4375-833b-ede23fccb226",
+    "extractedValue": "Excess Deferred Pension Component (LPI & RPI)",
+    "validationStatus": "valid",
+    "aiReasoning": "This lengthy input describes a specific component of deferred pension with details on LPI and RPI. The output is a more concise and standardized name.",
+    "confidenceScore": 70,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "8c0344b3-0368-4774-9059-f27d6f0bf3d8",
+    "extractedValue": "Contingent Widow(er)'s Pension (Active Deferred Start Date)",
+    "validationStatus": "valid",
+    "aiReasoning": "The input describes a contingent widow(er)'s pension at the active deferred start date.  The output provides a more standardized label.",
+    "confidenceScore": 75,
+    "documentSource": "Reference Documents"
+  },
+  {
+    "identifierId": "a648db8f-f55d-4318-869c-76984cb7b952",
+    "extractedValue": "Postcode",
+    "validationStatus": "valid",
+    "aiReasoning": "Exact match.",
+    "confidenceScore": 100,
+    "documentSource": "Reference Documents"
+  }
+]
