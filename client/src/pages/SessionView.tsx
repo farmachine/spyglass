@@ -4119,6 +4119,9 @@ Thank you for your assistance.`;
                           <Table className="session-table">
                           <TableHeader>
                             <TableRow>
+                              {/* Spacer column for left padding */}
+                              <TableHead className="w-4 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                              </TableHead>
 
                               {(() => {
                                 // Check if we have workflow steps with values
@@ -4268,7 +4271,7 @@ Thank you for your assistance.`;
                                 return (
                                   <TableRow className="border-b border-gray-300 dark:border-gray-600/30">
                                     <TableCell 
-                                      colSpan={columnsToDisplay.length + 1} 
+                                      colSpan={columnsToDisplay.length + 2} 
                                       className="text-center text-gray-500 py-8 italic"
                                     >
                                       No items yet. Click the + button to add the first item.
@@ -4298,6 +4301,9 @@ Thank you for your assistance.`;
                                       : 'rgba(79, 99, 164, 0.03)'
                                   }}
                                 >
+                                  {/* Spacer cell for left padding */}
+                                  <TableCell className="w-4" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                                  </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((column) => {
