@@ -4149,6 +4149,14 @@ Thank you for your assistance.`;
                     v.collectionName === item.itemName
                   );
                   
+                  // Debug logging
+                  if (item.itemName === 'Column Name Mapping') {
+                    console.log(`🔍 DEBUG: Collection "${item.itemName}"`);
+                    console.log(`🔍 Total validations: ${validations.length}`);
+                    console.log(`🔍 Matching validations: ${collectionValidations.length}`);
+                    console.log(`🔍 Sample validations:`, collectionValidations.slice(0, 5));
+                  }
+                  
                   const validationIndices = collectionValidations.length > 0 ? 
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                   const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
