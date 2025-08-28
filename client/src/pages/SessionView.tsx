@@ -4200,7 +4200,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className="relative bg-gray-50 dark:bg-gray-800 border-b-2 border-[#4F63A4] border-r border-gray-200 dark:border-gray-700 last:border-r-0"
+                                        className="relative bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 border-r border-gray-300 dark:border-gray-600 last:border-r-0"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4271,7 +4271,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-24 bg-gray-50 dark:bg-gray-800 border-b-2 border-[#4F63A4] border-r border-gray-200 dark:border-gray-700" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
+                              <TableHead className="w-24 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 border-r border-gray-300 dark:border-gray-600" style={{ width: '96px', minWidth: '96px', maxWidth: '96px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   {(() => {
                                     // Handle empty collections
