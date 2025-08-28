@@ -4360,7 +4360,7 @@ Thank you for your assistance.`;
                                             className="h-7 w-7 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center justify-center flex-shrink-0"
                                             title={isCurrentlyBulkValidated ? `Click to unvalidate bulk validated fields in ${columnName}` : `Click to bulk validate all ${columnName} fields`}
                                           >
-                                            <div className={`h-3 w-3 rounded-full ${isCurrentlyBulkValidated ? 'bg-blue-600' : 'bg-blue-400'} hover:opacity-80 transition-opacity`} />
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4', opacity: isCurrentlyBulkValidated ? 1 : 0.6 }} />
                                           </button>
                                         );
                                       })()}
