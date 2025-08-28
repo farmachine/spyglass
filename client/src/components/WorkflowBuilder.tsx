@@ -837,7 +837,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 <Layers className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No workflow steps yet</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">Start building your workflow by adding a step</p>
-                <Button onClick={addStep} className="gap-2 bg-[#4F63A4] hover:bg-[#4F63A4]/90 dark:bg-[#5A70B5] dark:hover:bg-[#5A70B5]/90">
+                <Button onClick={addStep} className="gap-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600">
                   <Plus className="h-4 w-4" />
                   Add First Step
                 </Button>
@@ -855,7 +855,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             {/* Add Step button */}
             <Button 
               onClick={addStep} 
-              className="gap-2 bg-[#4F63A4] hover:bg-[#4F63A4]/90 dark:bg-[#5A70B5] dark:hover:bg-[#5A70B5]/90"
+              className="gap-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600"
             >
               <Plus className="h-4 w-4" />
               Add Step
