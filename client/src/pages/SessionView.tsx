@@ -1150,6 +1150,8 @@ export default function SessionView() {
     toolId?: string;
     inputValues?: any;
     knowledgeDocuments?: any[];
+    extractedCount?: number;
+    totalAvailable?: number;
   } | null>(null);
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
 
@@ -2261,19 +2263,34 @@ export default function SessionView() {
       });
     }
     
+    // Check how many records have already been extracted for this specific value
+    const existingValidationsForValue = validations.filter(v => v.valueId === valueId);
+    const extractedCount = existingValidationsForValue.length;
+    
+    console.log(`🔢 Found ${extractedCount} existing validations for value: ${valueName}`);
+    console.log(`📊 Total available records: ${previousColumnsData.length}`);
+    
+    // Filter out already extracted records
+    const remainingData = previousColumnsData.slice(extractedCount);
+    
+    console.log(`📊 Remaining records to extract: ${remainingData.length}`);
+    console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + remainingData.length, extractedCount + 50)} of ${previousColumnsData.length}`);
+    
     // Open the extraction wizard modal with the value's tool configuration
     setColumnExtractionModal({
       isOpen: true,
       stepName: stepName,
       valueId: valueId,
       valueName: valueName,
-      previousData: previousColumnsData,
+      previousData: remainingData,
       needsDocument: needsDocument,
       toolType: toolInfo?.name || 'extraction',
       toolDescription: valueToRun.description || '',
       toolId: valueToRun.toolId,
       inputValues: valueToRun.inputValues,
-      knowledgeDocuments: referencedKnowledgeDocs
+      knowledgeDocuments: referencedKnowledgeDocs,
+      extractedCount: extractedCount,
+      totalAvailable: previousColumnsData.length
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -4787,6 +4804,8 @@ Thank you for your assistance.`;
         <ExtractWizardModal
           open={columnExtractionModal.isOpen}
           onClose={() => setColumnExtractionModal(null)}
+          extractedCount={columnExtractionModal.extractedCount}
+          totalAvailable={columnExtractionModal.totalAvailable}
           onConfirm={async (documentId) => {
             if (!columnExtractionModal) return;
             

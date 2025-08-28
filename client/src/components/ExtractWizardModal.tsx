@@ -23,6 +23,8 @@ interface ExtractWizardModalProps {
   needsDocument?: boolean;
   inputValues?: any;
   knowledgeDocuments?: Array<{ id: string; documentName?: string; displayName?: string; fileName?: string; documentContent?: string; content?: string }>;
+  extractedCount?: number;
+  totalAvailable?: number;
 }
 
 // Function type descriptions for user guidance
@@ -109,7 +111,9 @@ export default function ExtractWizardModal({
   isLoading = false,
   needsDocument = true,
   inputValues,
-  knowledgeDocuments = []
+  knowledgeDocuments = [],
+  extractedCount = 0,
+  totalAvailable = 0
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   
@@ -230,10 +234,21 @@ export default function ExtractWizardModal({
             </div>
             <Progress value={75} className="h-2" />
             <p className="text-xs text-gray-600 mt-2">
-              {isAITool && inputData.length > 50 
-                ? `Analyzing first 50 records with AI for optimal performance`
-                : `Processing ${inputData.length} records`
-              }
+              {(() => {
+                const remainingRecords = inputData.length;
+                const startIndex = extractedCount + 1;
+                const endIndex = Math.min(extractedCount + (isAITool ? Math.min(remainingRecords, 50) : remainingRecords), totalAvailable || extractedCount + remainingRecords);
+                
+                if (extractedCount > 0) {
+                  return isAITool && remainingRecords > 50 
+                    ? `Analyzing records ${startIndex}-${extractedCount + 50} of ${totalAvailable} with AI for optimal performance`
+                    : `Processing records ${startIndex}-${endIndex} of ${totalAvailable}`;
+                } else {
+                  return isAITool && inputData.length > 50 
+                    ? `Analyzing first 50 records with AI for optimal performance`
+                    : `Processing ${inputData.length} records`;
+                }
+              })()}
             </p>
           </div>
         )}
@@ -254,7 +269,29 @@ export default function ExtractWizardModal({
                 Your Reference Data
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                <strong>{isAITool && inputData.length > 50 ? `50 records (limited from ${inputData.length} for performance)` : `${inputData.length} records`}</strong> available from previous steps
+                {(() => {
+                  const remainingRecords = inputData.length;
+                  const startIndex = extractedCount + 1;
+                  const endIndex = Math.min(extractedCount + (isAITool ? Math.min(remainingRecords, 50) : remainingRecords), totalAvailable || extractedCount + remainingRecords);
+                  
+                  if (extractedCount > 0) {
+                    const recordsToProcess = isAITool && remainingRecords > 50 ? 50 : remainingRecords;
+                    return (
+                      <>
+                        <strong>Records {startIndex}-{extractedCount + recordsToProcess} of {totalAvailable}</strong> ready for extraction
+                        {extractedCount > 0 && (
+                          <> <span className="text-green-600">({extractedCount} already extracted)</span></>
+                        )}
+                      </>
+                    );
+                  } else {
+                    return (
+                      <>
+                        <strong>{isAITool && inputData.length > 50 ? `50 records (limited from ${inputData.length} for performance)` : `${inputData.length} records`}</strong> available from previous steps
+                      </>
+                    );
+                  }
+                })()}
               </p>
               
               <div className="bg-gray-50 rounded-lg p-4">
