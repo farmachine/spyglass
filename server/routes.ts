@@ -6792,35 +6792,78 @@ def extract_function(Column_Name, Excel_File):
                 // Data is in validation record format with fieldName property
                 console.log(`📊 Sample fieldNames in data:`, previousData.slice(0, 3).map(r => r.fieldName));
                 
-                const columnValues = previousData
-                  .filter(record => {
-                    // Filter for records that match this column name
-                    const fieldParts = record.fieldName?.split('.') || [];
-                    const matches = fieldParts.length > 1 ? 
-                      fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '') === actualColumnName :
-                      false;
+                // DYNAMIC APPROACH: Find the actual step value name that matches actualColumnName
+                console.log(`🔍 DYNAMIC: Looking for step value with name "${actualColumnName}"`);
+                
+                // Get all step values for the current step to find the actual value name
+                const currentStepId = value.stepId;
+                if (currentStepId) {
+                  const stepValues = await storage.getStepValues(currentStepId);
+                  console.log(`📌 Found ${stepValues.length} values in current step`);
+                  
+                  // Find the referenced value by name 
+                  const referencedValue = stepValues.find(v => v.valueName === actualColumnName);
+                  if (referencedValue) {
+                    console.log(`📌 Found referenced value: ${referencedValue.valueName} (ID: ${referencedValue.id})`);
                     
-                    if (matches) {
-                      console.log(`✅ Matched: ${record.fieldName} -> ${actualColumnName}`);
+                    // Get validations for this specific value using its actual ID
+                    const referencedValidations = previousData.filter((v: any) => 
+                      v.valueId === referencedValue.id
+                    );
+                    
+                    if (referencedValidations.length > 0) {
+                      const columnValues = referencedValidations.map((record: any) => ({
+                        identifierId: record.identifierId || `record-${record.recordIndex}`,
+                        ID: record.extractedValue, // Use the actual extracted value
+                        extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
+                        name: record.extractedValue // Also include as name for compatibility
+                      }));
+                      
+                      console.log(`📌 DYNAMIC: Resolved @${actualColumnName} reference to ${columnValues.length} items using value ID ${referencedValue.id}`);
+                      console.log(`📊 First 3 resolved values:`, columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.extractedValue}`));
+                      toolInputs[paramName] = columnValues;
+                    } else {
+                      console.log(`⚠️ No validations found for referenced value: ${actualColumnName} (ID: ${referencedValue.id})`);
+                      toolInputs[paramName] = [];
                     }
-                    return matches;
-                  })
-                  .map(record => ({
-                    identifierId: record.identifierId,
-                    ID: record.extractedValue, // Use the actual column name as field name
-                    extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
-                    name: record.extractedValue // Also include as name for compatibility
-                  }));
-                
-                console.log(`📊 Formatted ${columnValues.length} values for ${paramName}:`, 
-                  columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
-                
-                if (columnValues.length === 0) {
-                  console.log(`⚠️ No matching records found for column "${actualColumnName}"`);
-                  console.log(`   Available fieldNames: ${[...new Set(previousData.map(r => r.fieldName))].slice(0, 10)}`);
+                  } else {
+                    console.log(`⚠️ Referenced value "${actualColumnName}" not found in current step - falling back to field name matching`);
+                    
+                    // Fallback to original field name matching logic
+                    const columnValues = previousData
+                      .filter(record => {
+                        // Filter for records that match this column name
+                        const fieldParts = record.fieldName?.split('.') || [];
+                        const matches = fieldParts.length > 1 ? 
+                          fieldParts[fieldParts.length - 1].replace(/\[\d+\]$/, '') === actualColumnName :
+                          false;
+                        
+                        if (matches) {
+                          console.log(`✅ Matched: ${record.fieldName} -> ${actualColumnName}`);
+                        }
+                        return matches;
+                      })
+                      .map(record => ({
+                        identifierId: record.identifierId,
+                        ID: record.extractedValue, // Use the actual column name as field name
+                        extractedValue: record.extractedValue, // Also include as extractedValue for compatibility
+                        name: record.extractedValue // Also include as name for compatibility
+                      }));
+                    
+                    console.log(`📊 Fallback formatted ${columnValues.length} values for ${paramName}:`, 
+                      columnValues.slice(0, 3).map(v => `${v.identifierId}: ${v.name}`));
+                    
+                    if (columnValues.length === 0) {
+                      console.log(`⚠️ No matching records found for column "${actualColumnName}"`);
+                      console.log(`   Available fieldNames: ${[...new Set(previousData.map(r => r.fieldName))].slice(0, 10)}`);
+                    }
+                    
+                    toolInputs[paramName] = columnValues;
+                  }
+                } else {
+                  console.log(`⚠️ No stepId found for current value - using fallback approach`);
+                  toolInputs[paramName] = [];
                 }
-                
-                toolInputs[paramName] = columnValues;
               } else {
                 console.log(`⚠️ Unexpected previousData format - no identifierId, no fieldName, and no ${actualColumnName} property`);
                 console.log(`   Available properties: ${Object.keys(previousData[0])}`);
