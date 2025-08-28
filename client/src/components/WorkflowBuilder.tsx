@@ -600,7 +600,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-[#FAFBFD] dark:bg-slate-900 border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
+            <Card className="relative w-full bg-white dark:bg-white border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
             {/* Step type icon in top left corner */}
             <div className="absolute top-4 left-4">
               {step.type === 'list' ? (
@@ -971,7 +971,7 @@ function ValueEditor({
   };
 
   return (
-    <div className="border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-md transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-slate-900 relative">
+    <div className="border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-md transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-white relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, Non-editable */}
         <div className="flex items-center gap-2 mb-1">
