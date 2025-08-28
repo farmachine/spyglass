@@ -6836,12 +6836,14 @@ def extract_function(Column_Name, Excel_File):
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
-          console.log(`🎯 AI tool expects List Item but input is null - using previousData with ${previousData.length} records`);
-          console.log(`  First record:`, previousData[0]);
-          console.log(`  Last record:`, previousData[previousData.length - 1]);
+          // CRITICAL: Apply 50-record limit for AI tools to prevent excessive processing
+          const limitedPreviousData = previousData.slice(0, 50);
+          console.log(`🎯 AI tool expects List Item but input is null - using previousData with ${limitedPreviousData.length} records (limited from ${previousData.length} for performance)`);
+          console.log(`  First record:`, limitedPreviousData[0]);
+          console.log(`  Last record:`, limitedPreviousData[limitedPreviousData.length - 1]);
           
           // Format previousData for the AI tool - it should contain merged column information
-          toolInputs['List Item'] = previousData.map(record => {
+          toolInputs['List Item'] = limitedPreviousData.map(record => {
             // Include identifierId and all column values from the record
             const formattedRecord: any = {};
             
