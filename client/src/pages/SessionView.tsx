@@ -4289,7 +4289,15 @@ Thank you for your assistance.`;
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
                               return sortedItems.map(({ item, originalIndex }) => (
-                                <TableRow key={originalIndex} className="border-b border-gray-300 dark:border-gray-600/30">
+                                <TableRow 
+                                  key={originalIndex} 
+                                  className="border-b border-gray-300 dark:border-gray-600/30"
+                                  style={{
+                                    backgroundColor: originalIndex % 2 === 0 
+                                      ? 'transparent' 
+                                      : 'rgba(79, 99, 164, 0.03)'
+                                  }}
+                                >
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                                     .map((column) => {
