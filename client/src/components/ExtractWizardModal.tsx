@@ -384,12 +384,8 @@ export default function ExtractWizardModal({
           {/* User Input Documents Section - Only show if needed */}
           {needsDocument && (
             <div className="space-y-3">
-              <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                <FileText className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                Select Your Input Document
-              </h3>
               <p className="text-sm text-gray-600">
-                Choose the document that contains the data you want to extract from
+                Select document
               </p>
               <Select value={selectedDocument} onValueChange={setSelectedDocument}>
                 <SelectTrigger className="w-full bg-white">
