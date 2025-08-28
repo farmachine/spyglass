@@ -4474,6 +4474,10 @@ Thank you for your assistance.`;
                                                           </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                          <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                                            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                                                            <span className="text-sm font-semibold">Information</span>
+                                                          </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
                                                             {validation.aiReasoning && (
                                                               <div className="mb-2">{validation.aiReasoning}</div>
@@ -4507,6 +4511,10 @@ Thank you for your assistance.`;
                                                             />
                                                           </TooltipTrigger>
                                                           <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                            <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                                              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                                                              <span className="text-sm font-semibold">Information</span>
+                                                            </div>
                                                             <div className="whitespace-pre-line leading-relaxed">
                                                               {validation.aiReasoning && (
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
@@ -4534,6 +4542,10 @@ Thank you for your assistance.`;
                                                           </TooltipTrigger>
                                                           {validation.aiReasoning && (
                                                             <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                              <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                                                <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                                                                <span className="text-sm font-semibold">Information</span>
+                                                              </div>
                                                               <div className="whitespace-pre-line leading-relaxed">
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
                                                                 <div className="text-xs text-blue-700">Click icon to validate</div>
