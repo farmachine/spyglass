@@ -4491,6 +4491,10 @@ Thank you for your assistance.`;
                                                     // Show colored confidence dot when there's a confidence score
                                                     const colorClass = score >= 80 ? 'bg-green-500' : 
                                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                    const borderClass = score >= 80 ? 'border-green-500' : 
+                                                                      score >= 50 ? 'border-yellow-500' : 'border-red-500';
+                                                    const hoverClass = score >= 80 ? 'hover:bg-green-400' : 
+                                                                     score >= 50 ? 'hover:bg-yellow-400' : 'hover:bg-red-400';
                                                     
                                                     return (
                                                       <TooltipProvider>
@@ -4498,7 +4502,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors`}
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
