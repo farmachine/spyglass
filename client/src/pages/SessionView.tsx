@@ -2272,11 +2272,20 @@ export default function SessionView() {
     console.log(`🔢 Found ${extractedCount} existing validations for value: ${valueName}`);
     console.log(`📊 Total available records: ${previousColumnsData.length}`);
     
-    // Filter out already extracted records
-    const remainingData = previousColumnsData.slice(extractedCount);
+    // Filter out already extracted records, or cycle back to start if complete
+    let remainingData: any[];
+    let cycleMessage = '';
     
-    console.log(`📊 Remaining records to extract: ${remainingData.length}`);
-    console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + remainingData.length, extractedCount + 50)} of ${previousColumnsData.length}`);
+    if (extractedCount >= previousColumnsData.length) {
+      // All records extracted - cycle back to first 50 for iterative improvement
+      remainingData = previousColumnsData.slice(0, Math.min(50, previousColumnsData.length));
+      cycleMessage = ' (cycling back to first records for re-extraction)';
+    } else {
+      remainingData = previousColumnsData.slice(extractedCount);
+    }
+    
+    console.log(`📊 Remaining records to extract: ${remainingData.length}${cycleMessage}`);
+    console.log(`📊 Will extract records ${extractedCount >= previousColumnsData.length ? '1' : extractedCount + 1}-${Math.min(extractedCount >= previousColumnsData.length ? remainingData.length : extractedCount + remainingData.length, extractedCount >= previousColumnsData.length ? remainingData.length : extractedCount + 50)} of ${previousColumnsData.length}`);
     
     // Open the extraction wizard modal with the value's tool configuration
     setColumnExtractionModal({
