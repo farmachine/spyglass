@@ -28,7 +28,7 @@ import ValidationIcon from "@/components/ValidationIcon";
 import UserProfile from "@/components/UserProfile";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
-import { EditFieldValueDialog } from "@/components/EditFieldValueDialog";
+// import { EditFieldValueDialog } from "@/components/EditFieldValueDialog"; // Replaced with inline editing
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
@@ -1114,6 +1114,8 @@ export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editingTableField, setEditingTableField] = useState<string | null>(null);
+  const [editTableValue, setEditTableValue] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   
@@ -1129,11 +1131,7 @@ export default function SessionView() {
     confidenceScore: number;
   } | null>(null);
   
-  // Edit field dialog state
-  const [editFieldDialog, setEditFieldDialog] = useState<{
-    open: boolean;
-    validation: FieldValidation | null;
-  }>({ open: false, validation: null });
+  // Edit field dialog state - removed in favor of inline editing
 
   // Add documents modal state
   const [addDocumentsModalOpen, setAddDocumentsModalOpen] = useState(false);
@@ -1192,9 +1190,41 @@ export default function SessionView() {
     return null;
   };
 
-  // Handler to open edit dialog
-  const handleEditField = (validation: FieldValidation) => {
-    setEditFieldDialog({ open: true, validation });
+  // Modal editing removed - now using inline editing for all fields
+
+  // Handler for inline table field editing
+  const handleEditTableField = (validation: FieldValidation) => {
+    const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
+    setEditingTableField(fieldKey);
+    setEditTableValue(validation.extractedValue || "");
+  };
+
+  // Handler to save inline table field edit
+  const handleSaveTableFieldEdit = async () => {
+    if (!editingTableField) return;
+    
+    // Find the validation that we're editing
+    const validation = validations.find(v => {
+      const fieldKey = `${v.collectionName}.${v.fieldName}[${v.recordIndex}]`;
+      return fieldKey === editingTableField;
+    });
+    
+    if (validation) {
+      await handleSaveFieldEdit({
+        validationId: validation.id,
+        newValue: editTableValue,
+        isManual: true
+      });
+    }
+    
+    setEditingTableField(null);
+    setEditTableValue("");
+  };
+
+  // Handler to cancel inline table field edit
+  const handleCancelTableFieldEdit = () => {
+    setEditingTableField(null);
+    setEditTableValue("");
   };
 
   // Handler to open AI extraction modal
@@ -3917,12 +3947,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => {
-                                            const validation = getValidation(field.fieldName);
-                                            if (validation) {
-                                              handleEditField(validation);
-                                            }
-                                          }}
+                                          onClick={() => handleEdit(field.fieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3" />
@@ -4369,7 +4394,7 @@ Thank you for your assistance.`;
                                           minWidth: '80px'
                                         }}
                                       >
-                                        <div className="relative w-full">
+                                        <div className="relative w-full h-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
@@ -4381,18 +4406,81 @@ Thank you for your assistance.`;
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
                                             
-                                            {/* Edit button */}
-                                            {validation && (
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => handleEditField(validation)}
-                                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                title="Edit field value"
-                                              >
-                                                <Edit3 className="h-3 w-3" />
-                                              </Button>
-                                            )}
+                                            {/* Inline editing or edit button */}
+                                            {validation && (() => {
+                                              const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
+                                              const isEditingThisField = editingTableField === fieldKey;
+                                              
+                                              if (isEditingThisField) {
+                                                return (
+                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded z-10">
+                                                    <div className="p-2 h-full">
+                                                      {columnType === 'TEXTAREA' ? (
+                                                        <textarea
+                                                          value={editTableValue}
+                                                          onChange={(e) => setEditTableValue(e.target.value)}
+                                                          className="w-full h-full text-sm border-none outline-none resize-none bg-transparent"
+                                                          autoFocus
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && e.ctrlKey) {
+                                                              handleSaveTableFieldEdit();
+                                                            } else if (e.key === 'Escape') {
+                                                              handleCancelTableFieldEdit();
+                                                            }
+                                                          }}
+                                                        />
+                                                      ) : (
+                                                        <input
+                                                          type={columnType === 'NUMBER' ? 'number' : columnType === 'DATE' ? 'date' : 'text'}
+                                                          value={editTableValue}
+                                                          onChange={(e) => setEditTableValue(e.target.value)}
+                                                          className="w-full h-full text-sm border-none outline-none bg-transparent"
+                                                          autoFocus
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                              handleSaveTableFieldEdit();
+                                                            } else if (e.key === 'Escape') {
+                                                              handleCancelTableFieldEdit();
+                                                            }
+                                                          }}
+                                                        />
+                                                      )}
+                                                      
+                                                      {/* Save/Cancel buttons */}
+                                                      <div className="absolute bottom-1 right-1 flex gap-1">
+                                                        <Button
+                                                          size="sm"
+                                                          onClick={handleSaveTableFieldEdit}
+                                                          className="h-6 px-2 text-xs"
+                                                        >
+                                                          ✓
+                                                        </Button>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          onClick={handleCancelTableFieldEdit}
+                                                          className="h-6 px-2 text-xs"
+                                                        >
+                                                          ×
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              } else {
+                                                return (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleEditTableField(validation)}
+                                                    className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Edit field value"
+                                                  >
+                                                    <Edit3 className="h-3 w-3" />
+                                                  </Button>
+                                                );
+                                              }
+                                            })()}
                                           </div>
                                           
                                           {/* Combined confidence/verification indicator on top-left corner */}
@@ -4689,17 +4777,7 @@ Thank you for your assistance.`;
         </DialogContent>
       </Dialog>
       {/* Validation processing dialog removed - validation now occurs during extraction */}
-      {/* Edit Field Value Dialog */}
-      {editFieldDialog.validation && (
-        <EditFieldValueDialog
-          open={editFieldDialog.open}
-          validation={editFieldDialog.validation}
-          onClose={() => setEditFieldDialog({ open: false, validation: null })}
-          onSave={handleSaveFieldEdit}
-          schemaField={findSchemaField(editFieldDialog.validation)}
-          collectionProperty={findCollectionProperty(editFieldDialog.validation)}
-        />
-      )}
+      {/* Edit Field Value Dialog - Removed in favor of inline editing */}
       {/* Add Documents Modal */}
       <AddDocumentsModal
         open={addDocumentsModalOpen}
