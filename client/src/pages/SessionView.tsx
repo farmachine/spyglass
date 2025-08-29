@@ -4435,8 +4435,8 @@ Thank you for your assistance.`;
                                   </DropdownMenu>
                                 </div>
                               </TableHead>
-                                </TableRow>
-                              </TableHeader>
+                              </TableRow>
+                            </TableHeader>
                           <TableBody>
                             {(() => {
                               // Check if we have workflow steps with values
