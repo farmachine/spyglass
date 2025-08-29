@@ -6929,12 +6929,37 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
-      // For CODE tools, check if any parameter is of type 'document' and needs session document content
+      // For CODE tools, ensure all configured inputs are passed
       if (tool.toolType === 'CODE') {
+        // First, add all the resolved inputs from toolInputs
         for (const param of tool.inputParameters || []) {
-          if (param.type === 'document' && documentContent) {
+          // Check if we already have a value for this parameter
+          if (toolInputs[param.name] !== undefined && toolInputs[param.name] !== null) {
+            console.log(`📝 CODE tool parameter ${param.name} already has value`);
+          } else if (param.type === 'document' && documentContent) {
+            // Add document content for document-type parameters
             console.log(`📄 Adding session document content for CODE tool parameter: ${param.name}`);
             toolInputs[param.name] = documentContent;
+          } else {
+            // Check if there's a matching value in the resolved toolInputs
+            const possibleKeys = [
+              param.name,
+              param.name.toLowerCase(),
+              param.name.replace(/\s+/g, '_').toLowerCase(),
+              param.name.replace(/\s+/g, '')
+            ];
+            
+            for (const key of possibleKeys) {
+              if (toolInputs[key] !== undefined) {
+                toolInputs[param.name] = toolInputs[key];
+                console.log(`📝 Mapped ${key} to CODE tool parameter ${param.name}`);
+                break;
+              }
+            }
+            
+            if (toolInputs[param.name] === undefined) {
+              console.log(`⚠️ No value found for CODE tool parameter ${param.name}`);
+            }
           }
         }
       }
