@@ -4299,7 +4299,7 @@ Thank you for your assistance.`;
                           <TableHeader>
                             <TableRow>
                               {/* Spacer column for left padding */}
-                              <TableHead className="w-4 h-9 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                              <TableHead className="w-4 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
                               </TableHead>
 
                               {(() => {
@@ -4323,7 +4323,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className={`relative h-9 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
+                                        className={`relative h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 ${!isLastColumn ? 'border-r' : ''}`}
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4359,7 +4359,7 @@ Thank you for your assistance.`;
                                           return (
                                             <button
                                               onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                              className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                               title={allValid ? 
                                                 `All ${columnName} fields are valid. Click to set all to pending` : 
                                                 `Click to validate all ${columnName} fields`}
@@ -4371,19 +4371,19 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1 text-sm font-semibold" style={{ color: '#071e54' }}>{columnName}</span>
+                                        <span className="truncate pl-1" style={{ color: '#071e54' }}>{columnName}</span>
                                       </div>
-                                      <div className="flex items-center gap-0.5 ml-1">
+                                      <div className="flex items-center gap-1 ml-2">
                                         <button
                                           onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
-                                          className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
+                                          className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
                                           title={`Run extraction for ${columnName}`}
                                         >
-                                          <Wand2 className="h-3.5 w-3.5" style={{ color: '#4F63A4' }} />
+                                          <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
                                         </button>
                                         <button
                                           onClick={() => handleSort(columnName, collection.id)}
-                                          className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                           title={`Sort by ${columnName}`}
                                         >
                                           {getSortIcon(columnName, collection.id)}
@@ -4399,8 +4399,8 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-16 h-9 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
-                                <div className="flex items-center justify-center gap-0.5 px-1">
+                              <TableHead className="w-16 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                                <div className="flex items-center justify-center gap-1 px-2">
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -4536,15 +4536,15 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                                  className="border-b border-gray-100 dark:border-gray-800"
                                   style={{
                                     backgroundColor: originalIndex % 2 === 0 
                                       ? 'transparent' 
-                                      : 'rgba(79, 99, 164, 0.02)'
+                                      : 'rgba(79, 99, 164, 0.03)'
                                   }}
                                 >
                                   {/* Spacer cell for left padding */}
-                                  <TableCell className="w-4 py-0.5" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                                  <TableCell className="w-4" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -4596,7 +4596,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative py-0.5"
+                                        className="relative"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4613,9 +4613,9 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full h-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-6 ${
-                                            columnType === 'TEXTAREA' ? 'min-h-[40px] py-1' : 'py-1'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-snug group relative text-sm`}>
+                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
+                                            columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
                                             <span className={`
                                               ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''}
                                               ${columnIndex === 0 ? 'font-medium' : ''}
@@ -4715,7 +4715,7 @@ Thank you for your assistance.`;
 
                                                 if (wasManuallyUpdated) {
                                                   return (
-                                                    <div className="absolute top-1 left-0.5 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center">
                                                       <User className="h-3 w-3 text-slate-700" />
                                                     </div>
                                                   );
@@ -4727,7 +4727,7 @@ Thank you for your assistance.`;
                                                         <TooltipTrigger asChild>
                                                           <button
                                                             onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                            className="absolute top-1 left-0.5 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
                                                             <span className="text-xs font-bold">✓</span>
@@ -4796,7 +4796,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className="absolute top-1 left-0.5 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              className="absolute top-3.5 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
@@ -4819,7 +4819,7 @@ Thank you for your assistance.`;
                                                 } else if (!hasValue) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
-                                                    <div className="absolute top-1 left-0.5 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center">
                                                       <span className="text-red-500 text-xs font-bold leading-none">!</span>
                                                     </div>
                                                   );
@@ -4832,8 +4832,8 @@ Thank you for your assistance.`;
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="py-0.5">
-                                    <div className="flex items-center justify-center gap-1 px-1">
+                                  <TableCell className="">
+                                    <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item using improved filtering
                                         const itemValidations = validations.filter(v => {
