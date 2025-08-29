@@ -4296,8 +4296,8 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden">
                       <CardContent className="p-0 h-full overflow-hidden">
-                        <div className="h-full overflow-auto">
-                          <Table className="session-table">
+                        <div className="h-full overflow-auto relative">
+                          <Table className="session-table w-full">
                           <TableHeader>
                             <TableRow>
                               {/* Spacer column for left padding */}
