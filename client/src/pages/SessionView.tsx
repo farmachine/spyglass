@@ -1210,11 +1210,14 @@ export default function SessionView() {
     });
     
     if (validation) {
-      await handleSaveFieldEdit(validation.id, editTableValue, 'valid');
+      // Clear editing state immediately for responsive UI
+      const currentValue = editTableValue;
+      setEditingTableField(null);
+      setEditTableValue("");
+      
+      // Then perform the save with optimistic update
+      await handleSaveFieldEdit(validation.id, currentValue, 'valid');
     }
-    
-    setEditingTableField(null);
-    setEditTableValue("");
   };
 
   // Handler to cancel inline table field edit
