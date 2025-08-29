@@ -283,37 +283,24 @@
   max-height: 100%;
 }
 
-/* Table styling and sticky header */
+/* Table styling for separated header and body */
 .session-table {
-  table-layout: auto;
+  table-layout: fixed;
   width: 100%;
-}
-
-.session-table thead {
-  position: sticky;
-  position: -webkit-sticky;
-  top: 0;
-  z-index: 30;
-}
-
-.session-table thead tr {
-  position: sticky;
-  position: -webkit-sticky;
-  top: 0;
+  border-collapse: collapse;
 }
 
 .session-table thead th {
-  position: sticky;
-  position: -webkit-sticky;
-  top: 0;
-  z-index: 30;
   background-color: rgb(249 250 251); /* Match bg-gray-50 */
-  box-shadow: 0 1px 0 0 rgb(229 231 235); /* subtle bottom shadow */
 }
 
 .dark .session-table thead th {
   background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
-  box-shadow: 0 1px 0 0 rgb(55 65 81); /* dark mode shadow */
+}
+
+/* Ensure body table aligns with header table */
+.session-table tbody td {
+  vertical-align: top;
 }
 
 .session-table td {

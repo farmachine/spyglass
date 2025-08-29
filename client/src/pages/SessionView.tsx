@@ -4293,13 +4293,14 @@ Thank you for your assistance.`;
                   // Always show the table even when there are no records, so headers remain visible
 
                   return activeTab === item.itemName ? (
-                  <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden">
-                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden">
-                      <CardContent className="p-0 h-full overflow-hidden">
-                        <div className="h-full overflow-auto relative">
+                  <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden flex flex-col">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden flex flex-col">
+                      <CardContent className="p-0 h-full overflow-hidden flex flex-col">
+                        {/* Fixed header table */}
+                        <div className="flex-shrink-0">
                           <Table className="session-table w-full">
-                          <TableHeader>
-                            <TableRow>
+                            <TableHeader>
+                              <TableRow>
                               {/* Spacer column for left padding */}
                               <TableHead className="w-4 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
                               </TableHead>
@@ -4435,6 +4436,39 @@ Thank you for your assistance.`;
                                   </DropdownMenu>
                                 </div>
                               </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                        </Table>
+                      </div>
+                      
+                      {/* Scrollable body table */}
+                      <div className="flex-1 overflow-auto">
+                        <Table className="session-table w-full">
+                          {/* Hidden header for column alignment */}
+                          <TableHeader className="sr-only">
+                            <TableRow>
+                              <TableHead style={{ width: '16px', minWidth: '16px' }}></TableHead>
+                              {(() => {
+                                const workflowStep = project?.workflowSteps?.find(
+                                  step => step.stepName === collection.collectionName
+                                );
+                                const columnsToDisplay = workflowStep?.values || collection.properties;
+                                
+                                return columnsToDisplay.map((column: any, index: number) => {
+                                  const columnId = column.id || column.columnId;
+                                  const columnName = column.name || column.columnName;
+                                  const columnWidthKey = `${collection.id}-${columnId}`;
+                                  const width = columnWidths[columnWidthKey] || 100;
+                                  
+                                  return (
+                                    <TableHead 
+                                      key={columnId}
+                                      style={{ width: `${width}px`, minWidth: '80px' }}
+                                    ></TableHead>
+                                  );
+                                });
+                              })()}
+                              <TableHead style={{ width: '64px', minWidth: '64px' }}></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -4879,7 +4913,7 @@ Thank you for your assistance.`;
                             })()}
                           </TableBody>
                         </Table>
-                        </div>
+                      </div>
                       </CardContent>
                     </Card>
                   </div>
