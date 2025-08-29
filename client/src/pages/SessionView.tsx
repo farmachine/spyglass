@@ -4296,9 +4296,9 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
                       <CardContent className="p-0">
-                        <div className="session-table-wrapper">
+                        <div className="session-table-wrapper" style={{ height: '500px', overflowY: 'auto', position: 'relative' }}>
                           <Table className="session-table">
-                            <TableHeader>
+                            <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }}>
                               <TableRow>
                               {/* Spacer column for left padding */}
                               <TableHead className="w-4 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
