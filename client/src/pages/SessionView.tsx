@@ -3434,7 +3434,7 @@ Thank you for your assistance.`;
                             onChange={(e) => setSessionNameValue(e.target.value)}
                             onKeyDown={handleSessionNameKeyPress}
                             onBlur={handleSessionNameSave}
-                            className="inline-flex h-10 text-3xl font-bold bg-transparent border-2 border-primary rounded px-2 ml-1"
+                            className="inline-flex h-auto text-3xl font-bold bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white"
                             style={{ width: `${Math.max(sessionNameValue.length * 20, 100)}px` }}
                             autoFocus
                           />
