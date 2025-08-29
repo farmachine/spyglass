@@ -4368,17 +4368,26 @@ Thank you for your assistance.`;
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
                               // Apply search filtering
-                              const filteredItems = searchTerm ? sortedItems.filter(({ originalIndex }) => {
-                                // Get all validations for this row and check if any extracted value contains the search term
+                              const filteredItems = searchTerm ? sortedItems.filter(({ item, originalIndex }) => {
+                                const searchLower = searchTerm.toLowerCase();
+                                
+                                // Search in validation extracted values
                                 const rowValidations = validations.filter(v => 
                                   v.recordIndex === originalIndex &&
                                   v.collectionName === collection.collectionName
                                 );
                                 
-                                return rowValidations.some(v => 
+                                const validationMatch = rowValidations.some(v => 
                                   v.extractedValue && 
-                                  v.extractedValue.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                                  v.extractedValue.toString().toLowerCase().includes(searchLower)
                                 );
+                                
+                                // Also search in original item data
+                                const itemMatch = Object.values(item || {}).some(value => 
+                                  value && value.toString().toLowerCase().includes(searchLower)
+                                );
+                                
+                                return validationMatch || itemMatch;
                               }) : sortedItems;
                               
                               // Handle case when search yields no results
