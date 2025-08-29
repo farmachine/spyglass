@@ -1,0 +1,68 @@
+2. Tool Prompt (General Task Function)
+Stored in aiPrompt field of excelWizardryFunctions table:
+
+Map column names to their standardized equivalent terms used across organizational reporting.
+MAPPING GUIDELINES:
+- For pension-related columns, use standardized pension industry terms
+- For member identifiers, use 'Member ID' for current refs, 'Legacy Member ID' for old refs
+- For amounts, specify the type and include 'Amount' suffix
+- For dates, use standard date field naming conventions
+- Child-related benefits should use 'Child Benefit' prefix
+ANALYSIS APPROACH:
+1. Analyze the semantic meaning of each column name
+2. Apply organizational naming standards from knowledge documents
+3. Ensure consistency with existing data dictionaries
+4. Prioritize clarity and business user understanding
+Return standardized equivalents that maintain data meaning while following organizational conventions.
+3. Value Inputs (Specific Task Guide)
+{
+  "input_data": {
+    "documents": "=== Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSection\tComponent of Child's Pension At This Valuation Subject to CPI cap\nP001234\tN567890\tEMP001\tA\t150.50",
+    "identifier_references": [
+      {
+        "identifierId": "5aeb93f2-1737-4a90-afa3-0152c495f9de",
+        "Column Name[0]": "Old Member's Reference No"
+      },
+      {
+        "identifierId": "2cc17708-0060-4730-83f3-dc8e02fae70f",
+        "Column Name[1]": "Member's Reference No" 
+      },
+      {
+        "identifierId": "a826e4e5-0226-4f20-8a10-dd5be7afe1cf",
+        "Column Name[2]": "Component of Child's Pension At This Valuation Subject to CPI cap"
+      }
+    ],
+    "target_field": {
+      "id": "3a91ea85-ed02-41cf-a607-a8d9a21d6fdf",
+      "collection_id": "e3c7f77d-910c-4e41-8668-e0fccf16fd45",
+      "property_name": "Standard Equivalent",
+      "property_type": "TEXT",
+      "description": "Map extracted column names to standardized equivalent terms"
+    },
+    "knowledge_documents": [
+      {
+        "display_name": "Pension Column Standards",
+        "content": "Member identifiers: Current = 'Member ID', Legacy = 'Legacy Member ID'. Child benefits: prefix with 'Child Benefit'. Amounts: include type + 'Amount' suffix..."
+      }
+    ],
+    "extraction_rules": [
+      {
+        "rule_name": "Column Standardization",
+        "rule_content": "Map to standard business terminology using knowledge documents"
+      }
+    ]
+  }
+}
+Key Corrections in This Architecture:
+Input Data Includes Worksheet Names: Documents show proper Excel format with === Sheet: SheetName === delimiters
+
+Identifier References Use identifierId as Mapping Key: Each reference includes the UUID identifierId for proper record linking across extractions
+
+Knowledge Document Content is Real: Shows actual reference content rather than placeholder text
+
+Tool Prompt is Visible: The aiPrompt field contains the specific mapping instructions for this extraction type
+
+How They Combine:
+System Prompt: Tells AI how to format responses and interpret the task structure
+Tool Prompt: Defines the specific mapping logic and business rules for column standardization
+Value Inputs: Provides the actual data to process and context for the specific extraction
