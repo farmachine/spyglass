@@ -4387,14 +4387,15 @@ Thank you for your assistance.`;
                                   v.extractedValue.toString().toLowerCase().includes(searchLower)
                                 );
                                 
-                                // Debug logging
-                                if (searchTerm.toLowerCase() === 'children') {
-                                  console.log(`Row ${originalIndex}:`, {
+                                // Debug logging for 'children' search
+                                if (searchTerm.toLowerCase() === 'children' && matches) {
+                                  console.log(`🔍 MATCH found for Row ${originalIndex}:`, {
                                     validations: rowValidations.map(v => ({
                                       fieldName: v.fieldName,
-                                      extractedValue: v.extractedValue
+                                      extractedValue: v.extractedValue,
+                                      matchesSearch: v.extractedValue.toString().toLowerCase().includes(searchLower)
                                     })),
-                                    matches
+                                    totalMatches: matches
                                   });
                                 }
                                 
