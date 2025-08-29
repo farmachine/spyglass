@@ -3804,6 +3804,67 @@ Thank you for your assistance.`;
               });
               
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
+                // Calculate record counts for the counter
+                const getRecordCounts = () => {
+                  const collectionData = extractedData[activeCollection.collectionName] || [];
+                  const totalRecords = collectionData.length;
+                  
+                  if (!searchTerm) {
+                    return { visible: totalRecords, total: totalRecords };
+                  }
+                  
+                  // Count filtered records
+                  const searchLower = searchTerm.toLowerCase();
+                  const filteredCount = collectionData.filter((item, index) => {
+                    const workflowStep = (project?.workflowSteps || []).find(step => 
+                      step.stepName === activeCollection.collectionName
+                    );
+                    const columnsToDisplay = workflowStep?.values || activeCollection.properties;
+                    
+                    return columnsToDisplay.some(column => {
+                      const columnName = workflowStep ? column.valueName : (column as any).propertyName;
+                      const fieldName = `${activeCollection.collectionName}.${columnName}[${index}]`;
+                      
+                      // Get the identifierId for this row
+                      const rowValidation = validations.find(v => 
+                        v.recordIndex === index &&
+                        v.collectionName === activeCollection.collectionName &&
+                        v.identifierId
+                      );
+                      const rowIdentifierId = rowValidation?.identifierId || null;
+                      
+                      const validation = getValidation(fieldName, rowIdentifierId);
+                      
+                      // Get the display value
+                      const possibleKeys = [
+                        columnName,
+                        columnName.toLowerCase(),
+                        columnName.charAt(0).toLowerCase() + columnName.slice(1),
+                      ];
+                      
+                      let originalValue = undefined;
+                      for (const key of possibleKeys) {
+                        if (item[key] !== undefined) {
+                          originalValue = item[key];
+                          break;
+                        }
+                      }
+                      
+                      let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                      if (displayValue === "null" || displayValue === "undefined") {
+                        displayValue = null;
+                      }
+                      
+                      return displayValue && 
+                             displayValue.toString().toLowerCase().includes(searchLower);
+                    });
+                  }).length;
+                  
+                  return { visible: filteredCount, total: totalRecords };
+                };
+                
+                const { visible, total } = getRecordCounts();
+                
                 return (
                   <div className="mb-5 flex items-center justify-between">
                     <p className="text-sm text-gray-600 dark:text-gray-400">{activeCollection.description}</p>
@@ -3814,6 +3875,9 @@ Thank you for your assistance.`;
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-64 h-8 text-sm"
                       />
+                      <span className="text-sm text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md">
+                        {searchTerm ? `${visible} of ${total}` : `${total} records`}
+                      </span>
                     </div>
                   </div>
                 );
