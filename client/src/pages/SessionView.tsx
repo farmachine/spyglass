@@ -4160,13 +4160,13 @@ Thank you for your assistance.`;
                                     <div className="flex items-center gap-3">
                                       <div className="flex-shrink-0">
                                         {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                          <FileText className="w-5 h-5 text-green-600" />
+                                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                         ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                          <FileText className="w-5 h-5 text-blue-600" />
+                                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                                         ) : doc.mimeType?.includes('pdf') ? (
-                                          <FileText className="w-5 h-5 text-red-600" />
+                                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
                                         ) : (
-                                          <FileText className="w-5 h-5 text-gray-600" />
+                                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
@@ -4209,10 +4209,10 @@ Thank you for your assistance.`;
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => handleDeleteDocument(doc.id)}
-                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                                         title="Delete document"
                                       >
-                                        <Trash2 className="h-4 w-4" />
+                                        <X className="h-4 w-4" />
                                       </Button>
                                     </div>
                                   </td>
