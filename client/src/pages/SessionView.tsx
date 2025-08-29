@@ -4388,15 +4388,25 @@ Thank you for your assistance.`;
                                 );
                                 
                                 // Debug logging for 'children' search
-                                if (searchTerm.toLowerCase() === 'children' && matches) {
-                                  console.log(`🔍 MATCH found for Row ${originalIndex}:`, {
-                                    validations: rowValidations.map(v => ({
-                                      fieldName: v.fieldName,
-                                      extractedValue: v.extractedValue,
-                                      matchesSearch: v.extractedValue.toString().toLowerCase().includes(searchLower)
-                                    })),
-                                    totalMatches: matches
-                                  });
+                                if (searchTerm.toLowerCase() === 'children') {
+                                  const matchingValidations = rowValidations.filter(v => 
+                                    v.extractedValue.toString().toLowerCase().includes(searchLower)
+                                  );
+                                  
+                                  if (matchingValidations.length > 0) {
+                                    console.log(`🔍 MATCH found for Row ${originalIndex}:`, {
+                                      matchingFields: matchingValidations.map(v => ({
+                                        fieldName: v.fieldName,
+                                        extractedValue: v.extractedValue,
+                                        searchTerm: searchLower,
+                                        contains: v.extractedValue.toString().toLowerCase().includes(searchLower)
+                                      })),
+                                      allValidations: rowValidations.map(v => ({
+                                        fieldName: v.fieldName,
+                                        extractedValue: v.extractedValue
+                                      }))
+                                    });
+                                  }
                                 }
                                 
                                 return matches;
