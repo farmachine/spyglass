@@ -3540,7 +3540,7 @@ Thank you for your assistance.`;
             <div className="mb-6">
               <div className="relative flex items-center">
                 {/* Folder icon - aligned with workflow step dots */}
-                <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                <div className="relative z-10 w-8 h-8 flex items-center justify-center ml-1">
                   <Folder className={`h-5 w-5 ${
                     activeTab === 'documents' ? '' : ''
                   }`} style={activeTab === 'documents' ? { color: '#4F63A4', fill: '#4F63A4' } : { color: '#4F63A4' }} />
@@ -3554,7 +3554,7 @@ Thank you for your assistance.`;
                       ? 'hover:bg-slate-100 dark:hover:bg-gray-700' 
                       : 'hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100'
                   }`}
-                  style={{ color: '#071e54' }}
+                  style={activeTab === 'documents' ? { color: '#4F63A4' } : { color: '#071e54' }}
                 >
                   <div className="truncate">Documents</div>
                 </button>
