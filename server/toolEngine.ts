@@ -1234,8 +1234,12 @@ except Exception as e:
       });
 
       pythonProcess.on('close', (code) => {
+        // Always log stderr for debugging
+        if (error) {
+          console.error('Python debug output:', error);
+        }
+        
         if (code !== 0) {
-          console.error('Python execution error:', error);
           reject(new Error(`Python process exited with code ${code}: ${error}`));
         } else {
           try {
