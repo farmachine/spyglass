@@ -1045,6 +1045,7 @@ ${formattedInputs}${arrayInstruction}`;
     return `import json
 import sys
 import traceback
+import inspect
 
 # Generated function code
 ${functionCode}
@@ -1071,8 +1072,22 @@ try:
     
     func = globals()[function_name]
     
-    # Call the function with inputs
-    result = func(**inputs)
+    # Get the function's expected parameters
+    sig = inspect.signature(func)
+    expected_params = list(sig.parameters.keys())
+    
+    # Filter inputs to only include parameters the function expects
+    filtered_inputs = {}
+    for param in expected_params:
+        # Try to find the input value using the exact parameter name
+        if param in inputs:
+            filtered_inputs[param] = inputs[param]
+        else:
+            # If not found, log what we have for debugging
+            print(f"Warning: Parameter '{param}' not found in inputs. Available keys: {list(inputs.keys())}", file=sys.stderr)
+    
+    # Call the function with filtered inputs
+    result = func(**filtered_inputs)
     
     # Validate and output result
     if result is None:
