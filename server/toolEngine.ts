@@ -659,11 +659,25 @@ Return a JSON array with extraction results.`;
         throw new Error('Function code not found');
       }
       
+      // Normalize parameter names to match what the Python function expects
+      // Python functions typically use snake_case, so convert spaces to underscores
+      const normalizedInputs: Record<string, any> = {};
+      for (const [key, value] of Object.entries(inputs)) {
+        // Convert parameter names like "Excel File" to "excel_file"
+        const normalizedKey = key.replace(/\s+/g, '_').toLowerCase();
+        normalizedInputs[normalizedKey] = value;
+        
+        // Also keep the original key for backward compatibility
+        normalizedInputs[key] = value;
+      }
+      
+      console.log('🐍 Normalized inputs for Python function:', Object.keys(normalizedInputs));
+      
       // Write function to temporary file to avoid string escaping issues
       const tempDir = '/tmp';
       const tempFile = path.join(tempDir, `test_function_${Date.now()}.py`);
       
-      const testScript = this.buildCodeTestScript(tool, inputs);
+      const testScript = this.buildCodeTestScript(tool, normalizedInputs);
       await fs.writeFile(tempFile, testScript);
       
       try {
