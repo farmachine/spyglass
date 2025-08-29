@@ -4294,7 +4294,7 @@ Thank you for your assistance.`;
                               return sortedItems.map(({ item, originalIndex }) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b border-gray-300 dark:border-gray-600/30"
+                                  className="border-b border-gray-100 dark:border-gray-800"
                                   style={{
                                     backgroundColor: originalIndex % 2 === 0 
                                       ? 'transparent' 
