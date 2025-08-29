@@ -1106,6 +1106,19 @@ try:
     sig = inspect.signature(func)
     expected_params = list(sig.parameters.keys())
     
+    # Debug: Show what inputs we received
+    print(f"DEBUG: Received inputs keys: {list(inputs.keys())}", file=sys.stderr)
+    for key in inputs.keys():
+        val = inputs[key]
+        if isinstance(val, list) and len(val) > 0:
+            print(f"DEBUG: Input '{key}' is array with {len(val)} items", file=sys.stderr)
+            if isinstance(val[0], dict):
+                print(f"DEBUG: First item of '{key}': {val[0]}", file=sys.stderr)
+        elif isinstance(val, str) and len(val) > 100:
+            print(f"DEBUG: Input '{key}' is string ({len(val)} chars): {val[:100]}...", file=sys.stderr)
+        else:
+            print(f"DEBUG: Input '{key}': {val}", file=sys.stderr)
+    
     # Filter inputs to only include parameters the function expects
     filtered_inputs = {}
     for param in expected_params:
