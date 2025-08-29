@@ -4367,49 +4367,53 @@ Thank you for your assistance.`;
                                 ? sortCollectionData(itemsWithIndices, collection, sortConfig)
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
-                              // Apply search filtering - only on extracted values from field_validations
-                              const filteredItems = searchTerm ? sortedItems.filter(({ originalIndex }) => {
+                              // Apply search filtering - search across all visible table data
+                              const filteredItems = searchTerm ? sortedItems.filter(({ item, originalIndex }) => {
                                 const searchLower = searchTerm.toLowerCase();
                                 
-                                // Search only in validation extracted values for this specific collection and row
-                                const rowValidations = validations.filter(v => 
-                                  v.recordIndex === originalIndex &&
-                                  v.collectionName === collection.collectionName &&
-                                  v.extractedValue && 
-                                  v.extractedValue !== null &&
-                                  v.extractedValue !== undefined &&
-                                  v.extractedValue !== "" &&
-                                  v.extractedValue !== "null" &&
-                                  v.extractedValue !== "undefined"
-                                );
+                                // Search in the actual displayed values from each column
+                                const columnsToDisplay = workflowStep?.values || collection.properties;
                                 
-                                const matches = rowValidations.some(v => 
-                                  v.extractedValue.toString().toLowerCase().includes(searchLower)
-                                );
-                                
-                                // Debug logging for 'children' search
-                                if (searchTerm.toLowerCase() === 'children') {
-                                  const matchingValidations = rowValidations.filter(v => 
-                                    v.extractedValue.toString().toLowerCase().includes(searchLower)
-                                  );
+                                return columnsToDisplay.some(column => {
+                                  const columnName = workflowStep ? column.valueName : (column as any).propertyName;
+                                  const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                   
-                                  if (matchingValidations.length > 0) {
-                                    console.log(`🔍 MATCH found for Row ${originalIndex}:`, {
-                                      matchingFields: matchingValidations.map(v => ({
-                                        fieldName: v.fieldName,
-                                        extractedValue: v.extractedValue,
-                                        searchTerm: searchLower,
-                                        contains: v.extractedValue.toString().toLowerCase().includes(searchLower)
-                                      })),
-                                      allValidations: rowValidations.map(v => ({
-                                        fieldName: v.fieldName,
-                                        extractedValue: v.extractedValue
-                                      }))
-                                    });
+                                  // Get the identifierId for this row
+                                  const rowIdentifierId = (() => {
+                                    const rowValidation = validations.find(v => 
+                                      v.recordIndex === originalIndex &&
+                                      v.collectionName === collection.collectionName &&
+                                      v.identifierId
+                                    );
+                                    return rowValidation?.identifierId || null;
+                                  })();
+                                  
+                                  const validation = getValidation(fieldName, rowIdentifierId);
+                                  
+                                  // Get the display value (same logic as what's shown in the table)
+                                  const possibleKeys = [
+                                    columnName,
+                                    columnName.toLowerCase(),
+                                    columnName.charAt(0).toLowerCase() + columnName.slice(1),
+                                  ];
+                                  
+                                  let originalValue = undefined;
+                                  for (const key of possibleKeys) {
+                                    if (item[key] !== undefined) {
+                                      originalValue = item[key];
+                                      break;
+                                    }
                                   }
-                                }
-                                
-                                return matches;
+                                  
+                                  let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                  if (displayValue === "null" || displayValue === "undefined") {
+                                    displayValue = null;
+                                  }
+                                  
+                                  // Check if this column's display value contains the search term
+                                  return displayValue && 
+                                         displayValue.toString().toLowerCase().includes(searchLower);
+                                });
                               }) : sortedItems;
                               
                               // Handle case when search yields no results
