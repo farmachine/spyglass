@@ -308,9 +308,20 @@ Your response must maintain the identifierId mapping for all processed items.
         for doc in knowledge_docs:
             doc_name = doc.get('display_name') or doc.get('file_name', 'Unknown')
             doc_desc = doc.get('description', '')
-            doc_content = doc.get('content', '')[:500]
+            doc_content = doc.get('content', '')
+            
+            # Log knowledge document details for debugging
+            print(f"📚 KNOWLEDGE DOC: {doc_name}")
+            print(f"   Description: {doc_desc}")
+            print(f"   Content Length: {len(doc_content)} chars")
+            print(f"   Content Preview: {doc_content[:200]}...")
+            
             knowledge_context += f"- {doc_name}: {doc_desc}\n"
-            knowledge_context += f"  Content: {doc_content}...\n"
+            # Include full content, not just preview
+            if doc_content:
+                knowledge_context += f"  Content: {doc_content}\n\n"
+            else:
+                knowledge_context += f"  Content: [No content available]\n\n"
     
     # 5. INPUT DATA SUMMARY - What data is being processed
     input_summary = "\nINPUT DATA SUMMARY:\n"
@@ -357,6 +368,17 @@ def execute_ai_extraction(tool_data: Dict[str, Any], value_data: Dict[str, Any],
         
         value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
         print(f"🤖 AI EXTRACTION: Processing {value_name}")
+        
+        # Log knowledge documents summary
+        if knowledge_docs:
+            print(f"📚 KNOWLEDGE DOCS: {len(knowledge_docs)} documents loaded")
+            for i, doc in enumerate(knowledge_docs):
+                doc_name = doc.get('display_name') or doc.get('file_name', 'Unknown')
+                content_len = len(doc.get('content', ''))
+                print(f"   {i+1}. {doc_name} ({content_len} chars)")
+        else:
+            print(f"⚠️ KNOWLEDGE DOCS: No knowledge documents provided")
+        
         print(f"📝 FULL AI PROMPT:\n{'-'*80}\n{prompt}\n{'-'*80}")
         
         # Call Gemini API
