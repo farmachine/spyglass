@@ -6892,11 +6892,59 @@ def extract_function(Column_Name, Excel_File):
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
-          // CRITICAL: Apply 50-record limit for AI tools to prevent excessive processing
-          const limitedPreviousData = previousData.slice(0, 50);
-          console.log(`🎯 AI tool expects List Item but input is null - using previousData with ${limitedPreviousData.length} records (limited from ${previousData.length} for performance)`);
-          console.log(`  First record:`, limitedPreviousData[0]);
-          console.log(`  Last record:`, limitedPreviousData[limitedPreviousData.length - 1]);
+          // CRITICAL: Prioritize records for extraction based on their validation status
+          // Get existing validations for this value to check which records are already validated
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          const valueValidations = existingValidations.filter(v => v.valueId === valueId);
+          
+          // Create a map of identifierId to validation status for quick lookup
+          const validationStatusMap = new Map<string, string>();
+          for (const validation of valueValidations) {
+            if (validation.identifierId) {
+              validationStatusMap.set(validation.identifierId, validation.validationStatus || 'pending');
+            }
+          }
+          
+          // Separate records into categories based on their extraction/validation status
+          const notExtractedRecords: any[] = [];
+          const pendingRecords: any[] = [];
+          const validatedRecords: any[] = [];
+          
+          for (const record of previousData) {
+            const identifierId = record.identifierId;
+            const validation = identifierId ? valueValidations.find(v => v.identifierId === identifierId) : null;
+            
+            if (!validation || validation.extractedValue === null || validation.extractedValue === undefined) {
+              // Not yet extracted - highest priority
+              notExtractedRecords.push(record);
+            } else if (validation.validationStatus === 'pending') {
+              // Already extracted but pending validation - second priority
+              pendingRecords.push(record);
+            } else if (validation.validationStatus === 'valid') {
+              // Already validated - do not include in extraction
+              validatedRecords.push(record);
+            } else {
+              // Unknown status - treat as pending
+              pendingRecords.push(record);
+            }
+          }
+          
+          console.log(`📊 Record prioritization for extraction:`);
+          console.log(`  🔴 Not extracted: ${notExtractedRecords.length} records`);
+          console.log(`  🟡 Pending: ${pendingRecords.length} records`);
+          console.log(`  🟢 Validated: ${validatedRecords.length} records (will NOT be extracted)`);
+          
+          // Build the batch prioritizing not-extracted, then pending, never validated
+          const prioritizedData = [...notExtractedRecords, ...pendingRecords];
+          
+          // Apply 50-record limit for AI tools to prevent excessive processing
+          const limitedPreviousData = prioritizedData.slice(0, 50);
+          console.log(`🎯 AI tool expects List Item - using ${limitedPreviousData.length} prioritized records (from ${prioritizedData.length} eligible, ${previousData.length} total)`);
+          
+          if (limitedPreviousData.length > 0) {
+            console.log(`  First record:`, limitedPreviousData[0]);
+            console.log(`  Last record:`, limitedPreviousData[limitedPreviousData.length - 1]);
+          }
           
           // Format previousData for the AI tool - it should contain merged column information
           toolInputs['List Item'] = limitedPreviousData.map(record => {
@@ -7180,17 +7228,30 @@ def extract_function(Column_Name, Excel_File):
               );
           
           if (existingValidation) {
-            // Simple update - just pass through the result
-            await storage.updateFieldValidation(existingValidation.id, {
-              extractedValue: result.extractedValue,
-              validationStatus: 'pending', // Always set to pending for new extractions
-              aiReasoning: result.aiReasoning,
-              confidenceScore: result.confidenceScore,
-              documentSource: result.documentSource,
-              identifierId: identifierId,
-              extractedAt: new Date()
-            });
-            console.log(`📝 Updated validation for ${fieldName}`);
+            // CRITICAL: Check if the field is already validated
+            if (existingValidation.validationStatus === 'valid') {
+              // DO NOT overwrite validated fields
+              console.log(`✅ Skipping ${fieldName} - already validated`);
+              continue; // Skip to next result
+            }
+            
+            // Only update if field is pending or not yet extracted
+            if (existingValidation.validationStatus === 'pending' || 
+                existingValidation.extractedValue === null || 
+                existingValidation.extractedValue === undefined) {
+              await storage.updateFieldValidation(existingValidation.id, {
+                extractedValue: result.extractedValue,
+                validationStatus: 'pending', // Set to pending for new extractions
+                aiReasoning: result.aiReasoning,
+                confidenceScore: result.confidenceScore,
+                documentSource: result.documentSource,
+                identifierId: identifierId,
+                extractedAt: new Date()
+              });
+              console.log(`📝 Updated validation for ${fieldName} (was ${existingValidation.validationStatus})`);
+            } else {
+              console.log(`⚠️ Skipping update for ${fieldName} - unexpected validation status: ${existingValidation.validationStatus}`);
+            }
           } else {
             // Create new validation
             // In the unified architecture, collectionId should be the stepId for Data Tables
