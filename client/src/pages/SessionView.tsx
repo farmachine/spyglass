@@ -158,7 +158,7 @@ const ValidationIndicator = ({
         {isValid ? (
           <Check className="h-3 w-3 text-green-600" />
         ) : (
-          <div className="w-3 h-3 rounded-full border-2 border-gray-400" />
+          <div className="w-2 h-2 rounded-full border-2 border-gray-400" />
         )}
       </button>
       {/* Show reasoning on hover */}
@@ -3995,7 +3995,7 @@ Thank you for your assistance.`;
                                             handleVerificationToggle(fieldName, true);
                                           }
                                         }}
-                                        className={`w-3 h-3 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
+                                        className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
                                         title={`${score}% confidence - Click for AI analysis`}
                                       />
                                     );
@@ -4743,7 +4743,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className={`absolute top-2 left-1 w-3 h-3 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors`}
+                                                              className={`absolute top-2 left-1 w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors`}
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
@@ -4773,7 +4773,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className="absolute top-2 left-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              className="absolute top-2 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
