@@ -357,6 +357,7 @@ def execute_ai_extraction(tool_data: Dict[str, Any], value_data: Dict[str, Any],
         
         value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
         print(f"🤖 AI EXTRACTION: Processing {value_name}")
+        print(f"📝 FULL AI PROMPT:\n{'-'*80}\n{prompt}\n{'-'*80}")
         
         # Call Gemini API
         response = client.models.generate_content(
