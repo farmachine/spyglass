@@ -3424,7 +3424,7 @@ Thank you for your assistance.`;
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold dark:text-white">{project.name}</h2>
+                  <h2 className="text-3xl font-bold dark:text-white">{project.name}{session?.sessionName ? ` • ${session.sessionName}` : ''}</h2>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
@@ -3701,7 +3701,28 @@ Thank you for your assistance.`;
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                        <h2 className="text-3xl font-bold dark:text-white">{session?.sessionName}</h2>
+                        <h2 className="text-3xl font-bold dark:text-white">{(() => {
+                          // Get the active collection/step name
+                          const collections = project?.collections || [];
+                          const workflowSteps = project?.workflowSteps || [];
+                          
+                          // Find the active tab collection
+                          const activeCollection = collections.find(c => {
+                            const stepName = c.collectionName;
+                            return workflowSteps.some(step => 
+                              step.stepName === stepName && 
+                              (step.values?.length > 0 || step.stepName === activeTab)
+                            );
+                          });
+                          
+                          if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
+                            return activeCollection.collectionName;
+                          }
+                          
+                          return activeTab === 'info' ? 'General Information' : 
+                                 activeTab === 'documents' ? 'Documents' : 
+                                 'Session Overview';
+                        })()}</h2>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -4130,20 +4151,13 @@ Thank you for your assistance.`;
 
                   return activeTab === item.itemName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
+                    {/* Description moved outside the table container */}
+                    <div className="mb-4 px-6">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
+                    </div>
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between text-[#071e54] dark:text-[#5A70B5]">
-                          <div className="flex items-center gap-2">
-                            {collection.collectionName}
-                            <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-                              {uniqueIndices.length} {uniqueIndices.length === 1 ? 'item' : 'items'}
-                            </span>
-                          </div>
-                        </CardTitle>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
-                      </CardHeader>
                       <CardContent className="p-0">
-                        <div className="border-t-2 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="overflow-hidden">
                           <Table className="session-table">
                           <TableHeader>
                             <TableRow>
