@@ -4138,82 +4138,96 @@ Thank you for your assistance.`;
                   <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                     <CardContent className="pt-6">
                       {sessionDocuments && sessionDocuments.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sessionDocuments.map((doc: any, index: number) => (
-                          <div 
-                            key={doc.id || index} 
-                            className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors group"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 mt-1">
-                                {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                  <FileText className="w-8 h-8 text-green-600" />
-                                ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                  <FileText className="w-8 h-8 text-blue-600" />
-                                ) : doc.mimeType?.includes('pdf') ? (
-                                  <FileText className="w-8 h-8 text-red-600" />
-                                ) : (
-                                  <FileText className="w-8 h-8 text-gray-600" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between">
-                                  <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate" title={doc.fileName}>
-                                    {doc.fileName}
-                                  </h4>
-                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
-                                      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                      title="Download extracted content"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleDeleteDocument(doc.id)}
-                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                      title="Delete document"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                                <div className="mt-1 space-y-1">
-                                  <p className="text-xs text-gray-500">
-                                    Size: {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Content: {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
-                                  </p>
-                                  {doc.extractedAt && (
-                                    <p className="text-xs text-gray-500">
-                                      Processed: {new Date(doc.extractedAt).toLocaleDateString()}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {doc.extractedContent && doc.extractedContent.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <p className="text-xs text-gray-600 line-clamp-2">
-                                  {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No documents uploaded yet</p>
-                        <p className="text-sm text-gray-400 mt-1">Upload documents using the upload button above</p>
-                      </div>
-                    )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-slate-200 dark:border-gray-700">
+                                <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Document</th>
+                                <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Size</th>
+                                <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Content</th>
+                                <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Processed</th>
+                                <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Details</th>
+                                <th className="text-right py-3 px-4 font-medium text-slate-700 dark:text-gray-300">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sessionDocuments.map((doc: any, index: number) => (
+                                <tr 
+                                  key={doc.id || index}
+                                  className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
+                                >
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex-shrink-0">
+                                        {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
+                                          <FileText className="w-5 h-5 text-green-600" />
+                                        ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
+                                          <FileText className="w-5 h-5 text-blue-600" />
+                                        ) : doc.mimeType?.includes('pdf') ? (
+                                          <FileText className="w-5 h-5 text-red-600" />
+                                        ) : (
+                                          <FileText className="w-5 h-5 text-gray-600" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.fileName}>
+                                          {doc.fileName}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                    {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                    {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                    {doc.extractedAt ? new Date(doc.extractedAt).toLocaleDateString() : 'Not processed'}
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                    {doc.extractedContent && doc.extractedContent.length > 0 && (
+                                      <div className="max-w-xs">
+                                        <p className="text-xs line-clamp-2">
+                                          {doc.extractedContent.substring(0, 100)}{doc.extractedContent.length > 100 ? '...' : ''}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                        className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        title="Download extracted content"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteDocument(doc.id)}
+                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        title="Delete document"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500">No documents uploaded yet</p>
+                          <p className="text-sm text-gray-400 mt-1">Upload documents using the upload button above</p>
+                        </div>
+                      )}
                   </CardContent>
                 </Card>
                 </>
