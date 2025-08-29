@@ -3476,9 +3476,10 @@ Thank you for your assistance.`;
                     <button
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
-                          ? "bg-primary text-white font-medium shadow-sm"
+                          ? "text-white font-medium shadow-sm"
                           : "text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal"
                       }`}
+                      style={isActive ? { backgroundColor: '#071e54' } : {}}
                     >
                       {item.label}
                     </button>
@@ -3500,9 +3501,10 @@ Thank you for your assistance.`;
                   onClick={() => setActiveTab('documents')}
                   className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                     activeTab === 'documents' 
-                      ? 'bg-primary text-white font-medium shadow-sm' 
+                      ? 'text-white font-medium shadow-sm' 
                       : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                   }`}
+                  style={activeTab === 'documents' ? { backgroundColor: '#071e54' } : {}}
                 >
                   <div className="truncate">Documents</div>
                 </button>
@@ -3533,7 +3535,7 @@ Thank you for your assistance.`;
                 <div className="relative flex items-center">
                   {/* Horizontal connecting line when selected */}
                   {activeTab === 'info' && (
-                    <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
+                    <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#071e54' }}></div>
                   )}
                   
                   {/* Circular icon - solid dot without border */}
@@ -3547,8 +3549,8 @@ Thank you for your assistance.`;
                       const totalCount = infoValidations.length;
                       
                       return <div className={`w-2 h-2 rounded-full ${
-                        activeTab === 'info' ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
-                      }`}></div>;
+                        activeTab === 'info' ? '' : 'bg-slate-400 dark:bg-gray-500'
+                      }`} style={activeTab === 'info' ? { backgroundColor: '#071e54' } : {}}></div>;
                     })()}
                   </div>
                   
@@ -3557,9 +3559,10 @@ Thank you for your assistance.`;
                     onClick={() => setActiveTab('info')}
                     className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'info' 
-                        ? 'bg-primary text-white font-medium shadow-sm' 
+                        ? 'text-white font-medium shadow-sm' 
                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
+                    style={activeTab === 'info' ? { backgroundColor: '#071e54' } : {}}
                   >
                     <div className="truncate">General Information</div>
                   </button>
@@ -3617,14 +3620,14 @@ Thank you for your assistance.`;
                       <div key={item.id} className="relative flex items-center">
                         {/* Horizontal connecting line when selected */}
                         {activeTab === item.name && (
-                          <div className="absolute left-4 w-8 h-[2px] bg-primary dark:bg-primary z-20"></div>
+                          <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#071e54' }}></div>
                         )}
                         
                         {/* Circular icon - solid dot without border */}
                         <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                           <div className={`w-2 h-2 rounded-full ${
-                            activeTab === item.name ? 'bg-primary' : 'bg-slate-400 dark:bg-gray-500'
-                          }`}></div>
+                            activeTab === item.name ? '' : 'bg-slate-400 dark:bg-gray-500'
+                          }`} style={activeTab === item.name ? { backgroundColor: '#071e54' } : {}}></div>
                         </div>
                         
                         {/* Tab button */}
@@ -3632,9 +3635,10 @@ Thank you for your assistance.`;
                           onClick={() => setActiveTab(item.name)}
                           className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                             activeTab === item.name 
-                              ? 'bg-primary text-white font-medium shadow-sm' 
+                              ? 'text-white font-medium shadow-sm' 
                               : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                           }`}
+                          style={activeTab === item.name ? { backgroundColor: '#071e54' } : {}}
                         >
                           <div className="truncate">{item.name}</div>
                         </button>
@@ -3696,7 +3700,7 @@ Thank you for your assistance.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#071e54' }}></div>
                         <h2 className="text-3xl font-bold dark:text-white">{session?.sessionName}</h2>
                         <Button
                           size="sm"
