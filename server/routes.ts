@@ -7004,6 +7004,16 @@ def extract_function(Column_Name, Excel_File):
       // Also pass project ID for tools that may need it
       toolInputs.projectId = session.projectId;
       
+      // CRITICAL: Pass the value configuration itself to the tool
+      // This tells the AI what specific field to extract
+      toolInputs.valueConfiguration = {
+        valueName: value.valueName,
+        description: value.description || value.valueName,
+        valueId: value.id,
+        stepName: step.stepName
+      };
+      console.log(`📝 Added value configuration: ${value.valueName}`);
+      
       // Pass session document content for user_document placeholder replacement
       if (documentContent) {
         toolInputs.sessionDocumentContent = documentContent;

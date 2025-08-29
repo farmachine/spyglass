@@ -554,9 +554,27 @@ export class ToolEngine {
     const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
     const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
     
+    // Extract value configuration if present
+    const valueConfig = inputs['valueConfiguration'];
+    const valueName = valueConfig?.valueName || '';
+    const valueDescription = valueConfig?.description || '';
+    const stepName = valueConfig?.stepName || '';
+    
+    // Build enhanced prompt that includes value configuration
+    let enhancedPrompt = basePrompt;
+    
+    // If we have value configuration, add it to the prompt
+    if (valueConfig) {
+      enhancedPrompt = `EXTRACTION TASK: Extract "${valueName}" from the provided data.
+${valueDescription ? `\nField Description: ${valueDescription}` : ''}
+${stepName ? `\nFrom Step: ${stepName}` : ''}
+
+${basePrompt}`;
+    }
+    
     // Build prompt with tool's template
     if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`')) {
-      return `${basePrompt}
+      return `${enhancedPrompt}
 
 AI Query: ${aiQuery}
 ${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
@@ -569,7 +587,7 @@ ${JSON.stringify(dataArray, null, 2)}
 
 IMPORTANT: Return a JSON array with one object per input item. Each object must include:
 - identifierId: The same identifierId from the input
-- extractedValue: The extracted/processed value
+- extractedValue: The extracted/processed value for "${valueName}"
 - validationStatus: "valid" or "invalid"
 - aiReasoning: Explanation of the extraction
 - confidenceScore: Number 0-100
