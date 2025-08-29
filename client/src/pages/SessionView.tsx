@@ -4306,7 +4306,7 @@ Thank you for your assistance.`;
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((column) => {
+                                    .map((column, columnIndex) => {
                                     const columnId = column.id;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
@@ -4376,7 +4376,7 @@ Thank you for your assistance.`;
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
                                             <span className={`
                                               ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''}
-                                              ${columnName.toLowerCase().includes('name') ? 'font-medium' : ''}
+                                              ${columnIndex === 0 ? 'font-medium' : ''}
                                             `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
