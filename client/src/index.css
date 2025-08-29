@@ -298,23 +298,26 @@
   table-layout: auto;
 }
 
-/* Sticky header */
+/* Sticky header - both thead and th need sticky */
 .session-table thead {
   position: sticky;
+  position: -webkit-sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
 .session-table thead th {
   position: sticky;
+  position: -webkit-sticky;
   top: 0;
+  z-index: 20;
   background-color: rgb(249 250 251); /* Match bg-gray-50 */
-  border-bottom: 2px solid rgb(209 213 219);
+  box-shadow: 0 2px 0 0 rgb(209 213 219); /* Bottom border effect */
 }
 
 .dark .session-table thead th {
   background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
-  border-bottom-color: rgb(75 85 99);
+  box-shadow: 0 2px 0 0 rgb(75 85 99);
 }
 
 .session-table tbody td {
