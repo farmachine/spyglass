@@ -4293,9 +4293,9 @@ Thank you for your assistance.`;
                   // Always show the table even when there are no records, so headers remain visible
 
                   return activeTab === item.itemName ? (
-                  <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden flex flex-col">
-                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden flex flex-col">
-                      <CardContent className="p-0 h-full overflow-hidden flex flex-col">
+                  <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
+                      <CardContent className="p-0">
                         <div className="session-table-wrapper">
                           <Table className="session-table">
                             <TableHeader>

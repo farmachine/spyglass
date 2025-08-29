@@ -283,41 +283,40 @@
   max-height: 100%;
 }
 
-/* Session table wrapper with height constraint */
+/* Session table wrapper - scroll container with dynamic height */
 .session-table-wrapper {
-  height: 100%;
-  max-height: calc(100vh - 250px);
+  height: calc(100vh - 280px); /* Dynamic height based on viewport */
+  max-height: 600px; /* Maximum height limit */
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
 }
 
-/* Session table stays as normal table */
+/* Session table */
 .session-table {
   width: 100%;
-  table-layout: auto;
+  position: relative;
 }
 
-/* Sticky header - both thead and th need sticky */
+/* Sticky table header */
 .session-table thead {
   position: sticky;
   position: -webkit-sticky;
   top: 0;
-  z-index: 20;
+  z-index: 50;
 }
 
 .session-table thead th {
   position: sticky;
   position: -webkit-sticky;
   top: 0;
-  z-index: 20;
   background-color: rgb(249 250 251); /* Match bg-gray-50 */
-  box-shadow: 0 2px 0 0 rgb(209 213 219); /* Bottom border effect */
+  border-bottom: 2px solid rgb(209 213 219);
 }
 
 .dark .session-table thead th {
   background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
-  box-shadow: 0 2px 0 0 rgb(75 85 99);
+  border-bottom: 2px solid rgb(75 85 99);
 }
 
 .session-table tbody td {
