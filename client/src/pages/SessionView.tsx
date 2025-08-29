@@ -3544,20 +3544,20 @@ Thank you for your assistance.`;
                   <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                 )}
                 
-                {/* Folder icon - aligned with workflow step dots */}
-                <div className="relative z-10 w-8 h-8 flex items-center justify-center ml-1">
-                  <Folder className={`h-5 w-5 ${
-                    activeTab === 'documents' ? '' : ''
-                  }`} style={activeTab === 'documents' ? { color: '#4F63A4', fill: '#4F63A4' } : { color: '#4F63A4' }} />
+                {/* Circular icon - solid dot without border */}
+                <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activeTab === 'documents' ? '' : 'bg-slate-400 dark:bg-gray-500'
+                  }`} style={activeTab === 'documents' ? { backgroundColor: '#4F63A4' } : {}}></div>
                 </div>
                 
                 {/* Tab button */}
                 <button
                   onClick={() => setActiveTab('documents')}
-                  className={`ml-1 flex-1 text-left px-3 py-2 text-base rounded-lg transition-all duration-200 ${
+                  className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                     activeTab === 'documents' 
-                      ? '' 
-                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100'
+                      ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
+                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                   }`}
                   style={activeTab === 'documents' ? { color: '#071e54' } : {}}
                 >
