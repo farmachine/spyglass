@@ -4759,7 +4759,7 @@ Thank you for your assistance.`;
                                                               {validation.confidenceScore && (
                                                                 <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
                                                               )}
-                                                              <div className="text-xs text-blue-700">Click indicator to validate</div>
+                                                              <div className="text-xs font-bold" style={{ color: '#4F63A4' }}>Click indicator to validate</div>
                                                             </div>
                                                           </TooltipContent>
                                                         </Tooltip>
@@ -4785,7 +4785,7 @@ Thank you for your assistance.`;
                                                               </div>
                                                               <div className="whitespace-pre-line leading-relaxed">
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
-                                                                <div className="text-xs text-blue-700">Click indicator to validate</div>
+                                                                <div className="text-xs font-bold" style={{ color: '#4F63A4' }}>Click indicator to validate</div>
                                                               </div>
                                                             </TooltipContent>
                                                           )}
