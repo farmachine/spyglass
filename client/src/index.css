@@ -283,39 +283,38 @@
   max-height: 100%;
 }
 
-/* Table container with scrollable wrapper */
-.table-container {
+/* Session table wrapper with height constraint */
+.session-table-wrapper {
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
 }
 
-/* Fixed header wrapper */
-.table-header-wrapper {
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-/* Scrollable body wrapper */
-.table-body-wrapper {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Ensure tables maintain their structure */
+/* Session table stays as normal table */
 .session-table {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
+}
+
+/* Sticky header */
+.session-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .session-table thead th {
+  position: sticky;
+  top: 0;
   background-color: rgb(249 250 251); /* Match bg-gray-50 */
+  border-bottom: 2px solid rgb(209 213 219);
 }
 
 .dark .session-table thead th {
   background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
+  border-bottom-color: rgb(75 85 99);
 }
 
 .session-table tbody td {
