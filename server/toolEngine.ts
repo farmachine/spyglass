@@ -333,7 +333,37 @@ export class ToolEngine {
             }
           }
       } else {
-        preparedInputs[param.name] = inputValue;
+        // Handle regular parameters (including references from previous steps)
+        if (inputValue !== undefined && inputValue !== null && inputValue !== '') {
+          preparedInputs[param.name] = inputValue;
+          console.log(`📝 Set ${param.name} = ${typeof inputValue === 'string' ? inputValue.substring(0, 100) : JSON.stringify(inputValue).substring(0, 100)}`);
+        } else {
+          // If the value is empty/null/undefined, check if it's being passed with a different key
+          // This helps with value configurations that might not match tool parameter names exactly
+          const possibleKeys = [
+            param.name.toLowerCase(),
+            param.name.replace(/\s+/g, '_').toLowerCase(),
+            param.name.replace(/\s+/g, ''),
+            'column',
+            'Column',
+            'column_name',
+            'Column Name'
+          ];
+          
+          for (const key of possibleKeys) {
+            if (rawInputs[key] !== undefined && rawInputs[key] !== null && rawInputs[key] !== '') {
+              preparedInputs[param.name] = rawInputs[key];
+              console.log(`📝 Found ${param.name} value using key "${key}": ${JSON.stringify(rawInputs[key]).substring(0, 100)}`);
+              break;
+            }
+          }
+          
+          // If still no value found, set empty string to avoid undefined
+          if (preparedInputs[param.name] === undefined) {
+            preparedInputs[param.name] = '';
+            console.log(`⚠️ No value found for parameter ${param.name}, setting to empty string`);
+          }
+        }
       }
     }
     
