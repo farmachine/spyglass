@@ -4371,7 +4371,7 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1 text-xs font-semibold" style={{ color: '#071e54' }}>{columnName}</span>
+                                        <span className="truncate pl-1 text-sm font-semibold" style={{ color: '#071e54' }}>{columnName}</span>
                                       </div>
                                       <div className="flex items-center gap-0.5 ml-1">
                                         <button
