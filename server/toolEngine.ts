@@ -1079,12 +1079,41 @@ try:
     # Filter inputs to only include parameters the function expects
     filtered_inputs = {}
     for param in expected_params:
-        # Try to find the input value using the exact parameter name
+        # Try to find the input value using various key mappings
+        value = None
+        
+        # Direct match
         if param in inputs:
-            filtered_inputs[param] = inputs[param]
+            value = inputs[param]
+        # Try with underscores replaced by spaces
+        elif param.replace('_', ' ') in inputs:
+            value = inputs[param.replace('_', ' ')]
+        # Try title case version
+        elif param.replace('_', ' ').title() in inputs:
+            value = inputs[param.replace('_', ' ').title()]
+        # Common mappings for document parameters
+        elif 'excel' in param.lower() and 'Excel File' in inputs:
+            value = inputs['Excel File']
+        elif 'document' in param.lower() and 'document' in inputs:
+            value = inputs['document']
+        elif 'content' in param.lower():
+            # Try various content-related keys
+            for key in ['Excel File', 'document', 'Document', 'file_content', 'content']:
+                if key in inputs:
+                    value = inputs[key]
+                    break
+        elif 'column' in param.lower():
+            # For column-related parameters, try various keys
+            for key in ['column', 'Column', 'column_name', 'Column Name']:
+                if key in inputs:
+                    value = inputs[key]
+                    break
+        
+        if value is not None:
+            filtered_inputs[param] = value
+            print(f"✓ Mapped parameter '{param}' to value ({type(value).__name__}, {len(value) if isinstance(value, str) else 'N/A'} chars)", file=sys.stderr)
         else:
-            # If not found, log what we have for debugging
-            print(f"Warning: Parameter '{param}' not found in inputs. Available keys: {list(inputs.keys())}", file=sys.stderr)
+            print(f"⚠️ Could not find value for parameter '{param}'. Available keys: {list(inputs.keys())}", file=sys.stderr)
     
     # Call the function with filtered inputs
     result = func(**filtered_inputs)
