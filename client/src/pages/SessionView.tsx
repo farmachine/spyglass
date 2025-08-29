@@ -163,7 +163,7 @@ const ValidationIndicator = ({
       </button>
       {/* Show reasoning on hover */}
       {(reasoning || validation?.confidenceScore) && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 max-w-[400px] shadow-lg">
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 max-w-[400px] shadow-lg">
           <div className="whitespace-pre-line leading-relaxed">
             {reasoning && (
               <div className="mb-2">{reasoning}</div>
@@ -4559,7 +4559,7 @@ Thank you for your assistance.`;
                                                           <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
                                                             <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
                                                               <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                                                              <span className="text-sm font-semibold">Information</span>
+                                                              <span className="text-sm font-semibold">Analysis</span>
                                                             </div>
                                                             <div className="whitespace-pre-line leading-relaxed">
                                                               {validation.aiReasoning && (
@@ -4590,7 +4590,7 @@ Thank you for your assistance.`;
                                                             <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
                                                               <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
                                                                 <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                                                                <span className="text-sm font-semibold">Information</span>
+                                                                <span className="text-sm font-semibold">Analysis</span>
                                                               </div>
                                                               <div className="whitespace-pre-line leading-relaxed">
                                                                 <div className="mb-2">{validation.aiReasoning}</div>
