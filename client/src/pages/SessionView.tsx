@@ -3476,10 +3476,10 @@ Thank you for your assistance.`;
                     <button
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
-                          ? "text-white font-medium shadow-sm"
+                          ? "font-medium shadow-sm hover:bg-slate-100 dark:hover:bg-gray-700"
                           : "text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal"
                       }`}
-                      style={isActive ? { backgroundColor: '#071e54' } : {}}
+                      style={isActive ? { color: '#071e54' } : {}}
                     >
                       {item.label}
                     </button>
@@ -3501,10 +3501,10 @@ Thank you for your assistance.`;
                   onClick={() => setActiveTab('documents')}
                   className={`flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                     activeTab === 'documents' 
-                      ? 'text-white font-medium shadow-sm' 
+                      ? 'font-medium shadow-sm hover:bg-slate-100 dark:hover:bg-gray-700' 
                       : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                   }`}
-                  style={activeTab === 'documents' ? { backgroundColor: '#071e54' } : {}}
+                  style={activeTab === 'documents' ? { color: '#071e54' } : {}}
                 >
                   <div className="truncate">Documents</div>
                 </button>
@@ -3559,10 +3559,10 @@ Thank you for your assistance.`;
                     onClick={() => setActiveTab('info')}
                     className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                       activeTab === 'info' 
-                        ? 'text-white font-medium shadow-sm' 
+                        ? 'font-medium shadow-sm hover:bg-slate-100 dark:hover:bg-gray-700' 
                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
-                    style={activeTab === 'info' ? { backgroundColor: '#071e54' } : {}}
+                    style={activeTab === 'info' ? { color: '#071e54' } : {}}
                   >
                     <div className="truncate">General Information</div>
                   </button>
@@ -3635,10 +3635,10 @@ Thank you for your assistance.`;
                           onClick={() => setActiveTab(item.name)}
                           className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                             activeTab === item.name 
-                              ? 'text-white font-medium shadow-sm' 
+                              ? 'font-medium shadow-sm hover:bg-slate-100 dark:hover:bg-gray-700' 
                               : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                           }`}
-                          style={activeTab === item.name ? { backgroundColor: '#071e54' } : {}}
+                          style={activeTab === item.name ? { color: '#071e54' } : {}}
                         >
                           <div className="truncate">{item.name}</div>
                         </button>
