@@ -3424,7 +3424,37 @@ Thank you for your assistance.`;
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold dark:text-white">{project.name}{session?.sessionName ? ` • ${session.sessionName}` : ''}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-3xl font-bold dark:text-white">
+                      {project.name}{session?.sessionName ? ` • ` : ''}
+                      {session?.sessionName && (
+                        isEditingSessionName ? (
+                          <Input
+                            value={sessionNameValue}
+                            onChange={(e) => setSessionNameValue(e.target.value)}
+                            onKeyDown={handleSessionNameKeyPress}
+                            onBlur={handleSessionNameSave}
+                            className="inline-flex h-10 text-3xl font-bold bg-transparent border-2 border-primary rounded px-2 ml-1"
+                            style={{ width: `${Math.max(sessionNameValue.length * 20, 100)}px` }}
+                            autoFocus
+                          />
+                        ) : (
+                          session.sessionName
+                        )
+                      )}
+                    </h2>
+                    {session?.sessionName && !isEditingSessionName && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleSessionNameEdit}
+                        className="opacity-60 hover:opacity-100 p-1"
+                        title="Edit session name"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
@@ -3671,69 +3701,31 @@ Thank you for your assistance.`;
               <div className="flex items-start space-x-3 flex-1 mr-6">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
-                    {isEditingSessionName ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        <Input
-                          value={sessionNameValue}
-                          onChange={(e) => setSessionNameValue(e.target.value)}
-                          onKeyDown={handleSessionNameKeyPress}
-                          className="text-3xl font-bold h-auto py-1 px-2 border-2 border-blue-500 focus:ring-2 focus:ring-blue-200"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          onClick={handleSessionNameSave}
-                          disabled={updateSessionMutation.isPending}
-                          className="shrink-0"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleSessionNameCancel}
-                          disabled={updateSessionMutation.isPending}
-                          className="shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                        <h2 className="text-3xl font-bold dark:text-white">{(() => {
-                          // Get the active collection/step name
-                          const collections = project?.collections || [];
-                          const workflowSteps = project?.workflowSteps || [];
-                          
-                          // Find the active tab collection
-                          const activeCollection = collections.find(c => {
-                            const stepName = c.collectionName;
-                            return workflowSteps.some(step => 
-                              step.stepName === stepName && 
-                              (step.values?.length > 0 || step.stepName === activeTab)
-                            );
-                          });
-                          
-                          if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
-                            return activeCollection.collectionName;
-                          }
-                          
-                          return activeTab === 'info' ? 'General Information' : 
-                                 activeTab === 'documents' ? 'Documents' : 
-                                 'Session Overview';
-                        })()}</h2>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSessionNameEdit}
-                          className="opacity-60 hover:opacity-100 p-1"
-                          title="Edit session name"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                      <h2 className="text-3xl font-bold dark:text-white">{(() => {
+                        // Get the active collection/step name
+                        const collections = project?.collections || [];
+                        const workflowSteps = project?.workflowSteps || [];
+                        
+                        // Find the active tab collection
+                        const activeCollection = collections.find(c => {
+                          const stepName = c.collectionName;
+                          return workflowSteps.some(step => 
+                            step.stepName === stepName && 
+                            (step.values?.length > 0 || step.stepName === activeTab)
+                          );
+                        });
+                        
+                        if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
+                          return activeCollection.collectionName;
+                        }
+                        
+                        return activeTab === 'info' ? 'General Information' : 
+                               activeTab === 'documents' ? 'Documents' : 
+                               'Session Overview';
+                      })()}</h2>
+                    </div>
                   </div>
                 </div>
               </div>
