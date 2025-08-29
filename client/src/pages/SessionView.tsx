@@ -3547,12 +3547,12 @@ Thank you for your assistance.`;
                 {/* Tab button */}
                 <button
                   onClick={() => setActiveTab('documents')}
-                  className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                  className={`ml-1 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 font-bold ${
                     activeTab === 'documents' 
-                      ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
-                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
+                      ? 'hover:bg-slate-100 dark:hover:bg-gray-700' 
+                      : 'hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100'
                   }`}
-                  style={activeTab === 'documents' ? { color: '#071e54' } : {}}
+                  style={{ color: '#071e54' }}
                 >
                   <div className="truncate">Documents</div>
                 </button>
