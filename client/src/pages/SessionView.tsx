@@ -3425,35 +3425,42 @@ Thank you for your assistance.`;
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-3xl font-bold dark:text-white">
-                      {project.name}{session?.sessionName ? ` • ` : ''}
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-3xl font-bold dark:text-white">
+                        {project.name}
+                      </h2>
                       {session?.sessionName && (
-                        isEditingSessionName ? (
-                          <Input
-                            value={sessionNameValue}
-                            onChange={(e) => setSessionNameValue(e.target.value)}
-                            onKeyDown={handleSessionNameKeyPress}
-                            onBlur={handleSessionNameSave}
-                            className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white"
-                            style={{ 
-                              width: `${Math.max(sessionNameValue.length * 20, 100)}px`,
-                              fontSize: '1.875rem',
-                              fontWeight: '700',
-                              lineHeight: '2.25rem'
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          session.sessionName
-                        )
+                        <>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                          <h2 className="text-3xl font-bold dark:text-white">
+                            {isEditingSessionName ? (
+                              <Input
+                                value={sessionNameValue}
+                                onChange={(e) => setSessionNameValue(e.target.value)}
+                                onKeyDown={handleSessionNameKeyPress}
+                                onBlur={handleSessionNameSave}
+                                className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white"
+                                style={{ 
+                                  width: `${Math.max(sessionNameValue.length * 20, 100)}px`,
+                                  fontSize: '1.875rem',
+                                  fontWeight: '700',
+                                  lineHeight: '2.25rem'
+                                }}
+                                autoFocus
+                              />
+                            ) : (
+                              session.sessionName
+                            )}
+                          </h2>
+                        </>
                       )}
-                    </h2>
+                    </div>
                     {session?.sessionName && !isEditingSessionName && (
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={handleSessionNameEdit}
-                        className="opacity-60 hover:opacity-100 p-1"
+                        className="opacity-60 hover:opacity-100 p-1 ml-2"
                         title="Edit session name"
                       >
                         <Edit3 className="h-4 w-4" />
