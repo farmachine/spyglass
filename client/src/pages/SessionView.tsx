@@ -3540,8 +3540,8 @@ Thank you for your assistance.`;
             <div className="mb-6">
               <div className="relative flex items-center">
                 {/* Folder icon - aligned with workflow step dots */}
-                <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                  <Folder className="h-5 w-5" style={{ color: '#4F63A4' }} />
+                <div className="relative z-10 w-8 h-8 flex items-center justify-center rounded-full" style={{ backgroundColor: '#4F63A4' }}>
+                  <Folder className="h-5 w-5 text-white" />
                 </div>
                 
                 {/* Tab button */}
