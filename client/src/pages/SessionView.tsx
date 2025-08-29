@@ -3547,7 +3547,7 @@ Thank you for your assistance.`;
                 {/* Tab button */}
                 <button
                   onClick={() => setActiveTab('documents')}
-                  className={`ml-1 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 font-bold ${
+                  className={`ml-1 flex-1 text-left px-3 py-2 text-base rounded-lg transition-all duration-200 ${
                     activeTab === 'documents' 
                       ? 'hover:bg-slate-100 dark:hover:bg-gray-700' 
                       : 'hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100'
