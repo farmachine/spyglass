@@ -4299,7 +4299,7 @@ Thank you for your assistance.`;
                           <TableHeader>
                             <TableRow>
                               {/* Spacer column for left padding */}
-                              <TableHead className="w-4 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                              <TableHead className="w-4 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
                               </TableHead>
 
                               {(() => {
@@ -4323,7 +4323,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className={`relative bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 ${!isLastColumn ? 'border-r' : ''}`}
+                                        className={`relative h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 ${!isLastColumn ? 'border-r' : ''}`}
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4399,7 +4399,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-16 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                              <TableHead className="w-16 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <Button
                                     size="sm"
