@@ -3915,7 +3915,8 @@ Thank you for your assistance.`;
             <div className="w-full flex-1 overflow-hidden">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
-                <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                <div className="h-full overflow-auto">
+                  <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
                       <span className="flex items-center gap-2">General Information</span>
@@ -4125,6 +4126,7 @@ Thank you for your assistance.`;
 
                   </CardContent>
                 </Card>
+                </div>
               )}
 
               {/* Documents Tab Content */}
@@ -4291,12 +4293,11 @@ Thank you for your assistance.`;
                   // Always show the table even when there are no records, so headers remain visible
 
                   return activeTab === item.itemName ? (
-                  <div key={collection.id} className="mt-0 px-0 ml-0 fixed-table-container">
-                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
-                      <CardContent className="p-0 h-full">
-                        <div className="fixed-table-wrapper">
-                          <div className="fixed-table-scroll">
-                            <Table className="session-table">
+                  <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden">
+                      <CardContent className="p-0 h-full overflow-hidden">
+                        <div className="h-full overflow-auto">
+                          <Table className="session-table">
                           <TableHeader>
                             <TableRow>
                               {/* Spacer column for left padding */}
@@ -4878,7 +4879,6 @@ Thank you for your assistance.`;
                             })()}
                           </TableBody>
                         </Table>
-                          </div>
                         </div>
                       </CardContent>
                     </Card>

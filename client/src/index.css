@@ -261,7 +261,8 @@
 
 /* Fixed table with scrollable body */
 .fixed-table-container {
-  height: calc(100vh - 380px); /* Adjusted for all headers, descriptions, etc */
+  height: calc(100vh - 420px); /* Adjusted for all headers, descriptions, etc */
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -276,22 +277,34 @@
 
 .fixed-table-scroll {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-y: scroll !important;
+  overflow-x: auto;
+  position: relative;
+  max-height: 100%;
 }
 
-/* Sticky table header */
-.session-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: inherit;
-}
-
-/* Table text wrapping and spacing */
+/* Table styling and sticky header */
 .session-table {
   table-layout: auto;
   width: 100%;
+  position: relative;
+}
+
+.session-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.session-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: rgb(249 250 251); /* Match bg-gray-50 */
+}
+
+.dark .session-table thead th {
+  background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
 }
 
 .session-table td {
