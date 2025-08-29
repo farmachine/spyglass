@@ -3802,7 +3802,7 @@ Thank you for your assistance.`;
               
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
                 return (
-                  <div className="mb-4">
+                  <div className="mb-5">
                     <p className="text-sm text-gray-600 dark:text-gray-400">{activeCollection.description}</p>
                   </div>
                 );
