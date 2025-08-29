@@ -4296,9 +4296,9 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full overflow-hidden flex flex-col">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full overflow-hidden flex flex-col">
                       <CardContent className="p-0 h-full overflow-hidden flex flex-col">
-                        {/* Fixed header table */}
-                        <div className="flex-shrink-0">
-                          <Table className="session-table w-full">
+                        {/* Single table with scrollable body */}
+                        <div className="table-container h-full">
+                          <Table className="session-table">
                             <TableHeader>
                               <TableRow>
                               {/* Spacer column for left padding */}
@@ -4436,39 +4436,6 @@ Thank you for your assistance.`;
                                   </DropdownMenu>
                                 </div>
                               </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                        </Table>
-                      </div>
-                      
-                      {/* Scrollable body table */}
-                      <div className="flex-1 overflow-auto">
-                        <Table className="session-table w-full">
-                          {/* Hidden header for column alignment */}
-                          <TableHeader className="sr-only">
-                            <TableRow>
-                              <TableHead style={{ width: '16px', minWidth: '16px' }}></TableHead>
-                              {(() => {
-                                const workflowStep = project?.workflowSteps?.find(
-                                  step => step.stepName === collection.collectionName
-                                );
-                                const columnsToDisplay = workflowStep?.values || collection.properties;
-                                
-                                return columnsToDisplay.map((column: any, index: number) => {
-                                  const columnId = column.id || column.columnId;
-                                  const columnName = column.name || column.columnName;
-                                  const columnWidthKey = `${collection.id}-${columnId}`;
-                                  const width = columnWidths[columnWidthKey] || 100;
-                                  
-                                  return (
-                                    <TableHead 
-                                      key={columnId}
-                                      style={{ width: `${width}px`, minWidth: '80px' }}
-                                    ></TableHead>
-                                  );
-                                });
-                              })()}
-                              <TableHead style={{ width: '64px', minWidth: '64px' }}></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -4913,7 +4880,7 @@ Thank you for your assistance.`;
                             })()}
                           </TableBody>
                         </Table>
-                      </div>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
