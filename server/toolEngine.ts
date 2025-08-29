@@ -411,28 +411,20 @@ export class ToolEngine {
     knowledgeDocuments?: any,
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
-    console.log('🚀 ToolEngine.testTool called');
-    console.log('  Tool Name:', tool.name);
-    console.log('  Tool Type:', tool.toolType);
-    console.log('  Output Type:', tool.outputType);
-    
-    // Prepare inputs by fetching document content if needed
+    // Clean triage between AI and CODE tools
     const forAI = tool.toolType === "AI_ONLY";
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
     
-    console.log('  Prepared inputs keys:', Object.keys(preparedInputs));
-    
+    // Route to appropriate handler
     if (tool.toolType === "AI_ONLY") {
-      console.log(`  → Calling AI tool: ${tool.name}`);
       return this.testAITool(tool, preparedInputs, progressCallback);
     } else {
-      console.log('  → Calling testCodeTool');
       return this.testCodeTool(tool, preparedInputs);
     }
   }
   
   /**
-   * Test AI-based tool
+   * Test AI-based tool - Clean, architecture-respecting implementation
    */
   private async testAITool(
     tool: Tool, 
@@ -440,465 +432,32 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      console.log(`🔍 ${tool.name} - Inputs received:`, Object.keys(inputs));
-      console.log(`🔍 ${tool.name} - Tool output type:`, tool.outputType);
-      
-      // Log each input to understand what we're working with
-      for (const [key, value] of Object.entries(inputs)) {
-        if (Array.isArray(value)) {
-          console.log(`  📊 Input "${key}" is an array with ${value.length} items`);
-          if (value.length > 0) {
-            console.log(`    First item type: ${typeof value[0]}`);
-            if (typeof value[0] === 'object') {
-              console.log(`    First item structure:`, Object.keys(value[0]));
-            }
-          }
-        } else if (typeof value === 'string') {
-          console.log(`  📝 Input "${key}" is a string (${value.length} chars)`);
-        } else {
-          console.log(`  🔢 Input "${key}" is type: ${typeof value}`);
-        }
+      // 1. Find data input array if exists
+      const dataInput = this.findDataInput(tool, inputs);
+      if (!dataInput || !Array.isArray(dataInput.value)) {
+        throw new Error('AI tool requires data input array');
       }
-      
-      // Check if we need to batch large arrays
-      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
-        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-        const isDataParam = param?.type === 'data';
-        const isArray = Array.isArray(value);
-        console.log(`  Checking "${key}": param type="${param?.type}", isArray=${isArray}, isDataParam=${isDataParam}`);
-        return isDataParam && isArray;
-      });
-      
-      console.log(`🔍 Found ${dataInputs.length} data inputs that are arrays`);
-      
-      // For AI tools, we send ALL data in one call to minimize API requests
-      // NO BATCHING for AI tools - send everything at once
-      const AI_BATCH_THRESHOLD = 999999; // Effectively disable batching for AI tools
-      const AI_BATCH_SIZE = 999999; // Process ALL items at once for AI tools
-      
-      // If we have large arrays, check if we need special handling
-      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
-        const [dataKey, dataArray] = dataInputs[0];
-        
-        // For AI tools, send ALL items in a single request (limited to 50 for performance)
-        if (tool.toolType === 'AI_ONLY' && Array.isArray(dataArray) && dataArray.length > 0) {
-          const AI_RECORD_LIMIT = 50;
-          const originalLength = dataArray.length;
-          const limitedArray = dataArray.slice(0, AI_RECORD_LIMIT);
-          
-          console.log(`📦 AI Tool: Processing ${limitedArray.length} items${originalLength > AI_RECORD_LIMIT ? ` (limited from ${originalLength} for performance)` : ''} in a SINGLE API call...`);
-          
-          // Process limited items in a single batch for AI tools
-          const batch = limitedArray;
-          const allResults: ToolResult[] = [];
-          
-          // No loop needed - process everything at once
-          {
-            const i = 0;
-            const batchEnd = limitedArray.length;
-            const batchNumber = 1;
-            const totalBatches = 1;
-            
-            console.log(`  Processing batch ${batchNumber}: items ${i + 1}-${batchEnd} of ${limitedArray.length}`);
-            
-            // Report progress if callback provided
-            if (progressCallback) {
-              progressCallback(i, limitedArray.length, `Processing batch ${batchNumber} of ${totalBatches}`);
-            }
-            
-            // Create inputs for this batch
-            const batchInputs = { ...inputs };
-            batchInputs[dataKey] = batch;
-            
-            // Process batch
-            // Build a more specific prompt for batch processing
-            let batchPrompt: string;
-            
-            // Check if this is a merged data batch (has objects with multiple properties)
-            const isMergedData = batch.length > 0 && typeof batch[0] === 'object' && 
-                                 batch[0] !== null && !Array.isArray(batch[0]) && 
-                                 Object.keys(batch[0]).length > 1;
-            
-            if (isMergedData) {
-              // Special prompt for merged data (like Column Names + Worksheet Names)
-              const sampleItem = batch[0];
-              const fieldNames = Object.keys(sampleItem);
-              
-              console.log(`    🔄 Processing merged data with fields: ${fieldNames.join(', ')}`);
-              console.log(`    📊 First item:`, JSON.stringify(sampleItem, null, 2));
-              
-              // For merged data, we need to provide both column names and worksheet context
-              // Filter out identifierId and internal fields to get actual data fields
-              const dataFields = fieldNames.filter(f => f !== 'identifierId' && !f.startsWith('_'));
-              const primaryFieldName = dataFields.find(f => f.includes('Column') || f === 'Column Names') || dataFields[0];
-              const contextFieldName = dataFields.find(f => f.includes('Worksheet') || f === 'Worksheet Name') || dataFields[1];
-              
-              // Check if we have identifierIds (for tracking which record each item corresponds to)
-              const hasIdentifierId = batch.length > 0 && batch[0].identifierId !== undefined;
-              
-              console.log(`    📋 Processing merged data with primary field: "${primaryFieldName}" and context field: "${contextFieldName}"`);
-              console.log(`    📊 Has identifierIds: ${hasIdentifierId}`);
-              console.log(`    📊 Sample data:`, batch.slice(0, 3));
-              
-              // Log the actual data being sent
-              console.log(`    📊 Building prompt for ${batch.length} items with merged data`);
-              console.log(`    📊 First item in batch:`, batch[0]);
-              console.log(`    📊 Last item in batch:`, batch[batch.length - 1]);
-              
-              // Use the tool's actual AI prompt - DO NOT override it
-              const basePrompt = tool.aiPrompt || '';
-              
-              console.log(`    📊 Using tool's actual AI prompt (not overriding)`);
-              
-              // Format the data as the tool expects
-              const formattedData = batch.map((item, index) => {
-                const formatted: any = {};
-                
-                // Always include identifierId if present
-                if (item.identifierId) {
-                  formatted.identifierId = item.identifierId;
-                }
-                
-                // Include all fields from the item
-                for (const [key, value] of Object.entries(item)) {
-                  if (key !== '_index') { // Skip internal tracking fields
-                    formatted[key] = value;
-                  }
-                }
-                
-                return formatted;
-              });
-              
-              console.log(`    📊 Formatted ${formattedData.length} items for AI processing`);
-              
-              // Get input parameters from the tool configuration
-              const aiQuery = inputs['AI Query'] || '';
-              const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
-              const additionalInstructions = inputs['0.hb25dnz5dmd'] || ''; // Additional instructions from value config
-              
-              console.log(`    📊 AI Query: ${aiQuery}`);
-              console.log(`    📊 Additional Instructions: ${additionalInstructions}`);
-              console.log(`    📊 Reference Document provided: ${referenceDoc ? 'Yes' : 'No'}`);
-              
-              // Build the prompt using the tool's actual prompt template
-              // Replace placeholders in the tool's prompt with actual values
-              let promptTemplate = basePrompt;
-              
-              // The tool expects these specific inputs based on its configuration
-              // We need to format the prompt according to what the tool's AI prompt expects
-              batchPrompt = promptTemplate;
-              
-              // If the prompt contains placeholders for the inputs, replace them
-              // Otherwise, construct the prompt with the expected format
-              if (promptTemplate.includes('`List Item`') && promptTemplate.includes('`AI Query`') && promptTemplate.includes('`Reference Document`')) {
-                // The prompt already has the structure, we just need to provide the data
-                batchPrompt = `${promptTemplate}
 
-AI Query: ${aiQuery}
-${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
-
-Reference Document:
-${referenceDoc}
-
-List Items (${formattedData.length} items):
-${JSON.stringify(formattedData, null, 2)}`;
-              } else {
-                // Standard prompt for simple data - use tool's actual prompt
-                console.log(`    📊 Using tool's actual AI prompt for standard data`);
-                
-                // Get input parameters from the tool configuration
-                const aiQuery = inputs['AI Query'] || '';
-                const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
-                const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
-                
-                // Use the tool's actual prompt
-                const basePrompt = tool.aiPrompt || '';
-                
-                // Build prompt with tool's template
-                if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`') && basePrompt.includes('`Reference Document`')) {
-                  // The prompt already has the structure, we just need to provide the data
-                  batchPrompt = `${basePrompt}
-
-AI Query: ${aiQuery}
-${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
-
-Reference Document:
-${referenceDoc}
-
-List Items (${batch.length} items):
-${JSON.stringify(batch, null, 2)}`;
-                } else {
-                  // Fallback to simpler format if tool prompt doesn't have expected structure
-                  batchPrompt = `${basePrompt}
-
-Input Data (${batch.length} items):
-${JSON.stringify(batch, null, 2)}`;
-                }
-              }
-            }
-            
-            // Log the full prompt being sent to AI
-            console.log(`    📝 FULL AI PROMPT BEING SENT:`);
-            console.log('='.repeat(80));
-            console.log(batchPrompt);
-            console.log('='.repeat(80));
-            
-            // Add delay between batches to respect Gemini API rate limits
-            // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
-            // Add a small delay between each batch to stay under limits
-            if (i > 0) {
-              // Wait 2 seconds between batches to ensure we stay well under the 60 req/min limit
-              console.log(`  ⏳ Waiting 2 seconds before next batch...`);
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-            
-            const response = await genAI.models.generateContent({
-              model: tool.llmModel || "gemini-2.0-flash",
-              contents: [
-                {
-                  role: "user",
-                  parts: [{ text: batchPrompt }]
-                }
-              ]
-            });
-            
-            let batchResult = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            
-            // Robust JSON extraction and parsing
-            let cleanJson = batchResult;
-            
-            console.log(`    📊 Raw AI response length: ${batchResult.length} chars`);
-            console.log(`    📊 FULL RAW AI RESPONSE:`);
-            console.log('='.repeat(100));
-            console.log(batchResult);
-            console.log('='.repeat(100));
-            
-            // Step 1: Extract from markdown code blocks if present
-            const codeBlockMatch = batchResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (codeBlockMatch) {
-              cleanJson = codeBlockMatch[1];
-              console.log(`    🧹 Extracted from markdown, new length: ${cleanJson.length}`);
-            }
-            
-            // Step 2: Clean whitespace and find JSON boundaries
-            cleanJson = cleanJson.trim();
-            
-            // Find where actual JSON starts ([ or {)
-            const jsonStart = cleanJson.search(/[\[\{]/);
-            if (jsonStart > 0) {
-              cleanJson = cleanJson.substring(jsonStart);
-              console.log(`    🧹 Trimmed prefix, new length: ${cleanJson.length}`);
-            }
-            
-            // Step 3: Find where JSON ends (matching bracket)
-            let jsonEnd = cleanJson.length;
-            if (cleanJson.startsWith('[')) {
-              // Find matching closing bracket
-              let bracketCount = 0;
-              for (let i = 0; i < cleanJson.length; i++) {
-                if (cleanJson[i] === '[') bracketCount++;
-                if (cleanJson[i] === ']') bracketCount--;
-                if (bracketCount === 0) {
-                  jsonEnd = i + 1;
-                  break;
-                }
-              }
-            } else if (cleanJson.startsWith('{')) {
-              // Find matching closing brace
-              let braceCount = 0;
-              for (let i = 0; i < cleanJson.length; i++) {
-                if (cleanJson[i] === '{') braceCount++;
-                if (cleanJson[i] === '}') braceCount--;
-                if (braceCount === 0) {
-                  jsonEnd = i + 1;
-                  break;
-                }
-              }
-            }
-            
-            if (jsonEnd < cleanJson.length) {
-              cleanJson = cleanJson.substring(0, jsonEnd);
-              console.log(`    🧹 Trimmed suffix, final length: ${cleanJson.length}`);
-            }
-            
-            // Step 4: Fix common JSON issues
-            // Remove any trailing commas before closing brackets/braces
-            cleanJson = cleanJson.replace(/,(\s*[\}\]])/g, '$1');
-            
-            // Fix unterminated strings at the end
-            if (cleanJson.endsWith(',')) {
-              cleanJson = cleanJson.slice(0, -1);
-            }
-            
-            console.log(`    📊 Final cleaned JSON length: ${cleanJson.length}`);
-            console.log(`    📊 Final JSON preview: ${cleanJson.substring(0, 300)}...`);
-            console.log(`    📊 Final JSON ending: ...${cleanJson.substring(Math.max(0, cleanJson.length - 100))}`);
-            
-            try {
-              // Parse the cleaned JSON
-              const parsed = cleanJson ? JSON.parse(cleanJson) : [];
-              const results = Array.isArray(parsed) ? parsed : [parsed];
-              
-              console.log(`    ✅ Parsed ${results.length} results from AI response`);
-              
-              // Ensure each result has required fields
-              const processedResults = results.map((result, idx) => {
-                const input = batch[idx];
-                return {
-                  identifierId: result.identifierId || input?.identifierId || null,
-                  extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
-                  validationStatus: result.validationStatus || (result.extractedValue ? "valid" : "invalid"),
-                  aiReasoning: result.aiReasoning || "",
-                  confidenceScore: result.confidenceScore || 0,
-                  documentSource: result.documentSource || ""
-                };
-              });
-              
-              allResults.push(...processedResults);
-              console.log(`    ✅ Batch ${batchNumber}: Processed ${processedResults.length} items`);
-              
-              // Report progress
-              if (progressCallback) {
-                const itemsProcessed = Math.min(i + batch.length, dataArray.length);
-                progressCallback(itemsProcessed, dataArray.length, `Batch ${batchNumber}/${totalBatches} complete`);
-              }
-            } catch (e) {
-              console.error(`    ❌ JSON parse error for batch ${batchNumber}:`, e);
-              console.error(`    📊 Parse error details:`, e.message);
-              console.error(`    📊 Error position:`, e.message.includes('position') ? e.message.match(/position (\d+)/)?.[1] : 'unknown');
-              console.error(`    📊 Cleaned JSON length:`, cleanJson.length);
-              console.error(`    📊 First 500 chars:`, cleanJson.substring(0, 500));
-              console.error(`    📊 Last 500 chars:`, cleanJson.substring(Math.max(0, cleanJson.length - 500)));
-              
-              // Try to extract partial results if possible
-              const partialResults = [];
-              try {
-                // Look for individual objects in the malformed JSON
-                const objectMatches = cleanJson.match(/\{[^{}]*"identifierId"[^{}]*\}/g);
-                if (objectMatches && objectMatches.length > 0) {
-                  console.log(`    🔄 Found ${objectMatches.length} potential result objects, attempting to parse individually`);
-                  
-                  for (const objStr of objectMatches) {
-                    try {
-                      const obj = JSON.parse(objStr);
-                      if (obj.identifierId) {
-                        partialResults.push({
-                          identifierId: obj.identifierId,
-                          extractedValue: obj.extractedValue || "Partial Parse Error",
-                          validationStatus: "invalid",
-                          aiReasoning: "Recovered from malformed JSON",
-                          confidenceScore: 0,
-                          documentSource: ""
-                        });
-                      }
-                    } catch (objError) {
-                      // Skip individual objects that can't be parsed
-                    }
-                  }
-                }
-              } catch (recoveryError) {
-                console.error(`    ❌ Recovery attempt failed:`, recoveryError);
-              }
-              
-              // If we recovered some results, use them; otherwise create error placeholders
-              if (partialResults.length > 0) {
-                console.log(`    ✅ Recovered ${partialResults.length} partial results from malformed JSON`);
-                allResults.push(...partialResults);
-                
-                // Fill in missing results with error placeholders
-                const recoveredIds = new Set(partialResults.map(r => r.identifierId));
-                for (const inputItem of batch) {
-                  if (!recoveredIds.has(inputItem.identifierId)) {
-                    allResults.push({
-                      identifierId: inputItem.identifierId || null,
-                      extractedValue: "JSON Parse Error",
-                      validationStatus: "invalid",
-                      aiReasoning: "Failed to parse AI response - no recovery possible",
-                      confidenceScore: 0,
-                      documentSource: ""
-                    });
-                  }
-                }
-              } else {
-                // Create error results for entire batch
-                console.log(`    ❌ No partial recovery possible, creating ${batch.length} error placeholders`);
-                for (const inputItem of batch) {
-                  allResults.push({
-                    identifierId: inputItem.identifierId || null,
-                    extractedValue: "JSON Parse Error",
-                    validationStatus: "invalid",
-                    aiReasoning: "Failed to parse AI response",
-                    confidenceScore: 0,
-                    documentSource: ""
-                  });
-                }
-              }
-            }
-          } // End of single batch processing block
-          
-          console.log(`✅ Processing complete. Total results: ${allResults.length}`);
-          return allResults;
-        }
-        
-        // If we reach here, fall through to normal processing
-      }
+      // 2. Limit to 50 records for performance
+      const AI_RECORD_LIMIT = 50;
+      const inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
       
-      // Normal processing for small arrays or non-array inputs
-      // But first check if we have input arrays that need tracking
-      let inputArrayLength = 0;
-      let inputIdentifiers: any[] = [];
+      // 3. Build prompt using tool's AI prompt template
+      const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // Check for array inputs to track expected output count
-      for (const [key, value] of Object.entries(inputs)) {
-        if (Array.isArray(value) && value.length > 0) {
-          const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-          if (param?.type === 'data') {
-            inputArrayLength = value.length;
-            inputIdentifiers = value;
-            console.log(`📊 Found input array "${key}" with ${inputArrayLength} items`);
-            break;
-          }
-        }
-      }
-      
-      const prompt = this.buildTestPrompt(tool, inputs);
-      
-      console.log('\n🧪 GEMINI AI PROMPT FOR TOOL TESTING');
+      // 4. Log the prompt for debugging
+      console.log('\n📝 AI EXTRACTION PROMPT:');
       console.log('='.repeat(80));
-      console.log('📝 Tool Name:', tool.name);
-      console.log('📝 Tool AI Prompt:', tool.aiPrompt?.slice(0, 500) || 'No AI prompt configured');
-      console.log('\n📋 Test Inputs Summary:');
-      Object.entries(inputs).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          console.log(`  - ${key}: Array with ${value.length} items`);
-          if (value.length > 0 && value.length <= 3) {
-            console.log(`    Sample:`, JSON.stringify(value, null, 2));
-          } else if (value.length > 3) {
-            console.log(`    First 3:`, JSON.stringify(value.slice(0, 3), null, 2));
-          }
-        } else if (typeof value === 'string') {
-          console.log(`  - ${key}: String (${value.length} chars)`);
-          if (value.length <= 200) {
-            console.log(`    Value: "${value}"`);
-          } else {
-            console.log(`    Preview: "${value.slice(0, 200)}..."`);
-          }
-        } else {
-          console.log(`  - ${key}:`, JSON.stringify(value, null, 2).slice(0, 200));
-        }
-      });
-      console.log('\n🎯 FULL TEST PROMPT SENT TO GEMINI:');
-      console.log('-'.repeat(80));
       console.log(prompt);
-      console.log('-'.repeat(80));
-      console.log('');
+      console.log('='.repeat(80));
       
-      // Use the tool's configured llmModel, not from inputs
-      const llmModel = tool.llmModel || "gemini-2.0-flash";
-      console.log('🤖 Using LLM Model from tool configuration:', llmModel);
+      // 5. Call Gemini API
+      if (progressCallback) {
+        progressCallback(0, inputArray.length, 'Processing with AI...');
+      }
       
       const response = await genAI.models.generateContent({
-        model: llmModel,
+        model: tool.llmModel || "gemini-2.0-flash",
         contents: [
           {
             role: "user",
@@ -907,247 +466,188 @@ ${JSON.stringify(batch, null, 2)}`;
         ]
       });
       
-      let result = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      // 6. Extract and parse response
+      const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parsedResults = this.parseAIResponse(rawResponse);
       
-      console.log('\n🎉 RAW GEMINI RESPONSE:');
-      console.log('-'.repeat(80));
-      console.log('Response length:', result.length, 'characters');
-      console.log('\nFull Response:');
-      console.log(result);
-      console.log('-'.repeat(80));
-      console.log('');
+      // 7. Map results to input records with identifierId preservation
+      const results = this.mapResultsToInputs(parsedResults, inputArray);
       
-      // Store original for debugging
-      const originalResult = result;
-      
-      // Clean markdown if present - handle multiple possible formats
-      // First, check if the entire response is wrapped in code blocks
-      if (result.includes('```')) {
-        console.log('🔧 Detected markdown code blocks, attempting to clean...');
-        
-        // Try to match json-specific code blocks first
-        const jsonBlockMatch = result.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-        if (jsonBlockMatch && jsonBlockMatch[1]) {
-          result = jsonBlockMatch[1].trim();
-          console.log('✅ Successfully extracted content from markdown code block');
-        } else {
-          // Fallback: just remove the backticks
-          result = result.replace(/```(?:json)?/g, '').trim();
-          console.log('✅ Removed markdown backticks via replacement');
-        }
+      if (progressCallback) {
+        progressCallback(inputArray.length, inputArray.length, 'Complete');
       }
       
-      // Additional cleanup - remove any leading/trailing whitespace or newlines
-      result = result.trim();
-      
-      // Double-check: if result still starts with backticks, try one more time
-      if (result.startsWith('```')) {
-        console.log('⚠️ Still has backticks after first pass, doing aggressive cleanup');
-        // Remove everything before the first [ or {
-        const jsonStart = result.search(/[\[\{]/);
-        if (jsonStart > 0) {
-          result = result.substring(jsonStart);
-          console.log('✅ Removed prefix before JSON start');
-        }
-      }
-      
-      console.log('🧹 CLEANED TEST RESULT:');
-      console.log('-'.repeat(80));
-      console.log('Result length:', result.length, 'characters');
-      console.log('First 500 chars:', result.slice(0, 500));
-      console.log('Last 500 chars:', result.slice(-500));
-      console.log('-'.repeat(80));
-      
-      // Try to parse the result
-      let parsed;
-      try {
-        parsed = JSON.parse(result);
-      } catch (parseError) {
-        console.error('⚠️ Initial JSON parsing failed, attempting recovery');
-        console.error('Parse error:', parseError.message);
-        console.log('Result starts with:', result.substring(0, 50));
-        
-        // If still has markdown, try one more extraction
-        if (result.includes('```') || result.startsWith('```')) {
-          console.log('🔧 Found remaining markdown, doing final cleanup');
-          // Extract everything between first [ and last ]
-          const arrayStartIdx = result.indexOf('[');
-          const arrayEndIdx = result.lastIndexOf(']');
-          if (arrayStartIdx >= 0 && arrayEndIdx > arrayStartIdx) {
-            result = result.substring(arrayStartIdx, arrayEndIdx + 1);
-            console.log('✅ Extracted JSON array using index positions');
-            try {
-              parsed = JSON.parse(result);
-              console.log('✅ Successfully parsed after final extraction');
-            } catch (e) {
-              // Will fall through to next recovery attempts
-            }
-          }
-        }
-        
-        if (!parsed) {
-          console.error('⚠️ JSON parsing still failed, attempting alternative extraction methods');
-        }
-        
-        // Try to extract a JSON array if it exists in the text
-        const arrayMatch = result.match(/\[\s*\{[\s\S]*\}\s*\]/);
-        if (arrayMatch) {
-          console.log('🔍 Found JSON array in response, attempting to parse');
-          try {
-            parsed = JSON.parse(arrayMatch[0]);
-          } catch (secondParseError) {
-            console.error('❌ Failed to parse extracted array:', secondParseError);
-            throw parseError; // Re-throw original error
-          }
-        } else {
-          // Try to find individual JSON objects
-          const objectMatches = result.match(/\{[^{}]*\}/g);
-          if (objectMatches && objectMatches.length > 0) {
-            console.log(`🔍 Found ${objectMatches.length} potential JSON objects, attempting to parse`);
-            parsed = [];
-            for (const objStr of objectMatches) {
-              try {
-                const obj = JSON.parse(objStr);
-                if (obj.extractedValue !== undefined || obj.identifierId !== undefined) {
-                  parsed.push(obj);
-                }
-              } catch (objParseError) {
-                // Skip invalid objects
-              }
-            }
-            if (parsed.length === 0) {
-              throw parseError; // No valid objects found
-            }
-          } else {
-            throw parseError; // Re-throw original error
-          }
-        }
-      }
-      
-      let results = Array.isArray(parsed) ? parsed : [parsed];
-      
-      console.log(`✅ Parsed results: ${Array.isArray(parsed) ? 'array' : 'object'} with ${results.length} items`);
-      if (results.length > 0) {
-        console.log(`  First result identifierId: ${results[0].identifierId}`);
-        console.log(`  First result extractedValue: ${results[0].extractedValue}`);
-        if (results.length > 1) {
-          console.log(`  Last result identifierId: ${results[results.length - 1].identifierId}`);
-          console.log(`  Last result extractedValue: ${results[results.length - 1].extractedValue}`);
-        }
-        // Check how many results have identifierIds
-        const resultsWithIds = results.filter(r => r.identifierId).length;
-        console.log(`  Results with identifierIds: ${resultsWithIds}/${results.length}`);
-        
-        // Log first few missing identifierIds
-        const missingIds = results.slice(0, 10).filter(r => !r.identifierId);
-        if (missingIds.length > 0) {
-          console.log(`  ⚠️ First results missing identifierIds:`, missingIds.length);
-        }
-      }
-      
-      // Check if we have data type parameters with arrays (reuse from batching check)
-      const dataInputsCheck = Object.entries(inputs).filter(([key, value]) => {
-        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-        return param?.type === 'data' && Array.isArray(value);
-      });
-      
-      if (dataInputsCheck.length > 0 && tool.outputType === 'multiple') {
-        // Get the input array to check identifierIds
-        const inputArray = dataInputsCheck[0][1] as any[];
-        const expectedCount = inputArray.length;
-        
-        console.log(`⚠️ Expected ${expectedCount} results, got ${results.length}`);
-        
-        // ALWAYS ensure proper identifierId mapping, not just when we have fewer results
-        console.log(`📝 Ensuring proper identifierId mapping for all results`);
-        
-        // Create a map of returned results by identifierId
-        const resultMap = new Map<string, any>();
-        for (const result of results) {
-          if (result.identifierId) {
-            resultMap.set(result.identifierId, result);
-          }
-        }
-        
-        // Build complete results array with proper identifierId mapping
-        const completeResults: any[] = [];
-        
-        for (let i = 0; i < inputArray.length; i++) {
-          const inputItem = inputArray[i];
-          const inputId = inputItem.identifierId;
-          
-          // Try to find matching result by identifierId
-          let matchingResult = resultMap.get(inputId);
-          
-          if (!matchingResult && i < results.length) {
-            // If no match by ID, try position-based matching
-            // This handles cases where AI didn't preserve identifierIds
-            matchingResult = results[i];
-            if (matchingResult && !matchingResult.identifierId) {
-              console.log(`  Assigning identifierId ${inputId} to result at position ${i}`);
-              matchingResult.identifierId = inputId;
-            }
-          }
-          
-          if (matchingResult) {
-            // Ensure the result has the correct identifierId
-            matchingResult.identifierId = inputId;
-            completeResults.push(matchingResult);
-          } else {
-            // Create a "Not Found" entry with the correct identifierId
-            console.log(`  Adding missing result for identifierId: ${inputId} at index ${i}`);
-            completeResults.push({
-              identifierId: inputId,
-              extractedValue: "Not Found",
-              validationStatus: "invalid",
-              aiReasoning: "No standard equivalent found for this column",
-              confidenceScore: 0,
-              documentSource: "N/A"
-            });
-          }
-        }
-        
-        results = completeResults;
-        console.log(`✅ Ensured ${results.length} results with proper identifierId mapping`);
-      }
-      
-      console.log(`🎯 Returning ${results.length} results from ${tool.name}`);
+      console.log(`✅ AI extraction complete: ${results.length} results`);
       return results;
       
     } catch (error) {
-      console.error(`❌ ERROR in ${tool.name}:`, error);
-      console.error('Error details:', error instanceof Error ? error.stack : String(error));
+      console.error('❌ AI tool error:', error);
       
-      // Check if we have data inputs that we should create placeholder results for
-      const dataInputs = Object.entries(inputs).filter(([key, value]) => {
-        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-        return param?.type === 'data' && Array.isArray(value);
-      });
-      
-      if (dataInputs.length > 0 && tool.outputType === 'multiple') {
-        // Create error results for each input item so we don't lose the mapping
-        const inputArray = dataInputs[0][1] as any[];
-        console.log(`⚠️ Creating ${inputArray.length} error placeholders to maintain data mapping`);
-        
-        return inputArray.map((item: any) => ({
+      // Return error results maintaining identifierId mapping
+      const dataInput = this.findDataInput(tool, inputs);
+      if (dataInput && Array.isArray(dataInput.value)) {
+        return dataInput.value.map((item: any) => ({
           identifierId: item.identifierId || null,
           extractedValue: null,
           validationStatus: "invalid" as const,
           aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
           confidenceScore: 0,
-          documentSource: "AI_ERROR"
+          documentSource: "ERROR"
         }));
       }
       
-      // Default single error result
-      return [{
-        extractedValue: null,
-        validationStatus: "invalid" as const,
-        aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
-        confidenceScore: 0,
-        documentSource: "AI_ERROR"
-      }];
+      throw error;
     }
+  }
+  
+  /**
+   * Find the data input parameter from inputs
+   */
+  private findDataInput(tool: Tool, inputs: Record<string, any>): { key: string; value: any } | null {
+    for (const [key, value] of Object.entries(inputs)) {
+      const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+      if (param?.type === 'data' && Array.isArray(value)) {
+        return { key, value };
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Build AI prompt from tool template and inputs
+   */
+  private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[]): string {
+    const basePrompt = tool.aiPrompt || '';
+    
+    // Extract input values
+    const aiQuery = inputs['AI Query'] || '';
+    const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
+    const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
+    
+    // Build prompt with tool's template
+    if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`')) {
+      return `${basePrompt}
+
+AI Query: ${aiQuery}
+${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
+
+Reference Document:
+${referenceDoc}
+
+List Items (${dataArray.length} items):
+${JSON.stringify(dataArray, null, 2)}
+
+IMPORTANT: Return a JSON array with one object per input item. Each object must include:
+- identifierId: The same identifierId from the input
+- extractedValue: The extracted/processed value
+- validationStatus: "valid" or "invalid"
+- aiReasoning: Explanation of the extraction
+- confidenceScore: Number 0-100
+- documentSource: Source reference`;
+    }
+    
+    // Fallback format
+    return `${basePrompt}
+
+Input Data (${dataArray.length} items):
+${JSON.stringify(dataArray, null, 2)}
+
+Return a JSON array with extraction results.`;
+  }
+  
+  /**
+   * Parse AI response and extract JSON
+   */
+  private parseAIResponse(rawResponse: string): any[] {
+    let cleanJson = rawResponse.trim();
+    
+    // Remove markdown code blocks if present
+    const codeBlockMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      cleanJson = codeBlockMatch[1].trim();
+    }
+    
+    // Find JSON array boundaries
+    const jsonStart = cleanJson.indexOf('[');
+    const jsonEnd = cleanJson.lastIndexOf(']');
+    
+    if (jsonStart >= 0 && jsonEnd > jsonStart) {
+      cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    try {
+      const parsed = JSON.parse(cleanJson);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch (error) {
+      console.error('JSON parse error:', error);
+      
+      // Try to extract individual objects as fallback
+      const objects = [];
+      const objectMatches = cleanJson.match(/\{[^{}]*"extractedValue"[^{}]*\}/g);
+      
+      if (objectMatches) {
+        for (const objStr of objectMatches) {
+          try {
+            objects.push(JSON.parse(objStr));
+          } catch {
+            // Skip invalid objects
+          }
+        }
+      }
+      
+      if (objects.length > 0) {
+        return objects;
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * Map AI results to input records, preserving identifierId
+   */
+  private mapResultsToInputs(parsedResults: any[], inputArray: any[]): ToolResult[] {
+    // Create map of results by identifierId
+    const resultMap = new Map<string, any>();
+    for (const result of parsedResults) {
+      if (result.identifierId) {
+        resultMap.set(result.identifierId, result);
+      }
+    }
+    
+    // Map each input to its result
+    return inputArray.map((input, index) => {
+      const inputId = input.identifierId;
+      
+      // Try to find result by identifierId first
+      let result = resultMap.get(inputId);
+      
+      // Fallback to position-based matching if AI didn't preserve IDs
+      if (!result && index < parsedResults.length) {
+        result = parsedResults[index];
+      }
+      
+      if (result) {
+        return {
+          identifierId: inputId,
+          extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
+          validationStatus: result.validationStatus || "valid",
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 95,
+          documentSource: result.documentSource || ""
+        };
+      }
+      
+      // Return "Not Found" for missing results
+      return {
+        identifierId: inputId,
+        extractedValue: "Not Found",
+        validationStatus: "invalid",
+        aiReasoning: "No result from AI",
+        confidenceScore: 0,
+        documentSource: ""
+      };
+    });
   }
   
   /**
@@ -1527,252 +1027,73 @@ import traceback
 # Generated function code
 ${functionCode}
 
-# Test execution
+# Test harness
 try:
-    # Extract function name
-    function_name = None
-    lines = """${functionCode.replace(/"/g, '\\"')}""".split('\\n')
-    for line in lines:
-        if line.strip().startswith('def '):
-            function_name = line.split('def ')[1].split('(')[0].strip()
-            break
-    
-    if not function_name:
-        raise Exception("Could not find function definition")
-    
-    # Get inputs and parameters
+    # Input data
     inputs = ${inputsPython}
+    
+    # Parameter definitions for reference
     parameters = ${parametersPython}
-    output_type = "${outputType}"
     
-    # Debug logging
-    print(f"DEBUG: Function name: {function_name}", file=sys.stderr)
-    print(f"DEBUG: Inputs keys: {list(inputs.keys())}", file=sys.stderr)
-    print(f"DEBUG: Input content preview: {str(inputs)[:500]}...", file=sys.stderr)
+    # Extract the function name from the code
+    import re
+    function_match = re.search(r'def\s+(\w+)\s*\(', '''${functionCode}''')
+    if not function_match:
+        raise Exception("Could not find function definition in code")
     
-    # Map inputs to function arguments
-    func_to_call = globals()[function_name]
+    function_name = function_match.group(1)
     
-    # Check if we should iterate over sample data
-    data_params = [p for p in parameters if p.get('type') == 'data']
-    has_sample_data = False
-    sample_data_records = []
+    # Get the function from globals
+    if function_name not in globals():
+        raise Exception(f"Function {function_name} not found in globals")
     
-    print(f"DEBUG: output_type={output_type}, data_params count={len(data_params)}", file=sys.stderr)
+    func = globals()[function_name]
     
-    if output_type == 'multiple' and data_params:
-        # Get the first data parameter's sample data
-        for param in data_params:
-            param_name = param['name']
-            param_id = param.get('id', param_name)
-            print(f"DEBUG: Checking param '{param_name}' (id={param_id}) for sample data", file=sys.stderr)
-            
-            # Check both by name and by ID
-            if param_name in inputs:
-                input_data = inputs[param_name]
-                print(f"DEBUG: Found input for '{param_name}', type={type(input_data).__name__}", file=sys.stderr)
-                # Handle data structure with 'rows' property
-                if isinstance(input_data, dict) and 'rows' in input_data:
-                    sample_data_records = input_data['rows']
-                    has_sample_data = True
-                    print(f"DEBUG: Found {len(sample_data_records)} rows in data structure", file=sys.stderr)
-                    break
-                elif isinstance(input_data, list):
-                    sample_data_records = input_data
-                    has_sample_data = True
-                    print(f"DEBUG: Found list with {len(sample_data_records)} items", file=sys.stderr)
-                    break
-            elif param_id in inputs:
-                input_data = inputs[param_id]
-                print(f"DEBUG: Found input for id '{param_id}', type={type(input_data).__name__}", file=sys.stderr)
-                # Handle data structure with 'rows' property
-                if isinstance(input_data, dict) and 'rows' in input_data:
-                    sample_data_records = input_data['rows']
-                    has_sample_data = True
-                    print(f"DEBUG: Found {len(sample_data_records)} rows in data structure", file=sys.stderr)
-                    break
-                elif isinstance(input_data, list):
-                    sample_data_records = input_data
-                    has_sample_data = True
-                    print(f"DEBUG: Found list with {len(sample_data_records)} items", file=sys.stderr)
-                    break
+    # Call the function with inputs
+    result = func(**inputs)
     
-    print(f"DEBUG: has_sample_data={has_sample_data}, records to process={len(sample_data_records)}", file=sys.stderr)
-    
-    if has_sample_data and output_type == 'multiple':
-        # Iterate over each record in sample data
-        print(f"DEBUG: Iterating over {len(sample_data_records)} records", file=sys.stderr)
-        all_results = []
-        for i, record in enumerate(sample_data_records):
-            print(f"DEBUG: Processing record {i+1}/{len(sample_data_records)}: {str(record)[:100]}...", file=sys.stderr)
-            args = []
-            for param in parameters:
-                param_name = param['name']
-                param_id = param.get('id', param_name)
-                if param['type'] == 'data':
-                    # Pass the current record
-                    args.append(record)
-                elif param_id in inputs:
-                    # Pass other inputs by ID
-                    args.append(inputs[param_id])
-                elif param_name in inputs:
-                    # Pass other inputs by name
-                    args.append(inputs[param_name])
-                else:
-                    # Handle missing parameter - provide None to maintain argument count
-                    print(f"WARNING: No input found for parameter '{param_name}' (id: {param_id})", file=sys.stderr)
-                    args.append(None)
-            
-            # Debug log the arguments
-            print(f"DEBUG: Calling {function_name} with {len(args)} args", file=sys.stderr)
-            for i, arg in enumerate(args):
-                if i < len(parameters):
-                    param_info = parameters[i]
-                    if arg is None:
-                        print(f"  Arg {i} ({param_info['name']}): None - MISSING INPUT!", file=sys.stderr)
-                    else:
-                        arg_preview = str(arg)[:100] if arg else "None"
-                        print(f"  Arg {i} ({param_info['name']}): {arg_preview}", file=sys.stderr)
-            
-            # Execute function for this record
-            result = func_to_call(*args)
-            
-            # Process result (could be single or multiple values)
-            if isinstance(result, dict) and 'extractedValue' in result and 'validationStatus' in result:
-                # Result is already a field validation object - use it directly
-                all_results.append(result)
-            elif isinstance(result, str):
-                try:
-                    parsed = json.loads(result)
-                    if isinstance(parsed, list):
-                        all_results.extend(parsed)
-                    else:
-                        all_results.append(parsed)
-                except:
-                    all_results.append({
-                        "extractedValue": result,
-                        "validationStatus": "valid",
-                        "aiReasoning": f"Extracted for record {record.get('identifierId', 'unknown')}",
-                        "confidenceScore": 95,
-                        "documentSource": f"RECORD_{record.get('identifierId', 'unknown')}"
-                    })
-            else:
-                all_results.append({
-                    "extractedValue": result,
-                    "validationStatus": "valid",
-                    "aiReasoning": f"Extracted for record {record.get('identifierId', 'unknown')}",
-                    "confidenceScore": 95,
-                    "documentSource": f"RECORD_{record.get('identifierId', 'unknown')}"
-                })
-        
-        result = all_results
-    else:
-        # Single execution mode
-        args = []
-        for param in parameters:
-            param_name = param['name']
-            param_id = param.get('id', param_name)
-            
-            # Try to find input by parameter ID first, then by name
-            if param_id in inputs:
-                args.append(inputs[param_id])
-            elif param_name in inputs:
-                args.append(inputs[param_name])
-            else:
-                # No input found for this parameter - this might cause an error
-                pass
-        
-        # Execute function once
-        result = func_to_call(*args)
-    
-    # Check if result is already in the correct format
-    if isinstance(result, str):
+    # Validate and output result
+    if result is None:
+        print(json.dumps([]))
+    elif isinstance(result, str):
+        # If string is returned, try to parse as JSON
         try:
-            parsed_result = json.loads(result)
-            if isinstance(parsed_result, list) and all(
-                isinstance(item, dict) and 
-                'extractedValue' in item and 
-                'validationStatus' in item 
-                for item in parsed_result
-            ):
-                # Result is already in field validation format
-                print(result)
-            elif isinstance(parsed_result, list):
-                # List but not field validation format - convert each item
-                output = []
-                for idx, item in enumerate(parsed_result):
-                    output.append({
-                        "extractedValue": item,
-                        "validationStatus": "valid",
-                        "aiReasoning": f"Extracted item {idx+1} from {function_name}",
-                        "confidenceScore": 95,
-                        "documentSource": f"CODE_FUNCTION_ITEM_{idx+1}"
-                    })
-                print(json.dumps(output))
-            else:
-                # Single value or dict - wrap in field validation structure
-                output = [{
-                    "extractedValue": parsed_result,
-                    "validationStatus": "valid",
-                    "aiReasoning": f"Function {function_name} executed successfully",
-                    "confidenceScore": 95,
-                    "documentSource": "CODE_FUNCTION"
-                }]
-                print(json.dumps(output))
+            parsed = json.loads(result)
+            print(json.dumps(parsed))
         except:
-            # Not JSON, treat as raw value
-            output = [{
+            # If not JSON, wrap in validation format
+            print(json.dumps([{
                 "extractedValue": result,
                 "validationStatus": "valid",
-                "aiReasoning": f"Function {function_name} executed successfully",
+                "aiReasoning": "Direct extraction",
                 "confidenceScore": 95,
-                "documentSource": "CODE_FUNCTION"
-            }]
-            print(json.dumps(output))
-    elif isinstance(result, list):
-        # Check if it's already a list of field validation objects
-        print(f"DEBUG: Result is list with {len(result)} items", file=sys.stderr)
-        if len(result) > 0:
-            print(f"DEBUG: First item type: {type(result[0])}", file=sys.stderr)
-            if isinstance(result[0], dict):
-                print(f"DEBUG: First item keys: {result[0].keys()}", file=sys.stderr)
-        
-        if all(isinstance(item, dict) and 'extractedValue' in item and 'validationStatus' in item for item in result):
-            # Result is already in field validation format - just JSON encode it
-            print(f"DEBUG: All {len(result)} items are field validation objects", file=sys.stderr)
-            print(json.dumps(result))
-        else:
-            # List but not field validation format - convert each item
-            output = []
-            for idx, item in enumerate(result):
-                output.append({
-                    "extractedValue": item,
-                    "validationStatus": "valid",
-                    "aiReasoning": f"Extracted item {idx+1} from {function_name}",
-                    "confidenceScore": 95,
-                    "documentSource": f"CODE_FUNCTION_ITEM_{idx+1}"
-                })
-            print(json.dumps(output))
+                "documentSource": "Generated"
+            }]))
+    elif isinstance(result, (list, dict)):
+        print(json.dumps(result))
     else:
-        # Non-string, non-list result, wrap in field validation structure
-        output = [{
-            "extractedValue": result,
+        # Wrap other types in validation format
+        print(json.dumps([{
+            "extractedValue": str(result),
             "validationStatus": "valid",
-            "aiReasoning": f"Function {function_name} executed successfully",
+            "aiReasoning": "Direct extraction",
             "confidenceScore": 95,
-            "documentSource": "CODE_FUNCTION"
-        }]
-        print(json.dumps(output))
-    
+            "documentSource": "Generated"
+        }]))
+        
 except Exception as e:
-    error_output = {
+    # Return error in expected format
+    error_result = [{
         "extractedValue": None,
         "validationStatus": "invalid",
-        "aiReasoning": f"Function execution error: {str(e)}",
+        "aiReasoning": f"Function execution failed: {str(e)}",
         "confidenceScore": 0,
-        "documentSource": "CODE_ERROR"
-    }
-    print(json.dumps([error_output]))
+        "documentSource": "ERROR"
+    }]
+    print(json.dumps(error_result))
+    print(f"Error: {str(e)}", file=sys.stderr)
+    print(traceback.format_exc(), file=sys.stderr)
+    sys.exit(1)
 `;
   }
   
@@ -1781,68 +1102,39 @@ except Exception as e:
    */
   private async executePythonFile(filePath: string): Promise<ToolResult[]> {
     return new Promise((resolve, reject) => {
-      const python = spawn('python3', [filePath]);
-      
-      let stdout = '';
-      let stderr = '';
-      
-      python.stdout.on('data', (data) => {
-        stdout += data.toString();
+      const pythonProcess = spawn('python3', [filePath]);
+      let output = '';
+      let error = '';
+
+      pythonProcess.stdout.on('data', (data) => {
+        output += data.toString();
       });
-      
-      python.stderr.on('data', (data) => {
-        stderr += data.toString();
+
+      pythonProcess.stderr.on('data', (data) => {
+        error += data.toString();
       });
-      
-      python.on('close', (code) => {
+
+      pythonProcess.on('close', (code) => {
         if (code !== 0) {
-          reject(new Error(`Python execution failed (code ${code}): ${stderr}`));
-          return;
-        }
-        
-        try {
-          console.log('Python stdout length:', stdout.length);
-          console.log('Python stderr:', stderr);
-          
-          // Look for JSON array in the output - it might have debug output before it
-          const jsonMatch = stdout.match(/\[[\s\S]*\](?!.*\[)/);
-          let jsonStr = stdout.trim();
-          
-          if (jsonMatch) {
-            console.log('Found JSON array in output, extracting...');
-            jsonStr = jsonMatch[0];
+          console.error('Python execution error:', error);
+          reject(new Error(`Python process exited with code ${code}: ${error}`));
+        } else {
+          try {
+            const result = JSON.parse(output);
+            resolve(result);
+          } catch (e) {
+            console.error('Failed to parse Python output:', output);
+            reject(new Error(`Failed to parse Python output: ${e}`));
           }
-          
-          const result = JSON.parse(jsonStr);
-          console.log('Parsed result type:', Array.isArray(result) ? 'array' : typeof result);
-          console.log('Parsed result length:', Array.isArray(result) ? result.length : 'N/A');
-          resolve(Array.isArray(result) ? result : [result]);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          console.log('Raw stdout first 500 chars:', stdout.substring(0, 500));
-          console.log('Raw stdout last 500 chars:', stdout.substring(stdout.length - 500));
-          // If JSON parsing fails, return raw output
-          resolve([{
-            extractedValue: stdout.trim(),
-            validationStatus: "valid",
-            aiReasoning: "Function executed but output format may be non-standard",
-            confidenceScore: 70,
-            documentSource: "CODE_FUNCTION"
-          }]);
         }
+      });
+
+      pythonProcess.on('error', (err) => {
+        reject(err);
       });
     });
   }
 }
 
+// Export ToolEngine
 export const toolEngine = new ToolEngine();
-
-// Export convenience function for extraction
-export async function runToolForExtraction(
-  toolId: string,
-  inputs: Record<string, any>,
-  sessionId: string,
-  projectId: string
-): Promise<ToolResult[]> {
-  return toolEngine.runToolForExtraction(toolId, inputs, sessionId, projectId);
-}
