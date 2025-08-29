@@ -667,6 +667,14 @@ Return a JSON array with extraction results.`;
         const normalizedKey = key.replace(/\s+/g, '_').toLowerCase();
         normalizedInputs[normalizedKey] = value;
         
+        // For document/file parameters, also try replacing "file" with "content"
+        // since many functions expect "excel_content" instead of "excel_file"
+        if (normalizedKey.includes('_file')) {
+          const contentKey = normalizedKey.replace('_file', '_content');
+          normalizedInputs[contentKey] = value;
+          console.log(`🔄 Also adding ${contentKey} for document parameter`);
+        }
+        
         // Also keep the original key for backward compatibility
         normalizedInputs[key] = value;
       }
