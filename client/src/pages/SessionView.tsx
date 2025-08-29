@@ -3804,30 +3804,46 @@ Thank you for your assistance.`;
               });
               
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
-                // Calculate record counts for the counter
+                // Calculate record counts for the counter - use same logic as table
                 const getRecordCounts = () => {
+                  // Use exact same logic as the table to get unique indices
+                  const collectionValidations = validations.filter(v => 
+                    v.collectionName === activeCollection.collectionName || 
+                    (v.fieldName && v.fieldName.startsWith(activeCollection.collectionName + '.'))
+                  );
+                  
+                  const validationIndices = collectionValidations.length > 0 ? 
+                    collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
+                  const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
+                  
                   const collectionData = extractedData[activeCollection.collectionName] || [];
-                  const totalRecords = collectionData.length;
+                  const totalRecords = uniqueIndices.length;
                   
                   if (!searchTerm) {
                     return { visible: totalRecords, total: totalRecords };
                   }
                   
-                  // Count filtered records
+                  // Create items with indices like the table does
+                  const itemsWithIndices = uniqueIndices.map(index => ({
+                    item: collectionData?.[index] || {},
+                    originalIndex: index
+                  }));
+                  
+                  // Count filtered records using same logic as table
                   const searchLower = searchTerm.toLowerCase();
-                  const filteredCount = collectionData.filter((item, index) => {
-                    const workflowStep = (project?.workflowSteps || []).find(step => 
-                      step.stepName === activeCollection.collectionName
-                    );
-                    const columnsToDisplay = workflowStep?.values || activeCollection.properties;
-                    
+                  const workflowStep = (project?.workflowSteps || []).find(step => 
+                    step.stepName === activeCollection.collectionName
+                  );
+                  const columnsToDisplay = workflowStep?.values || activeCollection.properties;
+                  
+                  const filteredCount = itemsWithIndices.filter(({ item, originalIndex }) => {
                     return columnsToDisplay.some(column => {
                       const columnName = workflowStep ? column.valueName : (column as any).propertyName;
-                      const fieldName = `${activeCollection.collectionName}.${columnName}[${index}]`;
+                      const fieldName = `${activeCollection.collectionName}.${columnName}[${originalIndex}]`;
                       
                       // Get the identifierId for this row
                       const rowValidation = validations.find(v => 
-                        v.recordIndex === index &&
+                        v.recordIndex === originalIndex &&
                         v.collectionName === activeCollection.collectionName &&
                         v.identifierId
                       );
@@ -3835,7 +3851,7 @@ Thank you for your assistance.`;
                       
                       const validation = getValidation(fieldName, rowIdentifierId);
                       
-                      // Get the display value
+                      // Get the display value (same logic as table)
                       const possibleKeys = [
                         columnName,
                         columnName.toLowerCase(),
