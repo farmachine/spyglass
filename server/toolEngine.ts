@@ -1037,7 +1037,7 @@ try:
     
     # Extract the function name from the code
     import re
-    function_match = re.search(r'def\s+(\w+)\s*\(', '''${functionCode}''')
+    function_match = re.search(r'def\\s+(\\w+)\\s*\\(', '''${functionCode}''')
     if not function_match:
         raise Exception("Could not find function definition in code")
     
