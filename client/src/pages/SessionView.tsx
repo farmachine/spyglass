@@ -1360,6 +1360,9 @@ export default function SessionView() {
   // State for tracking bulk validation per column
   const [bulkValidationState, setBulkValidationState] = useState<Record<string, Set<string>>>({});
   
+  // Search state for filtering table data
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -3802,8 +3805,16 @@ Thank you for your assistance.`;
               
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
                 return (
-                  <div className="mb-5">
+                  <div className="mb-5 flex items-center justify-between">
                     <p className="text-sm text-gray-600 dark:text-gray-400">{activeCollection.description}</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Search table data..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-64 h-8 text-sm"
+                      />
+                    </div>
                   </div>
                 );
               }
@@ -4356,7 +4367,35 @@ Thank you for your assistance.`;
                                 ? sortCollectionData(itemsWithIndices, collection, sortConfig)
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
-                              return sortedItems.map(({ item, originalIndex }) => (
+                              // Apply search filtering
+                              const filteredItems = searchTerm ? sortedItems.filter(({ originalIndex }) => {
+                                // Get all validations for this row and check if any extracted value contains the search term
+                                const rowValidations = validations.filter(v => 
+                                  v.recordIndex === originalIndex &&
+                                  v.collectionName === collection.collectionName
+                                );
+                                
+                                return rowValidations.some(v => 
+                                  v.extractedValue && 
+                                  v.extractedValue.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                                );
+                              }) : sortedItems;
+                              
+                              // Handle case when search yields no results
+                              if (searchTerm && filteredItems.length === 0) {
+                                return (
+                                  <TableRow className="border-b border-gray-300 dark:border-gray-600/30">
+                                    <TableCell 
+                                      colSpan={columnsToDisplay.length + 2} 
+                                      className="text-center text-gray-500 py-8 italic"
+                                    >
+                                      No items match your search for "{searchTerm}".
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                              
+                              return filteredItems.map(({ item, originalIndex }) => (
                                 <TableRow 
                                   key={originalIndex} 
                                   className="border-b border-gray-100 dark:border-gray-800"
