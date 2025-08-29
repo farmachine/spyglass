@@ -265,77 +265,84 @@ def execute_function_extraction(function_data: Dict[str, Any], documents: List[D
         print(f"❌ FUNCTION ERROR: {error_msg}")
         return {"error": error_msg}
 
-def generate_dynamic_ai_prompt(field_data: Dict[str, Any], knowledge_docs: List[Dict[str, Any]], 
-                             extraction_rules: List[Dict[str, Any]], documents: List[Dict[str, Any]],
-                             previous_extractions: Dict[str, Any]) -> str:
-    """Generate dynamic AI prompt based on field configuration"""
+def generate_dynamic_ai_prompt(tool_data: Dict[str, Any], value_data: Dict[str, Any], 
+                             knowledge_docs: List[Dict[str, Any]], input_data: Dict[str, Any]) -> str:
+    """Generate dynamic AI prompt using tool configuration and value inputs"""
     
-    # Build context sections
-    field_description = field_data.get('description', '')
-    field_type = field_data.get('field_type') or field_data.get('property_type', 'TEXT')
+    # 1. SYSTEM PROMPT - Explains the architecture
+    system_prompt = """SYSTEM ARCHITECTURE:
+You are an AI function executor. Your inputs consist of:
+
+1. TOOL PROMPT: Defines your function/capability (what you can do)
+2. VALUE CONFIGURATION: Defines the specific task (what you should do)
+3. INPUT PARAMETERS: The actual data to process
+
+CRITICAL: All input data contains 'identifierId' fields that are essential for mapping inputs to outputs. You MUST preserve and return the identifierId for each processed item to maintain data relationships.
+
+INPUT PARAMETER TYPES:
+- User Document: Selected document content (may be optional)
+- Reference Documents: Knowledge documents for validation/context
+- Reference Data: Data from previous workflow steps passed from session
+
+Your response must maintain the identifierId mapping for all processed items.
+---"""
+
+    # 2. TOOL PROMPT - From tool configuration
+    tool_prompt = tool_data.get('aiPrompt', '') or tool_data.get('ai_prompt', '')
+    if tool_prompt:
+        tool_prompt = f"\nTOOL FUNCTION:\n{tool_prompt}\n"
     
-    # Knowledge documents context
+    # 3. VALUE CONFIGURATION - Task-specific details
+    value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
+    value_description = value_data.get('description', '')
+    
+    value_config = f"\nVALUE TASK:\nField: {value_name}"
+    if value_description:
+        value_config += f"\nDescription: {value_description}"
+    value_config += "\n"
+    
+    # 4. KNOWLEDGE DOCUMENTS - Reference context
     knowledge_context = ""
     if knowledge_docs:
-        knowledge_context = "\n\nKNOWLEDGE DOCUMENTS:\n"
+        knowledge_context = "\nREFERENCE DOCUMENTS:\n"
         for doc in knowledge_docs:
-            knowledge_context += f"- {doc['display_name'] or doc['file_name']}: {doc['description']}\n"
-            knowledge_context += f"  Content: {doc['content'][:500]}...\n"
+            doc_name = doc.get('display_name') or doc.get('file_name', 'Unknown')
+            doc_desc = doc.get('description', '')
+            doc_content = doc.get('content', '')[:500]
+            knowledge_context += f"- {doc_name}: {doc_desc}\n"
+            knowledge_context += f"  Content: {doc_content}...\n"
     
-    # Extraction rules context
-    rules_context = ""
-    if extraction_rules:
-        rules_context = "\n\nEXTRACTION RULES:\n"
-        for rule in extraction_rules:
-            rules_context += f"- {rule['rule_name']}: {rule['rule_content']}\n"
+    # 5. INPUT DATA SUMMARY - What data is being processed
+    input_summary = "\nINPUT DATA SUMMARY:\n"
+    for param_name, param_value in input_data.items():
+        if isinstance(param_value, list):
+            input_summary += f"- {param_name}: Array with {len(param_value)} items\n"
+            if param_value and isinstance(param_value[0], dict):
+                sample_keys = list(param_value[0].keys())
+                input_summary += f"  Sample structure: {sample_keys}\n"
+        elif isinstance(param_value, str):
+            input_summary += f"- {param_name}: Text content ({len(param_value)} chars)\n"
+        else:
+            input_summary += f"- {param_name}: {type(param_value).__name__}\n"
     
-    # Previous extractions context
-    previous_context = ""
-    if previous_extractions:
-        previous_context = "\n\nPREVIOUS EXTRACTIONS (for reference):\n"
-        for key, data in previous_extractions.items():
-            previous_context += f"- {data['field_name']}: {data['extracted_value']}\n"
-    
-    # Document summaries
-    document_context = "\n\nSOURCE DOCUMENTS:\n"
-    for doc in documents:
-        content_preview = doc.get('file_content', '')[:300]
-        document_context += f"- {doc['file_name']}: {content_preview}...\n"
-    
-    # Generate the prompt
-    prompt = f"""
-Extract the following field from the provided documents:
+    # 6. COMPILE FULL PROMPT
+    compiled_prompt = f"""{system_prompt}
 
-TARGET FIELD: {field_data.get('property_name') or field_data.get('field_name')}
-FIELD TYPE: {field_type}
-DESCRIPTION: {field_description}
+{tool_prompt}
+
+{value_config}
 
 {knowledge_context}
-{rules_context}
-{previous_context}
-{document_context}
 
-INSTRUCTIONS:
-1. Extract the exact value for the target field based on the description and any rules provided
-2. Use knowledge documents for validation and reference standards
-3. Consider previous extractions for context and consistency
-4. Return confidence score (0-100) based on certainty
-5. Provide reasoning for your extraction
+{input_summary}
 
-Return JSON format:
-{{
-    "extracted_value": "value found in documents",
-    "confidence_score": 85,
-    "reasoning": "explanation of how value was found and validated"
-}}
-"""
+EXECUTE THE TASK WITH THE PROVIDED INPUTS."""
     
-    return prompt
+    return compiled_prompt
 
-def execute_ai_extraction(field_data: Dict[str, Any], knowledge_docs: List[Dict[str, Any]], 
-                        extraction_rules: List[Dict[str, Any]], documents: List[Dict[str, Any]],
-                        previous_extractions: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute AI extraction with dynamic prompt"""
+def execute_ai_extraction(tool_data: Dict[str, Any], value_data: Dict[str, Any], 
+                        knowledge_docs: List[Dict[str, Any]], input_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute AI extraction using tool and value configuration"""
     try:
         # Get API key
         api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
@@ -345,11 +352,11 @@ def execute_ai_extraction(field_data: Dict[str, Any], knowledge_docs: List[Dict[
         # Initialize Gemini client
         client = genai.Client(api_key=api_key)
         
-        # Generate dynamic prompt
-        prompt = generate_dynamic_ai_prompt(field_data, knowledge_docs, extraction_rules, 
-                                          documents, previous_extractions)
+        # Generate dynamic prompt using tool and value configuration
+        prompt = generate_dynamic_ai_prompt(tool_data, value_data, knowledge_docs, input_data)
         
-        print(f"🤖 AI EXTRACTION: Processing {field_data.get('property_name') or field_data.get('field_name')}")
+        value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
+        print(f"🤖 AI EXTRACTION: Processing {value_name}")
         
         # Call Gemini API
         response = client.models.generate_content(
@@ -441,12 +448,33 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                     print(f"⚠️ Function {prop['function_id']} not found")
             
             elif extraction_type == 'AI':
-                # Route to AI extraction with dynamic prompt
+                # Route to AI extraction with tool-based architecture
                 knowledge_docs = get_knowledge_documents(prop.get('knowledge_document_ids', []))
-                extraction_rules = get_extraction_rules(prop.get('extraction_rule_ids', []))
                 
-                result = execute_ai_extraction(prop, knowledge_docs, extraction_rules, 
-                                             documents, previous_extractions)
+                # Get tool data if available
+                tool_data = {}
+                if prop.get('tool_id'):
+                    tool_data = get_function_by_id(prop['tool_id']) or {}
+                
+                # Prepare value data from property
+                value_data = {
+                    'valueName': prop['property_name'],
+                    'value_name': prop['property_name'],
+                    'description': prop.get('description', '')
+                }
+                
+                # Prepare input data 
+                input_data = {}
+                
+                # Add document content if available
+                if documents:
+                    input_data['document'] = documents[0].get('file_content', '')
+                
+                # Add previous extractions as reference data
+                if previous_extractions:
+                    input_data['previous_data'] = previous_extractions
+                
+                result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
                 if not result.get('error'):
                     results.append({
@@ -483,12 +511,33 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                         })
             
             elif extraction_type == 'AI':
-                # Route to AI extraction with dynamic prompt
+                # Route to AI extraction with tool-based architecture
                 knowledge_docs = get_knowledge_documents(field.get('knowledge_document_ids', []))
-                extraction_rules = get_extraction_rules(field.get('extraction_rule_ids', []))
                 
-                result = execute_ai_extraction(field, knowledge_docs, extraction_rules, 
-                                             documents, previous_extractions)
+                # Get tool data if available
+                tool_data = {}
+                if field.get('tool_id'):
+                    tool_data = get_function_by_id(field['tool_id']) or {}
+                
+                # Prepare value data from field
+                value_data = {
+                    'valueName': field['field_name'],
+                    'value_name': field['field_name'],
+                    'description': field.get('description', '')
+                }
+                
+                # Prepare input data 
+                input_data = {}
+                
+                # Add document content if available
+                if documents:
+                    input_data['document'] = documents[0].get('file_content', '')
+                
+                # Add previous extractions as reference data
+                if previous_extractions:
+                    input_data['previous_data'] = previous_extractions
+                
+                result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
                 if not result.get('error'):
                     results.append({
