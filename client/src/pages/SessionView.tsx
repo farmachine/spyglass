@@ -3541,7 +3541,7 @@ Thank you for your assistance.`;
               <div className="relative flex items-center">
                 {/* Horizontal connecting line when selected */}
                 {activeTab === 'documents' && (
-                  <div className="absolute left-5 w-4 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                  <div className="absolute left-5 w-8 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                 )}
                 
                 {/* Folder icon - aligned with workflow step dots */}
