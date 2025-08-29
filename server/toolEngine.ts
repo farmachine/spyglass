@@ -1141,7 +1141,17 @@ try:
         
         if value is not None:
             filtered_inputs[param] = value
-            print(f"✓ Mapped parameter '{param}' to value ({type(value).__name__}, {len(value) if isinstance(value, str) else 'N/A'} chars)", file=sys.stderr)
+            # Better debugging for arrays and objects
+            if isinstance(value, list):
+                print(f"✓ Mapped parameter '{param}' to array with {len(value)} items", file=sys.stderr)
+                if len(value) > 0:
+                    print(f"  First item type: {type(value[0]).__name__}", file=sys.stderr)
+                    if isinstance(value[0], dict):
+                        print(f"  First item keys: {list(value[0].keys())}", file=sys.stderr)
+            elif isinstance(value, str):
+                print(f"✓ Mapped parameter '{param}' to string ({len(value)} chars)", file=sys.stderr)
+            else:
+                print(f"✓ Mapped parameter '{param}' to {type(value).__name__}", file=sys.stderr)
         else:
             print(f"⚠️ Could not find value for parameter '{param}'. Available keys: {list(inputs.keys())}", file=sys.stderr)
     
