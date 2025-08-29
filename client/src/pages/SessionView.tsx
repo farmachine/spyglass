@@ -3709,7 +3709,7 @@ Thank you for your assistance.`;
         <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
           <div className="w-full">
             {/* Session Review Header - Now styled like page header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-start space-x-3 flex-1 mr-6">
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
