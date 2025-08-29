@@ -4374,9 +4374,10 @@ Thank you for your assistance.`;
                                           <div className={`table-cell-content w-full pl-6 pr-8 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
-                                            <span className={
-                                              formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''
-                                            }>
+                                            <span className={`
+                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''}
+                                              ${columnName.toLowerCase().includes('name') ? 'font-medium' : ''}
+                                            `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
                                             
