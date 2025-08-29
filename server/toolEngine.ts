@@ -637,6 +637,12 @@ ${JSON.stringify(batch, null, 2)}`;
               }
             }
             
+            // Log the full prompt being sent to AI
+            console.log(`    📝 FULL AI PROMPT BEING SENT:`);
+            console.log('='.repeat(80));
+            console.log(batchPrompt);
+            console.log('='.repeat(80));
+            
             // Add delay between batches to respect Gemini API rate limits
             // Gemini 2.0 Flash has different limits: 60 requests/minute = 1 request per second
             // Add a small delay between each batch to stay under limits
