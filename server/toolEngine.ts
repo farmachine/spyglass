@@ -549,7 +549,7 @@ export class ToolEngine {
   private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[]): string {
     const basePrompt = tool.aiPrompt || '';
     
-    // Extract input values
+    // Extract input values from value configuration
     const aiQuery = inputs['AI Query'] || '';
     const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
     const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
@@ -560,47 +560,72 @@ export class ToolEngine {
     const valueDescription = valueConfig?.description || '';
     const stepName = valueConfig?.stepName || '';
     
-    // Build enhanced prompt that includes value configuration
-    let enhancedPrompt = basePrompt;
+    // Build layered prompt structure
+    let prompt = '';
     
-    // If we have value configuration, add it to the prompt
-    if (valueConfig) {
-      enhancedPrompt = `EXTRACTION TASK: Extract "${valueName}" from the provided data.
-${valueDescription ? `\nField Description: ${valueDescription}` : ''}
-${stepName ? `\nFrom Step: ${stepName}` : ''}
+    // LAYER 1: Tool Prompt (the template explaining the function)
+    prompt += `=== TOOL FUNCTION ===
+${basePrompt}
 
-${basePrompt}`;
+`;
+    
+    // LAYER 2: Value Configuration (what the inputs actually are)
+    if (valueConfig) {
+      prompt += `=== VALUE CONFIGURATION ===
+Extracting: "${valueName}"
+${valueDescription ? `Description: ${valueDescription}` : ''}
+${stepName ? `From Step: ${stepName}` : ''}
+
+`;
     }
     
-    // Build prompt with tool's template
-    if (basePrompt.includes('`List Item`') && basePrompt.includes('`AI Query`')) {
-      return `${enhancedPrompt}
+    // LAYER 3: Input Values (the actual data being passed)
+    prompt += `=== INPUT VALUES ===
 
-AI Query: ${aiQuery}
-${additionalInstructions ? `\nAdditional Instructions: ${additionalInstructions}` : ''}
+`;
+    
+    // Add AI Query if present
+    if (aiQuery) {
+      prompt += `**AI Query**: ${aiQuery}
+${additionalInstructions ? `Additional Instructions: ${additionalInstructions}` : ''}
 
-Reference Document:
+`;
+    }
+    
+    // Add Reference Documents if present
+    if (referenceDoc) {
+      prompt += `**Reference Document**:
 ${referenceDoc}
 
-List Items (${dataArray.length} items):
-${JSON.stringify(dataArray, null, 2)}
-
-IMPORTANT: Return a JSON array with one object per input item. Each object must include:
-- identifierId: The same identifierId from the input
-- extractedValue: The extracted/processed value for "${valueName}"
-- validationStatus: "valid" or "invalid"
-- aiReasoning: Explanation of the extraction
-- confidenceScore: Number 0-100
-- documentSource: Source reference`;
+`;
     }
     
-    // Fallback format
-    return `${basePrompt}
-
-Input Data (${dataArray.length} items):
+    // Add List Items (the data to process)
+    if (dataArray && dataArray.length > 0) {
+      prompt += `**List Items** (${dataArray.length} items to process):
+\`\`\`json
 ${JSON.stringify(dataArray, null, 2)}
+\`\`\`
 
-Return a JSON array with extraction results.`;
+`;
+    }
+    
+    // Add output format requirements
+    prompt += `=== OUTPUT REQUIREMENTS ===
+Return a JSON array with one object per input item. Each object MUST include:
+- identifierId: The same identifierId from the input (preserve exactly)
+- extractedValue: The extracted/processed value for "${valueName}"
+- validationStatus: Either "valid" or "invalid" based on confidence
+- aiReasoning: Detailed explanation of the extraction logic and decision
+- confidenceScore: Number between 0-100 representing confidence
+- documentSource: Specific source reference (page, section, or location)
+
+CRITICAL: 
+- Maintain the exact same order as the input items
+- Include ALL input items in the response, even if no match is found (use null for extractedValue)
+- For "${valueName}", apply the AI Query: "${aiQuery}"`;
+    
+    return prompt;
   }
   
   /**
