@@ -3539,6 +3539,11 @@ Thank you for your assistance.`;
             {/* Documents Section - Session-specific */}
             <div className="mb-6">
               <div className="relative flex items-center">
+                {/* Horizontal connecting line when selected */}
+                {activeTab === 'documents' && (
+                  <div className="absolute left-5 w-4 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                )}
+                
                 {/* Folder icon - aligned with workflow step dots */}
                 <div className="relative z-10 w-8 h-8 flex items-center justify-center ml-1">
                   <Folder className={`h-5 w-5 ${
