@@ -3406,7 +3406,7 @@ Thank you for your assistance.`;
   ];
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       {/* Header - Match ProjectLayout exactly */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="w-full px-6 py-4">
@@ -3507,9 +3507,9 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-80 bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col">
+        <div className="w-80 bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col overflow-y-auto">
           <div className="p-4">
             <nav className="space-y-0.5">
               {navItems.map((item) => {
@@ -3719,8 +3719,8 @@ Thank you for your assistance.`;
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
-          <div className="w-full">
+        <div className="flex-1 overflow-hidden flex flex-col p-8 bg-gray-50 dark:bg-gray-900">
+          <div className="w-full flex flex-col h-full overflow-hidden">
             {/* Session Review Header - Now styled like page header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-start space-x-3 flex-1 mr-6">
@@ -3912,7 +3912,7 @@ Thank you for your assistance.`;
             })()}
 
             {/* Session Data Content - Now controlled by sidebar navigation */}
-            <div className="w-full">
+            <div className="w-full flex-1 overflow-hidden">
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
                 <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
@@ -4291,11 +4291,12 @@ Thank you for your assistance.`;
                   // Always show the table even when there are no records, so headers remain visible
 
                   return activeTab === item.itemName ? (
-                  <div key={collection.id} className="mt-0 px-0 ml-0">
-                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                      <CardContent className="p-0">
-                        <div className="overflow-hidden">
-                          <Table className="session-table">
+                  <div key={collection.id} className="mt-0 px-0 ml-0 fixed-table-container">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
+                      <CardContent className="p-0 h-full">
+                        <div className="fixed-table-wrapper">
+                          <div className="fixed-table-scroll">
+                            <Table className="session-table">
                           <TableHeader>
                             <TableRow>
                               {/* Spacer column for left padding */}
@@ -4877,6 +4878,7 @@ Thank you for your assistance.`;
                             })()}
                           </TableBody>
                         </Table>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

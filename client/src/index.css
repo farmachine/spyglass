@@ -259,6 +259,35 @@
   border-left: 2px solid #e2e8f0 !important;
 }
 
+/* Fixed table with scrollable body */
+.fixed-table-container {
+  height: calc(100vh - 380px); /* Adjusted for all headers, descriptions, etc */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fixed-table-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fixed-table-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Sticky table header */
+.session-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+}
+
 /* Table text wrapping and spacing */
 .session-table {
   table-layout: auto;
