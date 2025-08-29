@@ -31,7 +31,7 @@ export default function ValidationIcon({
   const getStatusIcon = () => {
     const iconSizes = {
       sm: "h-2.5 w-2.5",
-      md: "h-4 w-4",
+      md: "h-2.5 w-2.5",
       lg: "h-5 w-5"
     };
     const iconSize = iconSizes[size];
