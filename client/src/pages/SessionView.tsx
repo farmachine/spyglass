@@ -4367,27 +4367,20 @@ Thank you for your assistance.`;
                                 ? sortCollectionData(itemsWithIndices, collection, sortConfig)
                                 : itemsWithIndices.reverse(); // Show newest items first
                               
-                              // Apply search filtering
-                              const filteredItems = searchTerm ? sortedItems.filter(({ item, originalIndex }) => {
+                              // Apply search filtering - only on extracted values from field_validations
+                              const filteredItems = searchTerm ? sortedItems.filter(({ originalIndex }) => {
                                 const searchLower = searchTerm.toLowerCase();
                                 
-                                // Search in validation extracted values
+                                // Search only in validation extracted values
                                 const rowValidations = validations.filter(v => 
                                   v.recordIndex === originalIndex &&
                                   v.collectionName === collection.collectionName
                                 );
                                 
-                                const validationMatch = rowValidations.some(v => 
+                                return rowValidations.some(v => 
                                   v.extractedValue && 
                                   v.extractedValue.toString().toLowerCase().includes(searchLower)
                                 );
-                                
-                                // Also search in original item data
-                                const itemMatch = Object.values(item || {}).some(value => 
-                                  value && value.toString().toLowerCase().includes(searchLower)
-                                );
-                                
-                                return validationMatch || itemMatch;
                               }) : sortedItems;
                               
                               // Handle case when search yields no results
