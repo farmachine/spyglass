@@ -305,6 +305,15 @@
   z-index: 100;
 }
 
+/* Ensure bottom border is always visible */
+.session-table thead tr {
+  border-bottom: 2px solid rgb(209 213 219);
+}
+
+.dark .session-table thead tr {
+  border-bottom: 2px solid rgb(75 85 99);
+}
+
 .session-table thead th {
   background-color: rgb(249 250 251); /* Match bg-gray-50 */
   border-bottom: 2px solid rgb(209 213 219);
@@ -312,6 +321,30 @@
 
 .dark .session-table thead th {
   background-color: rgb(31 41 55); /* Match dark:bg-gray-800 */
+  border-bottom: 2px solid rgb(75 85 99);
+}
+
+/* Extend last header cell to cover scrollbar */
+.session-table thead th:last-child {
+  position: relative;
+  padding-right: 30px; /* Extra padding to cover scrollbar */
+}
+
+/* Pseudo-element to cover the scrollbar area */
+.session-table thead th:last-child::after {
+  content: '';
+  position: absolute;
+  top: -2px; /* Adjust to align with header top */
+  right: -17px; /* Position over scrollbar */
+  bottom: -2px; /* Include border */
+  width: 17px; /* Standard scrollbar width */
+  background-color: rgb(249 250 251);
+  border-bottom: 2px solid rgb(209 213 219);
+  z-index: 101;
+}
+
+.dark .session-table thead th:last-child::after {
+  background-color: rgb(31 41 55);
   border-bottom: 2px solid rgb(75 85 99);
 }
 
