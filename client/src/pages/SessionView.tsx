@@ -4371,16 +4371,34 @@ Thank you for your assistance.`;
                               const filteredItems = searchTerm ? sortedItems.filter(({ originalIndex }) => {
                                 const searchLower = searchTerm.toLowerCase();
                                 
-                                // Search only in validation extracted values
+                                // Search only in validation extracted values for this specific collection and row
                                 const rowValidations = validations.filter(v => 
                                   v.recordIndex === originalIndex &&
-                                  v.collectionName === collection.collectionName
+                                  v.collectionName === collection.collectionName &&
+                                  v.extractedValue && 
+                                  v.extractedValue !== null &&
+                                  v.extractedValue !== undefined &&
+                                  v.extractedValue !== "" &&
+                                  v.extractedValue !== "null" &&
+                                  v.extractedValue !== "undefined"
                                 );
                                 
-                                return rowValidations.some(v => 
-                                  v.extractedValue && 
+                                const matches = rowValidations.some(v => 
                                   v.extractedValue.toString().toLowerCase().includes(searchLower)
                                 );
+                                
+                                // Debug logging
+                                if (searchTerm.toLowerCase() === 'children') {
+                                  console.log(`Row ${originalIndex}:`, {
+                                    validations: rowValidations.map(v => ({
+                                      fieldName: v.fieldName,
+                                      extractedValue: v.extractedValue
+                                    })),
+                                    matches
+                                  });
+                                }
+                                
+                                return matches;
                               }) : sortedItems;
                               
                               // Handle case when search yields no results
