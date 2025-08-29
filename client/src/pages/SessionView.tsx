@@ -1210,11 +1210,7 @@ export default function SessionView() {
     });
     
     if (validation) {
-      await handleSaveFieldEdit({
-        validationId: validation.id,
-        newValue: editTableValue,
-        isManual: true
-      });
+      await handleSaveFieldEdit(validation.id, editTableValue, 'valid');
     }
     
     setEditingTableField(null);
@@ -4413,7 +4409,7 @@ Thank you for your assistance.`;
                                               
                                               if (isEditingThisField) {
                                                 return (
-                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 border-2 border-blue-500 rounded z-10">
+                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10">
                                                     <div className="p-2 h-full">
                                                       {columnType === 'TEXTAREA' ? (
                                                         <textarea
