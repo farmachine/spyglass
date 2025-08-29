@@ -4456,7 +4456,7 @@ Thank you for your assistance.`;
                                     
                                     return columnsToDisplay.map((column: any) => {
                                       const columnId = column.id || column.columnId;
-                                      const columnName = column.name || column.columnName;
+                                      const columnName = column.name || column.columnName || '';
                                       const columnType = column.valueType || column.columnType || 'TEXT';
                                       
                                       const width = columnWidths[`${collection.id}-${columnId}`] || (
