@@ -1119,57 +1119,63 @@ try:
         else:
             print(f"DEBUG: Input '{key}': {val}", file=sys.stderr)
     
-    # Filter inputs to only include parameters the function expects
-    filtered_inputs = {}
-    for param in expected_params:
-        # Try to find the input value using various key mappings
-        value = None
-        
-        # Direct match
-        if param in inputs:
-            value = inputs[param]
-        # Try with underscores replaced by spaces
-        elif param.replace('_', ' ') in inputs:
-            value = inputs[param.replace('_', ' ')]
-        # Try title case version
-        elif param.replace('_', ' ').title() in inputs:
-            value = inputs[param.replace('_', ' ').title()]
-        # Common mappings for document parameters
-        elif 'excel' in param.lower() and 'Excel File' in inputs:
-            value = inputs['Excel File']
-        elif 'document' in param.lower() and 'document' in inputs:
-            value = inputs['document']
-        elif 'content' in param.lower():
-            # Try various content-related keys
-            for key in ['Excel File', 'document', 'Document', 'file_content', 'content']:
-                if key in inputs:
-                    value = inputs[key]
-                    break
-        elif 'column' in param.lower():
-            # For column-related parameters, try various keys
-            for key in ['column', 'Column', 'column_name', 'Column Name']:
-                if key in inputs:
-                    value = inputs[key]
-                    break
-        
-        if value is not None:
-            filtered_inputs[param] = value
-            # Better debugging for arrays and objects
-            if isinstance(value, list):
-                print(f"✓ Mapped parameter '{param}' to array with {len(value)} items", file=sys.stderr)
-                if len(value) > 0:
-                    print(f"  First item type: {type(value[0]).__name__}", file=sys.stderr)
-                    if isinstance(value[0], dict):
-                        print(f"  First item keys: {list(value[0].keys())}", file=sys.stderr)
-            elif isinstance(value, str):
-                print(f"✓ Mapped parameter '{param}' to string ({len(value)} chars)", file=sys.stderr)
+    # Check if function uses *args, **kwargs pattern
+    if 'args' in expected_params and 'kwargs' in expected_params:
+        # Function expects *args and **kwargs, so pass inputs directly as kwargs
+        print(f"🔧 Function uses *args/**kwargs pattern, passing all inputs as kwargs", file=sys.stderr)
+        result = func(**inputs)
+    else:
+        # Filter inputs to only include parameters the function expects
+        filtered_inputs = {}
+        for param in expected_params:
+            # Try to find the input value using various key mappings
+            value = None
+            
+            # Direct match
+            if param in inputs:
+                value = inputs[param]
+            # Try with underscores replaced by spaces
+            elif param.replace('_', ' ') in inputs:
+                value = inputs[param.replace('_', ' ')]
+            # Try title case version
+            elif param.replace('_', ' ').title() in inputs:
+                value = inputs[param.replace('_', ' ').title()]
+            # Common mappings for document parameters
+            elif 'excel' in param.lower() and 'Excel File' in inputs:
+                value = inputs['Excel File']
+            elif 'document' in param.lower() and 'document' in inputs:
+                value = inputs['document']
+            elif 'content' in param.lower():
+                # Try various content-related keys
+                for key in ['Excel File', 'document', 'Document', 'file_content', 'content']:
+                    if key in inputs:
+                        value = inputs[key]
+                        break
+            elif 'column' in param.lower():
+                # For column-related parameters, try various keys
+                for key in ['column', 'Column', 'column_name', 'Column Name']:
+                    if key in inputs:
+                        value = inputs[key]
+                        break
+            
+            if value is not None:
+                filtered_inputs[param] = value
+                # Better debugging for arrays and objects
+                if isinstance(value, list):
+                    print(f"✓ Mapped parameter '{param}' to array with {len(value)} items", file=sys.stderr)
+                    if len(value) > 0:
+                        print(f"  First item type: {type(value[0]).__name__}", file=sys.stderr)
+                        if isinstance(value[0], dict):
+                            print(f"  First item keys: {list(value[0].keys())}", file=sys.stderr)
+                elif isinstance(value, str):
+                    print(f"✓ Mapped parameter '{param}' to string ({len(value)} chars)", file=sys.stderr)
+                else:
+                    print(f"✓ Mapped parameter '{param}' to {type(value).__name__}", file=sys.stderr)
             else:
-                print(f"✓ Mapped parameter '{param}' to {type(value).__name__}", file=sys.stderr)
-        else:
-            print(f"⚠️ Could not find value for parameter '{param}'. Available keys: {list(inputs.keys())}", file=sys.stderr)
-    
-    # Call the function with filtered inputs
-    result = func(**filtered_inputs)
+                print(f"⚠️ Could not find value for parameter '{param}'. Available keys: {list(inputs.keys())}", file=sys.stderr)
+        
+        # Call the function with filtered inputs
+        result = func(**filtered_inputs)
     
     # Validate and output result
     if result is None:
