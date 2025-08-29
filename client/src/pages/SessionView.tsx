@@ -4160,13 +4160,13 @@ Thank you for your assistance.`;
                                     <div className="flex items-center gap-3">
                                       <div className="flex-shrink-0">
                                         {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
-                                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                          <FileText className="w-4 h-4 text-green-600" />
                                         ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ? (
-                                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                          <FileText className="w-4 h-4 text-blue-600" />
                                         ) : doc.mimeType?.includes('pdf') ? (
-                                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                          <FileText className="w-4 h-4 text-red-600" />
                                         ) : (
-                                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                          <FileText className="w-4 h-4 text-gray-400" />
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
