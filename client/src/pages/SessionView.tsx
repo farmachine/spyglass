@@ -3787,6 +3787,29 @@ Thank you for your assistance.`;
               </div>
             </div>
 
+            {/* Step Description - positioned below step header */}
+            {(() => {
+              // Get the active collection's description
+              const collections = project?.collections || [];
+              const activeCollection = collections.find(c => {
+                const stepName = c.collectionName;
+                const workflowSteps = project?.workflowSteps || [];
+                return workflowSteps.some(step => 
+                  step.stepName === stepName && 
+                  (step.values?.length > 0 || step.stepName === activeTab)
+                );
+              });
+              
+              if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
+                return (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{activeCollection.description}</p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full">
               {/* Info Tab Content - Single Object View */}
@@ -4155,10 +4178,6 @@ Thank you for your assistance.`;
 
                   return activeTab === item.itemName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0">
-                    {/* Description moved outside the table container */}
-                    <div className="mb-4 px-6">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{collection.description}</p>
-                    </div>
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                       <CardContent className="p-0">
                         <div className="overflow-hidden">
@@ -4238,7 +4257,7 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate text-blue-900 dark:text-blue-100 pl-1">{columnName}</span>
+                                        <span className="truncate pl-1" style={{ color: '#071e54' }}>{columnName}</span>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2">
                                         <button
