@@ -3564,6 +3564,12 @@ Thank you for your assistance.`;
                   <div className="truncate">Documents</div>
                 </button>
               </div>
+              {/* Description text for Documents - positioned below the tab */}
+              <div className="ml-11 mb-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Documents uploaded and processed for this session.
+                </p>
+              </div>
             </div>
             
             <div className="mb-4">
@@ -4130,15 +4136,7 @@ Thank you for your assistance.`;
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
                 <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
-                      <span className="flex items-center gap-2">Documents</span>
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Documents uploaded and processed for this session.
-                    </p>
-                  </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     {sessionDocuments && sessionDocuments.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {sessionDocuments.map((doc: any, index: number) => (
