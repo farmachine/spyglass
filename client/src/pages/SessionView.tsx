@@ -3620,52 +3620,15 @@ Thank you for your assistance.`;
           
           {/* Session Navigation - Only visible in session view */}
           <div className="border-t border-slate-200 dark:border-gray-700 p-4 flex-1">
-            {/* Documents Section - Session-specific */}
-            <div className="mb-6">
-              <div className="relative flex items-center">
-                {/* Horizontal connecting line when selected */}
-                {activeTab === 'documents' && (
-                  <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
-                )}
-                
-                {/* Vertical connecting line from Documents to steps section */}
-                <div 
-                  className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600"
-                  style={{ 
-                    height: '46px'
-                  }}
-                />
-                
-                {/* Circular icon - solid dot without border */}
-                <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activeTab === 'documents' ? '' : 'bg-slate-400 dark:bg-gray-500'
-                  }`} style={activeTab === 'documents' ? { backgroundColor: '#4F63A4' } : {}}></div>
-                </div>
-                
-                {/* Tab button */}
-                <button
-                  onClick={() => setActiveTab('documents')}
-                  className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                    activeTab === 'documents' 
-                      ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
-                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
-                  }`}
-                  style={activeTab === 'documents' ? { color: '#071e54' } : {}}
-                >
-                  <div className="truncate">Documents</div>
-                </button>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <h3 className="text-xs font-medium text-slate-700 dark:text-gray-400 uppercase tracking-wider">{project?.mainObjectName || "Session"} Information</h3>
-            </div>
+            {/* Continuous flow starting with Documents */}
             <div className="relative">
-              {/* Vertical connecting line - stops at last item */}
+              {/* Vertical connecting line - now includes Documents */}
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
                 height: `${(() => {
-                  let count = project.collections ? project.collections.length : 0;
+                  let count = 1; // Start with 1 for General Information
+                  if (project.collections) {
+                    count += project.collections.length;
+                  }
                   if (project.workflowSteps) {
                     const additionalSteps = project.workflowSteps.filter(step => 
                       step.stepType === 'list' && 
@@ -3678,6 +3641,34 @@ Thank you for your assistance.`;
               }}></div>
               
               <div className="space-y-3">
+                {/* Documents Tab */}
+                <div className="relative flex items-center">
+                  {/* Horizontal connecting line when selected */}
+                  {activeTab === 'documents' && (
+                    <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                  )}
+                  
+                  {/* Circular icon - solid dot without border */}
+                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                    <div className={`w-2 h-2 rounded-full ${
+                      activeTab === 'documents' ? '' : 'bg-slate-400 dark:bg-gray-500'
+                    }`} style={activeTab === 'documents' ? { backgroundColor: '#4F63A4' } : {}}></div>
+                  </div>
+                  
+                  {/* Tab button */}
+                  <button
+                    onClick={() => setActiveTab('documents')}
+                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                      activeTab === 'documents' 
+                        ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
+                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
+                    }`}
+                    style={activeTab === 'documents' ? { color: '#071e54' } : {}}
+                  >
+                    <div className="truncate">Documents</div>
+                  </button>
+                </div>
+
                 {/* General Information Tab */}
                 <div className="relative flex items-center">
                   {/* Horizontal connecting line when selected */}
