@@ -1154,6 +1154,7 @@ export default function SessionView() {
     valueId: string;
     valueName: string;
     previousData: any[];
+    columnOrder?: string[]; // Add column order to show columns in correct order
     needsDocument: boolean;
     toolType: string;
     toolDescription: string;
@@ -2367,6 +2368,11 @@ export default function SessionView() {
       }
     }
     
+    // Get the column order from the filtered data
+    const columnOrder = filteredPreviousData.length > 0 
+      ? Object.keys(filteredPreviousData[0]).filter(k => k !== 'identifierId' && k !== '_recordIndex')
+      : [];
+    
     // Open the extraction wizard modal with the value's tool configuration
     setColumnExtractionModal({
       isOpen: true,
@@ -2374,6 +2380,7 @@ export default function SessionView() {
       valueId: valueId,
       valueName: valueName,
       previousData: filteredPreviousData, // Show only referenced columns, not all data
+      columnOrder: columnOrder, // Pass the column order
       needsDocument: needsDocument,
       toolType: toolInfo?.name || 'extraction',
       toolDescription: valueToRun.description || '',
@@ -5098,6 +5105,7 @@ Thank you for your assistance.`;
           onClose={() => setColumnExtractionModal(null)}
           extractedCount={columnExtractionModal.extractedCount}
           totalAvailable={columnExtractionModal.totalAvailable}
+          columnOrder={columnExtractionModal.columnOrder}
           onConfirm={async (documentId) => {
             if (!columnExtractionModal) return;
             
@@ -5169,16 +5177,6 @@ Thank you for your assistance.`;
           isLoading={isColumnExtracting}
           inputValues={columnExtractionModal.inputValues}
           knowledgeDocuments={columnExtractionModal.knowledgeDocuments || []}
-          columnOrder={(() => {
-            // Get the correct column order from the workflow step that generated the reference data
-            const workflowStep = project?.workflowSteps?.find(step => step.stepName === 'Column Name Mapping');
-            if (workflowStep?.values) {
-              return workflowStep.values
-                .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                .map(value => value.valueName);
-            }
-            return ['Column Name', 'Worksheet Name', 'Standard Equivalent', 'Reasoning']; // fallback order
-          })()}
         />
       )}
       {/* AI Extraction Modal */}
