@@ -4233,7 +4233,7 @@ Thank you for your assistance.`;
                                   key={doc.id || index}
                                   className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                                 >
-                                  <td className="py-3 px-4">
+                                  <td className="py-2 px-3">
                                     <div className="flex items-center gap-3">
                                       <div className="flex-shrink-0">
                                         {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') ? (
@@ -4253,16 +4253,16 @@ Thank you for your assistance.`;
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-400">
                                     {doc.fileSize ? `${Math.round(doc.fileSize / 1024)} KB` : 'Unknown'}
                                   </td>
-                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-400">
                                     {doc.extractedContent ? `${doc.extractedContent.length} chars` : 'No content'}
                                   </td>
-                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-400">
                                     {doc.extractedAt ? new Date(doc.extractedAt).toLocaleDateString() : 'Not processed'}
                                   </td>
-                                  <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-400">
                                     {doc.extractedContent && doc.extractedContent.length > 0 && (
                                       <div className="max-w-xs">
                                         <p className="text-xs line-clamp-2">
@@ -4271,7 +4271,7 @@ Thank you for your assistance.`;
                                       </div>
                                     )}
                                   </td>
-                                  <td className="py-3 px-4">
+                                  <td className="py-2 px-3">
                                     <div className="flex items-center justify-end gap-1">
                                       <Button
                                         size="sm"
@@ -4372,11 +4372,11 @@ Thank you for your assistance.`;
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
                       <CardContent className="p-0">
                         <div className="session-table-wrapper" style={{ height: '500px', overflowY: 'auto', position: 'relative' }}>
-                          <Table className="session-table">
-                            <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                          <Table className="session-table compact">
+                            <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
                               <TableRow>
                               {/* Spacer column for left padding */}
-                              <TableHead className="w-4 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                              <TableHead className="w-3 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}>
                               </TableHead>
 
                               {(() => {
@@ -4400,7 +4400,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className={`relative h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600 ${!isLastColumn ? 'border-r' : ''}`}
+                                        className={`relative h-8 py-1 px-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4476,7 +4476,7 @@ Thank you for your assistance.`;
                                     );
                                   });
                               })()}
-                              <TableHead className="w-16 h-10 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600" style={{ width: '64px', minWidth: '64px', maxWidth: '64px' }}>
+                              <TableHead className="w-14 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '56px', minWidth: '56px', maxWidth: '56px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <Button
                                     size="sm"
@@ -4525,10 +4525,10 @@ Thank you for your assistance.`;
                               // Handle empty collections by showing a placeholder row
                               if (uniqueIndices.length === 0) {
                                 return (
-                                  <TableRow className="border-b border-gray-300 dark:border-gray-600/30">
+                                  <TableRow className="border-b border-gray-200 dark:border-gray-700">
                                     <TableCell 
                                       colSpan={columnsToDisplay.length + 2} 
-                                      className="text-center text-gray-500 py-8 italic"
+                                      className="text-center text-gray-500 py-6 italic text-sm"
                                     >
                                       No items yet. Click the + button to add the first item.
                                     </TableCell>
@@ -4599,10 +4599,10 @@ Thank you for your assistance.`;
                               // Handle case when search yields no results
                               if (searchTerm && filteredItems.length === 0) {
                                 return (
-                                  <TableRow className="border-b border-gray-300 dark:border-gray-600/30">
+                                  <TableRow className="border-b border-gray-200 dark:border-gray-700">
                                     <TableCell 
                                       colSpan={columnsToDisplay.length + 2} 
-                                      className="text-center text-gray-500 py-8 italic"
+                                      className="text-center text-gray-500 py-6 italic text-sm"
                                     >
                                       No items match your search for "{searchTerm}".
                                     </TableCell>
@@ -4613,7 +4613,7 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b border-gray-100 dark:border-gray-800"
+                                  className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
                                   style={{
                                     backgroundColor: originalIndex % 2 === 0 
                                       ? 'transparent' 
@@ -4621,7 +4621,7 @@ Thank you for your assistance.`;
                                   }}
                                 >
                                   {/* Spacer cell for left padding */}
-                                  <TableCell className="w-4" style={{ width: '16px', minWidth: '16px', maxWidth: '16px' }}>
+                                  <TableCell className="w-3 py-1" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}>
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -4673,7 +4673,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative"
+                                        className="relative py-2 px-3"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4690,11 +4690,11 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full h-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pl-6 pr-8 ${
-                                            columnType === 'TEXTAREA' ? 'min-h-[60px] py-2' : 'py-2'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative`}>
+                                          <div className={`table-cell-content w-full pl-5 pr-6 ${
+                                            columnType === 'TEXTAREA' ? 'min-h-[40px] py-1' : 'py-0.5'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-snug group relative text-sm`}>
                                             <span className={`
-                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-500 italic' : ''}
+                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 italic text-xs' : ''}
                                               ${columnIndex === 0 ? 'font-medium' : ''}
                                             `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
@@ -4792,7 +4792,7 @@ Thank you for your assistance.`;
 
                                                 if (wasManuallyUpdated) {
                                                   return (
-                                                    <div className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
                                                       <User className="h-3 w-3 text-slate-700" />
                                                     </div>
                                                   );
@@ -4804,7 +4804,7 @@ Thank you for your assistance.`;
                                                         <TooltipTrigger asChild>
                                                           <button
                                                             onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                            className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
                                                             <span className="text-xs font-bold">✓</span>
@@ -4873,7 +4873,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className="absolute top-3.5 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              className="absolute top-2 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
@@ -4896,7 +4896,7 @@ Thank you for your assistance.`;
                                                 } else if (!hasValue) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
-                                                    <div className="absolute top-3.5 left-1 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
                                                       <span className="text-red-500 text-xs font-bold leading-none">!</span>
                                                     </div>
                                                   );
@@ -4909,7 +4909,7 @@ Thank you for your assistance.`;
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="">
+                                  <TableCell className="py-1 px-2">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item using improved filtering
