@@ -138,6 +138,17 @@
   background: linear-gradient(to bottom, #1f2937, #111827);
 }
 
+/* Spacer column specific styling */
+.session-table.compact th:first-child {
+  padding: 0;
+  background: transparent;
+}
+
+.session-table.compact td:first-child {
+  padding: 0;
+  background: transparent;
+}
+
 .session-table.compact th {
   font-size: 0.7rem;
   font-weight: 600;
@@ -156,6 +167,12 @@
 
 .session-table.compact th:last-child {
   border-right: none;
+}
+
+/* Remove border on spacer column */
+.session-table.compact th:first-child,
+.session-table.compact td:first-child {
+  border-right: none !important;
 }
 
 .session-table.compact td {

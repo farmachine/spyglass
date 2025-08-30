@@ -4376,7 +4376,7 @@ Thank you for your assistance.`;
                             <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
                               <TableRow>
                               {/* Spacer column for left padding */}
-                              <TableHead className="w-3 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}>
+                              <TableHead className="w-1.5 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                               </TableHead>
 
                               {(() => {
@@ -4621,7 +4621,7 @@ Thank you for your assistance.`;
                                   }}
                                 >
                                   {/* Spacer cell for left padding */}
-                                  <TableCell className="w-3 py-1" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}>
+                                  <TableCell className="w-1.5 py-1 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
