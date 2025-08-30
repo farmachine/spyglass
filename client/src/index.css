@@ -215,6 +215,27 @@
   line-height: 1.4;
 }
 
+/* Force fixed width for ALL action columns */
+/* Target all tables in SessionView */
+table th:last-child,
+table td:last-child {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Specific targeting for session tables */
+.session-table th:last-child,
+.session-table td:last-child,
+.session-table.compact th:last-child,
+.session-table.compact td:last-child {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+}
+
 /* Smooth dialog transitions */
 .dialog-overlay-fade-out {
   transition: opacity 0.5s ease-out;
