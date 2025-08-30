@@ -388,8 +388,14 @@ def generate_dynamic_ai_prompt(tool_data: Dict[str, Any], value_data: Dict[str, 
                              knowledge_docs: List[Dict[str, Any]], input_data: Dict[str, Any]) -> str:
     """Generate dynamic AI prompt using tool configuration and value inputs"""
     
+    # Check if this is a create or update operation
+    operation_type = tool_data.get('operationType', 'updateMultiple')  # Default to update for backward compatibility
+    is_create_operation = operation_type.startswith('create')
+    
     # 1. SYSTEM PROMPT - Explains the architecture
-    system_prompt = """SYSTEM ARCHITECTURE:
+    if is_create_operation:
+        # For CREATE operations - no identifierId preservation needed
+        system_prompt = """SYSTEM ARCHITECTURE:
 You are an AI function executor. Your inputs consist of:
 
 1. TOOL PROMPT: Defines your function/capability (what you can do)
@@ -397,6 +403,27 @@ You are an AI function executor. Your inputs consist of:
 3. INPUT PARAMETERS: The actual data to process
 4. AI INSTRUCTIONS: Specific instructions for this execution
 
+OPERATION TYPE: CREATE NEW RECORDS
+This is a CREATE operation. Input data is for reference and context only. You will be creating NEW records based on the provided instructions and reference materials.
+
+INPUT PARAMETER TYPES:
+- User Document: Selected document content (may be optional)
+- Reference Documents: Knowledge documents for validation/context
+- Reference Data: Data from previous workflow steps for context
+
+Your response should create new records according to the tool function.
+---"""
+    else:
+        # For UPDATE operations - preserve identifierId
+        system_prompt = """SYSTEM ARCHITECTURE:
+You are an AI function executor. Your inputs consist of:
+
+1. TOOL PROMPT: Defines your function/capability (what you can do)
+2. VALUE CONFIGURATION: Defines the specific task (what you should do)
+3. INPUT PARAMETERS: The actual data to process
+4. AI INSTRUCTIONS: Specific instructions for this execution
+
+OPERATION TYPE: UPDATE EXISTING RECORDS
 CRITICAL: All input data contains 'identifierId' fields that are essential for mapping inputs to outputs. You MUST preserve and return the identifierId for each processed item to maintain data relationships.
 
 INPUT PARAMETER TYPES:
@@ -507,6 +534,20 @@ Your response must maintain the identifierId mapping for all processed items.
                     actual_input_data += f"\n{param_name}:\n{param_value}\n"
     
     # 7. COMPILE FULL PROMPT
+    # Build output requirements based on operation type
+    if is_create_operation:
+        output_requirements = """OUTPUT REQUIREMENTS:
+- Return results as a JSON array of objects
+- Each object should contain the fields specified in your tool prompt
+- The number and order of results depends on what you find/create based on the instructions
+- Focus on creating new records according to the tool function"""
+    else:
+        output_requirements = """CRITICAL OUTPUT REQUIREMENTS:
+1. Maintain the EXACT SAME ORDER as the input items
+2. Include ALL input items in the response, even if no match is found (use null for extractedValue)
+3. ALWAYS preserve the identifierId for each item to maintain data relationships
+4. Return results in JSON format"""
+    
     compiled_prompt = f"""{system_prompt}
 
 {tool_prompt}
@@ -519,11 +560,7 @@ Your response must maintain the identifierId mapping for all processed items.
 
 {actual_input_data}
 
-CRITICAL OUTPUT REQUIREMENTS:
-1. Maintain the EXACT SAME ORDER as the input items
-2. Include ALL input items in the response, even if no match is found (use null for extractedValue)
-3. ALWAYS preserve the identifierId for each item to maintain data relationships
-4. Return results in JSON format
+{output_requirements}
 
 EXECUTE THE TASK WITH THE PROVIDED INPUTS AND RETURN THE RESULT IN JSON FORMAT."""
     
