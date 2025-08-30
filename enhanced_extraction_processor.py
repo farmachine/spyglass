@@ -237,6 +237,125 @@ def get_previous_extractions(session_id: str) -> Dict[str, Any]:
         cursor.close()
         conn.close()
 
+def get_step_value_input_config(value_id: str) -> Dict[str, Any]:
+    """Get the inputValues configuration for a step value"""
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    
+    try:
+        query = """
+        SELECT input_values
+        FROM step_values
+        WHERE id = %s
+        """
+        cursor.execute(query, (value_id,))
+        result = cursor.fetchone()
+        
+        if result and result[0]:
+            return result[0]  # JSONB field returns as dict
+        return {}
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+def filter_previous_data_by_input_config(previous_extractions: Dict[str, Any], input_values: Dict[str, Any]) -> Dict[str, Any]:
+    """Filter previous extractions to only include referenced fields from input configuration"""
+    if not input_values:
+        # If no input configuration, return empty (don't pass all data)
+        return {}
+    
+    filtered_data = {}
+    
+    # Iterate through input values and extract referenced fields
+    for param_name, param_value in input_values.items():
+        if isinstance(param_value, str):
+            # Check for specific tags/references (e.g., "Missing Fields • Missing Fields")
+            if '•' in param_value:
+                # Handle tag-style references
+                tags = [tag.strip() for tag in param_value.split('•')]
+                for tag in tags:
+                    for key, data in previous_extractions.items():
+                        field_name = data.get('field_name', '')
+                        collection_name = data.get('collection_name', '')
+                        
+                        # Match based on tag content
+                        if tag.lower() in field_name.lower() or tag.lower() in collection_name.lower():
+                            filtered_data[key] = data
+            
+            # Check if it's a reference to previous data (contains @ symbol or specific field references)
+            elif '@' in param_value:
+                # Extract @-style references
+                import re
+                ref_pattern = r'@([^\s,;]+)'
+                references = re.findall(ref_pattern, param_value)
+                
+                for ref in references:
+                    # Find matching fields in previous extractions
+                    for key, data in previous_extractions.items():
+                        field_name = data.get('field_name', '')
+                        collection_name = data.get('collection_name', '')
+                        field_id = key.split('_')[0] if '_' in key else key
+                        
+                        # Check various matching patterns
+                        if (ref == field_id or 
+                            ref == field_name or 
+                            ref == f"{collection_name}.{field_name}" or
+                            ref in key):
+                            filtered_data[key] = data
+            
+            # Check for specific patterns
+            elif any(pattern in param_value for pattern in ['Column Name Mapping', 'Standard Equivalent', 'Missing Fields']):
+                for key, data in previous_extractions.items():
+                    field_name = data.get('field_name', '')
+                    
+                    # Pattern-based matching
+                    if ('Column Name Mapping' in param_value and 'column' in field_name.lower()) or \
+                       ('Standard Equivalent' in param_value and 'standard' in field_name.lower()) or \
+                       ('Missing Fields' in param_value and 'missing' in field_name.lower()):
+                        filtered_data[key] = data
+                        
+        elif isinstance(param_value, list):
+            # If it's a list of references, check each one
+            for ref in param_value:
+                if isinstance(ref, str):
+                    # Process each reference in the list
+                    if '•' in ref:
+                        # Handle tag-style references in lists
+                        tags = [tag.strip() for tag in ref.split('•')]
+                        for tag in tags:
+                            for key, data in previous_extractions.items():
+                                field_name = data.get('field_name', '')
+                                collection_name = data.get('collection_name', '')
+                                
+                                if tag.lower() in field_name.lower() or tag.lower() in collection_name.lower():
+                                    filtered_data[key] = data
+                    elif '@' in ref:
+                        # Extract the referenced field ID or name
+                        ref_field = ref.split('@')[1].strip() if '@' in ref else ref
+                        # Find matching fields in previous extractions
+                        for key, data in previous_extractions.items():
+                            field_name = data.get('field_name', '')
+                            collection_name = data.get('collection_name', '')
+                            field_id = key.split('_')[0] if '_' in key else key
+                            
+                            if (ref_field == field_id or 
+                                ref_field == field_name or 
+                                ref_field == f"{collection_name}.{field_name}" or
+                                ref_field in key):
+                                filtered_data[key] = data
+        
+        elif isinstance(param_value, dict):
+            # If it's a dict, recursively check for references
+            nested_filtered = filter_previous_data_by_input_config(previous_extractions, param_value)
+            filtered_data.update(nested_filtered)
+    
+    # Log what was filtered for debugging
+    if filtered_data:
+        print(f"📋 Filtered {len(filtered_data)} referenced fields from {len(previous_extractions)} total fields")
+    
+    return filtered_data
+
 def execute_function_extraction(function_data: Dict[str, Any], documents: List[Dict[str, Any]], 
                               previous_extractions: Dict[str, Any]) -> Dict[str, Any]:
     """Execute Excel function extraction"""
@@ -451,11 +570,20 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
             
             print(f"\n🔄 Processing {prop['property_name']} ({extraction_type})")
             
+            # Get input values configuration if available
+            input_values_config = {}
+            if prop.get('id'):
+                # Try to get input configuration from step_values
+                input_values_config = get_step_value_input_config(prop['id'])
+            
+            # Filter previous extractions based on input configuration
+            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config)
+            
             if extraction_type == 'FUNCTION' and prop.get('function_id'):
-                # Route to function extraction
+                # Route to function extraction with filtered data
                 function_data = get_function_by_id(prop['function_id'])
                 if function_data:
-                    result = execute_function_extraction(function_data, documents, previous_extractions)
+                    result = execute_function_extraction(function_data, documents, filtered_previous_data)
                     
                     if not result.get('error'):
                         results.append({
@@ -493,9 +621,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 if documents:
                     input_data['document'] = documents[0].get('file_content', '')
                 
-                # Add previous extractions as reference data
-                if previous_extractions:
-                    input_data['previous_data'] = previous_extractions
+                # Add filtered previous extractions as reference data
+                if filtered_previous_data:
+                    input_data['previous_data'] = filtered_previous_data
                 
                 result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
@@ -517,11 +645,20 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
             
             print(f"\n🔄 Processing {field['field_name']} ({extraction_type})")
             
+            # Get input values configuration if available
+            input_values_config = {}
+            if field.get('id'):
+                # Try to get input configuration from step_values
+                input_values_config = get_step_value_input_config(field['id'])
+            
+            # Filter previous extractions based on input configuration
+            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config)
+            
             if extraction_type == 'FUNCTION' and field.get('function_id'):
-                # Route to function extraction
+                # Route to function extraction with filtered data
                 function_data = get_function_by_id(field['function_id'])
                 if function_data:
-                    result = execute_function_extraction(function_data, documents, previous_extractions)
+                    result = execute_function_extraction(function_data, documents, filtered_previous_data)
                     
                     if not result.get('error'):
                         results.append({
@@ -556,9 +693,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 if documents:
                     input_data['document'] = documents[0].get('file_content', '')
                 
-                # Add previous extractions as reference data
-                if previous_extractions:
-                    input_data['previous_data'] = previous_extractions
+                # Add filtered previous extractions as reference data
+                if filtered_previous_data:
+                    input_data['previous_data'] = filtered_previous_data
                 
                 result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
