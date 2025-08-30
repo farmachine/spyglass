@@ -642,8 +642,13 @@ ${JSON.stringify(dataArray, null, 2)}
 `;
     }
     
-    // Add output format requirements
-    prompt += `=== OUTPUT REQUIREMENTS ===
+    // Add output format requirements ONLY for UPDATE operations
+    // For CREATE operations, let the tool's own prompt handle output requirements
+    const isCreateOperation = tool.operationType && tool.operationType.startsWith('create');
+    
+    if (!isCreateOperation) {
+      // Only add system output requirements for UPDATE operations
+      prompt += `=== OUTPUT REQUIREMENTS ===
 Return a JSON array with one object per input item. Each object MUST include:
 - identifierId: The same identifierId from the input (preserve exactly)
 - extractedValue: The extracted/processed value for "${valueName}"
@@ -656,6 +661,8 @@ CRITICAL:
 - Maintain the exact same order as the input items
 - Include ALL input items in the response, even if no match is found (use null for extractedValue)
 - For "${valueName}", apply the AI Query: "${aiQuery}"`;
+    }
+    // For CREATE operations, the tool's own prompt should include its output requirements
     
     return prompt;
   }
