@@ -4031,7 +4031,7 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <div className="w-3 h-3 flex items-center justify-center">
-                                        <User className="h-3 w-3 text-slate-700" />
+                                        <User className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                       </div>
                                     );
                                   } else if (isVerified) {
@@ -4789,7 +4789,7 @@ Thank you for your assistance.`;
                                                 if (wasManuallyUpdated) {
                                                   return (
                                                     <div className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center">
-                                                      <User className="h-3 w-3 text-slate-700" />
+                                                      <User className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                                     </div>
                                                   );
                                                 } else if (isVerified) {
