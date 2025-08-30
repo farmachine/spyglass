@@ -4792,7 +4792,7 @@ Thank you for your assistance.`;
 
                                                 if (wasManuallyUpdated) {
                                                   return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center">
                                                       <User className="h-3 w-3 text-slate-700" />
                                                     </div>
                                                   );
@@ -4804,7 +4804,7 @@ Thank you for your assistance.`;
                                                         <TooltipTrigger asChild>
                                                           <button
                                                             onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                            className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors"
                                                             aria-label="Click to unverify"
                                                           >
                                                             <span className="text-xs font-bold">✓</span>
@@ -4873,7 +4873,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className="absolute top-2 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
+                                                              className="absolute top-1 left-1 w-2 h-2 bg-gray-400 rounded-full border-2 border-gray-400 cursor-pointer hover:bg-gray-300 transition-colors"
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
@@ -4896,7 +4896,7 @@ Thank you for your assistance.`;
                                                 } else if (!hasValue) {
                                                   // Show red exclamation mark for missing fields
                                                   return (
-                                                    <div className="absolute top-2 left-1 w-3 h-3 flex items-center justify-center">
+                                                    <div className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center">
                                                       <span className="text-red-500 text-xs font-bold leading-none">!</span>
                                                     </div>
                                                   );
