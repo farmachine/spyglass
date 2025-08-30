@@ -4909,7 +4909,7 @@ Thank you for your assistance.`;
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="py-2.5 px-2">
+                                  <TableCell className="py-2.5 px-2" style={{ width: '56px', minWidth: '56px', maxWidth: '56px' }}>
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item using improved filtering
