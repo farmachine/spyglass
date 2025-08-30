@@ -395,6 +395,7 @@ You are an AI function executor. Your inputs consist of:
 1. TOOL PROMPT: Defines your function/capability (what you can do)
 2. VALUE CONFIGURATION: Defines the specific task (what you should do)
 3. INPUT PARAMETERS: The actual data to process
+4. AI INSTRUCTIONS: Specific instructions for this execution
 
 CRITICAL: All input data contains 'identifierId' fields that are essential for mapping inputs to outputs. You MUST preserve and return the identifierId for each processed item to maintain data relationships.
 
@@ -418,6 +419,21 @@ Your response must maintain the identifierId mapping for all processed items.
     value_config = f"\nVALUE TASK:\nField: {value_name}"
     if value_description:
         value_config += f"\nDescription: {value_description}"
+    
+    # 4. INPUT VALUES / AI INSTRUCTIONS - Extract from value_data
+    input_values = value_data.get('inputValues', {})
+    if input_values:
+        value_config += "\n\nAI INSTRUCTIONS:"
+        for param_key, param_value in input_values.items():
+            # Extract the AI instruction from input values (looking for descriptive text)
+            if isinstance(param_value, str) and not param_value.startswith('@'):
+                value_config += f"\n- {param_value}"
+            elif isinstance(param_value, list):
+                # Handle array-based instructions
+                for item in param_value:
+                    if isinstance(item, str) and not item.startswith('@'):
+                        value_config += f"\n- {item}"
+    
     value_config += "\n"
     
     # 4. KNOWLEDGE DOCUMENTS - Reference context
@@ -455,7 +471,22 @@ Your response must maintain the identifierId mapping for all processed items.
         else:
             input_summary += f"- {param_name}: {type(param_value).__name__}\n"
     
-    # 6. COMPILE FULL PROMPT
+    # 6. ACTUAL INPUT DATA - Include the actual data to process
+    actual_input_data = ""
+    if input_data:
+        actual_input_data = "\nACTUAL INPUT DATA TO PROCESS:\n"
+        for param_name, param_value in input_data.items():
+            if param_name == 'previous_data' and isinstance(param_value, dict):
+                # For previous_data, include the actual JSON data
+                actual_input_data += f"\n{param_name}:\n{json.dumps(param_value, indent=2)}\n"
+            elif param_name == 'document' and isinstance(param_value, str) and len(param_value) > 0:
+                # For document content, include a truncated version if too long
+                if len(param_value) > 5000:
+                    actual_input_data += f"\n{param_name} (truncated to 5000 chars):\n{param_value[:5000]}...\n"
+                else:
+                    actual_input_data += f"\n{param_name}:\n{param_value}\n"
+    
+    # 7. COMPILE FULL PROMPT
     compiled_prompt = f"""{system_prompt}
 
 {tool_prompt}
@@ -466,7 +497,9 @@ Your response must maintain the identifierId mapping for all processed items.
 
 {input_summary}
 
-EXECUTE THE TASK WITH THE PROVIDED INPUTS."""
+{actual_input_data}
+
+EXECUTE THE TASK WITH THE PROVIDED INPUTS AND RETURN THE RESULT IN JSON FORMAT."""
     
     return compiled_prompt
 
@@ -611,7 +644,8 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 value_data = {
                     'valueName': prop['property_name'],
                     'value_name': prop['property_name'],
-                    'description': prop.get('description', '')
+                    'description': prop.get('description', ''),
+                    'inputValues': input_values_config  # Include the inputValues configuration
                 }
                 
                 # Prepare input data 
@@ -683,7 +717,8 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 value_data = {
                     'valueName': field['field_name'],
                     'value_name': field['field_name'],
-                    'description': field.get('description', '')
+                    'description': field.get('description', ''),
+                    'inputValues': input_values_config  # Include the inputValues configuration
                 }
                 
                 # Prepare input data 
