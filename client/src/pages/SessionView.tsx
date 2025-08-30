@@ -3649,7 +3649,7 @@ Thank you for your assistance.`;
                 <div className="relative flex items-center">
                   {/* Horizontal connecting line when selected */}
                   {activeTab === 'documents' && (
-                    <div className="absolute left-4 w-4 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                    <div className="absolute left-4 w-6 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                   )}
                   
                   {/* Circular icon - solid dot without border */}
@@ -3676,7 +3676,7 @@ Thank you for your assistance.`;
                 <div className="relative flex items-center">
                   {/* Horizontal connecting line when selected */}
                   {activeTab === 'info' && (
-                    <div className="absolute left-4 w-4 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                    <div className="absolute left-4 w-6 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                   )}
                   
                   {/* Circular icon - solid dot without border */}
@@ -3760,7 +3760,7 @@ Thank you for your assistance.`;
                       <div key={item.id} className="relative flex items-center">
                         {/* Horizontal connecting line when selected */}
                         {activeTab === item.name && (
-                          <div className="absolute left-4 w-4 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
+                          <div className="absolute left-4 w-6 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                         )}
                         
                         {/* Circular icon - solid dot without border */}
