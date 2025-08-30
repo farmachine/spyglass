@@ -6545,6 +6545,15 @@ def extract_function(Column_Name, Excel_File):
       
       console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
       console.log(`   🚫 NOT extracting other values in step "${step.stepName}"`)
+      console.log(`   📦 Value object structure:`, JSON.stringify({
+        id: value.id,
+        valueName: value.valueName,
+        description: value.description,
+        toolId: value.toolId,
+        hasInputValues: !!value.inputValues,
+        inputValuesType: typeof value.inputValues,
+        inputValuesKeys: value.inputValues ? Object.keys(value.inputValues) : 'none'
+      }, null, 2))
       
       // Get the tool for this value
       const tool = await storage.getExcelWizardryFunction(value.toolId);
