@@ -7216,7 +7216,7 @@ def extract_function(Column_Name, Excel_File):
       // Save the results as field validations
       if (results && results.length > 0) {
         // Simple processing - ensure all results have required fields
-        const processedResults = results.map(result => ({
+        let processedResults = results.map(result => ({
           identifierId: result.identifierId || null,
           extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
           validationStatus: result.validationStatus || "pending", // Always default to pending for new extractions
@@ -7224,6 +7224,21 @@ def extract_function(Column_Name, Excel_File):
           confidenceScore: result.confidenceScore || 0,
           documentSource: result.documentSource || ""
         }));
+        
+        // For CREATE operations (like "Find Missing Items"), filter out null results
+        // Only save records that actually have values
+        const isCreateOperation = selectedTool?.operationType?.startsWith('create');
+        if (isCreateOperation) {
+          const originalCount = processedResults.length;
+          processedResults = processedResults.filter(r => 
+            r.extractedValue !== null && 
+            r.extractedValue !== undefined && 
+            r.extractedValue !== '' &&
+            r.extractedValue !== 'null' &&
+            r.extractedValue !== 'undefined'
+          );
+          console.log(`🔍 CREATE operation: Filtered ${originalCount} results to ${processedResults.length} with actual values`);
+        }
         
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
