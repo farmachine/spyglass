@@ -3628,29 +3628,13 @@ Thank you for your assistance.`;
                   <div className="absolute left-4 w-8 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
                 )}
                 
-                {/* Connecting line from Documents to steps section */}
+                {/* Vertical connecting line from Documents to steps section */}
                 <div 
-                  className="absolute left-4 top-4 dark:border-gray-600"
+                  className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600"
                   style={{ 
-                    width: '200px',
-                    height: '46px',
-                    borderLeft: '2px solid',
-                    borderBottom: '2px solid',
-                    borderBottomLeftRadius: '8px',
-                    borderColor: 'rgb(226 232 240)' // slate-200
+                    height: '46px'
                   }}
-                >
-                  {/* Add a horizontal extension that connects to SESSION INFORMATION header */}
-                  <div 
-                    className="absolute bg-slate-200 dark:bg-gray-600" 
-                    style={{
-                      bottom: '-2px',
-                      left: '100%',
-                      width: '50px',
-                      height: '2px'
-                    }}
-                  />
-                </div>
+                />
                 
                 {/* Circular icon - solid dot without border */}
                 <div className="relative z-10 w-8 h-8 flex items-center justify-center">
