@@ -237,8 +237,8 @@ table td:last-child {
 }
 
 /* Add small spacer between table header and first data row */
-.session-table tbody {
-  border-top: 4px solid transparent;
+.session-table tbody tr:first-child td {
+  padding-top: 8px !important;
 }
 
 /* Smooth dialog transitions */
