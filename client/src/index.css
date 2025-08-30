@@ -236,6 +236,11 @@ table td:last-child {
   max-width: 56px !important;
 }
 
+/* Add small spacer between table header and first data row */
+.session-table tbody {
+  border-top: 4px solid transparent;
+}
+
 /* Smooth dialog transitions */
 .dialog-overlay-fade-out {
   transition: opacity 0.5s ease-out;
