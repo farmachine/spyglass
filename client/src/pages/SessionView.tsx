@@ -4843,7 +4843,7 @@ Thank you for your assistance.`;
                                                           <TooltipTrigger asChild>
                                                             <button
                                                               onClick={() => handleFieldVerification(fieldName, !isVerified, rowIdentifierId)}
-                                                              className={`absolute top-3.5 left-1 w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors`}
+                                                              className={`absolute top-1 left-1 w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors`}
                                                               aria-label="Click to validate"
                                                             />
                                                           </TooltipTrigger>
