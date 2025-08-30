@@ -6574,6 +6574,7 @@ def extract_function(Column_Name, Excel_File):
       }
       
       console.log(`🔧 Using tool: ${tool.name} (${tool.toolType})`);
+      console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
       
       // Get session documents
       const session = await storage.getExtractionSession(sessionId);
@@ -7227,7 +7228,7 @@ def extract_function(Column_Name, Excel_File):
         
         // For CREATE operations (like "Find Missing Items"), filter out null results
         // Only save records that actually have values
-        const isCreateOperation = selectedTool?.operationType?.startsWith('create');
+        const isCreateOperation = tool?.operationType?.startsWith('create');
         if (isCreateOperation) {
           const originalCount = processedResults.length;
           processedResults = processedResults.filter(r => {
