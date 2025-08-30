@@ -167,6 +167,9 @@
 
 .session-table.compact th:last-child {
   border-right: none;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
 }
 
 /* Remove border on spacer column */
@@ -187,6 +190,9 @@
 
 .session-table.compact td:last-child {
   border-right: none;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
 }
 
 .session-table.compact tbody tr {
