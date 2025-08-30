@@ -3610,10 +3610,9 @@ Thank you for your assistance.`;
                     <button
                       className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                         isActive
-                          ? "font-medium hover:bg-slate-100 dark:hover:bg-gray-700"
+                          ? "font-medium text-blue-900 dark:text-blue-200 hover:bg-slate-100 dark:hover:bg-gray-700"
                           : "text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal"
                       }`}
-                      style={isActive ? { color: '#071e54' } : {}}
                     >
                       {item.label}
                     </button>
@@ -3668,7 +3667,7 @@ Thank you for your assistance.`;
                         ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
-                    style={activeTab === 'documents' ? { color: '#071e54' } : {}}
+                    className={activeTab === 'documents' ? 'text-blue-900 dark:text-blue-200' : ''}
                   >
                     <div className="truncate">Documents</div>
                   </button>
@@ -3705,7 +3704,7 @@ Thank you for your assistance.`;
                         ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
-                    style={activeTab === 'info' ? { color: '#071e54' } : {}}
+                    className={activeTab === 'info' ? 'text-blue-900 dark:text-blue-200' : ''}
                   >
                     <div className="truncate">General Information</div>
                   </button>
@@ -3781,7 +3780,7 @@ Thank you for your assistance.`;
                               ? 'font-medium hover:bg-slate-100 dark:hover:bg-gray-700' 
                               : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                           }`}
-                          style={activeTab === item.name ? { color: '#071e54' } : {}}
+                          className={activeTab === item.name ? 'text-blue-900 dark:text-blue-200' : ''}
                         >
                           <div className="truncate">{item.name}</div>
                         </button>
@@ -4448,7 +4447,7 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1" style={{ color: '#071e54' }}>{columnName}</span>
+                                        <span className="truncate pl-1 text-blue-900 dark:text-blue-200">{columnName}</span>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2">
                                         <button
