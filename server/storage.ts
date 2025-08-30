@@ -3610,6 +3610,19 @@ class PostgreSQLStorage implements IStorage {
   async getStepValue(id: string): Promise<StepValue | undefined> {
     return this.retryOperation(async () => {
       const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
+      
+      // Debug logging to see what's coming from the database
+      if (result) {
+        console.log(`\n🔍 [STORAGE] Retrieved step value ${id}:`);
+        console.log(`   - valueName: ${result.valueName}`);
+        console.log(`   - toolId: ${result.toolId}`);
+        console.log(`   - inputValues type: ${typeof result.inputValues}`);
+        console.log(`   - inputValues value:`, result.inputValues);
+        if (result.inputValues && typeof result.inputValues === 'object') {
+          console.log(`   - inputValues keys:`, Object.keys(result.inputValues));
+        }
+      }
+      
       return result;
     });
   }
