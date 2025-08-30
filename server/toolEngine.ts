@@ -850,31 +850,50 @@ CRITICAL:
     const paramList = tool.inputParameters.map(p => `- ${p.name} (${p.type}): ${p.description}`).join('\n');
     
     if (tool.toolType === "AI_ONLY") {
+      // Determine if this is a create or update operation
+      const isCreate = tool.operationType?.startsWith('create');
+      const isMultiple = tool.operationType?.includes('Multiple') || tool.outputType === "multiple";
+      
       // Generate appropriate JSON format based on outputType
-      const jsonFormat = tool.outputType === "single" 
+      const jsonFormat = !isMultiple 
         ? `{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "source"}`
         : `[{"extractedValue": "result1", "validationStatus": "valid", "aiReasoning": "explanation1", "confidenceScore": 95, "documentSource": "source1"}, {"extractedValue": "result2", "validationStatus": "valid", "aiReasoning": "explanation2", "confidenceScore": 90, "documentSource": "source2"}]`;
       
-      const resultDescription = tool.outputType === "single"
+      const resultDescription = !isMultiple
         ? "Return the result as a single JSON object"
         : "Return results as a JSON array of objects";
+      
+      // Build operation-specific guidance
+      const operationGuidance = isCreate 
+        ? `IMPORTANT: This tool is configured to CREATE new records. 
+   - Input data is for REFERENCE ONLY - use it to understand context or filter what to extract
+   - DO NOT require linking or mapping to existing records
+   - Each extracted item should be treated as a new, independent record
+   - Focus on extracting/generating new data based on the provided documents and instructions`
+        : `IMPORTANT: This tool is configured to UPDATE existing records.
+   - Input data represents EXISTING records that need to be updated
+   - MAINTAIN proper record linkage - preserve identifiers and order
+   - Match extracted values to corresponding input records
+   - Return items in the SAME ORDER as input to maintain proper record linkage`;
       
       return `Create an AI prompt for the following task:
 
 Task: ${tool.name}
 Description: ${tool.description}
-Output Type: ${tool.outputType === "single" ? "SINGLE RESULT" : "MULTIPLE RESULTS"}
+Operation Type: ${isCreate ? "CREATE" : "UPDATE"} ${isMultiple ? "MULTIPLE RECORDS" : "SINGLE RECORD"}
 Input Parameters:
 ${paramList}
 
+${operationGuidance}
+
 CRITICAL REQUIREMENT:
-${tool.outputType === "single" 
+${!isMultiple 
   ? "The prompt MUST instruct to return a SINGLE JSON OBJECT (not an array). Example format:\n" + jsonFormat
   : "The prompt MUST instruct to return a JSON ARRAY of objects. Example format:\n" + jsonFormat}
 
 Create a detailed, specific prompt that:
 1. References input parameters using backticks like \`${tool.inputParameters.map(p => p.name).join('\`, \`')}\`
-2. ${tool.outputType === "single" 
+2. ${!isMultiple 
      ? "Clearly states to return ONE JSON OBJECT with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"
      : "Clearly states to return a JSON ARRAY of objects, each with these keys: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource"}
 3. Explains what each field means:
@@ -883,10 +902,14 @@ Create a detailed, specific prompt that:
    - aiReasoning: Explanation of extraction logic
    - confidenceScore: 0-100 confidence level
    - documentSource: Source document/page reference
-4. ${tool.outputType === "single"
+4. ${!isMultiple
      ? "Emphasizes returning ONLY ONE OBJECT, not an array"
-     : "Specifies to return multiple items as an array, maintaining the SAME ORDER as input"}
-5. CRITICAL for batch processing: Return items in the SAME ORDER as input to maintain proper record linkage
+     : isCreate 
+       ? "Specifies to return multiple items as an array, ordered as they appear in the source document"
+       : "Specifies to return multiple items as an array, maintaining the SAME ORDER as input for proper record linkage"}
+5. ${isCreate 
+     ? "Clarifies that input data is for reference/context only - not for record linkage"
+     : "Emphasizes maintaining proper record linkage and order preservation"}
 
 Return only the prompt text, no explanations.`;
     } else {

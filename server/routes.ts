@@ -5968,6 +5968,8 @@ print(json.dumps(results))
         name,
         description,
         toolType: toolType as "AI_ONLY" | "CODE",
+        operationType: operationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
+        outputType: outputType as "single" | "multiple",
         inputParameters
       });
       
@@ -6114,8 +6116,8 @@ print(json.dumps(results))
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
-      // Import the Gemini function
-      const { generateFunctionCode } = await import("./gemini");
+      // Import the unified tool engine
+      const { toolEngine } = await import("./toolEngine");
       
       // PRIORITIZE FORM DATA - use current form values, fallback to existing only if not provided
       const updatedName = name || existingFunc.name;
@@ -6123,43 +6125,45 @@ print(json.dumps(results))
       const updatedInputParameters = inputParameters || existingFunc.inputParameters;
       const updatedOutputType = outputType || existingFunc.outputType;
       const updatedOperationType = operationType || existingFunc.operationType;
-      const updatedFunctionType = toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT';
+      const updatedToolType = toolType || existingFunc.toolType;
       const updatedAiAssistanceRequired = aiAssistanceRequired !== undefined ? aiAssistanceRequired : existingFunc.aiAssistanceRequired;
       const updatedAiAssistancePrompt = aiAssistancePrompt !== undefined ? aiAssistancePrompt : existingFunc.aiAssistancePrompt;
       
       console.log('📋 Final regeneration parameters:', {
         name: updatedName,
-        toolType: updatedFunctionType,
+        toolType: updatedToolType,
         outputType: updatedOutputType,
         operationType: updatedOperationType,
         inputParameters: updatedInputParameters?.map(p => ({ name: p.name, type: p.type })),
         aiAssistanceRequired: updatedAiAssistanceRequired
       });
       
-      // Regenerate the function code using current form values
-      console.log('🤖 CALLING generateFunctionCode WITH:');
+      // Regenerate the tool content using unified engine
+      console.log('🤖 CALLING toolEngine.generateToolContent WITH:');
       console.log('📝 Name:', updatedName);
       console.log('📝 Description:', updatedDescription);
       console.log('📝 InputParameters:', JSON.stringify(updatedInputParameters, null, 2));
-      console.log('📝 FunctionType:', updatedFunctionType);
-      console.log('📝 AiAssistanceRequired:', updatedAiAssistanceRequired);
-      console.log('📝 AiAssistancePrompt:', updatedAiAssistancePrompt);
+      console.log('📝 ToolType:', updatedToolType);
       console.log('📝 OutputType:', updatedOutputType);
+      console.log('📝 OperationType:', updatedOperationType);
       console.log('='.repeat(80));
       
-      const { functionCode, metadata } = await generateFunctionCode(
-        updatedName,
-        updatedDescription,
-        updatedInputParameters,
-        updatedFunctionType,
-        updatedAiAssistanceRequired,
-        updatedAiAssistancePrompt,
-        updatedOutputType
-      );
+      const { content } = await toolEngine.generateToolContent({
+        name: updatedName,
+        description: updatedDescription,
+        toolType: updatedToolType as "AI_ONLY" | "CODE",
+        operationType: updatedOperationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
+        outputType: updatedOutputType as "single" | "multiple",
+        inputParameters: updatedInputParameters
+      });
       
-      console.log('🎯 Generated Python function code:');
-      console.log(functionCode);
-      console.log('🎯 Generated Python function metadata:', JSON.stringify(metadata, null, 2));
+      console.log('🎯 Generated content:');
+      console.log(content);
+      
+      // Prepare the content for storage based on tool type
+      const functionCode = updatedToolType === 'CODE' ? content : null;
+      const aiPrompt = updatedToolType === 'AI_ONLY' ? content : null;
+      const metadata = { generatedAt: new Date().toISOString() };
       
       // Save the updated function to database using current form values
       const updatedFunction = await storage.updateExcelWizardryFunction(id, {
@@ -6168,10 +6172,11 @@ print(json.dumps(results))
         inputParameters: updatedInputParameters,
         outputType: updatedOutputType,
         operationType: updatedOperationType,
-        toolType: updatedFunctionType,
+        toolType: updatedToolType,
         aiAssistanceRequired: updatedAiAssistanceRequired,
         aiAssistancePrompt: updatedAiAssistancePrompt,
         functionCode,
+        aiPrompt,
         metadata,
         updatedAt: new Date()
       });
