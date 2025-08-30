@@ -52,15 +52,30 @@ export function useDeleteProject() {
   
   return useMutation({
     mutationFn: (id: string) => projectsApi.delete(id),
-    onSuccess: () => {
-      // Invalidate all project queries - deletions affect all users
-      // Use exact invalidation to ensure all cached variants are cleared
+    onSuccess: (_, deletedId) => {
+      // Completely clear all project-related cache data
+      queryClient.removeQueries({ 
+        queryKey: ["/api/projects-with-orgs"]
+      });
+      queryClient.removeQueries({ 
+        queryKey: ["/api/projects", deletedId]
+      });
+      queryClient.removeQueries({ 
+        queryKey: ["/api/dashboard"]
+      });
+      
+      // Then invalidate to force fresh fetches
       queryClient.invalidateQueries({ 
         queryKey: ["/api/projects-with-orgs"],
         exact: false 
       });
-      // Also force remove all cached query data for projects
-      queryClient.removeQueries({ 
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/dashboard"],
+        exact: false 
+      });
+      
+      // Force immediate refetch of project list
+      queryClient.refetchQueries({ 
         queryKey: ["/api/projects-with-orgs"]
       });
     },
