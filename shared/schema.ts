@@ -229,7 +229,7 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   aiPrompt: text("ai_prompt"), // AI prompt for AI_ONLY tools
   toolType: text("tool_type", { enum: ["AI_ONLY", "CODE"] }).notNull().default("CODE"), // Type of tool
   outputType: text("output_type", { enum: ["single", "multiple"] }).notNull().default("single"), // Whether function creates single value or multiple records
-  operationType: text("operation_type", { enum: ["create", "update"] }).notNull().default("update"), // Whether function creates new records or updates existing ones
+  operationType: text("operation_type", { enum: ["createSingle", "updateSingle", "createMultiple", "updateMultiple"] }).notNull().default("updateSingle"), // Combined operation and output type
   inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }
   aiAssistanceRequired: boolean("ai_assistance_required").default(false).notNull(), // Whether AI assistance is needed
   aiAssistancePrompt: text("ai_assistance_prompt"), // AI assistance instructions
