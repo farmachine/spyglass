@@ -245,7 +245,7 @@ const ValidationToggle = ({ fieldName, validation, onToggle }: {
     <div className="flex items-center gap-2">
       <button
         onClick={() => onToggle(!isVerified)}
-        className="flex items-center gap-3 text-sm hover:bg-gray-100 px-2 py-1 rounded"
+        className="flex items-center gap-4 text-sm hover:bg-gray-100 px-2 py-1 rounded"
         title={isVerified ? "Click to mark as unverified" : "Click to mark as verified"}
       >
         {isVerified ? (
