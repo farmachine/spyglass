@@ -4621,7 +4621,7 @@ Thank you for your assistance.`;
                                   }}
                                 >
                                   {/* Spacer cell for left padding */}
-                                  <TableCell className="w-1.5 py-1 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
+                                  <TableCell className="w-1.5 py-2.5 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -4673,7 +4673,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative py-2 px-3"
+                                        className="relative py-2.5 px-3"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnType === 'TEXTAREA' ? 400 : 
@@ -4909,7 +4909,7 @@ Thank you for your assistance.`;
                                       </TableCell>
                                     );
                                   })}
-                                  <TableCell className="py-1 px-2">
+                                  <TableCell className="py-2.5 px-2">
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
                                         // Calculate verification status for this item using improved filtering
