@@ -4686,7 +4686,7 @@ Thank you for your assistance.`;
                                       >
                                         <div className="relative w-full h-full">
                                           {/* Content */}
-                                          <div className={`table-cell-content w-full pl-5 pr-6 ${
+                                          <div className={`table-cell-content w-full pl-6 pr-6 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[40px] py-1' : 'py-0.5'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-snug group relative text-sm`}>
                                             <span className={`
