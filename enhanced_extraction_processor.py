@@ -424,15 +424,35 @@ Your response must maintain the identifierId mapping for all processed items.
     input_values = value_data.get('inputValues', {})
     if input_values:
         value_config += "\n\nAI INSTRUCTIONS:"
+        has_instructions = False
         for param_key, param_value in input_values.items():
-            # Extract the AI instruction from input values (looking for descriptive text)
-            if isinstance(param_value, str) and not param_value.startswith('@'):
-                value_config += f"\n- {param_value}"
+            # Log what we're processing for debugging
+            print(f"  Processing inputValue [{param_key}]: {param_value[:100] if isinstance(param_value, str) else param_value}")
+            
+            # Extract the AI instruction from input values
+            if isinstance(param_value, str):
+                # Include the instruction text (skip only pure @ references to data)
+                if param_value.startswith('@') and '.' in param_value and len(param_value.split()) == 1:
+                    # This is a pure data reference like "@Column.Name", skip it
+                    continue
+                else:
+                    # This is an instruction text, include it
+                    value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
+                    has_instructions = True
             elif isinstance(param_value, list):
                 # Handle array-based instructions
                 for item in param_value:
-                    if isinstance(item, str) and not item.startswith('@'):
-                        value_config += f"\n- {item}"
+                    if isinstance(item, str):
+                        if item.startswith('@') and '.' in item and len(item.split()) == 1:
+                            # Pure data reference, skip
+                            continue
+                        else:
+                            # Instruction text, include
+                            value_config += f"\n- {item}"
+                            has_instructions = True
+        
+        if not has_instructions:
+            value_config += "\n- No specific instructions provided. Process according to the tool function."
     
     value_config += "\n"
     
@@ -498,6 +518,12 @@ Your response must maintain the identifierId mapping for all processed items.
 {input_summary}
 
 {actual_input_data}
+
+CRITICAL OUTPUT REQUIREMENTS:
+1. Maintain the EXACT SAME ORDER as the input items
+2. Include ALL input items in the response, even if no match is found (use null for extractedValue)
+3. ALWAYS preserve the identifierId for each item to maintain data relationships
+4. Return results in JSON format
 
 EXECUTE THE TASK WITH THE PROVIDED INPUTS AND RETURN THE RESULT IN JSON FORMAT."""
     
