@@ -930,7 +930,7 @@ function ValueEditor({
   const selectedTool = excelFunctions.find(f => f.id === value.toolId);
   const [inputParameters, setInputParameters] = useState<any[]>([]);
 
-  // Parse tool input parameters
+  // Parse tool input parameters - include tool ID and functions array in dependencies
   useEffect(() => {
     if (selectedTool?.inputParameters) {
       try {
@@ -945,7 +945,7 @@ function ValueEditor({
     } else {
       setInputParameters([]);
     }
-  }, [selectedTool]);
+  }, [selectedTool, value.toolId, excelFunctions]);
 
 
 
@@ -1067,7 +1067,10 @@ function ValueEditor({
             <Label className="text-[#071e54]/80 dark:text-[#5A70B5]/80">Tool</Label>
             <Select
               value={value.toolId}
-              onValueChange={(val) => onUpdate({ toolId: val })}
+              onValueChange={(val) => {
+                // Clear input values when changing tools
+                onUpdate({ toolId: val, inputValues: {} });
+              }}
             >
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select tool..." />
@@ -1104,10 +1107,10 @@ function ValueEditor({
 
           {/* Dynamic Input Parameters - integrated without container */}
           {inputParameters.length > 0 && (
-            <div className="space-y-3 mt-4">
+            <div className="space-y-3 mt-4" key={`${value.toolId}-params`}>
               <Label className="text-sm font-medium text-[#071e54] dark:text-[#5A70B5]">Input Values</Label>
               {inputParameters.map((param) => (
-                <div key={param.id}>
+                <div key={`${value.toolId}-${param.id}`}>
                   <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70">{param.name}</Label>
                   {param.type === 'data' ? (
                     <div className="mt-1 space-y-2">
