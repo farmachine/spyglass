@@ -3608,6 +3608,8 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async getStepValue(id: string): Promise<StepValue | undefined> {
+    console.log(`\n🚨 [STORAGE] getStepValue called with id: ${id}`);
+    
     return this.retryOperation(async () => {
       // First try with Drizzle ORM
       const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
