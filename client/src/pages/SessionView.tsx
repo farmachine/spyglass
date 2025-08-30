@@ -2004,10 +2004,9 @@ export default function SessionView() {
               // Check validation status - must be explicitly validated (clicked to valid)
               const statusValid = v.validationStatus === 'valid';
               
-              // Check that the actual extracted value is valid (not "Not Found", empty, etc.)
-              const valueValid = v.extractedValue && 
-                               v.extractedValue !== 'Not Found' && 
-                               v.extractedValue !== '' && 
+              // Check that the actual extracted value exists (can be "Not Found" if validated)
+              // "Not Found" is a valid value when it has been validated
+              const valueValid = v.extractedValue !== '' && 
                                v.extractedValue !== null && 
                                v.extractedValue !== undefined;
               
