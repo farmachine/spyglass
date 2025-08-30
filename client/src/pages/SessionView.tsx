@@ -4707,13 +4707,13 @@ Thank you for your assistance.`;
                                               
                                               if (isEditingThisField) {
                                                 return (
-                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10">
-                                                    <div className="p-2 h-full">
+                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
+                                                    <div className="relative h-full">
                                                       {columnType === 'TEXTAREA' ? (
                                                         <textarea
                                                           value={editTableValue}
                                                           onChange={(e) => setEditTableValue(e.target.value)}
-                                                          className="w-full h-full text-sm border-none outline-none resize-none bg-transparent"
+                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none resize-none bg-transparent pr-20"
                                                           autoFocus
                                                           onKeyDown={(e) => {
                                                             if (e.key === 'Enter' && e.ctrlKey) {
@@ -4728,7 +4728,7 @@ Thank you for your assistance.`;
                                                           type={columnType === 'NUMBER' ? 'number' : columnType === 'DATE' ? 'date' : 'text'}
                                                           value={editTableValue}
                                                           onChange={(e) => setEditTableValue(e.target.value)}
-                                                          className="w-full h-full text-sm border-none outline-none bg-transparent"
+                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-20"
                                                           autoFocus
                                                           onKeyDown={(e) => {
                                                             if (e.key === 'Enter') {
@@ -4741,7 +4741,7 @@ Thank you for your assistance.`;
                                                       )}
                                                       
                                                       {/* Save/Cancel buttons */}
-                                                      <div className="absolute bottom-1 right-1 flex gap-1">
+                                                      <div className="absolute top-1/2 right-1 transform -translate-y-1/2 flex gap-1">
                                                         <Button
                                                           size="sm"
                                                           onClick={handleSaveTableFieldEdit}
