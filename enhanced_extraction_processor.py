@@ -534,25 +534,15 @@ Your response must maintain the identifierId mapping for all processed items.
                     actual_input_data += f"\n{param_name}:\n{param_value}\n"
     
     # 7. COMPILE FULL PROMPT
-    # Build output requirements based on operation type
+    # For CREATE operations, let the tool prompt handle output requirements
+    # For UPDATE operations, add system requirements for preserving identifierIds
     if is_create_operation:
-        # For CREATE operations - finding new items not in input
-        output_requirements = f"""OUTPUT REQUIREMENTS:
-Return a JSON array of objects for the NEW items you identify/create. Each object MUST include:
-- extractedValue: The extracted/processed value for "{value_name}"
-- validationStatus: Either "valid" or "invalid" based on confidence
-- aiReasoning: Detailed explanation of your finding and why this item qualifies
-- confidenceScore: Number between 0-100 representing confidence
-- documentSource: Specific source reference (page, section, or location)
-
-IMPORTANT FOR CREATE OPERATIONS: 
-- Create NEW records based on what you find in the documents/data
-- Do NOT include identifierId - the system will generate new IDs automatically
-- Do NOT try to map to input items - you're finding items NOT in the input
-- The number of results depends on what you find based on the tool instructions"""
+        # Don't add system output requirements - let the tool prompt handle it
+        output_requirements = ""
     else:
         # For UPDATE operations - mapping to existing items
-        output_requirements = f"""OUTPUT REQUIREMENTS:
+        output_requirements = f"""
+SYSTEM OUTPUT REQUIREMENTS FOR UPDATE OPERATIONS:
 Return a JSON array with one object per input item. Each object MUST include:
 - identifierId: The same identifierId from the input (preserve exactly)
 - extractedValue: The extracted/processed value for "{value_name}"
@@ -561,26 +551,20 @@ Return a JSON array with one object per input item. Each object MUST include:
 - confidenceScore: Number between 0-100 representing confidence
 - documentSource: Specific source reference (page, section, or location)
 
-CRITICAL FOR UPDATE OPERATIONS: 
+CRITICAL: 
 - Maintain the EXACT SAME ORDER as the input items
 - Include ALL input items in the response, even if no match is found (use null for extractedValue)
 - ALWAYS preserve the identifierId for each item to maintain data relationships"""
     
-    compiled_prompt = f"""{system_prompt}
-
-{tool_prompt}
-
-{value_config}
-
-{knowledge_context}
-
-{input_summary}
-
-{actual_input_data}
-
-{output_requirements}
-
-EXECUTE THE TASK WITH THE PROVIDED INPUTS AND RETURN THE RESULT IN JSON FORMAT."""
+    # Build the prompt with optional output requirements
+    prompt_parts = [system_prompt, tool_prompt, value_config, knowledge_context, input_summary, actual_input_data]
+    
+    if output_requirements:
+        prompt_parts.append(output_requirements)
+    
+    prompt_parts.append("EXECUTE THE TASK WITH THE PROVIDED INPUTS AND RETURN THE RESULT IN JSON FORMAT.")
+    
+    compiled_prompt = "\n\n".join(filter(None, prompt_parts))
     
     return compiled_prompt
 
