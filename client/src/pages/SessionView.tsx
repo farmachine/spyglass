@@ -3729,26 +3729,13 @@ Thank you for your assistance.`;
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
                       <h2 className="text-2xl font-bold dark:text-white">{(() => {
-                        // Get the active collection/step name
-                        const collections = project?.collections || [];
-                        const workflowSteps = project?.workflowSteps || [];
+                        // Handle special tabs first
+                        if (activeTab === 'info') return 'General Information';
+                        if (activeTab === 'documents') return 'Documents';
                         
-                        // Find the active tab collection
-                        const activeCollection = collections.find(c => {
-                          const stepName = c.collectionName;
-                          return workflowSteps.some(step => 
-                            step.stepName === stepName && 
-                            (step.values?.length > 0 || step.stepName === activeTab)
-                          );
-                        });
-                        
-                        if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
-                          return activeCollection.collectionName;
-                        }
-                        
-                        return activeTab === 'info' ? 'General Information' : 
-                               activeTab === 'documents' ? 'Documents' : 
-                               'Session Overview';
+                        // For all other tabs, display the activeTab name directly
+                        // This will work for both collections and workflow steps
+                        return activeTab || 'Session Overview';
                       })()}</h2>
                     </div>
                   </div>
