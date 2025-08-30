@@ -621,6 +621,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project Publishing Endpoints
+  app.get("/api/projects/:id/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.id;
+      
+      // Get the project to check access
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get published organizations
+      const organizations = await storage.getProjectPublishedOrganizations(projectId);
+      res.json(organizations);
+    } catch (error) {
+      console.error("Get project publishing error:", error);
+      res.status(500).json({ message: "Failed to fetch published organizations" });
+    }
+  });
+
+  app.post("/api/projects/:id/publishing", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.id;
+      const { organizationId } = req.body;
+      
+      // Only admin users can publish projects
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can publish projects" });
+      }
+      
+      if (!organizationId) {
+        return res.status(400).json({ message: "Organization ID is required" });
+      }
+      
+      // Check if project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if organization exists
+      const organization = await storage.getOrganization(organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Publish the project
+      const publishing = await storage.publishProjectToOrganization({
+        projectId,
+        organizationId
+      });
+      
+      res.status(201).json(publishing);
+    } catch (error) {
+      console.error("Publish project error:", error);
+      res.status(500).json({ message: "Failed to publish project" });
+    }
+  });
+
+  app.delete("/api/projects/:id/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const projectId = req.params.id;
+      const organizationId = req.params.organizationId;
+      
+      // Only admin users can unpublish projects
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can unpublish projects" });
+      }
+      
+      // Check if project exists
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Unpublish the project
+      const success = await storage.unpublishProjectFromOrganization(projectId, organizationId);
+      if (!success) {
+        return res.status(404).json({ message: "Publishing not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Unpublish project error:", error);
+      res.status(500).json({ message: "Failed to unpublish project" });
+    }
+  });
+
   app.post("/api/projects/:id/duplicate", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
