@@ -2191,10 +2191,9 @@ export default function SessionView() {
         // Skip meta fields like identifierId and _recordIndex
         if (key === 'identifierId' || key.startsWith('_')) return true;
         
-        // Check if the field value indicates a validation failure
-        return value && 
-               value !== 'Not Found' && 
-               value !== '' && 
+        // Check if the field value exists - "Not Found" is valid if it's been validated
+        // Only exclude truly empty values
+        return value !== '' && 
                value !== null && 
                value !== undefined;
       });
