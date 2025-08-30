@@ -7113,6 +7113,27 @@ def extract_function(Column_Name, Excel_File):
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
       
+      // Add value configuration to tool inputs so AI tools can access inputValues
+      if (value.inputValues) {
+        console.log(`📝 Adding value configuration to tool inputs for AI instructions`);
+        toolInputs['valueConfiguration'] = {
+          valueName: value.valueName,
+          description: value.description,
+          stepName: step.stepName,
+          inputValues: value.inputValues
+        };
+        
+        // Also extract AI Query from inputValues if present
+        for (const [key, val] of Object.entries(value.inputValues)) {
+          if (typeof val === 'string' && !val.startsWith('@')) {
+            // This is likely the AI instruction text
+            toolInputs['AI Query'] = val;
+            console.log(`🎯 Extracted AI Query: "${val}"`);
+            break;
+          }
+        }
+      }
+      
       // Execute the tool using the tool engine
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({

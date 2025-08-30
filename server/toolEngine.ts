@@ -550,7 +550,7 @@ export class ToolEngine {
     const basePrompt = tool.aiPrompt || '';
     
     // Extract input values from value configuration
-    const aiQuery = inputs['AI Query'] || '';
+    let aiQuery = inputs['AI Query'] || '';
     const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
     const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
     
@@ -559,6 +559,20 @@ export class ToolEngine {
     const valueName = valueConfig?.valueName || '';
     const valueDescription = valueConfig?.description || '';
     const stepName = valueConfig?.stepName || '';
+    const inputValues = valueConfig?.inputValues || {};
+    
+    // Extract AI instructions from inputValues if not already set
+    if (!aiQuery && inputValues) {
+      // Look for AI instructions in inputValues
+      for (const [key, val] of Object.entries(inputValues)) {
+        if (typeof val === 'string' && !val.startsWith('@')) {
+          // This is likely the AI instruction text
+          aiQuery = val;
+          console.log(`🎯 Extracted AI instruction from inputValues: "${val}"`);
+          break;
+        }
+      }
+    }
     
     // Build layered prompt structure
     let prompt = '';
