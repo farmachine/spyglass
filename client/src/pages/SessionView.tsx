@@ -3367,7 +3367,7 @@ Thank you for your assistance.`;
                 onClick={() => handleEdit(fieldName, value)}
                 className="h-6 px-2"
               >
-                <Edit3 className="h-3 w-3 text-gray-600 dark:text-white" />
+                <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
               </Button>
             </div>
           )}
@@ -4174,7 +4174,7 @@ Thank you for your assistance.`;
                                           onClick={() => handleEdit(field.fieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
-                                          <Edit3 className="h-3 w-3 text-gray-600 dark:text-white" />
+                                          <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                         </Button>
                                       </div>
                                     );
@@ -4766,7 +4766,7 @@ Thank you for your assistance.`;
                                                     className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     title="Edit field value"
                                                   >
-                                                    <Edit3 className="h-3 w-3 text-gray-600 dark:text-white" />
+                                                    <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                                   </Button>
                                                 );
                                               }
