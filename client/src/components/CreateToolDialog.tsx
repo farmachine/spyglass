@@ -109,7 +109,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         });
         setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
-        setOperationType(editingFunction.operationType || "update");
+        
+        // Parse the full operationType enum back to base form
+        const fullOpType = editingFunction.operationType || "updateMultiple";
+        // Handle potentially corrupted values like "createMultipleMultiple" 
+        const cleanOpType = fullOpType.replace(/Multiple+$/, 'Multiple').replace(/Single+$/, 'Single');
+        const baseOpType = cleanOpType.startsWith('create') ? 'create' : 'update';
+        setOperationType(baseOpType as "create" | "update");
+        
+        // Also parse outputType from the operationType if it's corrupted
+        if (cleanOpType.includes('Single')) {
+          setOutputType('single');
+        } else if (cleanOpType.includes('Multiple')) {
+          setOutputType('multiple');
+        }
+        
         setInputParameters(editingFunction.inputParameters || []);
         setIsEditMode(true);
         setCurrentEditingFunctionId(functionId);
