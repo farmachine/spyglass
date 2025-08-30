@@ -224,6 +224,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     mutationFn: async () => {
       console.log('🚀 NEW CLEAN CODE GENERATION - Using current form data');
       
+      // Build the full operationType enum value
+      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+      
       const formDataToSend = {
         projectId: projectId,
         name: formData.name,
@@ -231,7 +234,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         inputParameters: inputParameters,
         toolType: toolType,
         outputType: outputType,
-        operationType: operationType,
+        operationType: fullOperationType,
         aiAssistanceRequired: formData.aiAssistanceRequired,
         aiAssistancePrompt: formData.aiAssistancePrompt
       };
@@ -338,6 +341,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   // Regenerate function code mutation
   const regenerateToolCode = useMutation({
     mutationFn: async (toolId: string) => {
+      // Build the full operationType enum value
+      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+      
       return apiRequest(`/api/excel-functions/${toolId}/regenerate`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -346,7 +352,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           inputParameters: inputParameters,
           toolType: toolType,
           outputType: outputType,
-          operationType: operationType,
+          operationType: fullOperationType,
           aiAssistanceRequired: formData.aiAssistanceRequired,
           aiAssistancePrompt: formData.aiAssistancePrompt,
           currentCode: editingFunction?.functionCode
@@ -874,13 +880,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       return;
     }
 
+    // Build the full operationType enum value
+    const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+
     const toolData = {
       projectId,
       name: formData.name,
       description: formData.description,
       toolType,
       outputType,
-      operationType,
+      operationType: fullOperationType,
       inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
@@ -1459,13 +1468,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     variant="outline"
                     onClick={editingFunction ? handleRegenerateCode : () => {
                       // For new tools, trigger the generation process
+                      // Build the full operationType enum value
+                      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+                      
                       const toolData = {
                         projectId,
                         name: formData.name,
                         description: formData.description,
                         toolType,
                         outputType,
-                        operationType,
+                        operationType: fullOperationType,
                         inputParameters,
                         aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
                         aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
