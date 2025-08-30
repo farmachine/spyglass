@@ -1279,10 +1279,6 @@ export class MemStorage implements IStorage {
     return this.collectionProperties.delete(id);
   }
 
-  async getCollectionPropertyById(id: string): Promise<CollectionProperty | undefined> {
-    return this.collectionProperties.get(id);
-  }
-
   async setCollectionIdentifierField(collectionId: string, propertyId: string): Promise<boolean> {
     // First, remove identifier flag from all other properties in this collection
     for (const [id, property] of this.collectionProperties.entries()) {

@@ -6621,7 +6621,8 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { sessionId } = req.params;
-      const { stepId, valueId, previousData, documentId } = req.body;
+      const { stepId, valueId, documentId } = req.body;
+      let { previousData } = req.body;
       
       console.log(`📊 Running SINGLE column extraction for session ${sessionId}`);
       console.log(`   Step ID: ${stepId}, Value ID: ${valueId}`);
