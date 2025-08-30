@@ -35,6 +35,7 @@ export interface Tool {
   functionCode?: string;
   aiPrompt?: string;
   outputType?: "single" | "multiple";
+  operationType?: "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple";
   llmModel?: string;
   metadata?: Record<string, any>;
 }

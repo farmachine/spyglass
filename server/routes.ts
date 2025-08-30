@@ -5945,7 +5945,7 @@ print(json.dumps(results))
     try {
       console.log('🤖 Generating tool content with input:', JSON.stringify(req.body, null, 2));
       
-      const { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType } = req.body;
+      const { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType } = req.body;
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
         console.error('❌ Missing required fields for tool generation');
@@ -6006,6 +6006,7 @@ print(json.dumps(results))
         aiPrompt: toolType === "AI_ONLY" ? content : undefined,
         toolType: toolType || "CODE",
         outputType: outputType || "single",
+        operationType: operationType || "updateSingle",
         inputParameters,
         aiAssistanceRequired: aiAssistanceRequired || false,
         aiAssistancePrompt: aiAssistancePrompt || null,
@@ -6096,7 +6097,7 @@ print(json.dumps(results))
   app.put("/api/excel-functions/:id/regenerate", async (req, res) => {
     try {
       const id = req.params.id;
-      const { name, description, inputParameters, toolType, outputType, aiAssistanceRequired, aiAssistancePrompt } = req.body;
+      const { name, description, inputParameters, toolType, outputType, operationType, aiAssistanceRequired, aiAssistancePrompt } = req.body;
       
       console.log('🔄 Regenerating function code with form values:', {
         name,
@@ -6121,6 +6122,7 @@ print(json.dumps(results))
       const updatedDescription = description || existingFunc.description;
       const updatedInputParameters = inputParameters || existingFunc.inputParameters;
       const updatedOutputType = outputType || existingFunc.outputType;
+      const updatedOperationType = operationType || existingFunc.operationType;
       const updatedFunctionType = toolType === 'AI_ONLY' ? 'AI_ONLY' : 'SCRIPT';
       const updatedAiAssistanceRequired = aiAssistanceRequired !== undefined ? aiAssistanceRequired : existingFunc.aiAssistanceRequired;
       const updatedAiAssistancePrompt = aiAssistancePrompt !== undefined ? aiAssistancePrompt : existingFunc.aiAssistancePrompt;
@@ -6129,6 +6131,7 @@ print(json.dumps(results))
         name: updatedName,
         toolType: updatedFunctionType,
         outputType: updatedOutputType,
+        operationType: updatedOperationType,
         inputParameters: updatedInputParameters?.map(p => ({ name: p.name, type: p.type })),
         aiAssistanceRequired: updatedAiAssistanceRequired
       });
@@ -6164,6 +6167,7 @@ print(json.dumps(results))
         description: updatedDescription,
         inputParameters: updatedInputParameters,
         outputType: updatedOutputType,
+        operationType: updatedOperationType,
         toolType: updatedFunctionType,
         aiAssistanceRequired: updatedAiAssistanceRequired,
         aiAssistancePrompt: updatedAiAssistancePrompt,
@@ -6487,6 +6491,7 @@ def extract_function(Column_Name, Excel_File):
           functionCode: func.functionCode,
           aiPrompt: func.aiPrompt || func.description,
           outputType: func.outputType,
+          operationType: func.operationType,
           llmModel: func.llmModel,
           metadata: func.metadata || {}
         };
@@ -7179,6 +7184,7 @@ def extract_function(Column_Name, Excel_File):
         functionCode: tool.functionCode,
         aiPrompt: tool.aiPrompt || tool.description,
         outputType: tool.outputType,
+        operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
       }, toolInputs);

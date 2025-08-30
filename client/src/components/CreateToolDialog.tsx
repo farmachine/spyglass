@@ -50,6 +50,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [outputType, setOutputType] = useState<"single" | "multiple">("single");
+  const [operationType, setOperationType] = useState<"create" | "update">("update");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -77,6 +78,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
     setOutputType("single");
+    setOperationType("update");
     setInputParameters([]);
     setAiAssistanceRequired(false);
     setLoadingMessage("");
@@ -107,6 +109,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         });
         setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
         setOutputType(editingFunction.outputType || "single");
+        setOperationType(editingFunction.operationType || "update");
         setInputParameters(editingFunction.inputParameters || []);
         setIsEditMode(true);
         setCurrentEditingFunctionId(functionId);
@@ -135,6 +138,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         description: data.description,
         toolType: data.toolType,
         outputType: data.outputType,
+        operationType: data.operationType,
         inputParameters: data.inputParameters,
         tags: data.tags || []
       });
@@ -148,6 +152,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           aiPrompt: data.toolType === 'AI_ONLY' ? (data.aiPrompt || editingFunction.aiPrompt) : null,
           toolType: data.toolType,
           outputType: data.outputType,
+          operationType: data.operationType,
           inputParameters: data.inputParameters,
           inputSchema: data.inputSchema,
           outputSchema: data.outputSchema,
@@ -226,6 +231,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         inputParameters: inputParameters,
         toolType: toolType,
         outputType: outputType,
+        operationType: operationType,
         aiAssistanceRequired: formData.aiAssistanceRequired,
         aiAssistancePrompt: formData.aiAssistancePrompt
       };
@@ -340,6 +346,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           inputParameters: inputParameters,
           toolType: toolType,
           outputType: outputType,
+          operationType: operationType,
           aiAssistanceRequired: formData.aiAssistanceRequired,
           aiAssistancePrompt: formData.aiAssistancePrompt,
           currentCode: editingFunction?.functionCode
@@ -873,6 +880,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       description: formData.description,
       toolType,
       outputType,
+      operationType,
       inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
@@ -1017,37 +1025,29 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   Inputs *
                 </CardTitle>
                 
-                {/* Output Type Toggle - Top Right */}
+                {/* Output Type Selectors - Top Right */}
                 <div className="flex items-center gap-3">
                   <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                    This tool is to create:
+                    This tool is to...
                   </Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setOutputType("single")}
-                      className={`h-8 px-3 text-xs border transition-colors ${
-                        outputType === "single" 
-                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
-                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
-                      }`}
-                    >
-                      Single Value
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setOutputType("multiple")}
-                      className={`h-8 px-3 text-xs border transition-colors ${
-                        outputType === "multiple" 
-                          ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-700" 
-                          : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
-                      }`}
-                    >
-                      Multiple Records
-                    </Button>
-                  </div>
+                  <Select value={operationType} onValueChange={(value: "create" | "update") => setOperationType(value)}>
+                    <SelectTrigger className="w-[100px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="create">Create</SelectItem>
+                      <SelectItem value="update">Update</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={outputType} onValueChange={(value: "single" | "multiple") => setOutputType(value)}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Single Value</SelectItem>
+                      <SelectItem value="multiple">Multiple Records</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -1465,6 +1465,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                         description: formData.description,
                         toolType,
                         outputType,
+                        operationType,
                         inputParameters,
                         aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
                         aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
