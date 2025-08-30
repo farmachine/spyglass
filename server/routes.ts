@@ -7116,6 +7116,8 @@ def extract_function(Column_Name, Excel_File):
       // Add value configuration to tool inputs so AI tools can access inputValues
       if (value.inputValues) {
         console.log(`📝 Adding value configuration to tool inputs for AI instructions`);
+        console.log(`📝 Raw inputValues structure:`, JSON.stringify(value.inputValues, null, 2));
+        
         toolInputs['valueConfiguration'] = {
           valueName: value.valueName,
           description: value.description,
@@ -7123,14 +7125,33 @@ def extract_function(Column_Name, Excel_File):
           inputValues: value.inputValues
         };
         
-        // Also extract AI Query from inputValues if present
+        // Extract AI Query from inputValues - look for text instructions
+        // inputValues can have various keys like "0.xyz" or named parameters
+        let aiInstructions = '';
         for (const [key, val] of Object.entries(value.inputValues)) {
-          if (typeof val === 'string' && !val.startsWith('@')) {
-            // This is likely the AI instruction text
-            toolInputs['AI Query'] = val;
-            console.log(`🎯 Extracted AI Query: "${val}"`);
-            break;
+          console.log(`  Checking inputValue [${key}]: ${typeof val} = ${JSON.stringify(val)}`);
+          
+          if (typeof val === 'string') {
+            // Skip pure data references (like "@Column.Name")
+            if (val.startsWith('@') && val.split(' ').length === 1) {
+              console.log(`    -> Skipping data reference: ${val}`);
+              continue;
+            }
+            
+            // This is instruction text
+            if (val.trim().length > 0) {
+              aiInstructions = val;
+              console.log(`    -> Found AI instruction: "${val}"`);
+              break;
+            }
           }
+        }
+        
+        if (aiInstructions) {
+          toolInputs['AI Query'] = aiInstructions;
+          console.log(`🎯 Final AI Query set to: "${aiInstructions}"`);
+        } else {
+          console.log(`⚠️ No AI instructions found in inputValues`);
         }
       }
       

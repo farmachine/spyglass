@@ -563,14 +563,31 @@ export class ToolEngine {
     
     // Extract AI instructions from inputValues if not already set
     if (!aiQuery && inputValues) {
+      console.log(`🔍 Looking for AI instructions in inputValues:`, JSON.stringify(inputValues, null, 2));
+      
       // Look for AI instructions in inputValues
+      // inputValues can have various keys like "0.xyz" (parameter IDs) or named keys
       for (const [key, val] of Object.entries(inputValues)) {
-        if (typeof val === 'string' && !val.startsWith('@')) {
-          // This is likely the AI instruction text
-          aiQuery = val;
-          console.log(`🎯 Extracted AI instruction from inputValues: "${val}"`);
-          break;
+        console.log(`  Checking [${key}]: ${typeof val} = ${JSON.stringify(val)}`);
+        
+        if (typeof val === 'string') {
+          // Skip pure data references (single token starting with @)
+          if (val.startsWith('@') && val.split(' ').length === 1) {
+            console.log(`    -> Skipping data reference`);
+            continue;
+          }
+          
+          // This is instruction text
+          if (val.trim().length > 0) {
+            aiQuery = val;
+            console.log(`🎯 Extracted AI instruction from inputValues[${key}]: "${val}"`);
+            break;
+          }
         }
+      }
+      
+      if (!aiQuery) {
+        console.log(`⚠️ No AI instructions found in inputValues`);
       }
     }
     
