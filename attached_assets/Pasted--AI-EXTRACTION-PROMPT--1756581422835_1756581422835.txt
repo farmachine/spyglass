@@ -1,0 +1,418 @@
+📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+Your task is to identify items that are MISSING from the input data.
+LOGIC:
+1. Scan the Reference Document for all available items/fields/columns
+2. Check if each item from the Reference Document exists in the input Data
+3. If an item appears in the Reference Document but NOT in the input Data, it is MISSING
+4. Create a record for each MISSING item
+IMPORTANT:
+- You are looking for items that exist in the Reference Document but are ABSENT from the input Data
+- If an item is in the input Data, it is NOT missing (don't create a record for it)
+- Only create records for items found in the Reference Document that are NOT in the input Data
+For each missing item found, explain in aiReasoning why it's considered missing (e.g., "Found 'EmployeeID' in the reference document but it does not appear in the input data list").
+
+=== INPUT VALUES ===
+
+**Reference Document**:
+=== Document: Standard_Field_Mappings_Relevant_Thresholds.pdf ===
+Standardised
+Column Name
+MemberID
+SectionMarker
+SpouseID
+SpousesMemberID
+DependantsID
+Dependants Member
+ID
+DoB
+DoB Spouse
+DoB Dependant
+Gender
+Gender Spouse
+Marital Status
+Retirement Age
+GMP Retirement Age
+Pre-78 Total
+Validation Rule
+N/A
+Consistent with the Benefits Schedule.
+N/A
+N/A
+N/A
+N/A
+Earlier than today, later than 1st Jan 1900.
+Earlier than today, later than 1st Jan 1900.
+Earlier than today, later than 1st Jan 2000.
+M or F
+M or F
+Married, Single, Civil Partnership
+Greater than 50 and less than 55.
+Satisfying the legislation on GMP retirement age
+>=0
+Pre-88 GMP
+Post-88 GMP
+Pre-97 XS
+97-09 Total Pension
+Post 09 Total
+Pension
+Transfer-In Pension
+Spouses Pre-78
+Total
+Spouses Pre-88
+GMP
+Spouses Post-88
+GMP
+Spouses Pre-97 XS
+Spouses 97-09 Total
+Pension
+Spouses Post 09
+Total Pensions
+Spouses Transfer-In
+Pension
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+
+---
+
+=== Document: Standard_Field_Mappings_with_all_synonyms.pdf ===
+Basic Data Items
+Standardised
+Column Name
+MemberID
+SpouseID
+SpousesMemberID
+DependantsID
+Dependants Member
+ID
+DoB
+DoB Spouse
+DoB Dependant
+Gender
+Type
+Text
+Text
+Text
+Text
+Text
+Date
+Date
+Date
+Text
+Description
+A unique identifier for each scheme
+member.
+A unique identifier for each scheme
+spouse of scheme members.
+The memberID that the spouse is related
+to.
+A unique identifier for each scheme
+dependant of a scheme member.
+The memberID that the dependant is
+related to.
+The date of birth of the scheme member
+The date of birth of the scheme
+member's spouse or civil partner
+The dates of birth of the scheme
+member's dependants
+The gender of the scheme member
+Synonyms
+ID, ID of the member.
+ID, ID of the spouse member.
+ID, ID of the spouse member.
+ID, ID of the dependant member.
+ID, ID of the spouse member.
+Date of birth, birth date, DOB,
+DateOfBirth, Member Birth Date
+DOB Spouse, Spouse Date of Birth,
+Partner Birth Date
+DOB Dependant, Dependent Date of
+Birth, Child Birth Date
+Sex, Member Gender, Biological Sex
+Gender Spouse
+Marital Status
+Retirement Age or
+Retirement Date
+GMP Retirement Age
+or GMP Retirement
+Date
+Text
+Text
+Number or Date
+Number or Date
+The gender of the scheme member's
+spouse or civil partner.
+The marital status of the member.
+The normal retirement date or age that
+the scheme member is expected to
+retire.
+The normal retirement date or age that
+the scheme member is expected to take
+their GMP benefits.
+Sex, Sex Spouse, Spouse Gender,
+Partner Sex
+Married/Single/Divorced, Relationship
+Status, Civil Status
+NRA, Normal Retirement Age, Expected
+Retirement Date
+GMP NRA, GMP Normal Retirement Age,
+GMP Retirement Date
+Main Pension Benefits
+The following table is a list of the standardised column names for mapping purposes.
+Standardised
+Column Name
+Main Member
+Pre-78 Total
+Pre-88 GMP
+Standardised Column
+Name
+Spouse Member
+Spouses Pre-78 Total
+Spouses Pre-88 GMP
+Description
+Pension accrued before 6 April 1978 when
+legislation brought in contracting out and
+GMPs.
+GMP pension benefits accrued from 6 April
+1978 up to 5th April 1988.
+Synonyms
+Post-88 GMP
+Pre-97 XS
+97-09 Total Pension
+Post 09 Total
+Pension
+Transfer-In Pension
+Spouses Post-88 GMP
+Spouses Pre-97 XS
+Spouses 97-09 Total
+Pension
+Spouses Post 09 Total
+Pensions
+Spouses Transfer-In
+Pension
+GMP pension benefits accrued from 6 April
+1988 up to 5th April 1997.
+XS over GMP pension accrued on or after 6th
+April 1978 up to and including 5th April 1997.
+Total pension benefits accrued on or after 6th
+April 1997 up until and including 5th April
+2009.
+Total pension benefits accrued on or after 6th
+April 2009.
+Total pension amount credited on transfer
+into the scheme.
+
+**List Items** (47 items to process):
+```json
+[
+  {
+    "identifierId": "bbed12aa-003c-48aa-ada5-3a38cdb3132e",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "74a00b31-ab38-4870-8460-98e0196e2898",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "05ae1e1c-6657-44ee-b0b5-d31c7a6e162a",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "1c79b8d3-5625-41f2-96f8-1540dd048ad0",
+    "Standard Equivalent": "SpouseID"
+  },
+  {
+    "identifierId": "baa636da-b182-49a0-8176-a4d3ffab6bd8",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "3ad3d5c4-1218-4b2c-bd2d-565a69215953",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "b1b0eaa1-9e2f-461b-96a7-037bfeb64e18",
+    "Standard Equivalent": "Spouses Pre-88 GMP"
+  },
+  {
+    "identifierId": "c87e7493-b745-4465-9b5e-ce7636a26649",
+    "Standard Equivalent": "Spouses Post-88 GMP"
+  },
+  {
+    "identifierId": "e3b6ec5a-67ac-46b9-90fe-f69aa616cad0",
+    "Standard Equivalent": "SectionMarker"
+  },
+  {
+    "identifierId": "ebf13460-6c3a-43bf-b5f4-ec3bcfc3faf1",
+    "Standard Equivalent": "DependantsID"
+  },
+  {
+    "identifierId": "7371d1c9-9cfc-4dad-94b8-25f1225e27bd",
+    "Standard Equivalent": "DoB Dependant"
+  },
+  {
+    "identifierId": "1e6a82e7-1780-4d0a-930d-a6bb7111ebc6",
+    "Standard Equivalent": "SectionMarker"
+  },
+  {
+    "identifierId": "42efed62-84b1-49e5-93c2-8779d74bf13a",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "1f92a126-67f6-425a-9f75-98e9be53ee74",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "f8a9041e-5ab9-4517-a6eb-e24094925d2d",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "4f49bab7-5d5f-468f-ae49-85c8e9ef300d",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "6bf34917-7074-4268-8abf-3795a8012443",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "009b7f40-095e-43b0-ba18-1e773af7acd4",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "2ea07bc9-93c4-445b-8e35-158d7e1f2b23",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "dbb2e0ad-0477-4560-85fc-918d73caad4f",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "0ce537cf-c0c3-4d70-a8b5-476230ec90c4",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "6113e081-9d53-41fa-ae6e-295a7dec7a13",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "3a844d08-28a2-41a4-a1f7-0ae73d6eb99c",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "70d7804b-f5ff-4104-a738-2e32b45aea58",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "e1b66f7f-82c8-4cbe-a16c-d03193a2e556",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "a5236358-5072-4eee-9bc1-cd1f811be91e",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "ad45621d-f455-49e8-937b-ffd1cf577929",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "d2f79bff-4c95-48ce-ba06-ae82874efbd5",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "d25ce127-d6b7-4405-9e0c-c9eacf0f85ef",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "84910f25-94b0-4e86-bec6-dd39281f5126",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "43ff5e61-b625-42c4-8f5a-bb76478e8ea0",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "3989f20f-4d59-45ea-8455-86949ac576da",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "22d097e2-69b2-4e55-b12d-39229c3ea9e3",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "b0de5a74-16a9-44e9-b3a5-2163c16739e6",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "33c06993-c9f5-4d9c-bdeb-6e53039d6cd9",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "58ba4535-8faa-4f57-a865-36e12e02bea3",
+    "Standard Equivalent": "Gender Spouse"
+  },
+  {
+    "identifierId": "9a11ff76-ead1-464d-9983-1792d0772dcb",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "50620c57-341e-48f1-ae9e-f3cd98645512",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "43d0c832-d2d6-4610-b028-80fba1535ad4",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "35986d58-cea8-43ee-a8b7-9a7a89884047",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "0c0f4023-5d67-4e02-89fa-25a280e198c1",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "35aa8397-efd4-4dd6-93fe-7ac94dc49f68",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "bf68efa0-07de-4893-bc5a-f38d994b655b",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "629ad919-6a09-4e6e-94da-b3751cfeceb6",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "31ae5a4d-fb75-43cb-9aa9-c50400054048",
+    "Standard Equivalent": "Gender Spouse"
+  },
+  {
+    "identifierId": "22e0ee08-8d2f-4aa8-ade1-64ae044515b8",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "93568964-8b6f-48f6-9e88-563ffbb2e967",
+    "Standard Equivalent": "Marital Status"
+  }
+]
+```
+
+=== OUTPUT REQUIREMENTS ===
+Return a JSON array with one object per input item. Each object MUST include:
+- identifierId: The same identifierId from the input (preserve exactly)
+- extractedValue: The extracted/processed value for ""
+- validationStatus: Either "valid" or "invalid" based on confidence
+- aiReasoning: Detailed explanation of the extraction logic and decision
+- confidenceScore: Number between 0-100 representing confidence
+- documentSource: Specific source reference (page, section, or location)

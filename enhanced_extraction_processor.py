@@ -536,17 +536,35 @@ Your response must maintain the identifierId mapping for all processed items.
     # 7. COMPILE FULL PROMPT
     # Build output requirements based on operation type
     if is_create_operation:
-        output_requirements = """OUTPUT REQUIREMENTS:
-- Return results as a JSON array of objects
-- Each object should contain the fields specified in your tool prompt
-- The number and order of results depends on what you find/create based on the instructions
-- Focus on creating new records according to the tool function"""
+        # For CREATE operations - finding new items not in input
+        output_requirements = f"""OUTPUT REQUIREMENTS:
+Return a JSON array of objects for the NEW items you identify/create. Each object MUST include:
+- extractedValue: The extracted/processed value for "{value_name}"
+- validationStatus: Either "valid" or "invalid" based on confidence
+- aiReasoning: Detailed explanation of your finding and why this item qualifies
+- confidenceScore: Number between 0-100 representing confidence
+- documentSource: Specific source reference (page, section, or location)
+
+IMPORTANT FOR CREATE OPERATIONS: 
+- Create NEW records based on what you find in the documents/data
+- Do NOT include identifierId - the system will generate new IDs automatically
+- Do NOT try to map to input items - you're finding items NOT in the input
+- The number of results depends on what you find based on the tool instructions"""
     else:
-        output_requirements = """CRITICAL OUTPUT REQUIREMENTS:
-1. Maintain the EXACT SAME ORDER as the input items
-2. Include ALL input items in the response, even if no match is found (use null for extractedValue)
-3. ALWAYS preserve the identifierId for each item to maintain data relationships
-4. Return results in JSON format"""
+        # For UPDATE operations - mapping to existing items
+        output_requirements = f"""OUTPUT REQUIREMENTS:
+Return a JSON array with one object per input item. Each object MUST include:
+- identifierId: The same identifierId from the input (preserve exactly)
+- extractedValue: The extracted/processed value for "{value_name}"
+- validationStatus: Either "valid" or "invalid" based on confidence
+- aiReasoning: Detailed explanation of the extraction logic and decision
+- confidenceScore: Number between 0-100 representing confidence
+- documentSource: Specific source reference (page, section, or location)
+
+CRITICAL FOR UPDATE OPERATIONS: 
+- Maintain the EXACT SAME ORDER as the input items
+- Include ALL input items in the response, even if no match is found (use null for extractedValue)
+- ALWAYS preserve the identifierId for each item to maintain data relationships"""
     
     compiled_prompt = f"""{system_prompt}
 
