@@ -7230,13 +7230,19 @@ def extract_function(Column_Name, Excel_File):
         const isCreateOperation = selectedTool?.operationType?.startsWith('create');
         if (isCreateOperation) {
           const originalCount = processedResults.length;
-          processedResults = processedResults.filter(r => 
-            r.extractedValue !== null && 
-            r.extractedValue !== undefined && 
-            r.extractedValue !== '' &&
-            r.extractedValue !== 'null' &&
-            r.extractedValue !== 'undefined'
-          );
+          processedResults = processedResults.filter(r => {
+            const value = r.extractedValue;
+            // Filter out null, undefined, empty, and "Not Found" values
+            return value !== null && 
+                   value !== undefined && 
+                   value !== '' &&
+                   value !== 'null' &&
+                   value !== 'undefined' &&
+                   value !== 'Not Found' &&
+                   value !== 'not found' &&
+                   value !== 'NOT FOUND' &&
+                   !String(value).toLowerCase().includes('not found');
+          });
           console.log(`🔍 CREATE operation: Filtered ${originalCount} results to ${processedResults.length} with actual values`);
         }
         
