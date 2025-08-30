@@ -3608,51 +3608,8 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async getStepValue(id: string): Promise<StepValue | undefined> {
-    console.log(`\n🚨 [STORAGE] getStepValue called with id: ${id}`);
-    
     return this.retryOperation(async () => {
-      // First try with Drizzle ORM
       const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
-      
-      // Debug logging to see what's coming from the database
-      if (result) {
-        console.log(`\n🔍 [STORAGE] Retrieved step value ${id} with Drizzle:`);
-        console.log(`   - valueName: ${result.valueName}`);
-        console.log(`   - toolId: ${result.toolId}`);
-        console.log(`   - inputValues type: ${typeof result.inputValues}`);
-        console.log(`   - inputValues value:`, result.inputValues);
-        if (result.inputValues && typeof result.inputValues === 'object') {
-          console.log(`   - inputValues keys:`, Object.keys(result.inputValues));
-        }
-        
-        // Also try with raw SQL to see if there's a difference
-        const rawResult = await this.db.execute(sql`
-          SELECT id, value_name, tool_id, input_values::text as input_values_text
-          FROM step_values 
-          WHERE id = ${id}
-        `);
-        
-        if (rawResult.rows && rawResult.rows.length > 0) {
-          const rawRow = rawResult.rows[0] as any;
-          console.log(`\n🔍 [STORAGE] Raw SQL result for comparison:`);
-          console.log(`   - input_values_text:`, rawRow.input_values_text);
-          
-          // Try to parse the JSON if it's a string
-          if (rawRow.input_values_text && typeof rawRow.input_values_text === 'string') {
-            try {
-              const parsed = JSON.parse(rawRow.input_values_text);
-              console.log(`   - Parsed inputValues:`, parsed);
-              console.log(`   - Parsed keys:`, Object.keys(parsed));
-              
-              // Fix the result by adding the parsed inputValues
-              result.inputValues = parsed;
-            } catch (e) {
-              console.log(`   - Failed to parse inputValues:`, e);
-            }
-          }
-        }
-      }
-      
       return result;
     });
   }

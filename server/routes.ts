@@ -7067,9 +7067,11 @@ def extract_function(Column_Name, Excel_File):
         valueName: value.valueName,
         description: value.description || value.valueName,
         valueId: value.id,
-        stepName: step.stepName
+        stepName: step.stepName,
+        inputValues: value.inputValues || {} // CRITICAL: Include the inputValues from the value!
       };
       console.log(`📝 Added value configuration: ${value.valueName}`);
+      console.log(`📝 Value configuration inputValues:`, value.inputValues);
       
       // Pass session document content for user_document placeholder replacement
       if (documentContent) {
