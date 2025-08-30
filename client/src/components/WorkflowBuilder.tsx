@@ -924,18 +924,10 @@ function ValueEditor({
     return availableValues;
   };
   
-  // Filter tools based on step type
-  const filteredTools = excelFunctions.filter(tool => {
-    if (step.type === 'list') {
-      // Data Table - show tools with multiple output
-      return tool.outputType === 'multiple';
-    } else {
-      // Info Page - show tools with single output
-      return tool.outputType === 'single';
-    }
-  });
+  // Show all tools without filtering
+  const filteredTools = excelFunctions;
   
-  const selectedTool = filteredTools.find(f => f.id === value.toolId);
+  const selectedTool = excelFunctions.find(f => f.id === value.toolId);
   const [inputParameters, setInputParameters] = useState<any[]>([]);
 
   // Parse tool input parameters
@@ -1083,7 +1075,7 @@ function ValueEditor({
               <SelectContent>
                 {filteredTools.length === 0 ? (
                   <div className="p-2 text-sm text-gray-500">
-                    No {step.type === 'list' ? 'multiple output' : 'single output'} tools available
+                    No tools available
                   </div>
                 ) : (
                   filteredTools.map((tool) => (
