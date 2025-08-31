@@ -3675,6 +3675,18 @@ class PostgreSQLStorage implements IStorage {
       return result.rowCount > 0;
     });
   }
+
+  // Chat Messages (stub implementation for now)
+  async saveChatMessage(sessionId: string, userId: string, role: string, content: string): Promise<void> {
+    // Stub implementation - just log for now
+    console.log(`Chat message saved: [${role}] ${content.substring(0, 50)}...`);
+    return Promise.resolve();
+  }
+
+  async getChatMessages(sessionId: string): Promise<any[]> {
+    // Stub implementation - return empty array for now
+    return [];
+  }
 }
 
 // Use PostgreSQL storage when DATABASE_URL is available, MemStorage otherwise
