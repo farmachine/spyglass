@@ -3079,18 +3079,25 @@ Thank you for your assistance.`;
         });
       } else {
         console.log('🔍 SAVE - Creating new validation');
-        console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
-        console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
         
-        // Create new validation record directly from step value configuration
-        // Find the step value configuration for this field
-        const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
-        console.log('🔍 SAVE - stepValue found:', stepValue);
-        
-        if (!stepValue) {
-          console.error('❌ No step value found for:', fieldName);
-          console.error('❌ Available step values:', dataFieldsStep?.values?.map(v => v.valueName));
-          return;
+        try {
+          console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
+          console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
+          
+          // Create new validation record directly from step value configuration
+          // Find the step value configuration for this field
+          const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
+          console.log('🔍 SAVE - stepValue found:', stepValue);
+          
+          if (!stepValue) {
+            console.error('❌ No step value found for:', fieldName);
+            console.error('❌ Available step values:', dataFieldsStep?.values?.map(v => v.valueName));
+            return;
+          }
+        } catch (innerError) {
+          console.error('❌ Error accessing dataFieldsStep:', innerError);
+          console.error('❌ dataFieldsStep type:', typeof dataFieldsStep);
+          throw new Error(`Failed to access step data: ${innerError}`);
         }
         
         const createData = {
