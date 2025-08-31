@@ -3041,10 +3041,16 @@ Thank you for your assistance.`;
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     
+    console.log('🔍 SAVE DEBUG:');
+    console.log('  - fieldName:', fieldName);
+    console.log('  - validation found:', !!validation);
+    console.log('  - validation id:', validation?.id);
+    console.log('  - editValue:', editValue);
     
     if (validation) {
       // Use provided value or current edit value
       const valueToUse = newValue !== undefined ? newValue : editValue;
+      console.log('  - valueToUse:', valueToUse);
       let valueToStore = valueToUse;
       const fieldType = getFieldType(fieldName);
       
@@ -3064,6 +3070,16 @@ Thank you for your assistance.`;
       }
       
       try {
+        console.log('  - calling API with:', {
+          id: validation.id,
+          data: {
+            extractedValue: valueToStore,
+            validationStatus: "manual",
+            manuallyVerified: true,
+            manuallyUpdated: true
+          }
+        });
+        
         await updateValidationMutation.mutateAsync({
           id: validation.id,
           data: {
@@ -3074,12 +3090,16 @@ Thank you for your assistance.`;
           }
         });
         
+        console.log('  - API call successful');
+        
         // Force immediate UI update by invalidating all related queries
         await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
         
         // Force a refetch to update UI immediately
         await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        
+        console.log('  - queries invalidated and refetched');
       } catch (error) {
         console.error('Failed to save field:', error);
       }
