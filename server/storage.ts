@@ -3614,6 +3614,23 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
+  async getAllStepValues(projectId: string): Promise<StepValue[]> {
+    return this.retryOperation(async () => {
+      // First get all workflow steps for the project
+      const workflowSteps = await this.db.select().from(workflowSteps)
+        .where(eq(workflowSteps.projectId, projectId));
+      
+      const stepIds = workflowSteps.map(step => step.id);
+      
+      if (stepIds.length === 0) return [];
+      
+      // Then get all step values for those steps
+      return await this.db.select().from(stepValues)
+        .where(inArray(stepValues.stepId, stepIds))
+        .orderBy(stepValues.orderIndex);
+    });
+  }
+
   async getStepValue(id: string): Promise<StepValue | undefined> {
     return this.retryOperation(async () => {
       const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
