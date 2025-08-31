@@ -3075,19 +3075,23 @@ Thank you for your assistance.`;
         });
       } else {
         // Create new validation record for Info Page field
+        const createData = {
+          sessionId: sessionId,
+          validationType: 'schema_field',
+          fieldName: fieldName,
+          extractedValue: valueToStore,
+          validationStatus: 'manual',
+          manuallyVerified: true,
+          manuallyUpdated: true,
+          confidenceScore: 100,
+          dataType: fieldType || 'text'
+        };
+        
+        console.log('🔍 CREATING VALIDATION:', createData);
+        
         await apiRequest('/api/validations', {
           method: 'POST',
-          body: JSON.stringify({
-            sessionId: sessionId,
-            validationType: 'schema_field',
-            fieldName: fieldName,
-            extractedValue: valueToStore,
-            validationStatus: 'manual',
-            manuallyVerified: true,
-            manuallyUpdated: true,
-            confidenceScore: 100,
-            dataType: fieldType || 'text'
-          })
+          body: JSON.stringify(createData)
         });
       }
       
@@ -4051,6 +4055,15 @@ Thank you for your assistance.`;
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
                         const validation = getValidation(fieldName);
+                        
+                        // Debug: Check what validation is being found after save
+                        console.log('🔍 FIELD LOOKUP:', {
+                          fieldName,
+                          validationFound: !!validation,
+                          validationId: validation?.id,
+                          extractedValue: validation?.extractedValue,
+                          allValidationFields: validations.map(v => ({ fieldName: v.fieldName, id: v.id, value: v.extractedValue }))
+                        });
                         const originalValue = extractedData[fieldName];
                         
                         // Show all configured step values
