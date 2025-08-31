@@ -4343,7 +4343,7 @@ Thank you for your assistance.`;
                     Key information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
                   </p>
                   <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(() => {
                         // Get the "Data Fields" workflow step and display all its configured values
