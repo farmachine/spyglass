@@ -604,7 +604,7 @@ export class ToolEngine {
    * Build AI prompt for document-based extraction
    */
   private buildDocumentAIPrompt(tool: Tool, inputs: Record<string, any>, documentContent: string): string {
-    const basePrompt = tool.aiPrompt || '';
+    let prompt = tool.aiPrompt || '';
     
     // Get the Data Description from inputs
     const dataDescription = inputs['Data Description'] || 
@@ -612,43 +612,21 @@ export class ToolEngine {
                            inputs['AI Query'] || 
                            '';
     
-    // Get value configuration if present
-    const valueConfig = inputs['valueConfiguration'];
-    const valueName = valueConfig?.valueName || '';
-    const valueDescription = valueConfig?.description || '';
+    console.log(`📝 Building document AI prompt:`);
+    console.log(`  - Base prompt length: ${prompt.length}`);
+    console.log(`  - Data Description: "${dataDescription}"`);
+    console.log(`  - Document content length: ${documentContent.length}`);
     
-    // Build the prompt
-    let prompt = basePrompt;
+    // Replace placeholders in the tool's configured prompt
+    // The tool prompt uses 'Document' and 'Data Description' as placeholders
+    prompt = prompt.replace(/'Document'/g, `\n${documentContent}\n`);
+    prompt = prompt.replace(/'Data Description'/g, `"${dataDescription}"`);
     
-    // Replace placeholders in the prompt
-    prompt = prompt.replace(/\{document\}/g, documentContent);
+    // Also handle without quotes
     prompt = prompt.replace(/\{Document\}/g, documentContent);
     prompt = prompt.replace(/\{Data Description\}/g, dataDescription);
-    prompt = prompt.replace(/\{description\}/g, dataDescription);
     
-    // If no base prompt or it's too short, build a default one
-    if (!prompt || prompt.length < 50) {
-      prompt = `You are an expert at extracting information from documents. Your task is to identify specific columns in the provided Document based on the Data Description in relation to the column's contents.
-      
-Document:
-${documentContent}
-
-Data Description:
-${dataDescription}
-
-${valueName ? `You are looking for: ${valueName}` : ''}
-${valueDescription ? `Additional context: ${valueDescription}` : ''}
-
-Please analyze the document and return a JSON array of objects, where each object contains:
-- identifierId: null (always null for document extraction)
-- extractedValue: The column names that match the Data Description
-- validationStatus: "valid" if confident, "pending" if uncertain
-- aiReasoning: Brief explanation of why this column matches
-- confidenceScore: A number between 0 and 1
-- documentSource: The section where found
-
-Important: Focus on identifying columns that contain the types of data described in the Data Description.`;
-    }
+    console.log(`📝 Final prompt length: ${prompt.length}`);
     
     return prompt;
   }
