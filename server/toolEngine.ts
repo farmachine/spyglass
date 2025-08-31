@@ -463,25 +463,14 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // 1. Find data input array OR create synthetic array for document extraction
+      // 1. Find data input array, or create minimal array if document extraction
       let dataInput = this.findDataInput(tool, inputs);
       let inputArray: any[];
       
       if (!dataInput || !Array.isArray(dataInput.value)) {
-        // Check if this is document-based extraction (Info Page fields)
-        const hasDocument = inputs['document'] || inputs['0.4q2kmgz9hxo'] || inputs['sessionDocumentContent'];
-        const hasAIQuery = inputs['AI Query'] || inputs['valueConfiguration']?.inputValues?.['0.cdani1tj77s'];
-        
-        if (hasDocument && hasAIQuery) {
-          console.log('📄 Document-based extraction: Creating synthetic data array for Info Page field');
-          // Create a synthetic single-item array to process through the standard flow
-          inputArray = [{
-            identifierId: 'doc-extraction',
-            _isDocumentExtraction: true
-          }];
-        } else {
-          throw new Error('AI tool requires data input array or document with AI instructions');
-        }
+        // For document extraction, create a minimal single-item array
+        console.log('📄 No data array found, creating single-item array for document extraction');
+        inputArray = [{}];
       } else {
         // 2. Standard array processing - Limit to 50 records for performance
         const AI_RECORD_LIMIT = 50;
