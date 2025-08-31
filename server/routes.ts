@@ -7363,6 +7363,33 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
+      // For AI tools, ensure we provide data in the parameter with type 'data'
+      if (tool.toolType === 'AI_ONLY') {
+        console.log(`🤖 Preparing data input for AI tool...`);
+        
+        // Find the parameter with type 'data'
+        const dataParam = tool.inputParameters?.find(p => p.type === 'data');
+        if (dataParam) {
+          console.log(`📊 Found data parameter: ${dataParam.name}`);
+          
+          // Use previousData if available, otherwise create empty array
+          const dataToProcess = previousData && previousData.length > 0 ? previousData : [];
+          
+          // Limit to 50 records for AI processing
+          const limitedData = dataToProcess.slice(0, 50);
+          
+          // Add the data to the correct parameter name
+          toolInputs[dataParam.name] = limitedData;
+          console.log(`✅ Added ${limitedData.length} records to ${dataParam.name} parameter for AI processing`);
+          
+          if (limitedData.length > 0) {
+            console.log(`  First record:`, limitedData[0]);
+          }
+        } else {
+          console.log(`⚠️ AI tool doesn't have a data parameter defined`);
+        }
+      }
+      
       // Execute the tool using the tool engine
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({
