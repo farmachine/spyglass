@@ -526,6 +526,12 @@ export class ToolEngine {
         progressCallback(0, inputArray.length, 'Processing with AI...');
       }
       
+      console.log('🚀 SENDING PROMPT TO GEMINI:');
+      console.log('================================================================================');
+      console.log(prompt);
+      console.log('================================================================================');
+      console.log(`📊 Expecting ${inputArray.length} results from AI`);
+      
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
         contents: [
@@ -538,7 +544,13 @@ export class ToolEngine {
       
       // Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      console.log('🤖 RAW AI RESPONSE:');
+      console.log('================================================================================');
+      console.log(rawResponse);
+      console.log('================================================================================');
+      
       const parsedResults = this.parseAIResponse(rawResponse);
+      console.log(`📊 AI returned ${parsedResults.length} results (expected ${inputArray.length})`);
       
       // Map results to input records with identifierId preservation
       let results: ToolResult[];
