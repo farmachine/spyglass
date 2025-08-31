@@ -3041,36 +3041,30 @@ Thank you for your assistance.`;
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     
-    console.log('🔍 SAVE DEBUG:');
-    console.log('  - fieldName:', fieldName);
-    console.log('  - validation found:', !!validation);
-    console.log('  - validation id:', validation?.id);
-    console.log('  - editValue:', editValue);
+    // Use provided value or current edit value
+    const valueToUse = newValue !== undefined ? newValue : editValue;
+    let valueToStore = valueToUse;
+    const fieldType = getFieldType(fieldName);
     
-    if (validation) {
-      // Use provided value or current edit value
-      const valueToUse = newValue !== undefined ? newValue : editValue;
-      console.log('  - valueToUse:', valueToUse);
-      let valueToStore = valueToUse;
-      const fieldType = getFieldType(fieldName);
-      
-      if (fieldType === 'DATE') {
-        if (!valueToUse || valueToUse.trim() === '') {
-          valueToStore = null;
+    if (fieldType === 'DATE') {
+      if (!valueToUse || valueToUse.trim() === '') {
+        valueToStore = null;
+      } else {
+        // Validate the date format
+        const dateObj = new Date(valueToUse);
+        if (!isNaN(dateObj.getTime())) {
+          // Store as ISO date string for consistency
+          valueToStore = dateObj.toISOString().split('T')[0];
         } else {
-          // Validate the date format
-          const dateObj = new Date(valueToUse);
-          if (!isNaN(dateObj.getTime())) {
-            // Store as ISO date string for consistency
-            valueToStore = dateObj.toISOString().split('T')[0];
-          } else {
-            valueToStore = null;
-          }
+          valueToStore = null;
         }
       }
-      
-      try {
-        console.log('  - calling API with:', {
+    }
+    
+    try {
+      if (validation) {
+        // Update existing validation
+        await updateValidationMutation.mutateAsync({
           id: validation.id,
           data: {
             extractedValue: valueToStore,
@@ -3079,30 +3073,33 @@ Thank you for your assistance.`;
             manuallyUpdated: true
           }
         });
-        
-        await updateValidationMutation.mutateAsync({
-          id: validation.id,
-          data: {
+      } else {
+        // Create new validation record for Info Page field
+        await apiRequest('/api/validations', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId: sessionId,
+            validationType: 'schema_field',
+            fieldName: fieldName,
             extractedValue: valueToStore,
-            validationStatus: "manual",
+            validationStatus: 'manual',
             manuallyVerified: true,
-            manuallyUpdated: true  // Mark as manually updated when user edits field
-          }
+            manuallyUpdated: true,
+            confidenceScore: 100,
+            dataType: fieldType || 'text'
+          })
         });
-        
-        console.log('  - API call successful');
-        
-        // Force immediate UI update by invalidating all related queries
-        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-        
-        // Force a refetch to update UI immediately
-        await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-        
-        console.log('  - queries invalidated and refetched');
-      } catch (error) {
-        console.error('Failed to save field:', error);
       }
+      
+      // Force immediate UI update by invalidating all related queries
+      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+      
+      // Force a refetch to update UI immediately
+      await queryClient.refetchQueries({ queryKey: ['/api/validations/project'] });
+    } catch (error) {
+      console.error('Failed to save field:', error);
     }
     setEditingField(null);
     setEditValue("");
@@ -4051,17 +4048,10 @@ Thank you for your assistance.`;
                           .map((stepValue) => {
                         const fieldName = stepValue.valueName;
                         
-                        // Handle field name typos/mismatches for Info Page fields
-                        const fieldNameMapping: Record<string, string> = {
-                          'Pension Sheme Name': 'Pension Scheme Name', // Fix typo
-                        };
-                        
-                        const correctedFieldName = fieldNameMapping[fieldName] || fieldName;
-                        
-                        // For step values, validation field name includes the step name
-                        const stepFieldName = `Data Fields.${correctedFieldName}[0]`;
-                        const validation = getValidation(stepFieldName) || getValidation(correctedFieldName);
-                        const originalValue = extractedData[stepFieldName] || extractedData[fieldName];
+                        // For Info Page steps, no validation records exist upfront
+                        // They're only created when user manually populates or via extraction
+                        const validation = getValidation(fieldName);
+                        const originalValue = extractedData[fieldName];
                         
                         // Show all configured step values
                         // Use validation's extractedValue (which includes manual edits), not the original extracted value
@@ -4154,7 +4144,7 @@ Thank you for your assistance.`;
                               </div>
                               <div>
                                 {(() => {
-                                  const isEditing = editingField === correctedFieldName;
+                                  const isEditing = editingField === fieldName;
                                   const fieldType = stepValue.dataType;
                                   
                                   if (isEditing) {
@@ -4199,7 +4189,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(correctedFieldName)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -4226,7 +4216,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(correctedFieldName, displayValue)}
+                                          onClick={() => handleEdit(fieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
