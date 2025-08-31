@@ -4339,15 +4339,10 @@ Thank you for your assistance.`;
               {/* Info Tab Content - Single Object View */}
               {activeTab === 'info' && (
                 <div className="h-full overflow-auto">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                    Key information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
+                  </p>
                   <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
-                      <span className="flex items-center gap-2">Data Fields</span>
-                    </CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Key information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
-                    </p>
-                  </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(() => {
