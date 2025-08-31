@@ -4835,12 +4835,12 @@ Thank you for your assistance.`;
                                             >
                                               <div 
                                                 className="w-2 h-2 rounded-full"
-                                                style={{ backgroundColor: '#4F63A4' }}
+                                                style={{ backgroundColor: allValid ? '#10b981' : '#9ca3af' }}
                                               />
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1 text-blue-900 dark:text-blue-200">{columnName}</span>
+                                        <span className="truncate pl-1 text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">{columnName}</span>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2">
                                         <button
@@ -4848,7 +4848,7 @@ Thank you for your assistance.`;
                                           className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
                                           title={`Run extraction for ${columnName}`}
                                         >
-                                          <Wand2 className="h-4 w-4" style={{ color: '#4F63A4' }} />
+                                          <Wand2 className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
                                         </button>
                                         <button
                                           onClick={() => handleSort(columnName, collection.id)}
