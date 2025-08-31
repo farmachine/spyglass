@@ -1806,33 +1806,41 @@ except Exception as e:
           // Get all column names (value names)
           const headers = stepValues.map(v => v.valueName || 'Unknown');
           
-          // Group validations by record index
-          const recordMap = new Map<number, any>();
+          // Group validations by identifierId for proper row grouping
+          const identifierMap = new Map<string, any>();
           
           for (const value of stepValues) {
             // Find all validations for this value (across all records) - use valueId for new architecture
             const valueValidations = allValidations.filter(v => v.valueId === value.id || v.fieldId === value.id);
             
             for (const validation of valueValidations) {
-              const recordIndex = validation.recordIndex ?? 0;
+              const identifierId = validation.identifierId || `record_${validation.recordIndex ?? 0}`;
               
-              if (!recordMap.has(recordIndex)) {
-                recordMap.set(recordIndex, {});
+              if (!identifierMap.has(identifierId)) {
+                identifierMap.set(identifierId, { 'Identifier': identifierId });
               }
               
-              recordMap.get(recordIndex)[value.valueName || 'Unknown'] = validation.extractedValue || '';
+              // Preserve "Not Found" values and other extracted values
+              const extractedValue = validation.extractedValue;
+              identifierMap.get(identifierId)[value.valueName || 'Unknown'] = 
+                extractedValue === null || extractedValue === undefined || extractedValue === '' 
+                  ? 'Not Found' 
+                  : extractedValue;
             }
           }
           
+          // Add Identifier as first column
+          const fullHeaders = ['Identifier', ...headers];
+          
           // Convert to array format
-          const records = Array.from(recordMap.entries())
-            .sort(([a], [b]) => a - b)
-            .map(([index, record]) => {
-              return headers.map(header => record[header] || '');
+          const records = Array.from(identifierMap.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([identifierId, record]) => {
+              return fullHeaders.map(header => record[header] || 'Not Found');
             });
           
           stepData.data = {
-            headers: headers,
+            headers: fullHeaders,
             records: records
           };
         }
