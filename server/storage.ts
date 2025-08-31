@@ -3617,10 +3617,10 @@ class PostgreSQLStorage implements IStorage {
   async getAllStepValues(projectId: string): Promise<StepValue[]> {
     return this.retryOperation(async () => {
       // First get all workflow steps for the project
-      const workflowSteps = await this.db.select().from(workflowSteps)
+      const projectSteps = await this.db.select().from(workflowSteps)
         .where(eq(workflowSteps.projectId, projectId));
       
-      const stepIds = workflowSteps.map(step => step.id);
+      const stepIds = projectSteps.map(step => step.id);
       
       if (stepIds.length === 0) return [];
       
