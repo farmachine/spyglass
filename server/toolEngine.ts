@@ -464,16 +464,37 @@ export class ToolEngine {
   ): Promise<ToolResult[]> {
     try {
       // Check if tool expects data array or document input
-      const hasDataParam = tool.inputParameters?.some(p => p.type === 'data');
+      // Prefer document over data for AI extraction tools
       const hasDocumentParam = tool.inputParameters?.some(p => p.type === 'document');
+      const hasDataParam = tool.inputParameters?.some(p => p.type === 'data');
       
       let prompt: string;
       let inputArray: any[] = [];
       
-      if (hasDataParam) {
+      if (hasDocumentParam) {
+        // Tool expects document input - prioritize this for extraction tools
+        console.log('📄 AI tool expects document input');
+        
+        // Find document content in inputs
+        const documentContent = this.findDocumentInput(tool, inputs);
+        if (!documentContent) {
+          console.log('⚠️ No document content found for AI tool');
+          console.log('Available inputs:', Object.keys(inputs));
+          throw new Error('AI tool requires document input');
+        }
+        
+        // Build prompt for document-based extraction
+        prompt = this.buildDocumentAIPrompt(tool, inputs, documentContent);
+        
+        // Create a single dummy record for result mapping
+        inputArray = [{ identifierId: null }];
+      } else if (hasDataParam) {
         // Tool expects data array input
+        console.log('📊 AI tool expects data array input');
         const dataInput = this.findDataInput(tool, inputs);
         if (!dataInput || !Array.isArray(dataInput.value)) {
+          console.log('⚠️ No data array found for AI tool');
+          console.log('Available inputs:', Object.keys(inputs));
           throw new Error('AI tool requires data input array');
         }
 
@@ -483,23 +504,9 @@ export class ToolEngine {
         
         // Build prompt using tool's AI prompt template with data array
         prompt = this.buildAIPrompt(tool, inputs, inputArray);
-      } else if (hasDocumentParam) {
-        // Tool expects document input
-        console.log('📄 AI tool expects document input');
-        
-        // Find document content in inputs
-        const documentContent = this.findDocumentInput(tool, inputs);
-        if (!documentContent) {
-          console.log('⚠️ No document content found for AI tool');
-          throw new Error('AI tool requires document input');
-        }
-        
-        // Build prompt for document-based extraction
-        prompt = this.buildDocumentAIPrompt(tool, inputs, documentContent);
-        
-        // Create a single dummy record for result mapping
-        inputArray = [{ identifierId: null }];
       } else {
+        console.log('❌ AI tool has no valid input parameter');
+        console.log('Tool parameters:', tool.inputParameters);
         throw new Error('AI tool has no valid input parameter (data or document)');
       }
       

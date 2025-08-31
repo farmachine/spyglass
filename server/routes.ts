@@ -7397,28 +7397,31 @@ def extract_function(Column_Name, Excel_File):
           if (docParam) {
             console.log(`📄 Found document parameter: ${docParam.name}`);
             
-            // Convert previousData to a document format if available
-            if (previousData && previousData.length > 0) {
-              // Format the data as a document/table for the AI to process
+            // Use the session document content that was loaded earlier
+            const sessionDocContent = toolInputs.sessionDocumentContent || documentContent;
+            
+            if (sessionDocContent) {
+              // Use the session document content
+              toolInputs[docParam.name] = sessionDocContent;
+              console.log(`✅ Using session document content for AI processing (${sessionDocContent.length} chars)`);
+              console.log(`📄 Document preview: ${sessionDocContent.substring(0, 200)}...`);
+            } else if (previousData && previousData.length > 0) {
+              // Fallback: Convert previousData to a document format if no session document
               const headers = Object.keys(previousData[0]).filter(k => k !== 'identifierId');
-              let documentContent = `Data to analyze:\n\n`;
-              documentContent += headers.join('\t') + '\n';
+              let tableContent = `Data to analyze:\n\n`;
+              tableContent += headers.join('\t') + '\n';
               
               // Add each row of data
               previousData.slice(0, 50).forEach(row => {
                 const values = headers.map(h => row[h] || '');
-                documentContent += values.join('\t') + '\n';
+                tableContent += values.join('\t') + '\n';
               });
               
-              toolInputs[docParam.name] = documentContent;
+              toolInputs[docParam.name] = tableContent;
               console.log(`✅ Converted ${previousData.length} records to document format for AI processing`);
-              console.log(`📄 Document preview: ${documentContent.substring(0, 200)}...`);
-            } else if (documentContent) {
-              // Use the session document content if available
-              toolInputs[docParam.name] = documentContent;
-              console.log(`✅ Using session document content for AI processing`);
+              console.log(`📄 Document preview: ${tableContent.substring(0, 200)}...`);
             } else {
-              console.log(`⚠️ No data or document content available for AI tool`);
+              console.log(`⚠️ No document content or data available for AI tool`);
             }
           }
           
