@@ -114,9 +114,22 @@ const FieldSelectionModalContent = ({
           // Check if this value needs document selection
           const needsDocumentSelection = stepValue.inputValues && 
             Object.entries(stepValue.inputValues).some(([key, value]) => {
+              // Handle arrays (like ["user_document"])
+              if (Array.isArray(value)) {
+                return value.some(v => {
+                  if (typeof v === 'string') {
+                    const lowerV = v.toLowerCase();
+                    return lowerV.includes('user') && lowerV.includes('document') ||
+                           lowerV === 'user_document';
+                  }
+                  return false;
+                });
+              }
+              // Handle strings
               if (typeof value === 'string') {
                 const lowerValue = value.toLowerCase();
-                return lowerValue.includes('user') && lowerValue.includes('document');
+                return lowerValue.includes('user') && lowerValue.includes('document') ||
+                       lowerValue === 'user_document';
               }
               return key.toLowerCase().includes('document');
             });
