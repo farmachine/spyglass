@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
-import { SiMicrosoftexcel, SiMicrosoftword } from "react-icons/si";
-import { FaFilePdf } from "react-icons/fa";
+import { SiMicrosoft } from "react-icons/si";
+import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
 import * as XLSX from 'xlsx';
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -4628,10 +4628,10 @@ Thank you for your assistance.`;
                                       <div className="flex-shrink-0">
                                         {doc.mimeType?.includes('excel') || doc.mimeType?.includes('spreadsheet') || 
                                          doc.fileName?.endsWith('.xlsx') || doc.fileName?.endsWith('.xls') ? (
-                                          <SiMicrosoftexcel className="w-4 h-4 text-green-600" />
+                                          <FaFileExcel className="w-4 h-4 text-green-600" />
                                         ) : doc.mimeType?.includes('word') || doc.mimeType?.includes('document') ||
                                              doc.fileName?.endsWith('.docx') || doc.fileName?.endsWith('.doc') ? (
-                                          <SiMicrosoftword className="w-4 h-4 text-blue-600" />
+                                          <FaFileWord className="w-4 h-4 text-blue-600" />
                                         ) : doc.mimeType?.includes('pdf') || doc.fileName?.endsWith('.pdf') ? (
                                           <FaFilePdf className="w-4 h-4 text-red-600" />
                                         ) : (
