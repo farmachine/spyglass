@@ -1,0 +1,129 @@
+# Conservative Codebase Documentation Instructions
+
+Please analyze and document this codebase to make it developer-friendly WITHOUT making structural changes. The goal is to add clarity while preserving all existing functionality exactly as it is.
+
+## Core Principle: DOCUMENTATION FIRST, MINIMAL CHANGES ONLY
+
+**CRITICAL: Do not refactor, reorganize, or restructure any code. Only make changes that are absolutely safe and non-functional.**
+
+## 1. Documentation Tasks (Primary Focus)
+
+### Add Code Comments
+- **File headers**: Add a brief comment at the top of each file explaining its purpose
+- **Function documentation**: Add comments above functions explaining what they do, their parameters, and return values
+- **Complex logic explanation**: Add inline comments for any non-obvious code sections
+- **Business logic notes**: Explain the "why" behind important decisions or calculations
+
+### Create Documentation Files
+
+#### README.md
+- Project overview and what it does
+- How to run the application
+- Required environment variables or configuration
+- Basic project structure overview
+- Dependencies and how to install them
+
+#### CODEBASE_OVERVIEW.md
+- High-level architecture explanation
+- Main components and their roles
+- Data flow through the application
+- Key files and their purposes
+- External integrations or APIs used
+
+## 2. Safe, Non-Breaking Improvements Only
+
+### Allowed Minor Changes:
+- Add comments and documentation
+- Fix obvious typos in strings or comments (not variable names)
+- Remove genuinely unused imports (only if 100% certain)
+- Add missing semicolons or formatting fixes that don't change logic
+- Remove console.log statements that are clearly debug-only
+
+### FORBIDDEN Changes:
+- ❌ Rename variables, functions, or files
+- ❌ Move code between files
+- ❌ Change function signatures
+- ❌ Refactor or restructure logic
+- ❌ Change database queries or API calls
+- ❌ Modify configuration or environment handling
+- ❌ Update dependencies or package versions
+- ❌ Change error handling patterns
+
+## 3. Developer Guidance Focus
+
+### Add Inline Developer Notes
+For complex sections, add comments like:
+```
+// Developer Note: This section handles user authentication
+// It connects to [external service] and stores tokens in [location]
+// Key assumption: Users must have verified emails
+```
+
+### Document Key Patterns
+Add comments explaining:
+- Why certain approaches were taken
+- What external services are being used
+- Important data transformations
+- Critical business rules or validations
+
+### Flag Important Areas
+Use clear comments to mark:
+- Areas that handle sensitive data
+- Functions that call external APIs
+- Database operations
+- Authentication/authorization logic
+
+## 4. Specific Documentation Requirements
+
+### For Each Major File:
+1. **Purpose comment** at the top
+2. **Main functions documented** with brief descriptions
+3. **Dependencies explained** - what other files/services it relies on
+4. **Key variables or constants explained**
+
+### For Configuration:
+- Document what each environment variable does
+- Explain any default values or fallbacks
+- Note which settings are required vs optional
+
+### For Database/API Interactions:
+- Document what each endpoint does
+- Explain data formats expected
+- Note any error handling assumptions
+
+## 5. Testing and Validation
+
+### Before Submitting Changes:
+- **Test the application thoroughly** - ensure everything works exactly as before
+- **Verify no functionality changed** - all features should behave identically
+- **Check all dependencies still work** - no broken imports or missing modules
+- **Validate environment setup** - ensure setup instructions are accurate
+
+## 6. Output Format
+
+Please structure your work as follows:
+
+1. **Start with a brief analysis**: List the main files and their apparent purposes
+2. **Add documentation progressively**: Work through files one by one
+3. **Create the documentation files**: README and overview documents
+4. **Summarize what was documented**: List what you've explained for the developer
+
+## Success Criteria
+
+When complete:
+- All original functionality works exactly the same
+- A new developer can understand what each file does
+- Setup and running instructions are clear
+- Key business logic is explained
+- No code structure has been changed
+- No risk of breaking existing features
+
+## Execution Approach
+
+1. **Read and understand** the codebase first
+2. **Document as you go** - don't change, just explain
+3. **Focus on clarity** - help a developer understand the existing code
+4. **Test frequently** - ensure nothing breaks
+5. **Ask questions** if anything is unclear rather than assuming
+
+Begin by providing a high-level overview of what you found in the codebase, then proceed with careful documentation. Remember: preserve everything, explain everything, change nothing structural.
