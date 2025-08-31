@@ -1,0 +1,62 @@
+📝 Raw inputValues structure: {
+  "0.lnm3uujgd2r": [
+    "user_document"
+  ]
+}
+  Checking inputValue [0.lnm3uujgd2r]: object = ["user_document"]
+⚠️ No AI instructions found in inputValues
+⚠️ No value found for parameter Column Data, setting to empty string
+🔄 Also adding excel_content for document parameter
+🐍 Normalized inputs for Python function: [
+  'column_data',
+  'Column Data',
+  'excel_file',
+  'excel_content',
+  'Excel File'
+]
+Python debug output: DEBUG: Received inputs keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']
+DEBUG: Input 'column_data': 
+DEBUG: Input 'Column Data': 
+DEBUG: Input 'excel_file' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+DEBUG: Input 'excel_content' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+DEBUG: Input 'Excel File' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+⚠️ Could not find value for parameter 'document'. Available keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']
+⚠️ Could not find value for parameter 'data'. Available keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']
+Error: get_unique_values_in_column() missing 2 required positional arguments: 'document' and 'data'
+Traceback (most recent call last):
+  File "/tmp/test_function_1756676197970.py", line 252, in <module>
+    result = func(**filtered_inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: get_unique_values_in_column() missing 2 required positional arguments: 'document' and 'data'
+
+
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Code execution failed: Python process exited with code 1: DEBUG: Received inputs keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']\nDEBUG: Input 'column_data': \nDEBUG: Input 'Column Data': \nDEBUG: Input 'excel_file' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\nDEBUG: Input 'excel_content' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\nDEBUG: Input 'Excel File' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\n⚠️ Could not find value for parameter 'document'. Available keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']\n⚠️ Could not find value for parameter 'data'. Available keys: ['column_data', 'Column Data', 'excel_file', 'excel_content', 'Excel File']\nError: get_unique_values_in_column() missing 2 required positional arguments: 'document' and 'data'\nTraceback (most recent call last):\n  File \"/tmp/test_function_1756676197970.py\", line 252, in <module>\n    result = func(**filtered_inputs)\n             ^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: get_unique_values_in_column() missing 2 required positional arguments: 'document' and 'data'\n\n",
+  "confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Processing 1 actual AI results (not creating validations for unprocessed records)
+🔗 Generated new UUID identifierId for first column at index 0: 4c17a562-576f-469a-adcc-4a081d5010f0
+✨ Created validation for Codes.Codes[0]
+💾 Saved 1 validation records
+9:36:38 PM [express] POST /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/extract-column 200 in 1205ms :: {"success":true,"message":"Ex…
+9:36:38 PM [browser] 📝 🔄 Invalidating validation queries...
+9:36:38 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:36:38 PM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Codes","resultsCount":1}
+9:36:38 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+9:36:39 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/validations 200 in 133ms
+9:36:40 PM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 13ms
+9:36:40 PM [browser] 📝 ✅ Validation queries refreshed
+9:36:40 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
