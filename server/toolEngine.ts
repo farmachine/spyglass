@@ -503,13 +503,9 @@ export class ToolEngine {
           throw new Error('AI tool requires data input array');
         }
 
-        // Limit to 200 records for performance (increased from 50 to handle larger datasets)
-        const AI_RECORD_LIMIT = 200;
+        // Limit to 50 records for performance
+        const AI_RECORD_LIMIT = 50;
         inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
-        
-        if (dataInput.value.length > AI_RECORD_LIMIT) {
-          console.log(`⚠️ Input data truncated from ${dataInput.value.length} to ${AI_RECORD_LIMIT} records for AI processing`);
-        }
         
         // Build prompt using tool's AI prompt template with data array
         prompt = this.buildAIPrompt(tool, inputs, inputArray);
@@ -736,8 +732,20 @@ ${dataDescription}`;
       }
     }
     
+    // Check if the tool prompt already mentions processing "For each" or "each List Item"
+    const toolExpectsAllItems = basePrompt.toLowerCase().includes('for each') || 
+                                basePrompt.toLowerCase().includes('each object') ||
+                                basePrompt.toLowerCase().includes('each item');
+    
     // Build layered prompt structure
     let prompt = '';
+    
+    // If the tool expects to process all items, add clear instruction at the beginning
+    if (toolExpectsAllItems && dataArray && dataArray.length > 0) {
+      prompt += `IMPORTANT: You have ${dataArray.length} items to process. You MUST process ALL ${dataArray.length} items and return ${dataArray.length} results in your JSON array response.
+
+`;
+    }
     
     // LAYER 1: Tool Prompt (the template explaining the function)
     prompt += `=== TOOL FUNCTION ===
@@ -783,15 +791,14 @@ ${referenceDoc}
 ${JSON.stringify(dataArray, null, 2)}
 \`\`\`
 
-CRITICAL INSTRUCTION FOR PROCESSING ALL ITEMS:
-- You MUST process ALL ${dataArray.length} items in the List Items array above
-- You MUST return EXACTLY ${dataArray.length} result objects in your JSON response
-- Each input item with its identifierId MUST have a corresponding output object
-- DO NOT stop after processing just one item - process ALL ${dataArray.length} items
-- Even if you cannot find a match for an item, still include it with null or "Not Found" as extractedValue
-- The response array length MUST be ${dataArray.length} objects
+`;
+      
+      // If the tool expects all items, add reminder at the end too
+      if (toolExpectsAllItems) {
+        prompt += `REMINDER: Process ALL ${dataArray.length} items above. Your JSON response array MUST contain exactly ${dataArray.length} objects, one for each List Item with its corresponding identifierId preserved.
 
 `;
+      }
     }
     
     // DO NOT add any system output requirements here
