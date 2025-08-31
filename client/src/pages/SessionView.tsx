@@ -3672,7 +3672,7 @@ Thank you for your assistance.`;
                   </button>
                 </div>
 
-                {/* General Information Tab */}
+                {/* Data Fields Tab (Info Page) */}
                 <div className="relative flex items-center">
                   {/* Horizontal connecting line when selected */}
                   {activeTab === 'info' && (
@@ -3682,7 +3682,7 @@ Thank you for your assistance.`;
                   {/* Circular icon - solid dot without border */}
                   <div className="relative z-10 w-8 h-8 flex items-center justify-center">
                     {(() => {
-                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName.includes('.'));
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName?.includes('.'));
                       const verifiedCount = infoValidations.filter(v => 
                         v.validationStatus === 'valid' || 
                         v.validationStatus === 'manual'
@@ -3704,7 +3704,7 @@ Thank you for your assistance.`;
                         : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
                     }`}
                   >
-                    <div className="truncate">General Information</div>
+                    <div className="truncate">Data Fields</div>
                   </button>
                 </div>
                 
@@ -3814,7 +3814,7 @@ Thank you for your assistance.`;
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
                       <h2 className="text-2xl font-bold dark:text-white">{(() => {
                         // Handle special tabs first
-                        if (activeTab === 'info') return 'General Information';
+                        if (activeTab === 'info') return 'Data Fields';
                         if (activeTab === 'documents') return 'Documents';
                         
                         // For all other tabs, display the activeTab name directly
@@ -4003,10 +4003,10 @@ Thank you for your assistance.`;
                   <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-gray-900 dark:text-white">
-                      <span className="flex items-center gap-2">General Information</span>
+                      <span className="flex items-center gap-2">Data Fields</span>
                     </CardTitle>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Core information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
+                      Key information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -4015,28 +4015,14 @@ Thank you for your assistance.`;
                         // Show general info validations (not associated with any collection)
                         const infoValidations = validations.filter(v => 
                           !v.collectionName && 
-                          !v.fieldName?.includes('.') &&
-                          (v.extractedValue !== null && v.extractedValue !== undefined && v.extractedValue !== "")
+                          !v.fieldName?.includes('.')
                         );
                         
-                        // Debug logging
-                        console.log('🔍 INFO PAGE DEBUG:');
-                        console.log('  - Total validations:', validations.length);
-                        console.log('  - Info validations found:', infoValidations.length);
-                        console.log('  - Sample validation structure:', validations.slice(0, 3).map(v => ({
-                          fieldName: v.fieldName,
-                          collectionName: v.collectionName,
-                          extractedValue: v.extractedValue ? 'HAS_VALUE' : 'NO_VALUE'
-                        })));
-                        console.log('  - Validations without collection:', validations.filter(v => !v.collectionName).length);
-                        console.log('  - Validations without dots in fieldName:', validations.filter(v => !v.fieldName?.includes('.')).length);
-                        
                         if (infoValidations.length === 0) {
-                          console.log('  - No info validations found, returning message');
                           return (
                             <div className="col-span-full text-center text-gray-500 py-8">
-                              <p>No general information fields have been extracted yet.</p>
-                              <p className="text-sm mt-2">Information will appear here once documents are processed.</p>
+                              <p>No data fields have been configured or extracted yet.</p>
+                              <p className="text-sm mt-2">Fields will appear here once documents are processed.</p>
                             </div>
                           );
                         }
