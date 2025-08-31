@@ -4082,8 +4082,11 @@ Thank you for your assistance.`;
                         
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
-                        // Simple lookup: step value id → validation fieldId
-                        const validation = validations.find(v => v.fieldId === stepValue.id);
+                        // Simple lookup: step value id → validation fieldId (get most recent if multiple)
+                        const fieldValidations = validations.filter(v => v.fieldId === stepValue.id);
+                        const validation = fieldValidations.length > 0 
+                          ? fieldValidations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+                          : undefined;
                         
                         const originalValue = extractedData[fieldName];
                         
