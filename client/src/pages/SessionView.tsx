@@ -96,21 +96,122 @@ const FieldSelectionModalContent = ({
         </span>
       </div>
 
-      <div className="max-h-60 overflow-y-auto space-y-2">
-        {stepValues.map((stepValue) => (
-          <div key={stepValue.id} className="flex items-center space-x-2 p-2 rounded border">
-            <Checkbox
-              checked={selectedFields.has(stepValue.id)}
-              onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
-            />
-            <div className="flex-1">
-              <div className="font-medium text-sm">{stepValue.valueName}</div>
-              {stepValue.description && (
-                <div className="text-xs text-gray-500">{stepValue.description}</div>
-              )}
+      <div className="max-h-96 overflow-y-auto space-y-3">
+        {stepValues.map((stepValue) => {
+          // Parse input values to show configuration
+          const getInputConfig = () => {
+            if (!stepValue.inputValues) return [];
+            
+            const config: Array<{ key: string; value: any; type: string }> = [];
+            
+            Object.entries(stepValue.inputValues).forEach(([key, value]) => {
+              // Skip internal keys starting with numbers
+              if (key.match(/^\d+\./)) {
+                if (Array.isArray(value)) {
+                  // Check if it contains @ references
+                  const hasReferences = value.some(v => typeof v === 'string' && v.startsWith('@'));
+                  if (hasReferences) {
+                    config.push({
+                      key: 'Field References',
+                      value: value.filter(v => typeof v === 'string' && v.startsWith('@')).join(', '),
+                      type: 'references'
+                    });
+                  } else if (value.length > 0) {
+                    config.push({
+                      key: 'Source Fields',
+                      value: value.join(', '),
+                      type: 'array'
+                    });
+                  }
+                } else if (typeof value === 'string') {
+                  // Check for prompts or text content
+                  if (value.length > 100) {
+                    config.push({
+                      key: 'Extraction Instructions',
+                      value: value,
+                      type: 'prompt'
+                    });
+                  } else if (value.startsWith('@')) {
+                    config.push({
+                      key: 'Field Reference',
+                      value: value,
+                      type: 'reference'
+                    });
+                  } else {
+                    config.push({
+                      key: 'Configuration',
+                      value: value,
+                      type: 'text'
+                    });
+                  }
+                }
+              } else {
+                // Regular input parameter
+                config.push({
+                  key: key,
+                  value: value,
+                  type: 'parameter'
+                });
+              }
+            });
+            
+            return config;
+          };
+
+          const inputConfig = getInputConfig();
+
+          return (
+            <div key={stepValue.id} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  checked={selectedFields.has(stepValue.id)}
+                  onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <div className="font-medium text-sm">{stepValue.valueName}</div>
+                    {stepValue.description && (
+                      <div className="text-xs text-gray-500">{stepValue.description}</div>
+                    )}
+                    {stepValue.dataType && (
+                      <div className="text-xs text-blue-600 dark:text-blue-400">
+                        Type: {stepValue.dataType}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show tool configuration */}
+                  {inputConfig.length > 0 && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-1">
+                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Tool Configuration:
+                      </div>
+                      {inputConfig.map((config, index) => (
+                        <div key={index} className="text-xs">
+                          <span className="font-medium text-gray-600 dark:text-gray-400">
+                            {config.key}:
+                          </span>
+                          <div className="ml-2 text-gray-500 dark:text-gray-500">
+                            {config.type === 'prompt' ? (
+                              <div className="max-h-20 overflow-y-auto bg-white dark:bg-gray-900 p-1 rounded text-xs border">
+                                {config.value}
+                              </div>
+                            ) : config.type === 'references' ? (
+                              <span className="text-blue-600 dark:text-blue-400">{config.value}</span>
+                            ) : (
+                              <span>{config.value}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
