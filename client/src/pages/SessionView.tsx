@@ -4014,7 +4014,19 @@ Thank you for your assistance.`;
                       {(() => {
                         // Only show workflow step values for "General Information" step (no schema fields)
                         const infoStep = project?.workflowSteps?.find(step => step.stepName === 'General Information');
-                        if (!infoStep?.values) return null;
+                        
+                        // Debug logging
+                        console.log('🔍 INFO PAGE DEBUG:');
+                        console.log('  - project.workflowSteps:', project?.workflowSteps?.map(s => s.stepName));
+                        console.log('  - infoStep found:', !!infoStep);
+                        console.log('  - infoStep.values:', infoStep?.values?.length || 0);
+                        console.log('  - extractedData keys:', Object.keys(extractedData || {}));
+                        console.log('  - extractedData["General Information"]:', extractedData['General Information']);
+                        
+                        if (!infoStep?.values) {
+                          console.log('  - No infoStep or values found, returning null');
+                          return null;
+                        }
                         
                         return infoStep.values
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
