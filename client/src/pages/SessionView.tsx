@@ -3889,8 +3889,9 @@ Thank you for your assistance.`;
                 const getRecordCounts = () => {
                   // Use exact same logic as the table to get unique indices
                   const collectionValidations = validations.filter(v => 
-                    v.collectionName === activeCollection.collectionName || 
-                    (v.fieldName && v.fieldName.startsWith(activeCollection.collectionName + '.'))
+                    v.collectionName === activeCollection.collectionName &&
+                    // Include valid and pending validations (exclude invalid) - same as table
+                    (v.validationStatus === 'valid' || v.validationStatus === 'pending')
                   );
                   
                   const validationIndices = collectionValidations.length > 0 ? 
