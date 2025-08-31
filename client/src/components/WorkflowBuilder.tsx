@@ -358,13 +358,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         orderIndex: step.orderIndex,
         valueCount: step.values.length, // Number of values in the step
         identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null, // UUID of first value for list steps
-        values: step.values.map(value => ({
+        values: step.values.map((value, index) => ({
           id: value.id,
           name: value.name,
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues
+          inputValues: value.inputValues,
+          orderIndex: index  // Set orderIndex based on position in array
         }))
       }))
     };
@@ -454,13 +455,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         orderIndex: step.orderIndex,
         valueCount: step.values.length,
         identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null,
-        values: step.values.map(value => ({
+        values: step.values.map((value, index) => ({
           id: value.id,
           name: value.name,
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues
+          inputValues: value.inputValues,
+          orderIndex: index  // Set orderIndex based on position in array
         }))
       }))
     };
