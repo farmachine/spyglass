@@ -476,17 +476,25 @@ export class ToolEngine {
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // 4. Log the prompt for debugging
-      console.log('\n📝 AI EXTRACTION PROMPT:');
-      console.log('='.repeat(80));
+      // 4. Log the complete prompt for debugging
+      console.log('\n🔍 ========== COMPLETE AI EXTRACTION PROMPT ==========');
+      console.log('Tool Name:', tool.name);
+      console.log('Tool Type:', tool.toolType);
+      console.log('Output Type:', tool.outputType);
+      console.log('Operation Type:', tool.operationType);
+      console.log('Number of Input Records:', inputArray.length);
+      console.log('Input Parameters:', Object.keys(inputs).join(', '));
+      console.log('\n--- PROMPT BEGINS ---');
       console.log(prompt);
-      console.log('='.repeat(80));
+      console.log('--- PROMPT ENDS ---');
+      console.log('🔍 ========== END OF PROMPT ==========\n');
       
       // 5. Call Gemini API
       if (progressCallback) {
         progressCallback(0, inputArray.length, 'Processing with AI...');
       }
       
+      console.log(`🤖 Calling Gemini API with model: ${tool.llmModel || "gemini-2.0-flash"}`);
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
         contents: [
@@ -499,6 +507,15 @@ export class ToolEngine {
       
       // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      // Log the raw AI response
+      console.log('\n🤖 ========== RAW AI RESPONSE ==========');
+      console.log('Response Length:', rawResponse.length, 'characters');
+      console.log('\n--- RESPONSE BEGINS ---');
+      console.log(rawResponse);
+      console.log('--- RESPONSE ENDS ---');
+      console.log('🤖 ========== END OF AI RESPONSE ==========\n');
+      
       const parsedResults = this.parseAIResponse(rawResponse);
       
       // 7. Map results to input records with identifierId preservation

@@ -6710,36 +6710,63 @@ def extract_function(Column_Name, Excel_File):
           };
         });
         
-        // Create batch extraction prompt
-        const prompt = `You are extracting data from "${targetDoc.fileName || targetDoc.name}".
+        // Create optimized batch extraction prompt
+        const prompt = `You are an expert data extractor analyzing "${targetDoc.fileName || targetDoc.name}".
 
-Extract the following ${extractionTasks.length} values:
+Your task is to extract ${extractionTasks.length} specific values from the document. Each value should be extracted independently based on its own instructions.
+
+EXTRACTION TARGETS:
 ${extractionTasks.map((task, i) => `
-${i + 1}. "${task.name}"${task.description ? ` - ${task.description}` : ''}
-   Type: ${task.dataType}
-   ${task.instructions ? `Instructions: ${task.instructions}` : ''}`).join('\n')}
+${i + 1}. Field Name: "${task.name}"
+   ${task.description ? `Description: ${task.description}` : ''}
+   Expected Type: ${task.dataType}
+   ${task.instructions ? `Specific Instructions: ${task.instructions}` : 'Extract this value from the document'}
+   ---`).join('\n')}
 
-Document content:
+DOCUMENT CONTENT:
+================
 ${targetDoc.content || ''}
+================
 
 ${previousData && previousData.length > 0 ? `
-Context from previous extractions:
+CONTEXT FROM PREVIOUS EXTRACTIONS:
 ${JSON.stringify(previousData.slice(0, 5), null, 2)}
 ` : ''}
 
-Return a JSON object with the extracted values. Use the exact field names as keys:
+RESPONSE FORMAT:
+Return ONLY a JSON object with the extracted values. Use the exact field names as keys.
+Example format:
 {
-  ${extractionTasks.map(t => `"${t.name}": <extracted value or null if not found>`).join(',\n  ')}
+  "${extractionTasks[0]?.name}": "extracted value here",
+  ${extractionTasks.length > 1 ? `"${extractionTasks[1]?.name}": "another extracted value"` : ''}
 }
 
-Important:
-- Extract each value according to its type and instructions
-- Return null for values that cannot be found
-- Ensure the response is valid JSON
-- Do not include any text outside the JSON object`;
+EXTRACTION RULES:
+1. Extract each field independently - one field's value should not influence another's
+2. If a value cannot be found or doesn't exist, use null
+3. For TEXT type: return as string
+4. For NUMBER type: return as number (not string)
+5. For DATE type: return in ISO format (YYYY-MM-DD)
+6. For BOOLEAN type: return as true/false
+7. Follow the specific instructions for each field carefully
+8. DO NOT add any explanation or text outside the JSON object
+9. Ensure all field names in the response match EXACTLY as specified above
+
+BEGIN EXTRACTION:`;
+
+        // Log the full prompt for debugging
+        console.log('🔍 ========== BATCH EXTRACTION PROMPT ==========');
+        console.log(prompt);
+        console.log('🔍 ========== END PROMPT ==========');
+        console.log(`📊 Extraction Tasks Details:`, JSON.stringify(extractionTasks, null, 2));
 
         // Call AI for batch extraction
         const aiResponse = await callGeminiAPI(prompt, project.geminiApiKey || undefined);
+        
+        // Log the raw AI response
+        console.log('🤖 ========== RAW AI RESPONSE ==========');
+        console.log(aiResponse);
+        console.log('🤖 ========== END AI RESPONSE ==========');
         
         // Parse the AI response
         let extractedData: Record<string, any> = {};
