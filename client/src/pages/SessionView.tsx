@@ -3096,6 +3096,7 @@ Thank you for your assistance.`;
           dataType: stepValue.dataType || 'text'
         };
         
+        console.log('🔍 Creating validation with data:', createData);
         
         await apiRequest(`/api/sessions/${sessionId}/validations`, {
           method: 'POST',
@@ -3112,6 +3113,7 @@ Thank you for your assistance.`;
       await queryClient.refetchQueries({ queryKey: ['/api/validations/project'] });
     } catch (error) {
       console.error('Failed to save field:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
     }
     setEditingField(null);
     setEditValue("");
