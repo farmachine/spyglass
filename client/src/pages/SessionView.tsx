@@ -3052,8 +3052,10 @@ Thank you for your assistance.`;
       return;
     }
     
-    // Use simple 1:1 lookup: step value id → validation fieldId
-    const validation = validations.find(v => v.fieldId === stepValue.id);
+    // Refresh validations to get current state and avoid stale data
+    await sessionValidationsQuery.refetch();
+    const currentValidations = sessionValidationsQuery.data || [];
+    const validation = currentValidations.find(v => v.fieldId === stepValue.id);
     
     // Use provided value or current edit value
     const valueToUse = newValue !== undefined ? newValue : editValue;
