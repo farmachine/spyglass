@@ -4050,9 +4050,15 @@ Thank you for your assistance.`;
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                           .map((stepValue) => {
                         const fieldName = stepValue.valueName;
+                        
+                        // Debug: Check field name vs validation name mismatch
+                        console.log('🔍 FIELD NAME DEBUG:');
+                        console.log('  - stepValue.valueName:', fieldName);
+                        console.log('  - available validations:', validations.filter(v => !v.collectionName).map(v => v.fieldName));
+                        
                         // For step values, validation field name includes the step name
                         const stepFieldName = `Data Fields.${fieldName}[0]`;
-                        const validation = getValidation(stepFieldName);
+                        const validation = getValidation(stepFieldName) || getValidation(fieldName);
                         const originalValue = extractedData[stepFieldName] || extractedData[fieldName];
                         
                         // Show all configured step values
