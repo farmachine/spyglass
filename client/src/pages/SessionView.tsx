@@ -4051,14 +4051,16 @@ Thank you for your assistance.`;
                           .map((stepValue) => {
                         const fieldName = stepValue.valueName;
                         
-                        // Debug: Check field name vs validation name mismatch
-                        console.log('🔍 FIELD NAME DEBUG:');
-                        console.log('  - stepValue.valueName:', fieldName);
-                        console.log('  - available validations:', validations.filter(v => !v.collectionName).map(v => v.fieldName));
+                        // Handle field name typos/mismatches for Info Page fields
+                        const fieldNameMapping: Record<string, string> = {
+                          'Pension Sheme Name': 'Pension Scheme Name', // Fix typo
+                        };
+                        
+                        const correctedFieldName = fieldNameMapping[fieldName] || fieldName;
                         
                         // For step values, validation field name includes the step name
-                        const stepFieldName = `Data Fields.${fieldName}[0]`;
-                        const validation = getValidation(stepFieldName) || getValidation(fieldName);
+                        const stepFieldName = `Data Fields.${correctedFieldName}[0]`;
+                        const validation = getValidation(stepFieldName) || getValidation(correctedFieldName);
                         const originalValue = extractedData[stepFieldName] || extractedData[fieldName];
                         
                         // Show all configured step values
@@ -4152,7 +4154,7 @@ Thank you for your assistance.`;
                               </div>
                               <div>
                                 {(() => {
-                                  const isEditing = editingField === fieldName;
+                                  const isEditing = editingField === correctedFieldName;
                                   const fieldType = stepValue.dataType;
                                   
                                   if (isEditing) {
@@ -4197,7 +4199,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
+                                        <Button size="sm" onClick={() => handleSave(correctedFieldName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -4224,7 +4226,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(fieldName, displayValue)}
+                                          onClick={() => handleEdit(correctedFieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
