@@ -4072,9 +4072,37 @@ Thank you for your assistance.`;
                           );
                         }
                         
-                        return dataFieldsStep.values
+                        // Group step values by toolId for extraction grouping
+                        const groupedValues = dataFieldsStep.values
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                          .map((stepValue) => {
+                          .reduce((groups, stepValue) => {
+                            const toolId = stepValue.toolId || 'manual';
+                            if (!groups[toolId]) {
+                              groups[toolId] = [];
+                            }
+                            groups[toolId].push(stepValue);
+                            return groups;
+                          }, {} as Record<string, typeof dataFieldsStep.values>);
+
+                        return Object.entries(groupedValues).map(([toolId, stepValues]) => (
+                          <div key={toolId} className="col-span-full space-y-4">
+                            {/* Tool Group Container */}
+                            <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/30 dark:bg-gray-800/30">
+                              {/* Magic Wand Icon for extraction groups */}
+                              {toolId !== 'manual' && (
+                                <div className="absolute top-3 right-3">
+                                  <button 
+                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors"
+                                    title="Extract all fields in this group"
+                                  >
+                                    <Wand2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                              
+                              {/* Fields Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {stepValues.map((stepValue) => {
                         const fieldName = stepValue.valueName;
                         
                         // For Info Page steps, no validation records exist upfront
@@ -4263,8 +4291,11 @@ Thank you for your assistance.`;
                                 </p>
                               )}
                             </div>
-                          );
-                      });
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ));
                       })()}
                     </div>
 
