@@ -7363,11 +7363,11 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
-      // For AI tools, ensure we provide data in the parameter with type 'data'
+      // For AI tools, ensure we provide appropriate inputs
       if (tool.toolType === 'AI_ONLY') {
-        console.log(`🤖 Preparing data input for AI tool...`);
+        console.log(`🤖 Preparing inputs for AI tool...`);
         
-        // Find the parameter with type 'data'
+        // Check if tool expects a data array parameter
         const dataParam = tool.inputParameters?.find(p => p.type === 'data');
         if (dataParam) {
           console.log(`📊 Found data parameter: ${dataParam.name}`);
@@ -7386,7 +7386,51 @@ def extract_function(Column_Name, Excel_File):
             console.log(`  First record:`, limitedData[0]);
           }
         } else {
-          console.log(`⚠️ AI tool doesn't have a data parameter defined`);
+          // Tool expects document input instead of data array
+          console.log(`📄 AI tool expects document input, not data array`);
+          
+          // Find document parameter
+          const docParam = tool.inputParameters?.find(p => 
+            p.type === 'document' || p.name === 'Document' || p.name === 'document'
+          );
+          
+          if (docParam) {
+            console.log(`📄 Found document parameter: ${docParam.name}`);
+            
+            // Convert previousData to a document format if available
+            if (previousData && previousData.length > 0) {
+              // Format the data as a document/table for the AI to process
+              const headers = Object.keys(previousData[0]).filter(k => k !== 'identifierId');
+              let documentContent = `Data to analyze:\n\n`;
+              documentContent += headers.join('\t') + '\n';
+              
+              // Add each row of data
+              previousData.slice(0, 50).forEach(row => {
+                const values = headers.map(h => row[h] || '');
+                documentContent += values.join('\t') + '\n';
+              });
+              
+              toolInputs[docParam.name] = documentContent;
+              console.log(`✅ Converted ${previousData.length} records to document format for AI processing`);
+              console.log(`📄 Document preview: ${documentContent.substring(0, 200)}...`);
+            } else if (documentContent) {
+              // Use the session document content if available
+              toolInputs[docParam.name] = documentContent;
+              console.log(`✅ Using session document content for AI processing`);
+            } else {
+              console.log(`⚠️ No data or document content available for AI tool`);
+            }
+          }
+          
+          // Add the Data Description if the tool has a text parameter for it
+          const descParam = tool.inputParameters?.find(p => 
+            p.name === 'Data Description' || p.name === 'description'
+          );
+          
+          if (descParam && aiInstructions) {
+            toolInputs[descParam.name] = aiInstructions;
+            console.log(`✅ Added Data Description: ${aiInstructions}`);
+          }
         }
       }
       
