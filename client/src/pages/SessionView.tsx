@@ -3039,10 +3039,14 @@ Thank you for your assistance.`;
   };
 
   const handleSave = async (fieldName: string, newValue?: string) => {
+    console.log('🔍 SAVE START - fieldName:', fieldName, 'newValue:', newValue, 'editValue:', editValue);
+    
     const validation = getValidation(fieldName);
+    console.log('🔍 SAVE - validation found:', !!validation);
     
     // Use provided value or current edit value
     const valueToUse = newValue !== undefined ? newValue : editValue;
+    console.log('🔍 SAVE - valueToUse:', valueToUse);
     let valueToStore = valueToUse;
     const fieldType = getFieldType(fieldName);
     
@@ -3074,12 +3078,18 @@ Thank you for your assistance.`;
           }
         });
       } else {
+        console.log('🔍 SAVE - Creating new validation');
+        console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
+        console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
+        
         // Create new validation record directly from step value configuration
         // Find the step value configuration for this field
         const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
+        console.log('🔍 SAVE - stepValue found:', stepValue);
         
         if (!stepValue) {
           console.error('❌ No step value found for:', fieldName);
+          console.error('❌ Available step values:', dataFieldsStep?.values?.map(v => v.valueName));
           return;
         }
         
