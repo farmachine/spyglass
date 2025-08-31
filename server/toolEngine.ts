@@ -629,18 +629,28 @@ export class ToolEngine {
     console.log(`  - Data Description: "${dataDescription}"`);
     console.log(`  - Document content length: ${documentContent.length}`);
     
-    // Replace placeholders in the tool's configured prompt
-    // The tool prompt uses backticks around placeholders like `Document` and `Data Description`
-    prompt = prompt.replace(/`Document`/g, `\n\n${documentContent}\n\n`);
-    prompt = prompt.replace(/`Data Description`/g, `"${dataDescription}"`);
+    // Check what's actually in the prompt to understand the placeholder format
+    console.log(`📝 Checking for placeholders in prompt:`);
+    console.log(`  - Contains backtick Document: ${prompt.includes('`Document`')}`);
+    console.log(`  - Contains backtick Data Description: ${prompt.includes('`Data Description`')}`);
     
-    // Also handle other possible formats
-    prompt = prompt.replace(/'Document'/g, `\n${documentContent}\n`);
-    prompt = prompt.replace(/'Data Description'/g, `"${dataDescription}"`);
-    prompt = prompt.replace(/\{Document\}/g, documentContent);
-    prompt = prompt.replace(/\{Data Description\}/g, dataDescription);
+    // Show a snippet of the prompt to see the actual format
+    const promptSnippet = prompt.substring(0, 500);
+    console.log(`📝 First 500 chars of prompt:\n${promptSnippet}`);
     
-    console.log(`📝 Final prompt length after replacements: ${prompt.length}`);
+    // The prompt references `Document` and `Data Description` but these are references in the text,
+    // not placeholders. The actual data should be provided separately.
+    // Since the tool prompt doesn't have clear placeholders, append the actual data at the end
+    
+    prompt = `${prompt}
+
+Document:
+${documentContent}
+
+Data Description:
+${dataDescription}`;
+    
+    console.log(`📝 Final prompt length after adding content: ${prompt.length}`);
     
     // Verify the document was actually inserted
     if (!prompt.includes(documentContent.substring(0, 50))) {
