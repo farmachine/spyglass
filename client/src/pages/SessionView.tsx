@@ -3041,16 +3041,6 @@ Thank you for your assistance.`;
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     
-    console.log('🔍 SAVE DEBUG:');
-    console.log('  - fieldName:', fieldName);
-    console.log('  - validation found:', !!validation);
-    console.log('  - validation id:', validation?.id);
-    console.log('  - newValue:', newValue);
-    console.log('  - editValue:', editValue);
-    
-    // Debug: Check what validations actually exist
-    console.log('  - All validation fieldNames:', validations.map(v => v.fieldName).slice(0, 10));
-    console.log('  - Validations without collection:', validations.filter(v => !v.collectionName).map(v => v.fieldName));
     
     if (validation) {
       // Use provided value or current edit value
@@ -4136,7 +4126,7 @@ Thank you for your assistance.`;
                               </div>
                               <div>
                                 {(() => {
-                                  const isEditing = editingField === stepFieldName;
+                                  const isEditing = editingField === fieldName;
                                   const fieldType = stepValue.dataType;
                                   
                                   if (isEditing) {
@@ -4181,7 +4171,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(stepFieldName)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -4208,7 +4198,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(stepFieldName, displayValue)}
+                                          onClick={() => handleEdit(fieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
