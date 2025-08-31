@@ -4086,6 +4086,22 @@ Thank you for your assistance.`;
                         const correctedFieldName = fieldName.replace('Sheme', 'Scheme');
                         const validation = getValidation(fieldName) || getValidation(correctedFieldName);
                         
+                        // Debug: Check validation lookup after save
+                        if (fieldName === 'Pension Sheme Name') {
+                          console.log('🔍 FIELD LOOKUP DEBUG for', fieldName);
+                          console.log('  - correctedFieldName:', correctedFieldName);
+                          console.log('  - validation found:', !!validation);
+                          console.log('  - validation id:', validation?.id);
+                          console.log('  - validation fieldId:', validation?.fieldId);
+                          console.log('  - validation extractedValue:', validation?.extractedValue);
+                          console.log('  - all validations with field info:', validations.map(v => ({
+                            id: v.id,
+                            fieldId: v.fieldId,
+                            fieldName: v.fieldName,
+                            extractedValue: v.extractedValue
+                          })));
+                        }
+                        
                         const originalValue = extractedData[fieldName];
                         
                         // Show all configured step values
