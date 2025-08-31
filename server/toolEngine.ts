@@ -463,10 +463,15 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
+      // Log the tool's input parameters to debug
+      console.log('🔍 AI Tool Input Parameters:', JSON.stringify(tool.inputParameters, null, 2));
+      
       // Check if tool expects data array or document input
       // Prefer document over data for AI extraction tools
       const hasDocumentParam = tool.inputParameters?.some(p => p.type === 'document');
       const hasDataParam = tool.inputParameters?.some(p => p.type === 'data');
+      
+      console.log(`📋 Parameter check - hasDocumentParam: ${hasDocumentParam}, hasDataParam: ${hasDataParam}`);
       
       let prompt: string;
       let inputArray: any[] = [];
