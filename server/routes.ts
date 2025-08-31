@@ -1765,7 +1765,8 @@ except Exception as e:
       const excelData: any = {
         projectName: project.name,
         sessionName: session.sessionName,
-        workflowSteps: []
+        workflowSteps: [],
+        collections: {} // Keep this for backward compatibility
       };
 
       // Process workflow steps for proper Excel export
