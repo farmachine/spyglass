@@ -3887,9 +3887,13 @@ Thank you for your assistance.`;
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
                 // Calculate record counts for the counter - use same logic as table
                 const getRecordCounts = () => {
+                  // Find the collection that matches the current activeTab (same as table logic)
+                  const currentCollection = (project?.workflowSteps || []).find(step => step.stepName === activeTab);
+                  if (!currentCollection) return { visible: 0, total: 0 };
+                  
                   // Use exact same logic as the table to get unique indices
                   const collectionValidations = validations.filter(v => 
-                    v.collectionName === activeCollection.collectionName &&
+                    v.collectionName === activeTab &&  // Use activeTab instead of activeCollection
                     // Include valid and pending validations (exclude invalid) - same as table
                     (v.validationStatus === 'valid' || v.validationStatus === 'pending')
                   );
@@ -3898,11 +3902,11 @@ Thank you for your assistance.`;
                     collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null && idx !== undefined) : [];
                   const uniqueIndices = [...new Set(validationIndices)].sort((a, b) => a - b);
                   
-                  const collectionData = extractedData[activeCollection.collectionName] || [];
-                  const totalRecords = uniqueIndices.length;
+                  const collectionData = extractedData[activeTab] || [];
                   
-                  if (!searchTerm) {
-                    return { visible: totalRecords, total: totalRecords };
+                  // If no indices, return 0
+                  if (uniqueIndices.length === 0) {
+                    return { visible: 0, total: 0 };
                   }
                   
                   // Create items with indices like the table does
@@ -3911,22 +3915,29 @@ Thank you for your assistance.`;
                     originalIndex: index
                   }));
                   
-                  // Count filtered records using same logic as table
-                  const searchLower = searchTerm.toLowerCase();
-                  const workflowStep = (project?.workflowSteps || []).find(step => 
-                    step.stepName === activeCollection.collectionName
-                  );
-                  const columnsToDisplay = workflowStep?.values || activeCollection.properties;
+                  // Apply same sorting as table (reverse to show newest first)
+                  const sortedItems = itemsWithIndices.reverse();
                   
-                  const filteredCount = itemsWithIndices.filter(({ item, originalIndex }) => {
+                  const totalRecords = sortedItems.length;
+                  
+                  if (!searchTerm) {
+                    return { visible: totalRecords, total: totalRecords };
+                  }
+                  
+                  // Apply same search filtering as table
+                  const searchLower = searchTerm.toLowerCase();
+                  const workflowStep = currentCollection;
+                  const columnsToDisplay = workflowStep?.values || [];
+                  
+                  const filteredItems = sortedItems.filter(({ item, originalIndex }) => {
                     return columnsToDisplay.some(column => {
                       const columnName = workflowStep ? column.valueName : (column as any).propertyName;
-                      const fieldName = `${activeCollection.collectionName}.${columnName}[${originalIndex}]`;
+                      const fieldName = `${activeTab}.${columnName}[${originalIndex}]`;
                       
                       // Get the identifierId for this row
                       const rowValidation = validations.find(v => 
                         v.recordIndex === originalIndex &&
-                        v.collectionName === activeCollection.collectionName &&
+                        v.collectionName === activeTab &&
                         v.identifierId
                       );
                       const rowIdentifierId = rowValidation?.identifierId || null;
@@ -3956,12 +3967,13 @@ Thank you for your assistance.`;
                       return displayValue && 
                              displayValue.toString().toLowerCase().includes(searchLower);
                     });
-                  }).length;
+                  });
                   
-                  return { visible: filteredCount, total: totalRecords };
+                  return { visible: filteredItems.length, total: totalRecords };
                 };
                 
                 const { visible, total } = getRecordCounts();
+                
                 
                 return (
                   <div className="mb-5 flex items-center justify-between">
@@ -4606,6 +4618,7 @@ Thank you for your assistance.`;
                                   </TableRow>
                                 );
                               }
+                              
                               
                               return filteredItems.map(({ item, originalIndex }) => (
                                 <TableRow 
