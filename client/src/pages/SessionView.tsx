@@ -4012,32 +4012,41 @@ Thank you for your assistance.`;
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(() => {
-                        // Only show workflow step values for "General Information" step (no schema fields)
-                        const infoStep = project?.workflowSteps?.find(step => step.stepName === 'General Information');
+                        // Show general info validations (not associated with any collection)
+                        const infoValidations = validations.filter(v => 
+                          !v.collectionName && 
+                          !v.fieldName?.includes('.') &&
+                          (v.extractedValue !== null && v.extractedValue !== undefined && v.extractedValue !== "")
+                        );
                         
                         // Debug logging
                         console.log('🔍 INFO PAGE DEBUG:');
-                        console.log('  - project.workflowSteps:', project?.workflowSteps?.map(s => s.stepName));
-                        console.log('  - infoStep found:', !!infoStep);
-                        console.log('  - infoStep.values:', infoStep?.values?.length || 0);
-                        console.log('  - extractedData keys:', Object.keys(extractedData || {}));
-                        console.log('  - extractedData["General Information"]:', extractedData['General Information']);
+                        console.log('  - Total validations:', validations.length);
+                        console.log('  - Info validations found:', infoValidations.length);
+                        console.log('  - Sample validation structure:', validations.slice(0, 3).map(v => ({
+                          fieldName: v.fieldName,
+                          collectionName: v.collectionName,
+                          extractedValue: v.extractedValue ? 'HAS_VALUE' : 'NO_VALUE'
+                        })));
+                        console.log('  - Validations without collection:', validations.filter(v => !v.collectionName).length);
+                        console.log('  - Validations without dots in fieldName:', validations.filter(v => !v.fieldName?.includes('.')).length);
                         
-                        if (!infoStep?.values) {
-                          console.log('  - No infoStep or values found, returning null');
-                          return null;
+                        if (infoValidations.length === 0) {
+                          console.log('  - No info validations found, returning message');
+                          return (
+                            <div className="col-span-full text-center text-gray-500 py-8">
+                              <p>No general information fields have been extracted yet.</p>
+                              <p className="text-sm mt-2">Information will appear here once documents are processed.</p>
+                            </div>
+                          );
                         }
                         
-                        return infoStep.values
-                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                          .map((field) => {
-                        // Get extracted value from step data
-                        const stepData = extractedData['General Information'];
-                        const originalValue = stepData?.[0]?.[field.valueName] || stepData?.[field.valueName];
-                        
-                        // For step values, validation field name includes the step name
-                        const stepFieldName = `General Information.${field.valueName}[0]`;
-                        const validation = getValidation(stepFieldName);
+                        return infoValidations
+                          .sort((a, b) => (a.fieldName || '').localeCompare(b.fieldName || ''))
+                          .map((validation) => {
+                        const fieldName = validation.fieldName || '';
+                        const originalValue = extractedData[fieldName];
+                        const displayValue = validation.extractedValue ?? originalValue ?? null;
                         
                         // Show field if it has a value OR if there's a validation for it
                         if (originalValue !== undefined || validation) {
@@ -4048,11 +4057,9 @@ Thank you for your assistance.`;
                           }
                           
                           return (
-                            <div key={field.id} className="space-y-2">
+                            <div key={validation.id} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
-                                  const fieldName = stepFieldName;
-                                  const validation = getValidation(stepFieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
                                   const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
@@ -4128,14 +4135,13 @@ Thank you for your assistance.`;
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  {field.valueName}
+                                  {fieldName}
                                 </Label>
                               </div>
                               <div>
                                 {(() => {
-                                  const validation = getValidation(stepFieldName);
-                                  const isEditing = editingField === field.valueName;
-                                  const fieldType = field.dataType;
+                                  const isEditing = editingField === fieldName;
+                                  const fieldType = 'TEXT'; // Default to text for general info fields
                                   
                                   if (isEditing) {
                                     return (
@@ -4179,7 +4185,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(field.valueName)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -4206,7 +4212,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(field.valueName, displayValue)}
+                                          onClick={() => handleEdit(fieldName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
@@ -4217,11 +4223,6 @@ Thank you for your assistance.`;
                                 })()}
                               </div>
                               
-                              {field.description && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  {field.description}
-                                </p>
-                              )}
                             </div>
                           );
                         }
