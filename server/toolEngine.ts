@@ -591,12 +591,22 @@ export class ToolEngine {
    * Find the data input parameter from inputs
    */
   private findDataInput(tool: Tool, inputs: Record<string, any>): { key: string; value: any } | null {
+    // First check for 'List Item' specifically (AI tools use this)
+    if (inputs['List Item'] && Array.isArray(inputs['List Item'])) {
+      console.log(`📊 Found 'List Item' input with ${inputs['List Item'].length} records`);
+      return { key: 'List Item', value: inputs['List Item'] };
+    }
+    
+    // Then check for parameters with type === 'data'
     for (const [key, value] of Object.entries(inputs)) {
       const param = tool.inputParameters.find(p => p.id === key || p.name === key);
       if (param?.type === 'data' && Array.isArray(value)) {
+        console.log(`📊 Found data input '${key}' with ${value.length} records`);
         return { key, value };
       }
     }
+    
+    console.log(`⚠️ No data input found. Available inputs:`, Object.keys(inputs));
     return null;
   }
 
