@@ -109,155 +109,62 @@ const FieldSelectionModalContent = ({
         </span>
       </div>
 
-      <div className="max-h-96 overflow-y-auto space-y-3">
+      <div className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
         {stepValues.map((stepValue) => {
-          // Parse input values to show configuration
-          const getInputConfig = () => {
-            if (!stepValue.inputValues) return [];
-            
-            const config: Array<{ key: string; value: any; type: string; isDocument?: boolean }> = [];
-            
-            Object.entries(stepValue.inputValues).forEach(([key, value]) => {
-              // Skip internal keys starting with numbers
-              if (key.match(/^\d+\./)) {
-                if (Array.isArray(value)) {
-                  // Check if it contains @ references
-                  const hasReferences = value.some(v => typeof v === 'string' && v.startsWith('@'));
-                  if (hasReferences) {
-                    config.push({
-                      key: 'Field References',
-                      value: value.filter(v => typeof v === 'string' && v.startsWith('@')).join(', '),
-                      type: 'references'
-                    });
-                  } else if (value.length > 0) {
-                    config.push({
-                      key: 'Source Fields',
-                      value: value.join(', '),
-                      type: 'array'
-                    });
-                  }
-                } else if (typeof value === 'string') {
-                  // Check for prompts or text content
-                  if (value.length > 100) {
-                    config.push({
-                      key: 'Extraction Instructions',
-                      value: value,
-                      type: 'prompt'
-                    });
-                  } else if (value.startsWith('@')) {
-                    config.push({
-                      key: 'Field Reference',
-                      value: value,
-                      type: 'reference'
-                    });
-                  } else if (value === 'user_document' || key.toLowerCase().includes('document')) {
-                    config.push({
-                      key: key,
-                      value: value,
-                      type: 'document',
-                      isDocument: true
-                    });
-                  } else {
-                    config.push({
-                      key: 'Configuration',
-                      value: value,
-                      type: 'text'
-                    });
-                  }
-                }
-              } else {
-                // Regular input parameter - check if it's a document type
-                const isDocumentParam = key.toLowerCase().includes('document') || 
-                                      value === 'user_document' ||
-                                      (typeof value === 'string' && value.includes('document'));
-                
-                config.push({
-                  key: key,
-                  value: value,
-                  type: isDocumentParam ? 'document' : 'parameter',
-                  isDocument: isDocumentParam
-                });
-              }
-            });
-            
-            return config;
-          };
-
-          const inputConfig = getInputConfig();
+          // Check if this value needs document selection
+          const needsDocumentSelection = stepValue.inputValues && 
+            Object.entries(stepValue.inputValues).some(([key, value]) => 
+              value === 'user_document' || 
+              (typeof value === 'string' && value.includes('user_document')) ||
+              key.toLowerCase().includes('document')
+            );
 
           return (
-            <div key={stepValue.id} className="border rounded-lg p-3 space-y-2">
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  checked={selectedFields.has(stepValue.id)}
-                  onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
-                  className="mt-0.5"
-                />
-                <div className="flex-1 space-y-2">
-                  <div>
-                    <div className="font-medium text-sm">{stepValue.valueName}</div>
-                    {stepValue.description && (
-                      <div className="text-xs text-gray-500">{stepValue.description}</div>
-                    )}
-                    {stepValue.dataType && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400">
-                        Type: {stepValue.dataType}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Show interactive tool configuration */}
-                  {inputConfig.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-2">
-                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                        Tool Configuration:
-                      </div>
-                      {inputConfig.map((config, index) => (
-                        <div key={index} className="text-xs space-y-1">
-                          <span className="font-medium text-gray-600 dark:text-gray-400">
-                            {config.key}:
-                          </span>
-                          <div className="ml-1">
-                            {config.type === 'prompt' ? (
-                              <Textarea
-                                placeholder="Enter extraction instructions..."
-                                value={fieldInputs[stepValue.id]?.[config.key] || config.value || ''}
-                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
-                                className="text-xs min-h-[60px] w-full"
-                              />
-                            ) : config.type === 'document' && config.isDocument ? (
-                              <Select
-                                value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value[0] : config.value) || ''}
-                                onValueChange={(value) => handleInputChange(stepValue.id, config.key, value)}
-                              >
-                                <SelectTrigger className="text-xs h-8">
-                                  <SelectValue placeholder="Select document..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {sessionDocuments?.map((doc) => (
-                                    <SelectItem key={doc.id} value={doc.id} className="text-xs">
-                                      {doc.fileName || doc.name || 'Untitled'}
-                                      {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : config.type === 'references' || config.type === 'array' || config.type === 'text' || config.type === 'parameter' ? (
-                              <div className="text-gray-600 dark:text-gray-400 text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                                {Array.isArray(config.value) ? config.value.join(', ') : config.value}
-                                <span className="text-gray-500 ml-2">(configured)</span>
-                              </div>
-                            ) : (
-                              <div className="text-gray-600 dark:text-gray-400 text-xs">
-                                {config.value}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+            <div key={stepValue.id} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <Checkbox
+                checked={selectedFields.has(stepValue.id)}
+                onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
+                className="mt-1"
+              />
+              <div className="flex-1 space-y-2">
+                <div>
+                  <div className="font-medium text-sm">{stepValue.valueName}</div>
+                  {stepValue.description && (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {stepValue.description}
+                    </div>
+                  )}
+                  {stepValue.dataType && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Type: {stepValue.dataType}
                     </div>
                   )}
                 </div>
+
+                {/* Only show document selection if needed */}
+                {needsDocumentSelection && selectedFields.has(stepValue.id) && (
+                  <div className="mt-3">
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">
+                      Select Document:
+                    </Label>
+                    <Select
+                      value={fieldInputs[stepValue.id]?.document || ''}
+                      onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
+                    >
+                      <SelectTrigger className="text-xs h-9 mt-1">
+                        <SelectValue placeholder="Choose a document..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sessionDocuments?.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                            {doc.fileName || doc.name || 'Untitled'}
+                            {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -5632,7 +5539,7 @@ Thank you for your assistance.`;
       />
       {/* Field Selection Modal */}
       <Dialog open={showFieldSelectionModal} onOpenChange={setShowFieldSelectionModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Select Fields to Extract</DialogTitle>
             <DialogDescription>
