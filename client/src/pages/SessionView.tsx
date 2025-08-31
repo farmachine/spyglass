@@ -4011,11 +4011,50 @@ Thank you for your assistance.`;
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {project.schemaFields
-                        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                        .map((field) => {
-                        const originalValue = extractedData[field.fieldName];
-                        const validation = getValidation(field.fieldName);
+                      {(() => {
+                        // Combine schema fields and workflow step values for the info page
+                        const allFields = [];
+                        
+                        // Add schema fields (original info fields)
+                        if (project.schemaFields) {
+                          allFields.push(...project.schemaFields.map(field => ({
+                            ...field,
+                            isSchemaField: true
+                          })));
+                        }
+                        
+                        // Add workflow step values for "General Information" step
+                        const infoStep = project?.workflowSteps?.find(step => step.stepName === 'General Information');
+                        if (infoStep?.values) {
+                          allFields.push(...infoStep.values.map(value => ({
+                            id: value.id,
+                            fieldName: value.valueName,
+                            fieldType: value.dataType,
+                            orderIndex: value.orderIndex || 999, // Put after schema fields by default
+                            isSchemaField: false,
+                            stepValue: value
+                          })));
+                        }
+                        
+                        return allFields
+                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                          .map((field) => {
+                        // For step values, we need to get the extracted value differently
+                        let originalValue, validation;
+                        
+                        if (field.isSchemaField) {
+                          // Schema fields use the field name directly
+                          originalValue = extractedData[field.fieldName];
+                          validation = getValidation(field.fieldName);
+                        } else {
+                          // Step values need to check for extracted values in step data
+                          const stepData = extractedData['General Information'];
+                          originalValue = stepData?.[0]?.[field.fieldName] || stepData?.[field.fieldName];
+                          
+                          // For step values, validation field name includes the step name
+                          const stepFieldName = `General Information.${field.fieldName}[0]`;
+                          validation = getValidation(stepFieldName);
+                        }
                         
                         // Show field if it has a value OR if there's a validation for it
                         if (originalValue !== undefined || validation) {
@@ -4204,7 +4243,8 @@ Thank you for your assistance.`;
                           );
                         }
                         return null;
-                      })}
+                      });
+                      })()
                     </div>
 
 
