@@ -3681,7 +3681,7 @@ class PostgreSQLStorage implements IStorage {
 
   async saveChatMessage(sessionId: string, userId: string, role: string, content: string): Promise<void> {
     const message = {
-      id: this.generateUUID(),
+      id: crypto.randomUUID(),
       sessionId,
       userId,
       role,
