@@ -1761,18 +1761,85 @@ except Exception as e:
         }
       });
 
-      // Build Excel data structure
+      // Build Excel data structure with workflow steps
       const excelData: any = {
         projectName: project.name,
-        mainObjectName: project.mainObjectName || 'Main Object',
-        mainObject: Array.from(schemaFieldMap.values()).map(v => ({
-          property: v.fieldName || 'Unknown',
-          value: v.extractedValue || ''
-        })),
-        collections: {}
+        sessionName: session.sessionName,
+        workflowSteps: []
       };
 
-      // Group collection validations by collection name with improved logic
+      // Process workflow steps for proper Excel export
+      const workflowSteps = project.workflowSteps || [];
+
+      // Process each workflow step
+      for (const step of workflowSteps) {
+        const stepData: any = {
+          stepName: step.stepName,
+          stepType: step.stepType,
+          data: null
+        };
+
+        if (step.stepType === 'info') {
+          // Info page format: field names as rows, values in adjacent column
+          const infoData: any[] = [];
+          
+          if (step.values) {
+            for (const value of step.values) {
+              // Find validation for this value
+              const validation = allValidations.find(v => v.fieldId === value.id);
+              infoData.push({
+                fieldName: value.valueName || 'Unknown Field',
+                value: validation?.extractedValue || ''
+              });
+            }
+          }
+          
+          stepData.data = infoData;
+        } else if (step.stepType === 'data') {
+          // Data table format: normal table with headers
+          const stepValues = step.values || [];
+          
+          // Get all column names (value names)
+          const headers = stepValues.map(v => v.valueName || 'Unknown');
+          
+          // Group validations by record index
+          const recordMap = new Map<number, any>();
+          
+          for (const value of stepValues) {
+            // Find all validations for this value (across all records)
+            const valueValidations = allValidations.filter(v => v.fieldId === value.id);
+            
+            for (const validation of valueValidations) {
+              const recordIndex = validation.recordIndex ?? 0;
+              
+              if (!recordMap.has(recordIndex)) {
+                recordMap.set(recordIndex, {});
+              }
+              
+              recordMap.get(recordIndex)[value.valueName || 'Unknown'] = validation.extractedValue || '';
+            }
+          }
+          
+          // Convert to array format
+          const records = Array.from(recordMap.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([index, record]) => {
+              return headers.map(header => record[header] || '');
+            });
+          
+          stepData.data = {
+            headers: headers,
+            records: records
+          };
+        }
+        
+        // Only add steps that have data
+        if (stepData.data && (step.stepType === 'info' || step.stepType === 'data')) {
+          excelData.workflowSteps.push(stepData);
+        }
+      }
+
+      // Remove old collection-based logic (replaced with workflow steps)
       const collectionGroups = collectionValidations.reduce((acc, validation) => {
         let collectionName = validation.collectionName;
         

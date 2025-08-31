@@ -3133,30 +3133,53 @@ Thank you for your assistance.`;
       // Create Excel workbook using server data
       const workbook = XLSX.utils.book_new();
 
-      // First, create main object sheet using server data
-      const mainObjectSheetData = [
-        ['Property', 'Value'],
-        ...excelData.mainObject.map((item: any) => [item.property, item.value])
-      ];
-      
-      const mainObjectSheet = XLSX.utils.aoa_to_sheet(mainObjectSheetData);
-      XLSX.utils.book_append_sheet(workbook, mainObjectSheet, excelData.mainObjectName);
-
-      // Create collection sheets using server data
-      Object.entries(excelData.collections).forEach(([collectionName, collectionData]: [string, any]) => {
-        console.log(`Creating Excel sheet for ${collectionName}:`, collectionData);
-        
-        // Build worksheet data with headers and records
-        const worksheetData = [
-          collectionData.headers,
-          ...collectionData.records
-        ];
-        
-        console.log(`Worksheet data for ${collectionName}:`, worksheetData);
-        
-        const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
-      });
+      // Handle new workflow steps structure
+      if (excelData.workflowSteps) {
+        // Process each workflow step as a separate sheet
+        excelData.workflowSteps.forEach((step: any) => {
+          console.log(`Creating Excel sheet for step: ${step.stepName} (${step.stepType})`);
+          
+          let worksheetData: any[][] = [];
+          
+          if (step.stepType === 'info') {
+            // Info page format: field names in column A, values in column B
+            worksheetData = [
+              ['Field Name', 'Value'],
+              ...step.data.map((item: any) => [item.fieldName, item.value])
+            ];
+          } else if (step.stepType === 'data') {
+            // Data table format: normal table with headers as columns
+            worksheetData = [
+              step.data.headers,
+              ...step.data.records
+            ];
+          }
+          
+          console.log(`Worksheet data for ${step.stepName}:`, worksheetData);
+          
+          const sheet = XLSX.utils.aoa_to_sheet(worksheetData);
+          // Truncate sheet name to 31 characters (Excel limit)
+          const sheetName = step.stepName.substring(0, 31);
+          XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
+        });
+      } else if (excelData.collections) {
+        // Fallback to old format if server hasn't been updated
+        // Create collection sheets using server data
+        Object.entries(excelData.collections).forEach(([collectionName, collectionData]: [string, any]) => {
+          console.log(`Creating Excel sheet for ${collectionName}:`, collectionData);
+          
+          // Build worksheet data with headers and records
+          const worksheetData = [
+            collectionData.headers,
+            ...collectionData.records
+          ];
+          
+          console.log(`Worksheet data for ${collectionName}:`, worksheetData);
+          
+          const collectionSheet = XLSX.utils.aoa_to_sheet(worksheetData);
+          XLSX.utils.book_append_sheet(workbook, collectionSheet, collectionName);
+        });
+      }
 
       // Generate filename with session name and timestamp
       const timestamp = new Date().toISOString().split('T')[0];
