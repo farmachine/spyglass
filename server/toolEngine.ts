@@ -503,9 +503,13 @@ export class ToolEngine {
           throw new Error('AI tool requires data input array');
         }
 
-        // Limit to 50 records for performance
-        const AI_RECORD_LIMIT = 50;
+        // Limit to 200 records for performance (increased from 50 to handle larger datasets)
+        const AI_RECORD_LIMIT = 200;
         inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+        
+        if (dataInput.value.length > AI_RECORD_LIMIT) {
+          console.log(`⚠️ Input data truncated from ${dataInput.value.length} to ${AI_RECORD_LIMIT} records for AI processing`);
+        }
         
         // Build prompt using tool's AI prompt template with data array
         prompt = this.buildAIPrompt(tool, inputs, inputArray);
@@ -778,6 +782,14 @@ ${referenceDoc}
 \`\`\`json
 ${JSON.stringify(dataArray, null, 2)}
 \`\`\`
+
+CRITICAL INSTRUCTION FOR PROCESSING ALL ITEMS:
+- You MUST process ALL ${dataArray.length} items in the List Items array above
+- You MUST return EXACTLY ${dataArray.length} result objects in your JSON response
+- Each input item with its identifierId MUST have a corresponding output object
+- DO NOT stop after processing just one item - process ALL ${dataArray.length} items
+- Even if you cannot find a match for an item, still include it with null or "Not Found" as extractedValue
+- The response array length MUST be ${dataArray.length} objects
 
 `;
     }
