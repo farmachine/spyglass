@@ -1,28 +1,3 @@
-/**
- * WorkflowBuilder Component
- * 
- * This is the visual workflow configuration interface that allows users to design
- * multi-step data extraction workflows. It manages the transition from the legacy
- * schema/collection model to the new unified workflow model.
- * 
- * Key features:
- * - Visual drag-and-drop workflow step management
- * - Configuration of extraction tools for each value
- * - Support for both "page" (single values) and "list" (multiple records) steps
- * - Dynamic tool selection with parameter configuration
- * - Integration with AI and function-based extraction tools
- * - Test document upload and processing
- * 
- * The component converts between legacy data structures (projectSchemaFields, 
- * objectCollections) and the new workflow structure (workflowSteps, stepValues).
- * 
- * @param projectId - The ID of the project being configured
- * @param schemaFields - Legacy schema fields to convert to workflow steps
- * @param collections - Legacy collections to convert to workflow steps
- * @param tools - Available extraction tools (Excel functions)
- * @param onClose - Callback when the workflow builder is closed
- */
-
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -383,14 +358,13 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         orderIndex: step.orderIndex,
         valueCount: step.values.length, // Number of values in the step
         identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null, // UUID of first value for list steps
-        values: step.values.map((value, index) => ({
+        values: step.values.map(value => ({
           id: value.id,
           name: value.name,
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues,
-          orderIndex: index  // Set orderIndex based on position in array
+          inputValues: value.inputValues
         }))
       }))
     };
@@ -480,14 +454,13 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         orderIndex: step.orderIndex,
         valueCount: step.values.length,
         identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null,
-        values: step.values.map((value, index) => ({
+        values: step.values.map(value => ({
           id: value.id,
           name: value.name,
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues,
-          orderIndex: index  // Set orderIndex based on position in array
+          inputValues: value.inputValues
         }))
       }))
     };

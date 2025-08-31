@@ -1,18 +1,3 @@
-"""
-AI Extraction Wizard - Gemini-Powered Document Analysis
-
-This module handles AI-based document extraction using Google's Gemini API.
-It processes documents against defined field schemas, extraction rules, and
-knowledge documents to intelligently extract structured data.
-
-Key responsibilities:
-- Retrieves document content from the database
-- Applies extraction rules and knowledge documents for context
-- Uses Gemini AI to extract values matching field descriptions
-- Handles both single-value and multi-value extractions
-- Returns structured JSON data for validation
-"""
-
 import os
 import psycopg2
 import json
@@ -20,24 +5,7 @@ from google import genai
 from all_prompts import AI_DOCUMENT_EXTRACTION
 
 def ai_document_extraction(document_ids, session_id, target_fields_data, identifier_references=None):
-    """
-    Extract data from documents using AI analysis based on field descriptions.
-    
-    This function orchestrates the AI extraction process by:
-    1. Loading documents, rules, and knowledge from the database
-    2. Formatting the data for the AI prompt
-    3. Calling Gemini API with the extraction request
-    4. Processing and returning the structured results
-    
-    Args:
-        document_ids: List of document IDs to extract from
-        session_id: The extraction session ID
-        target_fields_data: Dictionary of fields to extract with their configurations
-        identifier_references: Optional previous extraction results for reference
-        
-    Returns:
-        dict: Extracted values keyed by field names, or error message
-    """
+    """Extract data from documents using AI analysis based on field descriptions"""
     try:
         # Get database connection from environment
         database_url = os.getenv('DATABASE_URL')

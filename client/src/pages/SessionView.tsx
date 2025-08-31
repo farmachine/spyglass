@@ -3236,141 +3236,65 @@ Thank you for your assistance.`;
   const handleExtractSelectedFields = async (selectedFieldIds: string[], fieldInputs: Record<string, any>) => {
     if (!currentToolGroup || extractingToolId) return;
     
+    // DEBUG MODE - Just log the data instead of extracting
+    console.log('=== EXTRACTION DEBUG ===');
+    console.log('Selected Field IDs:', selectedFieldIds);
+    console.log('Field Inputs from modal:', fieldInputs);
+    console.log('Current Tool Group:', currentToolGroup);
+    
     // Get step ID from any value in the group
     const stepId = currentToolGroup.stepValues[0]?.stepId;
+    console.log('Step ID:', stepId);
     
     // Filter to only selected fields
     const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
       selectedFieldIds.includes(value.id)
     );
     
-    // For AI tools that need previousData, prepare the full data array
-    // This is critical for tools like "Match Records with Referenced Document Equivalents"
-    let previousData = [];
+    console.log(`\nSelected ${fieldsToExtract.length} fields for extraction:`);
     
-    // Check if this is a tool that needs previous step data
-    const firstValue = fieldsToExtract[0];
-    if (firstValue && firstValue.inputValues) {
-      // Check if any input values reference @-data from previous steps
-      const hasDataReference = Object.values(firstValue.inputValues).some(
-        val => typeof val === 'string' && val.startsWith('@')
-      );
+    // Log each selected value object
+    fieldsToExtract.forEach((stepValue, index) => {
+      console.log(`\n--- Selected Value ${index + 1} ---`);
+      console.log('Full stepValue object:', stepValue);
+      console.log('ID:', stepValue.id);
+      console.log('Name:', stepValue.valueName);
+      console.log('Description:', stepValue.description);
+      console.log('Data Type:', stepValue.dataType);
+      console.log('Tool ID:', stepValue.toolId);
+      console.log('Original inputValues:', stepValue.inputValues);
+      console.log('Custom inputs from modal:', fieldInputs[stepValue.id]);
       
-      if (hasDataReference) {
-        // Build previousData from all available records
-        // Get the step to understand what data we need
-        const step = project?.workflowSteps?.find(s => s.id === stepId);
-        if (step && step.values) {
-          // Get the identifier value (usually the first value in the step)
-          const identifierValue = step.values.find(v => v.orderIndex === 0) || step.values[0];
-          
-          if (identifierValue) {
-            // Get all validations for the identifier field to build the complete dataset
-            const identifierValidations = validations.filter(v => 
-              v.fieldId === identifierValue.id || v.valueId === identifierValue.id
-            );
-            
-            console.log(`📊 Building previousData from ${identifierValidations.length} identifier validations`);
-            
-            // Build previousData array with all the fields for each record
-            previousData = identifierValidations.map(identifierVal => {
-              const record: any = {
-                identifierId: identifierVal.identifierId
-              };
-              
-              // Add all fields from the step for this record
-              step.values.forEach(stepValue => {
-                const fieldValidation = validations.find(v => 
-                  (v.fieldId === stepValue.id || v.valueId === stepValue.id) &&
-                  v.identifierId === identifierVal.identifierId
-                );
-                
-                if (fieldValidation) {
-                  record[stepValue.valueName] = fieldValidation.extractedValue;
-                }
-              });
-              
-              return record;
-            });
-            
-            console.log(`✅ Built previousData with ${previousData.length} complete records`);
-            if (previousData.length > 0) {
-              console.log('Sample record:', previousData[0]);
-            }
-          }
-        }
-      }
-    }
-    
-    setExtractingToolId(currentToolGroup.toolId);
-    
-    try {
-      // Extract each selected field
-      for (const stepValue of fieldsToExtract) {
-        console.log(`📝 Extracting: ${stepValue.valueName}`);
-        
-        // Get user-selected document for this field
-        const userSelectedDoc = fieldInputs[stepValue.id]?.document;
-        let documentId = userSelectedDoc;
-        
-        if (!documentId) {
-          // Fall back to primary or first document
-          const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
-          documentId = primaryDoc?.id;
-        }
-        
-        // For AI tools, include previousData as List Item in customInputs
-        const requestBody: any = {
-          stepId,
-          valueId: stepValue.id,
-          documentId,
-          previousData, // Send the complete previousData array
-        };
-        
-        // Always send previousData as List Item for AI tools
-        if (previousData && previousData.length > 0) {
-          requestBody.customInputs = {
-            ...fieldInputs[stepValue.id],
-            'List Item': previousData  // Always override with actual data
-          };
-          console.log(`📤 Sending ${previousData.length} records as List Item to AI`);
-        } else {
-          requestBody.customInputs = fieldInputs[stepValue.id];
-        }
-        
-        console.log(`📤 Full request body keys:`, Object.keys(requestBody));
-        console.log(`📤 previousData in body: ${requestBody.previousData?.length || 0} records`);
-        console.log(`📤 customInputs.List Item: ${requestBody.customInputs?.['List Item']?.length || 'not set'}`);
-        
-        await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
-          method: "POST",
-          body: JSON.stringify(requestBody),
-        });
-        
-        console.log(`✅ Extraction complete for: ${stepValue.valueName}`);
+      // Get user-selected document for this field
+      const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+      let documentId = userSelectedDoc;
+      
+      if (!documentId) {
+        // Fall back to primary or first document
+        const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+        documentId = primaryDoc?.id;
       }
       
-      // Invalidate queries to refresh the UI
-      await queryClient.invalidateQueries({ queryKey: ["/api/validations/project", projectId] });
-      await queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
-      
-      toast({
-        title: "Extraction Complete",
-        description: `Successfully extracted ${fieldsToExtract.length} field(s)`,
+      console.log('Document ID to use:', documentId);
+      console.log('Would extract with params:', {
+        stepId,
+        valueId: stepValue.id,
+        documentId,
+        customInputs: fieldInputs[stepValue.id]
       });
-    } catch (error) {
-      console.error('Extraction failed:', error);
-      toast({
-        title: "Extraction Failed",
-        description: "An error occurred during extraction. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      // Close modal and reset state
-      setShowFieldSelectionModal(false);
-      setExtractingToolId(null);
-      setCurrentToolGroup(null);
-    }
+    });
+    
+    console.log('\n=== END DEBUG ===\n');
+    
+    // Close modal and reset state
+    setShowFieldSelectionModal(false);
+    setExtractingToolId(null);
+    setCurrentToolGroup(null);
+    
+    toast({
+      title: "Debug Mode",
+      description: `Check console for ${fieldsToExtract.length} selected value objects`,
+    });
   };
 
   const handleDateChange = async (fieldName: string, dateValue: string) => {

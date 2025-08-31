@@ -1,18 +1,3 @@
-/**
- * Storage Abstraction Layer
- * 
- * This module provides a unified interface for all database operations in the extrapl platform.
- * It implements two storage backends: PostgreSQL for production and in-memory for development/testing.
- * 
- * Key features:
- * - Supports both PostgreSQL (via Drizzle ORM) and in-memory storage
- * - Handles all CRUD operations for projects, users, sessions, validations, etc.
- * - Implements retry logic for database operations
- * - Provides transaction support for complex operations
- * 
- * The IStorage interface ensures consistency between different storage implementations.
- */
-
 import { 
   projects, 
   projectSchemaFields, 
@@ -188,7 +173,6 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-  saveChatMessage(sessionId: string, userId: string, role: 'user' | 'assistant', content: string): Promise<ChatMessage>;
 
   // Excel Wizardry Functions
   getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]>;
@@ -229,7 +213,6 @@ export interface IStorage {
 
   // Step Values
   getStepValues(stepId: string): Promise<StepValue[]>;
-  getAllStepValues(projectId: string): Promise<StepValue[]>;
   getStepValue(id: string): Promise<StepValue | undefined>;
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
@@ -1684,15 +1667,6 @@ export class MemStorage implements IStorage {
     };
     this.chatMessages.set(id, chatMessage);
     return chatMessage;
-  }
-
-  async saveChatMessage(sessionId: string, userId: string, role: 'user' | 'assistant', content: string): Promise<ChatMessage> {
-    return this.createChatMessage({
-      sessionId,
-      userId,
-      role,
-      content,
-    });
   }
 
   // Excel Wizardry Functions
@@ -3629,23 +3603,6 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
-  async getAllStepValues(projectId: string): Promise<StepValue[]> {
-    return this.retryOperation(async () => {
-      // First get all workflow steps for the project
-      const projectSteps = await this.db.select().from(workflowSteps)
-        .where(eq(workflowSteps.projectId, projectId));
-      
-      const stepIds = projectSteps.map(step => step.id);
-      
-      if (stepIds.length === 0) return [];
-      
-      // Then get all step values for those steps
-      return await this.db.select().from(stepValues)
-        .where(inArray(stepValues.stepId, stepIds))
-        .orderBy(stepValues.orderIndex);
-    });
-  }
-
   async getStepValue(id: string): Promise<StepValue | undefined> {
     return this.retryOperation(async () => {
       const [result] = await this.db.select().from(stepValues).where(eq(stepValues.id, id));
@@ -3689,34 +3646,6 @@ class PostgreSQLStorage implements IStorage {
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
       return result.rowCount > 0;
     });
-  }
-
-  // Chat Messages (in-memory implementation)
-  private chatMessages: Map<string, any[]> = new Map();
-
-  async saveChatMessage(sessionId: string, userId: string, role: string, content: string): Promise<void> {
-    const message = {
-      id: crypto.randomUUID(),
-      sessionId,
-      userId,
-      role,
-      content,
-      timestamp: new Date().toISOString()
-    };
-    
-    if (!this.chatMessages.has(sessionId)) {
-      this.chatMessages.set(sessionId, []);
-    }
-    
-    const messages = this.chatMessages.get(sessionId)!;
-    messages.push(message);
-    
-    console.log(`Chat message saved: [${role}] ${content.substring(0, 50)}...`);
-    return Promise.resolve();
-  }
-
-  async getChatMessages(sessionId: string): Promise<any[]> {
-    return this.chatMessages.get(sessionId) || [];
   }
 }
 

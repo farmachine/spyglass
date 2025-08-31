@@ -1,19 +1,3 @@
-/**
- * API Routes Module
- * 
- * This file contains all REST API endpoint definitions for the extrapl platform.
- * It handles authentication, project management, document processing, AI extraction,
- * and validation workflows. All routes are prefixed with /api.
- * 
- * Key responsibilities:
- * - User authentication and session management
- * - Project and schema configuration
- * - Document upload and processing
- * - AI-powered extraction execution
- * - Field validation and manual editing
- * - Export functionality
- */
-
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";
@@ -1728,74 +1712,6 @@ except Exception as e:
       res.json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch session" });
-    }
-  });
-
-  // Chat endpoints for Session Assistant
-  app.get("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { sessionId } = req.params;
-      
-      // Get chat messages from database
-      const messages = await storage.getChatMessages(sessionId);
-      res.json(messages || []);
-    } catch (error) {
-      console.error("Failed to fetch chat messages:", error);
-      res.status(500).json({ message: "Failed to fetch chat messages" });
-    }
-  });
-
-  app.post("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { sessionId } = req.params;
-      const { message } = req.body;
-      const userId = req.user?.id;
-
-      if (!message || !userId) {
-        return res.status(400).json({ message: "Message and user ID required" });
-      }
-
-      // Get session and related data
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ message: "Session not found" });
-      }
-
-      // Get workflow steps and values for the project
-      const workflowSteps = await storage.getWorkflowSteps(session.projectId);
-      const stepValues = await storage.getAllStepValues(session.projectId);
-      
-      // Get all validations for the session
-      const validations = await storage.getFieldValidations(sessionId);
-      
-      // Get session documents for context
-      const sessionDocuments = await storage.getSessionDocuments(sessionId);
-      
-      console.log(`Chat request for session ${sessionId}: ${message.substring(0, 50)}...`);
-      console.log(`Found ${workflowSteps.length} workflow steps, ${stepValues.length} step values, and ${validations.length} validations`);
-      console.log(`Found ${sessionDocuments.length} documents for context`);
-
-      // Save user message
-      await storage.saveChatMessage(sessionId, userId, 'user', message);
-
-      // Generate AI response
-      const aiResponse = await generateChatResponse(message, {
-        session,
-        validations,
-        workflowSteps,
-        stepValues,
-        documents: sessionDocuments
-      });
-
-      // Save AI response
-      await storage.saveChatMessage(sessionId, userId, 'assistant', aiResponse);
-
-      // Return all messages
-      const messages = await storage.getChatMessages(sessionId);
-      res.json(messages);
-    } catch (error) {
-      console.error("Chat error:", error);
-      res.status(500).json({ message: "Failed to process chat message" });
     }
   });
 
@@ -6793,22 +6709,7 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   ⚠️ It does NOT extract all values in the step - just this one value`);
       console.log(`   Previous data records: ${previousData?.length || 0}`);
       console.log(`   Document ID: ${documentId || 'Using default'}`);
-      
-      // Debug customInputs more thoroughly
-      if (customInputs) {
-        console.log(`📝 Custom inputs received:`);
-        console.log(`   Type: ${typeof customInputs}`);
-        console.log(`   Keys: ${Object.keys(customInputs).join(', ')}`);
-        if ('List Item' in customInputs) {
-          const listItem = customInputs['List Item'];
-          console.log(`   ✅ 'List Item' found in customInputs:`, Array.isArray(listItem) ? `Array with ${listItem.length} items` : typeof listItem);
-        } else {
-          console.log(`   ❌ 'List Item' NOT in customInputs`);
-        }
-        console.log(`   Full customInputs:`, JSON.stringify(customInputs, null, 2).substring(0, 500));
-      } else {
-        console.log(`   Custom inputs: None`);
-      }
+      console.log(`   Custom inputs:`, customInputs ? JSON.stringify(customInputs, null, 2) : 'None');
       
       // Get the step and value details
       const step = await storage.getWorkflowStep(stepId);
@@ -7177,9 +7078,8 @@ def extract_function(Column_Name, Excel_File):
         console.log(`⚠️ No inputValues defined for this value`);
       }
       
-      // MOVED TO AFTER customInputs - DO NOT populate List Item here anymore
-      // It will be handled after customInputs are applied
-      /*
+      // Special handling for AI tools that expect List Item but have null input
+      // This is for cases like Standard Equivalent where previousData contains the merged column data
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
@@ -7261,7 +7161,6 @@ def extract_function(Column_Name, Excel_File):
           console.log(`  Sample records:`, toolInputs['List Item'].slice(0, 3));
         }
       }
-      */
       
       // Add document content if the tool expects it
       if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
@@ -7409,48 +7308,17 @@ def extract_function(Column_Name, Excel_File):
       
       // Override with custom inputs from user selection modal
       if (customInputs && Object.keys(customInputs).length > 0) {
-        console.log(`🎛️ Applying custom inputs from user selection modal:`);
-        console.log(`🎛️ customInputs keys:`, Object.keys(customInputs));
-        
-        // Check specifically for List Item
-        if ('List Item' in customInputs) {
-          const listItem = customInputs['List Item'];
-          console.log(`📊 Found 'List Item' in customInputs:`, Array.isArray(listItem) ? `Array with ${listItem.length} items` : typeof listItem);
-          if (Array.isArray(listItem) && listItem.length > 0) {
-            console.log(`  First item:`, listItem[0]);
-          }
-        } else {
-          console.log(`⚠️ 'List Item' NOT found in customInputs`);
-        }
-        
-        // Log full customInputs for debugging
-        console.log(`🎛️ Full customInputs:`, JSON.stringify(customInputs, null, 2).substring(0, 1000));
+        console.log(`🎛️ Applying custom inputs from user selection modal:`, JSON.stringify(customInputs, null, 2));
         
         // Merge custom inputs, allowing them to override default inputs
         for (const [key, value] of Object.entries(customInputs)) {
-          // Don't skip empty arrays - they might be intentional
-          if (value !== undefined && value !== null) {
-            console.log(`  🔧 Setting ${key} = ${typeof value === 'object' ? `[${Array.isArray(value) ? value.length + ' items' : 'object'}]` : JSON.stringify(value)}`);
+          if (value !== undefined && value !== null && value !== '') {
+            console.log(`  🔧 Setting ${key} = ${JSON.stringify(value)} (was: ${JSON.stringify(toolInputs[key])})`);
             toolInputs[key] = value;
           }
         }
         
-        console.log(`✅ Final tool inputs after custom input override:`);
-        console.log(`  Tool inputs keys:`, Object.keys(toolInputs));
-        if (toolInputs['List Item']) {
-          console.log(`  ✅ List Item is set: ${Array.isArray(toolInputs['List Item']) ? toolInputs['List Item'].length + ' items' : typeof toolInputs['List Item']}`);
-        } else {
-          console.log(`  ❌ List Item is NOT set in toolInputs`);
-        }
-      }
-      
-      // Ensure AI tools get the data they need  
-      if ((tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') && previousData && previousData.length > 0) {
-        const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
-        if (listItemParam && !toolInputs['List Item']) {
-          console.log(`🎯 Setting List Item with ${previousData.length} records for AI`);
-          toolInputs['List Item'] = previousData;
-        }
+        console.log(`✅ Final tool inputs after custom input override:`, JSON.stringify(toolInputs, null, 2));
       }
       
       // Add value configuration to tool inputs so AI tools can access inputValues
@@ -7492,83 +7360,6 @@ def extract_function(Column_Name, Excel_File):
           console.log(`🎯 Final AI Query set to: "${aiInstructions}"`);
         } else {
           console.log(`⚠️ No AI instructions found in inputValues`);
-        }
-      }
-      
-      // For AI tools, ensure we provide appropriate inputs
-      if (tool.toolType === 'AI_ONLY') {
-        console.log(`🤖 Preparing inputs for AI tool...`);
-        
-        // Check if tool expects a data array parameter
-        const dataParam = tool.inputParameters?.find(p => p.type === 'data');
-        if (dataParam) {
-          console.log(`📊 Found data parameter: ${dataParam.name}`);
-          
-          // Use previousData if available, otherwise create empty array
-          const dataToProcess = previousData && previousData.length > 0 ? previousData : [];
-          
-          // Limit to 50 records for AI processing
-          const limitedData = dataToProcess.slice(0, 50);
-          
-          // Add the data to the correct parameter name
-          toolInputs[dataParam.name] = limitedData;
-          console.log(`✅ Added ${limitedData.length} records to ${dataParam.name} parameter for AI processing`);
-          
-          if (limitedData.length > 0) {
-            console.log(`  First record:`, limitedData[0]);
-          }
-        } else {
-          // Tool expects document input instead of data array
-          console.log(`📄 AI tool expects document input, not data array`);
-          
-          // Find document parameter
-          const docParam = tool.inputParameters?.find(p => 
-            p.type === 'document' || p.name === 'Document' || p.name === 'document'
-          );
-          
-          if (docParam) {
-            console.log(`📄 Found document parameter: ${docParam.name}`);
-            
-            // Use the session document content that was loaded earlier
-            const sessionDocContent = toolInputs.sessionDocumentContent || documentContent;
-            
-            if (sessionDocContent) {
-              // Use the session document content
-              toolInputs[docParam.name] = sessionDocContent;
-              console.log(`✅ Using session document content for AI processing (${sessionDocContent.length} chars)`);
-              console.log(`📄 Document preview: ${sessionDocContent.substring(0, 200)}...`);
-            } else if (previousData && previousData.length > 0) {
-              // Fallback: Convert previousData to a document format if no session document
-              const headers = Object.keys(previousData[0]).filter(k => k !== 'identifierId');
-              let tableContent = `Data to analyze:\n\n`;
-              tableContent += headers.join('\t') + '\n';
-              
-              // Add each row of data
-              previousData.slice(0, 50).forEach(row => {
-                const values = headers.map(h => row[h] || '');
-                tableContent += values.join('\t') + '\n';
-              });
-              
-              toolInputs[docParam.name] = tableContent;
-              console.log(`✅ Converted ${previousData.length} records to document format for AI processing`);
-              console.log(`📄 Document preview: ${tableContent.substring(0, 200)}...`);
-            } else {
-              console.log(`⚠️ No document content or data available for AI tool`);
-            }
-          }
-          
-          // Add the Data Description if the tool has a text parameter for it
-          const descParam = tool.inputParameters?.find(p => 
-            p.name === 'Data Description' || p.name === 'description'
-          );
-          
-          // Get the AI instructions from toolInputs where it was stored earlier
-          const aiInstructions = toolInputs['AI Query'] || '';
-          
-          if (descParam && aiInstructions) {
-            toolInputs[descParam.name] = aiInstructions;
-            console.log(`✅ Added Data Description: ${aiInstructions}`);
-          }
         }
       }
       

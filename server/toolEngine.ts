@@ -463,74 +463,29 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // Log the tool's input parameters to debug
-      console.log('🔍 AI Tool Input Parameters:', JSON.stringify(tool.inputParameters, null, 2));
-      
-      // Check if tool expects data array or document input
-      // Prefer document over data for AI extraction tools
-      const hasDocumentParam = tool.inputParameters?.some(p => p.type === 'document');
-      const hasDataParam = tool.inputParameters?.some(p => p.type === 'data');
-      
-      console.log(`📋 Parameter check - hasDocumentParam: ${hasDocumentParam}, hasDataParam: ${hasDataParam}`);
-      
-      let prompt: string;
-      let inputArray: any[] = [];
-      
-      if (hasDocumentParam) {
-        // Tool expects document input - prioritize this for extraction tools
-        console.log('📄 AI tool expects document input');
-        
-        // Find document content in inputs
-        const documentContent = this.findDocumentInput(tool, inputs);
-        if (!documentContent) {
-          console.log('⚠️ No document content found for AI tool');
-          console.log('Available inputs:', Object.keys(inputs));
-          throw new Error('AI tool requires document input');
-        }
-        
-        // Build prompt for document-based extraction
-        prompt = this.buildDocumentAIPrompt(tool, inputs, documentContent);
-        
-        // Create a single dummy record for result mapping
-        inputArray = [{ identifierId: null }];
-      } else if (hasDataParam) {
-        // Tool expects data array input
-        console.log('📊 AI tool expects data array input');
-        const dataInput = this.findDataInput(tool, inputs);
-        if (!dataInput || !Array.isArray(dataInput.value)) {
-          console.log('⚠️ No data array found for AI tool');
-          console.log('Available inputs:', Object.keys(inputs));
-          throw new Error('AI tool requires data input array');
-        }
-
-        // Limit to 50 records for performance
-        const AI_RECORD_LIMIT = 50;
-        inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
-        
-        // Build prompt using tool's AI prompt template with data array
-        prompt = this.buildAIPrompt(tool, inputs, inputArray);
-      } else {
-        console.log('❌ AI tool has no valid input parameter');
-        console.log('Tool parameters:', tool.inputParameters);
-        throw new Error('AI tool has no valid input parameter (data or document)');
+      // 1. Find data input array if exists
+      const dataInput = this.findDataInput(tool, inputs);
+      if (!dataInput || !Array.isArray(dataInput.value)) {
+        throw new Error('AI tool requires data input array');
       }
+
+      // 2. Limit to 50 records for performance
+      const AI_RECORD_LIMIT = 50;
+      const inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
       
-      // Log the prompt for debugging
+      // 3. Build prompt using tool's AI prompt template
+      const prompt = this.buildAIPrompt(tool, inputs, inputArray);
+      
+      // 4. Log the prompt for debugging
       console.log('\n📝 AI EXTRACTION PROMPT:');
       console.log('='.repeat(80));
       console.log(prompt);
       console.log('='.repeat(80));
       
-      // Call Gemini API
+      // 5. Call Gemini API
       if (progressCallback) {
         progressCallback(0, inputArray.length, 'Processing with AI...');
       }
-      
-      console.log('🚀 SENDING PROMPT TO GEMINI:');
-      console.log('================================================================================');
-      console.log(prompt);
-      console.log('================================================================================');
-      console.log(`📊 Expecting ${inputArray.length} results from AI`);
       
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
@@ -542,38 +497,15 @@ export class ToolEngine {
         ]
       });
       
-      // Extract and parse response
+      // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      console.log('🤖 RAW AI RESPONSE:');
-      console.log('================================================================================');
-      console.log(rawResponse);
-      console.log('================================================================================');
-      
       const parsedResults = this.parseAIResponse(rawResponse);
-      console.log(`📊 AI returned ${parsedResults.length} results (expected ${inputArray.length})`);
       
-      // Map results to input records with identifierId preservation
-      let results: ToolResult[];
-      
-      // For document-based extraction, return all AI results directly
-      // since there's no input array to map to
-      if (hasDocumentParam && !hasDataParam) {
-        console.log(`📄 Document extraction - returning all ${parsedResults.length} AI results directly`);
-        results = parsedResults.map((result, index) => ({
-          identifierId: result.identifierId || null,
-          extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
-          validationStatus: result.validationStatus || "valid",
-          aiReasoning: result.aiReasoning || "",
-          confidenceScore: result.confidenceScore || 95,
-          documentSource: result.documentSource || ""
-        }));
-      } else {
-        // For data array inputs, map results to maintain identifierId correlation
-        results = this.mapResultsToInputs(parsedResults, inputArray);
-      }
+      // 7. Map results to input records with identifierId preservation
+      const results = this.mapResultsToInputs(parsedResults, inputArray);
       
       if (progressCallback) {
-        progressCallback(results.length, results.length, 'Complete');
+        progressCallback(inputArray.length, inputArray.length, 'Complete');
       }
       
       console.log(`✅ AI extraction complete: ${results.length} results`);
@@ -603,107 +535,13 @@ export class ToolEngine {
    * Find the data input parameter from inputs
    */
   private findDataInput(tool: Tool, inputs: Record<string, any>): { key: string; value: any } | null {
-    // First check for 'List Item' specifically (AI tools use this)
-    if (inputs['List Item'] && Array.isArray(inputs['List Item'])) {
-      console.log(`📊 Found 'List Item' input with ${inputs['List Item'].length} records`);
-      return { key: 'List Item', value: inputs['List Item'] };
-    }
-    
-    // Then check for parameters with type === 'data'
     for (const [key, value] of Object.entries(inputs)) {
       const param = tool.inputParameters.find(p => p.id === key || p.name === key);
       if (param?.type === 'data' && Array.isArray(value)) {
-        console.log(`📊 Found data input '${key}' with ${value.length} records`);
         return { key, value };
       }
     }
-    
-    console.log(`⚠️ No data input found. Available inputs:`, Object.keys(inputs));
     return null;
-  }
-
-  /**
-   * Find the document input parameter from inputs
-   */
-  private findDocumentInput(tool: Tool, inputs: Record<string, any>): string | null {
-    // Check for document parameter in tool inputs
-    for (const param of tool.inputParameters || []) {
-      if (param.type === 'document') {
-        // Try various possible keys
-        const possibleKeys = [
-          param.name,
-          param.id,
-          'Document',
-          'document',
-          'document_content',
-          'sessionDocumentContent'
-        ];
-        
-        for (const key of possibleKeys) {
-          if (inputs[key] && typeof inputs[key] === 'string') {
-            console.log(`📄 Found document content in ${key}`);
-            return inputs[key];
-          }
-        }
-      }
-    }
-    
-    return null;
-  }
-
-  /**
-   * Build AI prompt for document-based extraction
-   */
-  private buildDocumentAIPrompt(tool: Tool, inputs: Record<string, any>, documentContent: string): string {
-    let prompt = tool.aiPrompt || '';
-    
-    // Get the Data Description from inputs
-    const dataDescription = inputs['Data Description'] || 
-                           inputs['description'] || 
-                           inputs['AI Query'] || 
-                           '';
-    
-    console.log(`📝 Building document AI prompt:`);
-    console.log(`  - Base prompt length: ${prompt.length}`);
-    console.log(`  - Data Description: "${dataDescription}"`);
-    console.log(`  - Document content length: ${documentContent.length}`);
-    
-    // Check what's actually in the prompt to understand the placeholder format
-    console.log(`📝 Checking for placeholders in prompt:`);
-    console.log(`  - Contains backtick Document: ${prompt.includes('`Document`')}`);
-    console.log(`  - Contains backtick Data Description: ${prompt.includes('`Data Description`')}`);
-    
-    // Show a snippet of the prompt to see the actual format
-    const promptSnippet = prompt.substring(0, 500);
-    console.log(`📝 First 500 chars of prompt:\n${promptSnippet}`);
-    
-    // The prompt references `Document` and `Data Description` but these are references in the text,
-    // not placeholders. The actual data should be provided separately.
-    // Since the tool prompt doesn't have clear placeholders, append the actual data at the end
-    
-    prompt = `${prompt}
-
-Document:
-${documentContent}
-
-Data Description:
-${dataDescription}`;
-    
-    console.log(`📝 Final prompt length after adding content: ${prompt.length}`);
-    
-    // Verify the document was actually inserted
-    if (!prompt.includes(documentContent.substring(0, 50))) {
-      console.log(`⚠️ WARNING: Document content may not have been inserted into prompt!`);
-      console.log(`  Prompt still contains placeholder? ${prompt.includes('`Document`')}`);
-      
-      // If placeholders weren't replaced, append the document and description
-      if (prompt.includes('`Document`') || prompt.includes('`Data Description`')) {
-        prompt += `\n\nDocument:\n${documentContent}\n\nData Description:\n${dataDescription}`;
-        console.log(`📝 Appended document and description to prompt`);
-      }
-    }
-    
-    return prompt;
   }
   
   /**
@@ -754,20 +592,8 @@ ${dataDescription}`;
       }
     }
     
-    // Check if the tool prompt already mentions processing "For each" or "each List Item"
-    const toolExpectsAllItems = basePrompt.toLowerCase().includes('for each') || 
-                                basePrompt.toLowerCase().includes('each object') ||
-                                basePrompt.toLowerCase().includes('each item');
-    
     // Build layered prompt structure
     let prompt = '';
-    
-    // If the tool expects to process all items, add clear instruction at the beginning
-    if (toolExpectsAllItems && dataArray && dataArray.length > 0) {
-      prompt += `IMPORTANT: You have ${dataArray.length} items to process. You MUST process ALL ${dataArray.length} items and return ${dataArray.length} results in your JSON array response.
-
-`;
-    }
     
     // LAYER 1: Tool Prompt (the template explaining the function)
     prompt += `=== TOOL FUNCTION ===
@@ -814,13 +640,6 @@ ${JSON.stringify(dataArray, null, 2)}
 \`\`\`
 
 `;
-      
-      // If the tool expects all items, add reminder at the end too
-      if (toolExpectsAllItems) {
-        prompt += `REMINDER: Process ALL ${dataArray.length} items above. Your JSON response array MUST contain exactly ${dataArray.length} objects, one for each List Item with its corresponding identifierId preserved.
-
-`;
-      }
     }
     
     // DO NOT add any system output requirements here

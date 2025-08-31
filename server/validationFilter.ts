@@ -201,8 +201,8 @@ export function filterRecordsWithAllPreviousValuesValidated(
   for (const [identifierId, validations] of recordValidations) {
     // Check if all validations for this record are explicitly validated AND have valid content
     const allValidated = validations.every(v => {
-      // Check validation status - must be validated OR extracted (AI extracted data)
-      const statusValid = v.validationStatus === 'valid' || v.validationStatus === 'extracted';
+      // Check validation status - must be explicitly validated (clicked to valid)
+      const statusValid = v.validationStatus === 'valid';
       
       // Check that the actual extracted value is valid (not "Not Found", empty, etc.)
       const valueValid = v.extractedValue && 
