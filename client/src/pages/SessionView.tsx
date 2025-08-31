@@ -42,6 +42,103 @@ import type {
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
+// Field Selection Modal Content Component
+const FieldSelectionModalContent = ({
+  stepValues,
+  onExtract,
+  onCancel,
+  isExtracting
+}: {
+  stepValues: any[];
+  onExtract: (selectedFieldIds: string[]) => void;
+  onCancel: () => void;
+  isExtracting: boolean;
+}) => {
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+
+  const handleFieldSelection = (fieldId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFields);
+    if (checked) {
+      newSelected.add(fieldId);
+    } else {
+      newSelected.delete(fieldId);
+    }
+    setSelectedFields(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedFields.size === stepValues.length) {
+      setSelectedFields(new Set());
+    } else {
+      setSelectedFields(new Set(stepValues.map(sv => sv.id)));
+    }
+  };
+
+  const handleExtract = () => {
+    if (selectedFields.size > 0) {
+      onExtract(Array.from(selectedFields));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSelectAll}
+          className="text-xs"
+        >
+          {selectedFields.size === stepValues.length ? 'Deselect All' : 'Select All'}
+        </Button>
+        <span className="text-sm text-gray-500">
+          {selectedFields.size} of {stepValues.length} selected
+        </span>
+      </div>
+
+      <div className="max-h-60 overflow-y-auto space-y-2">
+        {stepValues.map((stepValue) => (
+          <div key={stepValue.id} className="flex items-center space-x-2 p-2 rounded border">
+            <Checkbox
+              checked={selectedFields.has(stepValue.id)}
+              onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
+            />
+            <div className="flex-1">
+              <div className="font-medium text-sm">{stepValue.valueName}</div>
+              {stepValue.description && (
+                <div className="text-xs text-gray-500">{stepValue.description}</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4 border-t">
+        <Button variant="outline" onClick={onCancel} disabled={isExtracting}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleExtract} 
+          disabled={selectedFields.size === 0 || isExtracting}
+          className="bg-[#4F63A4] hover:bg-[#4F63A4]/90"
+        >
+          {isExtracting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Extracting...
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-4 h-4 mr-2" />
+              Extract {selectedFields.size} Field{selectedFields.size !== 1 ? 's' : ''}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
   isOpen, 
@@ -1123,8 +1220,9 @@ export default function SessionView() {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
-  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [extractingToolId, setExtractingToolId] = useState<string | null>(null);
+  const [showFieldSelectionModal, setShowFieldSelectionModal] = useState(false);
+  const [currentToolGroup, setCurrentToolGroup] = useState<{toolId: string, stepValues: any[]} | null>(null);
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
@@ -3027,26 +3125,22 @@ Thank you for your assistance.`;
     }
   };
 
-  // Field selection functions
-  const handleFieldSelection = (fieldId: string, checked: boolean) => {
-    const newSelected = new Set(selectedFields);
-    if (checked) {
-      newSelected.add(fieldId);
-    } else {
-      newSelected.delete(fieldId);
-    }
-    setSelectedFields(newSelected);
+  // Open field selection modal
+  const handleOpenFieldSelection = (toolId: string, stepValues: any[]) => {
+    setCurrentToolGroup({ toolId, stepValues });
+    setShowFieldSelectionModal(true);
   };
 
-  // Group extraction function
-  const handleGroupExtraction = async (toolId: string, stepValues: any[]) => {
-    if (extractingToolId) return; // Prevent multiple simultaneous extractions
+  // Handle extraction from modal
+  const handleExtractSelectedFields = async (selectedFieldIds: string[]) => {
+    if (!currentToolGroup || extractingToolId) return;
     
-    setExtractingToolId(toolId);
+    setExtractingToolId(currentToolGroup.toolId);
+    setShowFieldSelectionModal(false);
     
     try {
-      // Get step ID from any value in the group (they all have the same stepId)
-      const stepId = stepValues[0]?.stepId;
+      // Get step ID from any value in the group
+      const stepId = currentToolGroup.stepValues[0]?.stepId;
       if (!stepId) {
         console.error('No step ID found for extraction');
         return;
@@ -3056,9 +3150,9 @@ Thank you for your assistance.`;
       const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
       const documentId = primaryDoc?.id;
 
-      // Filter to only selected fields in this group, or all fields if none selected
-      const fieldsToExtract = stepValues.filter(value => 
-        selectedFields.size === 0 || selectedFields.has(value.id)
+      // Filter to only selected fields
+      const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
+        selectedFieldIds.includes(value.id)
       );
 
       if (fieldsToExtract.length === 0) {
@@ -3066,7 +3160,7 @@ Thank you for your assistance.`;
         return;
       }
 
-      console.log(`Extracting ${fieldsToExtract.length} fields from tool group ${toolId}`);
+      console.log(`Extracting ${fieldsToExtract.length} selected fields`);
 
       // Extract each field individually
       for (const stepValue of fieldsToExtract) {
@@ -3083,6 +3177,7 @@ Thank you for your assistance.`;
       }
     } finally {
       setExtractingToolId(null);
+      setCurrentToolGroup(null);
     }
   };
 
@@ -4173,24 +4268,13 @@ Thank you for your assistance.`;
                             <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/30 dark:bg-gray-800/30">
                               {/* Magic Wand Icon for extraction groups */}
                               {toolId !== 'manual' && (
-                                <div className="absolute top-3 right-3 flex items-center gap-2">
-                                  {/* Selection count for this group */}
-                                  {selectedFields.size > 0 && stepValues.some(sv => selectedFields.has(sv.id)) && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {stepValues.filter(sv => selectedFields.has(sv.id)).length} selected
-                                    </span>
-                                  )}
+                                <div className="absolute top-3 right-3">
                                   <button 
-                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors disabled:opacity-50"
-                                    title={selectedFields.size > 0 ? "Extract selected fields" : "Extract all fields in this group"}
-                                    onClick={() => handleGroupExtraction(toolId, stepValues)}
-                                    disabled={extractingToolId === toolId}
+                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors"
+                                    title="Select fields to extract"
+                                    onClick={() => handleOpenFieldSelection(toolId, stepValues)}
                                   >
-                                    {extractingToolId === toolId ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <Wand2 className="w-4 h-4" />
-                                    )}
+                                    <Wand2 className="w-4 h-4" />
                                   </button>
                                 </div>
                               )}
@@ -4292,14 +4376,6 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
-                                {/* Selection checkbox for non-manual fields */}
-                                {toolId !== 'manual' && (
-                                  <Checkbox
-                                    checked={selectedFields.has(stepValue.id)}
-                                    onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
-                                    className="h-4 w-4"
-                                  />
-                                )}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   {fieldName}
                                 </Label>
@@ -5393,6 +5469,27 @@ Thank you for your assistance.`;
         sessionId={sessionId}
         project={project}
       />
+      {/* Field Selection Modal */}
+      <Dialog open={showFieldSelectionModal} onOpenChange={setShowFieldSelectionModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Fields to Extract</DialogTitle>
+            <DialogDescription>
+              Choose which fields you want to extract from this tool group.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {currentToolGroup && (
+            <FieldSelectionModalContent
+              stepValues={currentToolGroup.stepValues}
+              onExtract={handleExtractSelectedFields}
+              onCancel={() => setShowFieldSelectionModal(false)}
+              isExtracting={extractingToolId === currentToolGroup.toolId}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Session Chat */}
       {session && validations && (
         <SessionChat
