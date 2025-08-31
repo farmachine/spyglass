@@ -3080,24 +3080,25 @@ Thank you for your assistance.`;
       } else {
         console.log('🔍 SAVE - Creating new validation');
         
-        try {
-          console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
-          console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
-          
-          // Create new validation record directly from step value configuration
-          // Find the step value configuration for this field
-          const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
-          console.log('🔍 SAVE - stepValue found:', stepValue);
-          
-          if (!stepValue) {
-            console.error('❌ No step value found for:', fieldName);
-            console.error('❌ Available step values:', dataFieldsStep?.values?.map(v => v.valueName));
-            return;
-          }
-        } catch (innerError) {
-          console.error('❌ Error accessing dataFieldsStep:', innerError);
-          console.error('❌ dataFieldsStep type:', typeof dataFieldsStep);
-          throw new Error(`Failed to access step data: ${innerError}`);
+        // Find the Data Fields step from the project workflow
+        const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
+        console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
+        console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
+        
+        if (!dataFieldsStep) {
+          console.error('❌ No Data Fields step found in project');
+          return;
+        }
+        
+        // Create new validation record directly from step value configuration
+        // Find the step value configuration for this field
+        const stepValue = dataFieldsStep.values?.find(v => v.valueName === fieldName);
+        console.log('🔍 SAVE - stepValue found:', stepValue);
+        
+        if (!stepValue) {
+          console.error('❌ No step value found for:', fieldName);
+          console.error('❌ Available step values:', dataFieldsStep.values?.map(v => v.valueName));
+          return;
         }
         
         const createData = {
