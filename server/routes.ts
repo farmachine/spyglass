@@ -6793,7 +6793,22 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   ⚠️ It does NOT extract all values in the step - just this one value`);
       console.log(`   Previous data records: ${previousData?.length || 0}`);
       console.log(`   Document ID: ${documentId || 'Using default'}`);
-      console.log(`   Custom inputs:`, customInputs ? JSON.stringify(customInputs, null, 2) : 'None');
+      
+      // Debug customInputs more thoroughly
+      if (customInputs) {
+        console.log(`📝 Custom inputs received:`);
+        console.log(`   Type: ${typeof customInputs}`);
+        console.log(`   Keys: ${Object.keys(customInputs).join(', ')}`);
+        if ('List Item' in customInputs) {
+          const listItem = customInputs['List Item'];
+          console.log(`   ✅ 'List Item' found in customInputs:`, Array.isArray(listItem) ? `Array with ${listItem.length} items` : typeof listItem);
+        } else {
+          console.log(`   ❌ 'List Item' NOT in customInputs`);
+        }
+        console.log(`   Full customInputs:`, JSON.stringify(customInputs, null, 2).substring(0, 500));
+      } else {
+        console.log(`   Custom inputs: None`);
+      }
       
       // Get the step and value details
       const step = await storage.getWorkflowStep(stepId);
@@ -7394,7 +7409,22 @@ def extract_function(Column_Name, Excel_File):
       
       // Override with custom inputs from user selection modal
       if (customInputs && Object.keys(customInputs).length > 0) {
-        console.log(`🎛️ Applying custom inputs from user selection modal:`, JSON.stringify(customInputs, null, 2));
+        console.log(`🎛️ Applying custom inputs from user selection modal:`);
+        console.log(`🎛️ customInputs keys:`, Object.keys(customInputs));
+        
+        // Check specifically for List Item
+        if ('List Item' in customInputs) {
+          const listItem = customInputs['List Item'];
+          console.log(`📊 Found 'List Item' in customInputs:`, Array.isArray(listItem) ? `Array with ${listItem.length} items` : typeof listItem);
+          if (Array.isArray(listItem) && listItem.length > 0) {
+            console.log(`  First item:`, listItem[0]);
+          }
+        } else {
+          console.log(`⚠️ 'List Item' NOT found in customInputs`);
+        }
+        
+        // Log full customInputs for debugging
+        console.log(`🎛️ Full customInputs:`, JSON.stringify(customInputs, null, 2).substring(0, 1000));
         
         // Merge custom inputs, allowing them to override default inputs
         for (const [key, value] of Object.entries(customInputs)) {
@@ -7405,7 +7435,13 @@ def extract_function(Column_Name, Excel_File):
           }
         }
         
-        console.log(`✅ Final tool inputs after custom input override:`, JSON.stringify(toolInputs, null, 2));
+        console.log(`✅ Final tool inputs after custom input override:`);
+        console.log(`  Tool inputs keys:`, Object.keys(toolInputs));
+        if (toolInputs['List Item']) {
+          console.log(`  ✅ List Item is set: ${Array.isArray(toolInputs['List Item']) ? toolInputs['List Item'].length + ' items' : typeof toolInputs['List Item']}`);
+        } else {
+          console.log(`  ❌ List Item is NOT set in toolInputs`);
+        }
       }
       
       // NOW check for List Item AFTER customInputs have been applied

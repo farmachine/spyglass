@@ -3329,13 +3329,30 @@ Thank you for your assistance.`;
         
         // Merge custom inputs with List Item for AI tools
         if (previousData && previousData.length > 0) {
-          requestBody.customInputs = {
+          console.log(`📤 Sending previousData as List Item: ${previousData.length} records`);
+          console.log(`📤 fieldInputs[${stepValue.id}]:`, fieldInputs[stepValue.id]);
+          
+          // Make sure List Item is set properly
+          const customInputsToSend = {
             ...fieldInputs[stepValue.id],
             'List Item': previousData // Explicitly set List Item
           };
+          
+          // Remove any null List Item that might be in fieldInputs
+          if (customInputsToSend['List Item'] === null && previousData.length > 0) {
+            customInputsToSend['List Item'] = previousData;
+          }
+          
+          requestBody.customInputs = customInputsToSend;
+          console.log(`📤 Final customInputs being sent:`, Object.keys(requestBody.customInputs));
+          console.log(`📤 List Item in customInputs: ${requestBody.customInputs['List Item']?.length || 0} records`);
         } else {
           requestBody.customInputs = fieldInputs[stepValue.id];
         }
+        
+        console.log(`📤 Full request body keys:`, Object.keys(requestBody));
+        console.log(`📤 previousData in body: ${requestBody.previousData?.length || 0} records`);
+        console.log(`📤 customInputs.List Item: ${requestBody.customInputs?.['List Item']?.length || 'not set'}`);
         
         await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
           method: "POST",
