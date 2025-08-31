@@ -4012,49 +4012,20 @@ Thank you for your assistance.`;
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(() => {
-                        // Combine schema fields and workflow step values for the info page
-                        const allFields = [];
-                        
-                        // Add schema fields (original info fields)
-                        if (project.schemaFields) {
-                          allFields.push(...project.schemaFields.map(field => ({
-                            ...field,
-                            isSchemaField: true
-                          })));
-                        }
-                        
-                        // Add workflow step values for "General Information" step
+                        // Only show workflow step values for "General Information" step (no schema fields)
                         const infoStep = project?.workflowSteps?.find(step => step.stepName === 'General Information');
-                        if (infoStep?.values) {
-                          allFields.push(...infoStep.values.map(value => ({
-                            id: value.id,
-                            fieldName: value.valueName,
-                            fieldType: value.dataType,
-                            orderIndex: value.orderIndex || 999, // Put after schema fields by default
-                            isSchemaField: false,
-                            stepValue: value
-                          })));
-                        }
+                        if (!infoStep?.values) return null;
                         
-                        return allFields
+                        return infoStep.values
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                           .map((field) => {
-                        // For step values, we need to get the extracted value differently
-                        let originalValue, validation;
+                        // Get extracted value from step data
+                        const stepData = extractedData['General Information'];
+                        const originalValue = stepData?.[0]?.[field.valueName] || stepData?.[field.valueName];
                         
-                        if (field.isSchemaField) {
-                          // Schema fields use the field name directly
-                          originalValue = extractedData[field.fieldName];
-                          validation = getValidation(field.fieldName);
-                        } else {
-                          // Step values need to check for extracted values in step data
-                          const stepData = extractedData['General Information'];
-                          originalValue = stepData?.[0]?.[field.fieldName] || stepData?.[field.fieldName];
-                          
-                          // For step values, validation field name includes the step name
-                          const stepFieldName = `General Information.${field.fieldName}[0]`;
-                          validation = getValidation(stepFieldName);
-                        }
+                        // For step values, validation field name includes the step name
+                        const stepFieldName = `General Information.${field.valueName}[0]`;
+                        const validation = getValidation(stepFieldName);
                         
                         // Show field if it has a value OR if there's a validation for it
                         if (originalValue !== undefined || validation) {
@@ -4068,8 +4039,8 @@ Thank you for your assistance.`;
                             <div key={field.id} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
-                                  const fieldName = field.fieldName;
-                                  const validation = getValidation(fieldName);
+                                  const fieldName = stepFieldName;
+                                  const validation = getValidation(stepFieldName);
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = validation && validation.manuallyUpdated;
                                   const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
@@ -4145,14 +4116,14 @@ Thank you for your assistance.`;
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  {field.fieldName}
+                                  {field.valueName}
                                 </Label>
                               </div>
                               <div>
                                 {(() => {
-                                  const validation = getValidation(field.fieldName);
-                                  const isEditing = editingField === field.fieldName;
-                                  const fieldType = field.fieldType;
+                                  const validation = getValidation(stepFieldName);
+                                  const isEditing = editingField === field.valueName;
+                                  const fieldType = field.dataType;
                                   
                                   if (isEditing) {
                                     return (
@@ -4196,7 +4167,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(field.fieldName)}>
+                                        <Button size="sm" onClick={() => handleSave(field.valueName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -4223,7 +4194,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(field.fieldName, displayValue)}
+                                          onClick={() => handleEdit(field.valueName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
@@ -4243,8 +4214,7 @@ Thank you for your assistance.`;
                           );
                         }
                         return null;
-                      });
-                      })()
+                      })}
                     </div>
 
 
