@@ -1,0 +1,93 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+12:23:49 PM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+12:24:31 PM [express] GET /api/auth/me 304 in 582ms
+12:24:31 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266 304 in 32ms
+12:24:31 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/documents 304 in 78ms
+12:24:31 PM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 10ms
+12:24:31 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215 304 in 202ms
+12:24:32 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/rules 304 in 15ms
+12:24:32 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/schema 304 in 35ms
+12:24:32 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/collections 304 in 49ms
+12:24:32 PM [express] GET /api/projects/915d87a3-dd55-401e-8f8b-df38132c2215/collections 304 in 54ms
+12:24:32 PM [express] GET /api/collections/e3c7f77d-910c-4e41-8668-e0fccf16fd45/properties 304 in 19ms
+12:24:33 PM [express] GET /api/collections/046920a4-b6f3-4e6d-957d-61dd4f3cc610/properties 304 in 18ms
+12:26:51 PM [express] PUT /api/validations/c84a7bc6-b1ab-44a5-b4dd-1d2ac47f4931 200 in 50ms :: [JSON response - 658 chars]
+12:26:51 PM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 5ms
+12:26:52 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/validations 200 in 185ms
+12:26:53 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266 304 in 55ms
+12:26:53 PM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/documents 304 in 36ms
+12:26:54 PM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 9ms
+12:27:46 PM [vite] hmr update /src/pages/SessionView.tsx, /src/index.css?v=6zJlZ72NNYsX9Q73k_A8s
+12:27:47 PM [vite] Internal server error: /home/runner/workspace/client/src/pages/SessionView.tsx: Expected corresponding JSX closing tag for <div>. (4300:18)
+
+  4298 |
+  4299 |
+> 4300 |                   </CardContent>
+       |                   ^
+  4301 |                 </Card>
+  4302 |                 </div>
+  4303 |               )}
+  Plugin: vite:react-babel
+  File: /home/runner/workspace/client/src/pages/SessionView.tsx:4300:18
+  4298|  
+  4299|  
+  4300|                    </CardContent>
+     |                    ^
+  4301|                  </Card>
+  4302|                  </div>
+      at toParseError (/home/runner/workspace/node_modules/@babel/parser/src/parse-error.ts:95:45)
+      at raise (/home/runner/workspace/node_modules/@babel/parser/src/tokenizer/index.ts:1497:19)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:527:18)
+      at jsxParseElementAt (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+      at jsxParseElement (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:559:19)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:573:21)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:655:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3735:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+      at fn (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3588:23)
+      at tryParse (/home/runner/workspace/node_modules/@babel/parser/src/parser/util.ts:174:20)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3587:20)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:252:12)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3117:12)
+      at parseMaybeAssignAllowIn (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:251:17)
+      at parseParenAndDistinguishExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1771:16)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1131:21)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:655:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3735:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3607:22)
+      at parseFunctionBody (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:2543:14)
+      at parseArrowExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:2498:10)
+      at parseParenAndDistinguishExpression (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1794:12)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:1131:21)
+      at parseExprAtom (/home/runner/workspace/node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+      at parseExprSubscripts (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:714:23)
+      at parseUpdate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:693:21)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:655:23)
+      at parseMaybeUnary (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3735:20)
+      at parseMaybeUnaryOrPrivate (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:389:14)
+      at parseExprOps (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:401:23)
+      at parseMaybeConditional (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:356:23)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:298:21)
+      at parseMaybeAssign (/home/runner/workspace/node_modules/@babel/parser/src/plugins/typescript/index.ts:3607:22)
+      at callback (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:252:12)
+      at allowInAnd (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:3117:12)
+      at parseMaybeAssignAllowIn (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:251:17)
+      at parseExprListItem (/home/runner/workspace/node_modules/@babel/parser/src/parser/expression.ts:2720:18)
