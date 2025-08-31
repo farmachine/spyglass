@@ -3141,13 +3141,13 @@ Thank you for your assistance.`;
           
           let worksheetData: any[][] = [];
           
-          if (step.stepType === 'info') {
+          if (step.stepType === 'info' || step.stepType === 'page') {
             // Info page format: field names in column A, values in column B
             worksheetData = [
               ['Field Name', 'Value'],
               ...step.data.map((item: any) => [item.fieldName, item.value])
             ];
-          } else if (step.stepType === 'data') {
+          } else if (step.stepType === 'data' || step.stepType === 'list') {
             // Data table format: normal table with headers as columns
             worksheetData = [
               step.data.headers,
