@@ -4018,6 +4018,16 @@ Thank you for your assistance.`;
                           !v.fieldName?.includes('.')
                         );
                         
+                        // Debug: Check if we're showing all the right fields
+                        console.log('🔍 DATA FIELDS DEBUG:');
+                        console.log('  - Total validations:', validations.length);
+                        console.log('  - Info validations found:', infoValidations.length);
+                        console.log('  - Info validation details:', infoValidations.map(v => ({
+                          fieldName: v.fieldName,
+                          extractedValue: v.extractedValue,
+                          validationStatus: v.validationStatus
+                        })));
+                        
                         if (infoValidations.length === 0) {
                           return (
                             <div className="col-span-full text-center text-gray-500 py-8">
