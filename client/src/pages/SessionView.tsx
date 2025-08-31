@@ -3327,25 +3327,13 @@ Thank you for your assistance.`;
           previousData, // Send the complete previousData array
         };
         
-        // Merge custom inputs with List Item for AI tools
+        // Always send previousData as List Item for AI tools
         if (previousData && previousData.length > 0) {
-          console.log(`📤 Sending previousData as List Item: ${previousData.length} records`);
-          console.log(`📤 fieldInputs[${stepValue.id}]:`, fieldInputs[stepValue.id]);
-          
-          // Make sure List Item is set properly
-          const customInputsToSend = {
+          requestBody.customInputs = {
             ...fieldInputs[stepValue.id],
-            'List Item': previousData // Explicitly set List Item
+            'List Item': previousData  // Always override with actual data
           };
-          
-          // Remove any null List Item that might be in fieldInputs
-          if (customInputsToSend['List Item'] === null && previousData.length > 0) {
-            customInputsToSend['List Item'] = previousData;
-          }
-          
-          requestBody.customInputs = customInputsToSend;
-          console.log(`📤 Final customInputs being sent:`, Object.keys(requestBody.customInputs));
-          console.log(`📤 List Item in customInputs: ${requestBody.customInputs['List Item']?.length || 0} records`);
+          console.log(`📤 Sending ${previousData.length} records as List Item to AI`);
         } else {
           requestBody.customInputs = fieldInputs[stepValue.id];
         }
