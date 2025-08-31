@@ -4125,7 +4125,7 @@ Thank you for your assistance.`;
                               </div>
                               <div>
                                 {(() => {
-                                  const isEditing = editingField === fieldName;
+                                  const isEditing = editingField === stepFieldName;
                                   const fieldType = stepValue.dataType;
                                   
                                   if (isEditing) {
