@@ -463,42 +463,30 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // 1. Find data input array, or create minimal array if document extraction
-      let dataInput = this.findDataInput(tool, inputs);
-      let inputArray: any[];
-      
+      // 1. Find data input array if exists
+      const dataInput = this.findDataInput(tool, inputs);
       if (!dataInput || !Array.isArray(dataInput.value)) {
-        // For document extraction, create a minimal single-item array
-        console.log('📄 No data array found, creating single-item array for document extraction');
-        inputArray = [{}];
-      } else {
-        // 2. Standard array processing - Limit to 50 records for performance
-        const AI_RECORD_LIMIT = 50;
-        inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+        throw new Error('AI tool requires data input array');
       }
+
+      // 2. Limit to 50 records for performance
+      const AI_RECORD_LIMIT = 50;
+      const inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
       
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // 4. Log the complete prompt for debugging
-      console.log('\n🔍 ========== COMPLETE AI EXTRACTION PROMPT ==========');
-      console.log('Tool Name:', tool.name);
-      console.log('Tool Type:', tool.toolType);
-      console.log('Output Type:', tool.outputType);
-      console.log('Operation Type:', tool.operationType);
-      console.log('Number of Input Records:', inputArray.length);
-      console.log('Input Parameters:', Object.keys(inputs).join(', '));
-      console.log('\n--- PROMPT BEGINS ---');
+      // 4. Log the prompt for debugging
+      console.log('\n📝 AI EXTRACTION PROMPT:');
+      console.log('='.repeat(80));
       console.log(prompt);
-      console.log('--- PROMPT ENDS ---');
-      console.log('🔍 ========== END OF PROMPT ==========\n');
+      console.log('='.repeat(80));
       
       // 5. Call Gemini API
       if (progressCallback) {
         progressCallback(0, inputArray.length, 'Processing with AI...');
       }
       
-      console.log(`🤖 Calling Gemini API with model: ${tool.llmModel || "gemini-2.0-flash"}`);
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
         contents: [
@@ -511,15 +499,6 @@ export class ToolEngine {
       
       // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      
-      // Log the raw AI response
-      console.log('\n🤖 ========== RAW AI RESPONSE ==========');
-      console.log('Response Length:', rawResponse.length, 'characters');
-      console.log('\n--- RESPONSE BEGINS ---');
-      console.log(rawResponse);
-      console.log('--- RESPONSE ENDS ---');
-      console.log('🤖 ========== END OF AI RESPONSE ==========\n');
-      
       const parsedResults = this.parseAIResponse(rawResponse);
       
       // 7. Map results to input records with identifierId preservation
@@ -569,13 +548,11 @@ export class ToolEngine {
    * Build AI prompt from tool template and inputs
    */
   private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[]): string {
-    // Check if this is document extraction (synthetic array with _isDocumentExtraction flag)
-    const isDocumentExtraction = dataArray.length === 1 && dataArray[0]._isDocumentExtraction;
+    const basePrompt = tool.aiPrompt || '';
     
     // Extract input values from value configuration
     let aiQuery = inputs['AI Query'] || '';
     const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
-    const documentContent = inputs['document'] || inputs['0.4q2kmgz9hxo'] || inputs['sessionDocumentContent'] || '';
     const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
     
     // Extract value configuration if present
@@ -615,48 +592,12 @@ export class ToolEngine {
       }
     }
     
-    // Handle document extraction differently - simpler, focused prompt
-    if (isDocumentExtraction) {
-      const prompt = `You are extracting a specific value from a document.
-
-Field to Extract: "${valueName}"
-${valueDescription ? `Description: ${valueDescription}` : ''}
-Instructions: ${aiQuery || 'Extract the requested value from the document'}
-
-Document Content:
-================
-${documentContent}
-================
-
-Extract the value and return a JSON array with a single object:
-[{
-  "identifierId": "doc-extraction",
-  "extractedValue": "<the extracted value>",
-  "validationStatus": "valid",
-  "aiReasoning": "<brief explanation of where you found it>",
-  "confidenceScore": <0-100>,
-  "documentSource": "<section or location in document>"
-}]
-
-If the value cannot be found, use:
-[{
-  "identifierId": "doc-extraction",
-  "extractedValue": null,
-  "validationStatus": "invalid",
-  "aiReasoning": "Value not found in document",
-  "confidenceScore": 0,
-  "documentSource": "NOT_FOUND"
-}]`;
-      
-      return prompt;
-    }
-    
-    // Original layered prompt structure for array processing
+    // Build layered prompt structure
     let prompt = '';
     
     // LAYER 1: Tool Prompt (the template explaining the function)
     prompt += `=== TOOL FUNCTION ===
-${tool.aiPrompt || ''}
+${basePrompt}
 
 `;
     
