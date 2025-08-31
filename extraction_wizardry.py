@@ -1,3 +1,25 @@
+"""
+Extraction Wizardry - Main Extraction Orchestrator
+
+This module is the central orchestration engine for all document extraction operations
+in the extrapl platform. It coordinates between AI extraction and function-based extraction,
+manages identifier references across multi-step extractions, and handles communication
+between the Node.js backend and various Python extraction modules.
+
+Key responsibilities:
+- Orchestrates extraction flow based on tool configuration
+- Manages identifier references for sequential data extraction
+- Generates Python functions for Excel data extraction
+- Handles both AI and function-based extraction methods
+- Saves extraction references to database for multi-step workflows
+
+Dependencies:
+- Google Gemini API for AI extraction
+- PostgreSQL for storing extraction references
+- excel_wizard.py for Excel column extraction
+- ai_extraction_wizard.py for AI document extraction
+"""
+
 import json
 import sys
 import os
@@ -9,7 +31,21 @@ from excel_wizard import excel_column_extraction
 from ai_extraction_wizard import ai_document_extraction
 
 def save_identifier_references_to_db(session_id, extraction_number, identifier_references):
-    """Save identifier references to the database for future retrieval"""
+    """
+    Save identifier references to the database for future retrieval.
+    
+    This function stores extracted identifier values that will be used as references
+    in subsequent extraction steps. It's crucial for maintaining data relationships
+    across multi-step workflows where later columns reference earlier extracted values.
+    
+    Args:
+        session_id: The extraction session ID
+        extraction_number: The step number in the extraction sequence
+        identifier_references: List of dicts containing extracted identifier values
+        
+    Returns:
+        bool: True if save was successful, False otherwise
+    """
     try:
         db_url = os.getenv('DATABASE_URL')
         if not db_url:
@@ -20,6 +56,7 @@ def save_identifier_references_to_db(session_id, extraction_number, identifier_r
         cursor = conn.cursor()
         
         # Clear any existing references for this session and extraction number
+        # This ensures we don't have duplicate references from re-runs
         delete_query = """
         DELETE FROM extraction_identifier_references 
         WHERE session_id = %s AND extraction_number = %s

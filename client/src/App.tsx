@@ -1,3 +1,19 @@
+/**
+ * Main Application Component
+ * 
+ * This is the root React component that sets up the application's routing,
+ * global providers, and theme configuration. It handles the overall app structure
+ * and navigation between different pages/views.
+ * 
+ * Key features:
+ * - Client-side routing using Wouter
+ * - API state management with TanStack Query
+ * - Toast notifications system
+ * - Dark/light theme support
+ * - Protected route handling for authentication
+ * - Global tooltip provider
+ */
+
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";

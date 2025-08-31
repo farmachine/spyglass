@@ -1,3 +1,19 @@
+/**
+ * API Routes Module
+ * 
+ * This file contains all REST API endpoint definitions for the extrapl platform.
+ * It handles authentication, project management, document processing, AI extraction,
+ * and validation workflows. All routes are prefixed with /api.
+ * 
+ * Key responsibilities:
+ * - User authentication and session management
+ * - Project and schema configuration
+ * - Document upload and processing
+ * - AI-powered extraction execution
+ * - Field validation and manual editing
+ * - Export functionality
+ */
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";

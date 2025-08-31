@@ -1,3 +1,18 @@
+/**
+ * Storage Abstraction Layer
+ * 
+ * This module provides a unified interface for all database operations in the extrapl platform.
+ * It implements two storage backends: PostgreSQL for production and in-memory for development/testing.
+ * 
+ * Key features:
+ * - Supports both PostgreSQL (via Drizzle ORM) and in-memory storage
+ * - Handles all CRUD operations for projects, users, sessions, validations, etc.
+ * - Implements retry logic for database operations
+ * - Provides transaction support for complex operations
+ * 
+ * The IStorage interface ensures consistency between different storage implementations.
+ */
+
 import { 
   projects, 
   projectSchemaFields, 
