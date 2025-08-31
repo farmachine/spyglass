@@ -1,3 +1,30 @@
+"""
+AI Extraction Wizard - Document Content Analysis via Google Gemini
+
+Provides AI-powered document analysis and data extraction using Google Gemini API.
+Handles intelligent extraction from various document types with context-aware prompts
+and knowledge base integration.
+
+Key Features:
+- Google Gemini API integration for document analysis
+- Context-aware prompts with extraction rules and knowledge base
+- Support for multiple document types (PDF, DOCX, Excel)
+- Intelligent data extraction with reasoning and confidence scoring
+- Integration with project-specific extraction rules
+- Knowledge document context for improved accuracy
+
+Architecture:
+- Connects to PostgreSQL for document and rule retrieval
+- Uses structured prompts for consistent AI responses
+- Handles identifier reference context for multi-step extractions
+- Returns standardized JSON with extracted values and metadata
+
+Usage:
+- Called by extraction_wizardry.py for AI-based extractions
+- Processes documents through Gemini API with contextual information
+- Returns structured results with validation status and reasoning
+"""
+
 import os
 import psycopg2
 import json

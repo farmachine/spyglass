@@ -1,10 +1,34 @@
+/**
+ * Database Storage Layer and Business Logic
+ * 
+ * Provides abstracted database operations and business logic for the extrapl application.
+ * Implements CRUD operations for all entities with proper type safety via Drizzle ORM.
+ * 
+ * Key Responsibilities:
+ * - Project and organization management
+ * - Document storage and session handling
+ * - Validation and extraction result management
+ * - User authentication and authorization
+ * - Excel function management and execution
+ * 
+ * Architecture:
+ * - Uses Drizzle ORM with PostgreSQL for all database operations
+ * - Exports singleton `storage` instance for application-wide use
+ * - Implements proper error handling and transaction management
+ * - Supports multi-tenant data isolation by organization
+ * 
+ * Usage:
+ * - Import `storage` and call methods directly
+ * - All methods return properly typed results
+ * - Handles both sync and async operations appropriately
+ */
+
 import { 
   projects, 
   projectSchemaFields, 
   objectCollections, 
   collectionProperties,
   workflowSteps,
-  stepValues,
   stepValues,
   extractionSessions,
   sessionDocuments,

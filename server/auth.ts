@@ -1,3 +1,21 @@
+/**
+ * Authentication and Authorization Module
+ * 
+ * Handles user authentication, JWT token management, and authorization middleware.
+ * Uses bcrypt for password hashing and JWT for stateless authentication.
+ * 
+ * Key Features:
+ * - JWT token generation and verification
+ * - Password hashing and comparison
+ * - Authentication middleware for protected routes
+ * - Role-based authorization (admin, user roles)
+ * 
+ * Security Notes:
+ * - JWT secret should be set via JWT_SECRET environment variable
+ * - Tokens expire after 7 days
+ * - Passwords are hashed with bcrypt (10 salt rounds)
+ */
+
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { Request, Response, NextFunction } from 'express';

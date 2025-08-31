@@ -1,3 +1,21 @@
+/**
+ * Main API Routes for extrapl Document Data Extraction Platform
+ * 
+ * This file contains all REST API endpoints for the application including:
+ * - Authentication and user management
+ * - Project and organization CRUD operations
+ * - Document upload and processing
+ * - AI extraction workflows and validation
+ * - Session management and real-time updates
+ * 
+ * Key Dependencies:
+ * - Express.js for HTTP routing
+ * - Drizzle ORM for database operations
+ * - Child processes for Python AI services
+ * - JWT authentication via auth.ts
+ * - File storage via storage.ts
+ */
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";

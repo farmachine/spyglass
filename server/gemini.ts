@@ -1,3 +1,23 @@
+/**
+ * Google Gemini AI Integration Module
+ * 
+ * Provides integration with Google's Gemini AI API for document data extraction.
+ * Handles AI-powered tool testing and content generation for the extraction workflow.
+ * 
+ * Key Functions:
+ * - testAIOnlyTool: Tests AI tools with sample documents and inputs
+ * - Document content processing with structured prompts
+ * - JSON response parsing and validation
+ * 
+ * Configuration:
+ * - Uses GEMINI_API_KEY or GOOGLE_API_KEY environment variable
+ * - Defaults to gemini-1.5-flash model for fast processing
+ * 
+ * Response Format:
+ * - Returns structured JSON with extractedValue, validationStatus, reasoning, etc.
+ * - Handles markdown code block removal from AI responses
+ */
+
 import { GoogleGenAI } from "@google/genai";
 
 // Simple AI client setup

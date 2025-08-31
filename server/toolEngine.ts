@@ -1,3 +1,28 @@
+/**
+ * Tool Engine - AI and Code Extraction Orchestrator
+ * 
+ * Unified tool execution engine that handles both AI-powered and code-based data extraction.
+ * Supports two main tool types: AI_ONLY (using Gemini) and CODE (Python functions).
+ * 
+ * Key Features:
+ * - Tool testing and validation with sample documents
+ * - Dynamic Python function execution in sandboxed environment
+ * - AI prompt engineering and response parsing
+ * - Document content fetching from object storage
+ * - Error handling and debugging support
+ * 
+ * Architecture:
+ * - Two-branch design: AI tools vs Code tools
+ * - Python subprocess execution for CODE tools
+ * - Google Gemini API integration for AI tools
+ * - Structured JSON response format for both types
+ * 
+ * Security:
+ * - Sandboxed Python execution environment
+ * - Input validation and sanitization
+ * - Error containment and logging
+ */
+
 // Unified Tool Engine - Simple 2-Branch Architecture
 import { GoogleGenAI } from "@google/genai";
 import { spawn } from 'child_process';

@@ -1,3 +1,31 @@
+"""
+Extraction Wizardry - Main Document Processing Orchestrator
+
+This is the primary Python service that coordinates all document extraction workflows
+for the extrapl platform. It handles both AI-powered and function-based extractions
+with proper identifier reference tracking and database integration.
+
+Key Features:
+- Unified extraction pipeline for multiple document types
+- AI extraction via Google Gemini API
+- Excel function-based extraction with pandas
+- Identifier reference chaining between extraction steps
+- Database persistence for extraction results and references
+- Progressive multi-step extraction workflows
+
+Architecture:
+- Coordinates between ai_extraction_wizard.py and excel_wizard.py
+- Manages identifier references across extraction steps
+- Handles both single value and multiple value extractions
+- Provides comprehensive error handling and logging
+
+Usage:
+- Called by Node.js server via subprocess
+- Receives JSON input with extraction configuration
+- Returns structured JSON with extraction results
+- Supports both test mode and production extraction
+"""
+
 import json
 import sys
 import os

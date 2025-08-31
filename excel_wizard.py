@@ -1,3 +1,29 @@
+"""
+Excel Wizard - Dynamic Excel Function Generation and Execution
+
+Generates and executes AI-powered Python functions for Excel data extraction.
+Uses Google Gemini to create custom pandas-based extraction functions that
+can handle complex Excel structures and data patterns.
+
+Key Features:
+- AI-generated pandas functions for Excel data extraction
+- Dynamic function creation based on field descriptions
+- Error handling and function validation
+- Database storage of generated functions for reuse
+- Support for complex Excel structures (multi-sheet, headers, etc.)
+
+Architecture:
+- Gemini AI generates pandas code based on extraction requirements
+- Functions are validated and stored in database
+- Execution environment is sandboxed for security
+- Results are formatted in standardized JSON structure
+
+Usage:
+- Called by extraction_wizardry.py for Excel document processing
+- Generates functions that can be reused across similar documents
+- Handles both single-column and multi-column extractions
+"""
+
 import os
 import psycopg2
 import json

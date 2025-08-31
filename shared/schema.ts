@@ -1,3 +1,33 @@
+/**
+ * Database Schema - Drizzle ORM Type Definitions
+ * 
+ * Defines the complete database structure for the extrapl platform using Drizzle ORM.
+ * Provides type-safe database operations with automatic TypeScript type inference.
+ * 
+ * Key Entities:
+ * - organizations: Multi-tenant organization structure
+ * - users: User accounts with role-based access control
+ * - projects: Data extraction projects and configurations
+ * - workflowSteps: Unified structure for both info pages and data tables
+ * - stepValues: Individual fields/columns within workflow steps
+ * - extractionSessions: Document processing sessions
+ * - sessionDocuments: Uploaded documents with extracted content
+ * - fieldValidations: AI extraction results and manual validations
+ * - excelWizardryFunctions: Reusable Python functions for Excel extraction
+ * 
+ * Architecture:
+ * - Multi-tenant with organization-level data isolation
+ * - UUID primary keys for distributed system compatibility
+ * - JSONB columns for flexible metadata storage
+ * - Foreign key relationships with cascade deletes
+ * - Zod schemas for runtime validation
+ * 
+ * Usage:
+ * - Import table definitions for Drizzle queries
+ * - Use insert/select types for API type safety
+ * - Zod schemas for form validation and API requests
+ */
+
 import { pgTable, text, serial, integer, boolean, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";

@@ -1,3 +1,32 @@
+/**
+ * Session View - Document Processing and Validation Interface
+ * 
+ * Core interface for document processing sessions where users upload documents,
+ * configure extraction workflows, and validate AI-extracted data.
+ * 
+ * Key Features:
+ * - Document upload and management
+ * - Multi-step workflow configuration (Info Pages and Data Tables)
+ * - AI-powered data extraction with validation interface
+ * - Real-time chat for document analysis
+ * - Excel export functionality with proper formatting
+ * - Field-level validation and manual editing
+ * 
+ * Components:
+ * - Document upload modal with file type validation
+ * - Workflow step management with drag-and-drop
+ * - Validation table with inline editing
+ * - AI chat interface for document queries
+ * - Export wizard for Excel generation
+ * 
+ * Data Flow:
+ * 1. User uploads documents → Session documents created
+ * 2. Configure workflow steps → Workflow steps and values stored
+ * 3. Run extractions → AI processes documents
+ * 4. Validate results → Field validations updated
+ * 5. Export data → Excel files generated with proper structure
+ */
+
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

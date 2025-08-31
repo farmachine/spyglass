@@ -1,3 +1,27 @@
+/**
+ * Dashboard Page - Main Application Landing
+ * 
+ * Primary interface for users after login, displaying project overview and management.
+ * Features project grid, statistics cards, search/filtering, and project creation.
+ * 
+ * Key Features:
+ * - Project grid with drag-and-drop reordering
+ * - Real-time statistics (sessions, documents, validations)
+ * - Search and filter functionality (active/deactivated projects)
+ * - Project creation dialog
+ * - User profile and settings access
+ * 
+ * Data Sources:
+ * - useProjects: Project list with details
+ * - useDashboardStatistics: Aggregated platform statistics
+ * - useAuth: Current user context and permissions
+ * 
+ * Navigation:
+ * - Links to individual project views
+ * - Admin panel access for admin users
+ * - Session management and organization settings
+ */
+
 import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp } from "lucide-react";
 import { WaveIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
