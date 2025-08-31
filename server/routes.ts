@@ -1771,16 +1771,19 @@ except Exception as e:
 
       // Process workflow steps for proper Excel export
       const workflowSteps = project.workflowSteps || [];
+      console.log(`Processing ${workflowSteps.length} workflow steps`);
 
       // Process each workflow step
       for (const step of workflowSteps) {
+        console.log(`Processing step: ${step.stepName} (${step.stepType})`);
+        console.log(`Step has ${step.values?.length || 0} values`);
         const stepData: any = {
           stepName: step.stepName,
           stepType: step.stepType,
           data: null
         };
 
-        if (step.stepType === 'info') {
+        if (step.stepType === 'info' || step.stepType === 'page') {
           // Info page format: field names as rows, values in adjacent column
           const infoData: any[] = [];
           
@@ -1796,7 +1799,7 @@ except Exception as e:
           }
           
           stepData.data = infoData;
-        } else if (step.stepType === 'data') {
+        } else if (step.stepType === 'data' || step.stepType === 'list') {
           // Data table format: normal table with headers
           const stepValues = step.values || [];
           
@@ -1835,7 +1838,7 @@ except Exception as e:
         }
         
         // Only add steps that have data
-        if (stepData.data && (step.stepType === 'info' || step.stepType === 'data')) {
+        if (stepData.data && (step.stepType === 'info' || step.stepType === 'data' || step.stepType === 'page' || step.stepType === 'list')) {
           excelData.workflowSteps.push(stepData);
         }
       }
