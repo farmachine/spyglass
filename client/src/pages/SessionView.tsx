@@ -115,7 +115,7 @@ const FieldSelectionModalContent = ({
           const getInputConfig = () => {
             if (!stepValue.inputValues) return [];
             
-            const config: Array<{ key: string; value: any; type: string }> = [];
+            const config: Array<{ key: string; value: any; type: string; isDocument?: boolean }> = [];
             
             Object.entries(stepValue.inputValues).forEach(([key, value]) => {
               // Skip internal keys starting with numbers
@@ -150,6 +150,13 @@ const FieldSelectionModalContent = ({
                       value: value,
                       type: 'reference'
                     });
+                  } else if (value === 'user_document' || key.toLowerCase().includes('document')) {
+                    config.push({
+                      key: key,
+                      value: value,
+                      type: 'document',
+                      isDocument: true
+                    });
                   } else {
                     config.push({
                       key: 'Configuration',
@@ -159,11 +166,16 @@ const FieldSelectionModalContent = ({
                   }
                 }
               } else {
-                // Regular input parameter
+                // Regular input parameter - check if it's a document type
+                const isDocumentParam = key.toLowerCase().includes('document') || 
+                                      value === 'user_document' ||
+                                      (typeof value === 'string' && value.includes('document'));
+                
                 config.push({
                   key: key,
                   value: value,
-                  type: 'parameter'
+                  type: isDocumentParam ? 'document' : 'parameter',
+                  isDocument: isDocumentParam
                 });
               }
             });
@@ -213,11 +225,7 @@ const FieldSelectionModalContent = ({
                                 onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
                                 className="text-xs min-h-[60px] w-full"
                               />
-                            ) : config.type === 'references' ? (
-                              <div className="text-blue-600 dark:text-blue-400 text-xs">
-                                {config.value} <span className="text-gray-500">(read-only)</span>
-                              </div>
-                            ) : (
+                            ) : config.type === 'document' && config.isDocument ? (
                               <Select
                                 value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value[0] : config.value) || ''}
                                 onValueChange={(value) => handleInputChange(stepValue.id, config.key, value)}
@@ -234,6 +242,15 @@ const FieldSelectionModalContent = ({
                                   ))}
                                 </SelectContent>
                               </Select>
+                            ) : config.type === 'references' || config.type === 'array' || config.type === 'text' || config.type === 'parameter' ? (
+                              <div className="text-gray-600 dark:text-gray-400 text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded">
+                                {Array.isArray(config.value) ? config.value.join(', ') : config.value}
+                                <span className="text-gray-500 ml-2">(configured)</span>
+                              </div>
+                            ) : (
+                              <div className="text-gray-600 dark:text-gray-400 text-xs">
+                                {config.value}
+                              </div>
                             )}
                           </div>
                         </div>
