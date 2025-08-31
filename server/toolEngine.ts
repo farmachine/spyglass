@@ -541,10 +541,27 @@ export class ToolEngine {
       const parsedResults = this.parseAIResponse(rawResponse);
       
       // Map results to input records with identifierId preservation
-      const results = this.mapResultsToInputs(parsedResults, inputArray);
+      let results: ToolResult[];
+      
+      // For document-based extraction, return all AI results directly
+      // since there's no input array to map to
+      if (hasDocumentParam && !hasDataParam) {
+        console.log(`📄 Document extraction - returning all ${parsedResults.length} AI results directly`);
+        results = parsedResults.map((result, index) => ({
+          identifierId: result.identifierId || null,
+          extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
+          validationStatus: result.validationStatus || "valid",
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 95,
+          documentSource: result.documentSource || ""
+        }));
+      } else {
+        // For data array inputs, map results to maintain identifierId correlation
+        results = this.mapResultsToInputs(parsedResults, inputArray);
+      }
       
       if (progressCallback) {
-        progressCallback(inputArray.length, inputArray.length, 'Complete');
+        progressCallback(results.length, results.length, 'Complete');
       }
       
       console.log(`✅ AI extraction complete: ${results.length} results`);
