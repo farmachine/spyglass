@@ -3075,9 +3075,22 @@ Thank you for your assistance.`;
         });
       } else {
         // Create new validation record for Info Page field
+        // Find the schema field ID for this field name
+        const schemaField = project?.schemaFields?.find(field => 
+          field.fieldName === fieldName || 
+          field.fieldName === fieldName.replace('Sheme', 'Scheme') // Handle typo
+        );
+        
+        if (!schemaField) {
+          console.error('❌ No schema field found for:', fieldName);
+          console.error('❌ Available schema fields:', project?.schemaFields?.map(f => f.fieldName));
+          return;
+        }
+        
         const createData = {
           sessionId: sessionId,
           validationType: 'schema_field',
+          fieldId: schemaField.id,
           fieldName: fieldName,
           extractedValue: valueToStore,
           validationStatus: 'manual',
