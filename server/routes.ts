@@ -7430,6 +7430,9 @@ def extract_function(Column_Name, Excel_File):
             p.name === 'Data Description' || p.name === 'description'
           );
           
+          // Get the AI instructions from toolInputs where it was stored earlier
+          const aiInstructions = toolInputs['AI Query'] || '';
+          
           if (descParam && aiInstructions) {
             toolInputs[descParam.name] = aiInstructions;
             console.log(`✅ Added Data Description: ${aiInstructions}`);
