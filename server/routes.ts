@@ -6621,7 +6621,7 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { sessionId } = req.params;
-      const { stepId, valueId, documentId } = req.body;
+      const { stepId, valueId, documentId, customInputs } = req.body;
       let { previousData } = req.body;
       
       console.log(`📊 Running SINGLE column extraction for session ${sessionId}`);
@@ -6630,6 +6630,7 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   ⚠️ It does NOT extract all values in the step - just this one value`);
       console.log(`   Previous data records: ${previousData?.length || 0}`);
       console.log(`   Document ID: ${documentId || 'Using default'}`);
+      console.log(`   Custom inputs:`, customInputs ? JSON.stringify(customInputs, null, 2) : 'None');
       
       // Get the step and value details
       const step = await storage.getWorkflowStep(stepId);
@@ -7225,6 +7226,21 @@ def extract_function(Column_Name, Excel_File):
       }
       
       console.log(`📥 Tool inputs prepared:`, JSON.stringify(toolInputs, null, 2));
+      
+      // Override with custom inputs from user selection modal
+      if (customInputs && Object.keys(customInputs).length > 0) {
+        console.log(`🎛️ Applying custom inputs from user selection modal:`, JSON.stringify(customInputs, null, 2));
+        
+        // Merge custom inputs, allowing them to override default inputs
+        for (const [key, value] of Object.entries(customInputs)) {
+          if (value !== undefined && value !== null && value !== '') {
+            console.log(`  🔧 Setting ${key} = ${JSON.stringify(value)} (was: ${JSON.stringify(toolInputs[key])})`);
+            toolInputs[key] = value;
+          }
+        }
+        
+        console.log(`✅ Final tool inputs after custom input override:`, JSON.stringify(toolInputs, null, 2));
+      }
       
       // Add value configuration to tool inputs so AI tools can access inputValues
       if (value.inputValues) {

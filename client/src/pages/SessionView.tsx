@@ -47,14 +47,17 @@ const FieldSelectionModalContent = ({
   stepValues,
   onExtract,
   onCancel,
-  isExtracting
+  isExtracting,
+  sessionDocuments
 }: {
   stepValues: any[];
-  onExtract: (selectedFieldIds: string[]) => void;
+  onExtract: (selectedFieldIds: string[], fieldInputs: Record<string, any>) => void;
   onCancel: () => void;
   isExtracting: boolean;
+  sessionDocuments?: any[];
 }) => {
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  const [fieldInputs, setFieldInputs] = useState<Record<string, any>>({});
 
   const handleFieldSelection = (fieldId: string, checked: boolean) => {
     const newSelected = new Set(selectedFields);
@@ -76,8 +79,18 @@ const FieldSelectionModalContent = ({
 
   const handleExtract = () => {
     if (selectedFields.size > 0) {
-      onExtract(Array.from(selectedFields));
+      onExtract(Array.from(selectedFields), fieldInputs);
     }
+  };
+
+  const handleInputChange = (fieldId: string, inputKey: string, value: any) => {
+    setFieldInputs(prev => ({
+      ...prev,
+      [fieldId]: {
+        ...prev[fieldId],
+        [inputKey]: value
+      }
+    }));
   };
 
   return (
@@ -181,26 +194,60 @@ const FieldSelectionModalContent = ({
                     )}
                   </div>
 
-                  {/* Show tool configuration */}
+                  {/* Show interactive tool configuration */}
                   {inputConfig.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-1">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-2">
                       <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
                         Tool Configuration:
                       </div>
                       {inputConfig.map((config, index) => (
-                        <div key={index} className="text-xs">
+                        <div key={index} className="text-xs space-y-1">
                           <span className="font-medium text-gray-600 dark:text-gray-400">
                             {config.key}:
                           </span>
-                          <div className="ml-2 text-gray-500 dark:text-gray-500">
+                          <div className="ml-1">
                             {config.type === 'prompt' ? (
-                              <div className="max-h-20 overflow-y-auto bg-white dark:bg-gray-900 p-1 rounded text-xs border">
-                                {config.value}
-                              </div>
+                              <Textarea
+                                placeholder="Enter extraction instructions..."
+                                value={fieldInputs[stepValue.id]?.[config.key] || config.value || ''}
+                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
+                                className="text-xs min-h-[60px] w-full"
+                              />
+                            ) : config.type === 'parameter' && config.key.toLowerCase().includes('document') ? (
+                              <Select
+                                value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value[0] : config.value) || ''}
+                                onValueChange={(value) => handleInputChange(stepValue.id, config.key, value)}
+                              >
+                                <SelectTrigger className="text-xs h-8">
+                                  <SelectValue placeholder="Select document..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {sessionDocuments?.map((doc) => (
+                                    <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                                      {doc.fileName || doc.name || 'Untitled'}
+                                      {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             ) : config.type === 'references' ? (
-                              <span className="text-blue-600 dark:text-blue-400">{config.value}</span>
+                              <div className="text-blue-600 dark:text-blue-400 text-xs">
+                                {config.value} <span className="text-gray-500">(read-only)</span>
+                              </div>
+                            ) : config.type === 'array' && !config.key.toLowerCase().includes('document') ? (
+                              <Input
+                                placeholder="Enter comma-separated values..."
+                                value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value.join(', ') : config.value) || ''}
+                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value.split(',').map(v => v.trim()))}
+                                className="text-xs h-8"
+                              />
                             ) : (
-                              <span>{config.value}</span>
+                              <Input
+                                placeholder="Enter value..."
+                                value={fieldInputs[stepValue.id]?.[config.key] || config.value || ''}
+                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
+                                className="text-xs h-8"
+                              />
                             )}
                           </div>
                         </div>
@@ -3233,7 +3280,7 @@ Thank you for your assistance.`;
   };
 
   // Handle extraction from modal
-  const handleExtractSelectedFields = async (selectedFieldIds: string[]) => {
+  const handleExtractSelectedFields = async (selectedFieldIds: string[], fieldInputs: Record<string, any>) => {
     if (!currentToolGroup || extractingToolId) return;
     
     setExtractingToolId(currentToolGroup.toolId);
@@ -3247,10 +3294,6 @@ Thank you for your assistance.`;
         return;
       }
 
-      // Use primary document or first available document
-      const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
-      const documentId = primaryDoc?.id;
-
       // Filter to only selected fields
       const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
         selectedFieldIds.includes(value.id)
@@ -3261,15 +3304,29 @@ Thank you for your assistance.`;
         return;
       }
 
-      console.log(`Extracting ${fieldsToExtract.length} selected fields`);
+      console.log(`Extracting ${fieldsToExtract.length} selected fields with custom inputs`);
 
-      // Extract each field individually
+      // Extract each field individually with user-selected inputs
       for (const stepValue of fieldsToExtract) {
         try {
+          // Get user-selected document for this field, or fall back to primary/first
+          const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+          let documentId = userSelectedDoc;
+          
+          if (!documentId) {
+            // Fall back to primary or first document
+            const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+            documentId = primaryDoc?.id;
+          }
+
+          console.log(`Extracting field "${stepValue.valueName}" with document: ${documentId}`);
+          console.log(`Field inputs:`, fieldInputs[stepValue.id]);
+
           await extractField.mutateAsync({
             stepId,
             valueId: stepValue.id,
-            documentId
+            documentId,
+            customInputs: fieldInputs[stepValue.id] // Pass user-selected inputs
           });
           console.log(`✅ Extracted field: ${stepValue.valueName}`);
         } catch (error) {
@@ -5586,6 +5643,7 @@ Thank you for your assistance.`;
               onExtract={handleExtractSelectedFields}
               onCancel={() => setShowFieldSelectionModal(false)}
               isExtracting={extractingToolId === currentToolGroup.toolId}
+              sessionDocuments={sessionDocuments}
             />
           )}
         </DialogContent>
