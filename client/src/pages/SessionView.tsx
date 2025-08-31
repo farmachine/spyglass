@@ -3048,6 +3048,10 @@ Thank you for your assistance.`;
     console.log('  - newValue:', newValue);
     console.log('  - editValue:', editValue);
     
+    // Debug: Check what validations actually exist
+    console.log('  - All validation fieldNames:', validations.map(v => v.fieldName).slice(0, 10));
+    console.log('  - Validations without collection:', validations.filter(v => !v.collectionName).map(v => v.fieldName));
+    
     if (validation) {
       // Use provided value or current edit value
       const valueToUse = newValue !== undefined ? newValue : editValue;
