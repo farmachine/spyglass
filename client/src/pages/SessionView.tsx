@@ -4821,21 +4821,29 @@ Thank you for your assistance.`;
                                             v.extractedValue !== "undefined"
                                           );
                                           
+                                          // Check if column has any values
+                                          const hasValues = columnValidations.length > 0;
+                                          
                                           // Check if all fields are valid
-                                          const allValid = columnValidations.length > 0 && 
+                                          const allValid = hasValues && 
                                             columnValidations.every(v => v.validationStatus === 'valid');
+                                          
+                                          // Determine dot color: grey if no values, green if all valid, blue if has values but not all valid
+                                          const dotColor = !hasValues ? '#9ca3af' : allValid ? '#10b981' : '#4F63A4';
                                           
                                           return (
                                             <button
                                               onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
                                               className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                              title={allValid ? 
+                                              title={!hasValues ? 
+                                                `No values in ${columnName} column` :
+                                                allValid ? 
                                                 `All ${columnName} fields are valid. Click to set all to pending` : 
                                                 `Click to validate all ${columnName} fields`}
                                             >
                                               <div 
                                                 className="w-2 h-2 rounded-full"
-                                                style={{ backgroundColor: allValid ? '#10b981' : '#4F63A4' }}
+                                                style={{ backgroundColor: dotColor }}
                                               />
                                             </button>
                                           );
