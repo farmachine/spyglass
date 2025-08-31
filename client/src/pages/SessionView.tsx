@@ -4067,7 +4067,9 @@ Thank you for your assistance.`;
                         
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
-                        const validation = getValidation(fieldName);
+                        // Handle field name mismatch: step config has typo, but validation uses correct schema name
+                        const correctedFieldName = fieldName.replace('Sheme', 'Scheme');
+                        const validation = getValidation(fieldName) || getValidation(correctedFieldName);
                         
                         // Debug: Check what validation is being found after save
                         console.log('🔍 FIELD LOOKUP:', {
