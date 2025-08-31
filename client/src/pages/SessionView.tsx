@@ -3039,14 +3039,24 @@ Thank you for your assistance.`;
   };
 
   const handleSave = async (fieldName: string, newValue?: string) => {
-    console.log('🔍 SAVE START - fieldName:', fieldName, 'newValue:', newValue, 'editValue:', editValue);
+    if (!sessionId) {
+      return;
+    }
     
-    const validation = getValidation(fieldName);
-    console.log('🔍 SAVE - validation found:', !!validation);
+    // Find the step value for this field to get the proper fieldId
+    const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
+    const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
+    
+    if (!stepValue) {
+      console.error('❌ No step value found for:', fieldName);
+      return;
+    }
+    
+    // Use simple 1:1 lookup: step value id → validation fieldId
+    const validation = validations.find(v => v.fieldId === stepValue.id);
     
     // Use provided value or current edit value
     const valueToUse = newValue !== undefined ? newValue : editValue;
-    console.log('🔍 SAVE - valueToUse:', valueToUse);
     let valueToStore = valueToUse;
     const fieldType = getFieldType(fieldName);
     
@@ -3078,28 +3088,7 @@ Thank you for your assistance.`;
           }
         });
       } else {
-        console.log('🔍 SAVE - Creating new validation');
-        
-        // Find the Data Fields step from the project workflow
-        const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
-        console.log('🔍 SAVE - dataFieldsStep:', dataFieldsStep);
-        console.log('🔍 SAVE - dataFieldsStep.values:', dataFieldsStep?.values);
-        
-        if (!dataFieldsStep) {
-          console.error('❌ No Data Fields step found in project');
-          return;
-        }
-        
-        // Create new validation record directly from step value configuration
-        // Find the step value configuration for this field
-        const stepValue = dataFieldsStep.values?.find(v => v.valueName === fieldName);
-        console.log('🔍 SAVE - stepValue found:', stepValue);
-        
-        if (!stepValue) {
-          console.error('❌ No step value found for:', fieldName);
-          console.error('❌ Available step values:', dataFieldsStep.values?.map(v => v.valueName));
-          return;
-        }
+        // Create new validation record
         
         const createData = {
           sessionId: sessionId,
@@ -4082,11 +4071,8 @@ Thank you for your assistance.`;
                         
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
-                        // Simple lookup: step value id → validation fieldId (get most recent if multiple)
-                        const fieldValidations = validations.filter(v => v.fieldId === stepValue.id);
-                        const validation = fieldValidations.length > 0 
-                          ? fieldValidations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-                          : undefined;
+                        // Simple 1:1 lookup: step value id → validation fieldId
+                        const validation = validations.find(v => v.fieldId === stepValue.id);
                         
                         const originalValue = extractedData[fieldName];
                         
