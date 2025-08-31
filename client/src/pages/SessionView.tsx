@@ -3995,9 +3995,9 @@ Thank you for your assistance.`;
                   
                   {/* Circular icon - solid dot without border */}
                   <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: 
-                      activeTab === 'documents' ? '#4F63A4' : '#9ca3af' 
-                    }}></div>
+                    <div className={`w-2 h-2 rounded-full ${
+                      activeTab === 'documents' ? '' : 'bg-slate-400 dark:bg-gray-500'
+                    }`} style={activeTab === 'documents' ? { backgroundColor: '#4F63A4' } : {}}></div>
                   </div>
                   
                   {/* Tab button */}
@@ -4022,35 +4022,18 @@ Thank you for your assistance.`;
                   
                   {/* Circular icon - solid dot without border */}
                   <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: (() => {
-                      // For Data Fields tab, check if all single-value fields are validated
-                      const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
+                    {(() => {
+                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName?.includes('.'));
+                      const verifiedCount = infoValidations.filter(v => 
+                        v.validationStatus === 'valid' || 
+                        v.validationStatus === 'manual'
+                      ).length;
+                      const totalCount = infoValidations.length;
                       
-                      if (dataFieldsStep?.values && dataFieldsStep.values.length > 0) {
-                        const allFieldsValid = dataFieldsStep.values.every(value => {
-                          // Find validation for this field
-                          const validation = validations.find(v => v.fieldId === value.id);
-                          
-                          // Check if field has value and is valid
-                          const hasValue = validation?.extractedValue !== null && 
-                                         validation?.extractedValue !== undefined && 
-                                         validation?.extractedValue !== "" && 
-                                         validation?.extractedValue !== "null" && 
-                                         validation?.extractedValue !== "undefined";
-                          
-                          // Consider field valid if it has a value and is marked as valid
-                          return hasValue && validation?.validationStatus === 'valid';
-                        });
-                        
-                        // Green if all validated, blue if selected but not all validated, gray if not selected
-                        if (allFieldsValid) return '#10b981';
-                        if (activeTab === 'info') return '#4F63A4';
-                        return '#9ca3af';
-                      }
-                      
-                      // Default colors for tabs without validation data
-                      return activeTab === 'info' ? '#4F63A4' : '#9ca3af';
-                    })() }}></div>
+                      return <div className={`w-2 h-2 rounded-full ${
+                        activeTab === 'info' ? '' : 'bg-slate-400 dark:bg-gray-500'
+                      }`} style={activeTab === 'info' ? { backgroundColor: '#4F63A4' } : {}}></div>;
+                    })()}
                   </div>
                   
                   {/* Tab button */}
@@ -4123,41 +4106,9 @@ Thank you for your assistance.`;
                         
                         {/* Circular icon - solid dot without border */}
                         <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                          <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: (() => {
-                            // Check if all data is validated for this step
-                            const workflowStep = project?.workflowSteps?.find(
-                              step => step.stepName === item.name
-                            );
-                            
-                            if (workflowStep?.values) {
-                              // For data table steps, check if all columns are fully validated
-                              const allColumnsValid = workflowStep.values.every(column => {
-                                const columnName = column.valueName;
-                                
-                                // Get all validations for this column
-                                const columnValidations = validations.filter(v => 
-                                  v.fieldName?.includes(`${item.name}.${columnName}[`) &&
-                                  v.extractedValue !== null && 
-                                  v.extractedValue !== undefined && 
-                                  v.extractedValue !== "" && 
-                                  v.extractedValue !== "null" && 
-                                  v.extractedValue !== "undefined"
-                                );
-                                
-                                // Check if column has values and all are valid
-                                return columnValidations.length > 0 && 
-                                       columnValidations.every(v => v.validationStatus === 'valid');
-                              });
-                              
-                              // Green if all validated, blue if selected but not all validated, gray if not selected
-                              if (allColumnsValid) return '#10b981';
-                              if (activeTab === item.name) return '#4F63A4';
-                              return '#9ca3af';
-                            }
-                            
-                            // Default colors for items without validation data
-                            return activeTab === item.name ? '#4F63A4' : '#9ca3af';
-                          })() }}></div>
+                          <div className={`w-2 h-2 rounded-full ${
+                            activeTab === item.name ? '' : 'bg-slate-400 dark:bg-gray-500'
+                          }`} style={activeTab === item.name ? { backgroundColor: '#4F63A4' } : {}}></div>
                         </div>
                         
                         {/* Tab button */}
