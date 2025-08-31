@@ -3089,7 +3089,7 @@ Thank you for your assistance.`;
         
         console.log('🔍 CREATING VALIDATION:', createData);
         
-        await apiRequest('/api/validations', {
+        await apiRequest(`/api/sessions/${sessionId}/validations`, {
           method: 'POST',
           body: JSON.stringify(createData)
         });
