@@ -3319,15 +3319,27 @@ Thank you for your assistance.`;
           documentId = primaryDoc?.id;
         }
         
+        // For AI tools, include previousData as List Item in customInputs
+        const requestBody: any = {
+          stepId,
+          valueId: stepValue.id,
+          documentId,
+          previousData, // Send the complete previousData array
+        };
+        
+        // Merge custom inputs with List Item for AI tools
+        if (previousData && previousData.length > 0) {
+          requestBody.customInputs = {
+            ...fieldInputs[stepValue.id],
+            'List Item': previousData // Explicitly set List Item
+          };
+        } else {
+          requestBody.customInputs = fieldInputs[stepValue.id];
+        }
+        
         await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
           method: "POST",
-          body: JSON.stringify({
-            stepId,
-            valueId: stepValue.id,
-            documentId,
-            previousData, // Send the complete previousData array
-            customInputs: fieldInputs[stepValue.id]
-          }),
+          body: JSON.stringify(requestBody),
         });
         
         console.log(`✅ Extraction complete for: ${stepValue.valueName}`);
