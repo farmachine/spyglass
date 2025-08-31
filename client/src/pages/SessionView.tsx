@@ -4152,7 +4152,42 @@ Thank you for your assistance.`;
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center space-x-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: (() => {
+                        // Check if all columns are validated for data table tabs
+                        if (activeTab !== 'info' && activeTab !== 'documents') {
+                          // Get the workflow step for this collection
+                          const workflowStep = project?.workflowSteps?.find(
+                            step => step.stepName === activeTab
+                          );
+                          
+                          if (workflowStep?.values) {
+                            // Check if all columns have all their values validated
+                            const allColumnsValid = workflowStep.values.every(column => {
+                              const columnName = column.valueName;
+                              
+                              // Get all validations for this column
+                              const columnValidations = validations.filter(v => 
+                                v.fieldName?.includes(`${activeTab}.${columnName}[`) &&
+                                v.extractedValue !== null && 
+                                v.extractedValue !== undefined && 
+                                v.extractedValue !== "" && 
+                                v.extractedValue !== "null" && 
+                                v.extractedValue !== "undefined"
+                              );
+                              
+                              // Check if column has values and all are valid
+                              return columnValidations.length > 0 && 
+                                     columnValidations.every(v => v.validationStatus === 'valid');
+                            });
+                            
+                            // Return green if all columns are fully validated, blue otherwise
+                            return allColumnsValid ? '#10b981' : '#4F63A4';
+                          }
+                        }
+                        
+                        // Default blue for info/documents tabs or when no validation data
+                        return '#4F63A4';
+                      })() }}></div>
                       <h2 className="text-2xl font-bold dark:text-white">{(() => {
                         // Handle special tabs first
                         if (activeTab === 'info') return 'Data Fields';
