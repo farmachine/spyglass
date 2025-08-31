@@ -7162,8 +7162,9 @@ def extract_function(Column_Name, Excel_File):
         console.log(`⚠️ No inputValues defined for this value`);
       }
       
-      // Special handling for AI tools that expect List Item but have null input
-      // This is for cases like Standard Equivalent where previousData contains the merged column data
+      // MOVED TO AFTER customInputs - DO NOT populate List Item here anymore
+      // It will be handled after customInputs are applied
+      /*
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
@@ -7245,6 +7246,7 @@ def extract_function(Column_Name, Excel_File):
           console.log(`  Sample records:`, toolInputs['List Item'].slice(0, 3));
         }
       }
+      */
       
       // Add document content if the tool expects it
       if (tool.inputParameters?.some(p => p.name === 'document' || p.name === 'document_content')) {
@@ -7396,13 +7398,107 @@ def extract_function(Column_Name, Excel_File):
         
         // Merge custom inputs, allowing them to override default inputs
         for (const [key, value] of Object.entries(customInputs)) {
-          if (value !== undefined && value !== null && value !== '') {
-            console.log(`  🔧 Setting ${key} = ${JSON.stringify(value)} (was: ${JSON.stringify(toolInputs[key])})`);
+          // Don't skip empty arrays - they might be intentional
+          if (value !== undefined && value !== null) {
+            console.log(`  🔧 Setting ${key} = ${typeof value === 'object' ? `[${Array.isArray(value) ? value.length + ' items' : 'object'}]` : JSON.stringify(value)}`);
             toolInputs[key] = value;
           }
         }
         
         console.log(`✅ Final tool inputs after custom input override:`, JSON.stringify(toolInputs, null, 2));
+      }
+      
+      // NOW check for List Item AFTER customInputs have been applied
+      // Special handling for AI tools that expect List Item but don't have it yet
+      if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
+        const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
+        if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null || toolInputs['List Item'].length === 0) && previousData && previousData.length > 0) {
+          console.log('⚠️ List Item not provided in customInputs, populating from previousData...');
+          
+          // CRITICAL: Prioritize records for extraction based on their validation status
+          // Get existing validations for this value to check which records are already validated
+          const existingValidations = await storage.getFieldValidations(sessionId);
+          const valueValidations = existingValidations.filter(v => v.valueId === valueId);
+          
+          // Create a map of identifierId to validation status for quick lookup
+          const validationStatusMap = new Map<string, string>();
+          for (const validation of valueValidations) {
+            if (validation.identifierId) {
+              validationStatusMap.set(validation.identifierId, validation.validationStatus || 'pending');
+            }
+          }
+          
+          // Separate records into categories based on their extraction/validation status
+          const notExtractedRecords: any[] = [];
+          const pendingRecords: any[] = [];
+          const validatedRecords: any[] = [];
+          
+          for (const record of previousData) {
+            const identifierId = record.identifierId;
+            const validation = identifierId ? valueValidations.find(v => v.identifierId === identifierId) : null;
+            
+            if (!validation || validation.extractedValue === null || validation.extractedValue === undefined) {
+              // Not yet extracted - highest priority
+              notExtractedRecords.push(record);
+            } else if (validation.validationStatus === 'pending') {
+              // Already extracted but pending validation - second priority
+              pendingRecords.push(record);
+            } else if (validation.validationStatus === 'valid') {
+              // Already validated - do not include in extraction
+              validatedRecords.push(record);
+            } else {
+              // Unknown status - treat as pending
+              pendingRecords.push(record);
+            }
+          }
+          
+          console.log(`📊 Record prioritization for extraction:`);
+          console.log(`  🔴 Not extracted: ${notExtractedRecords.length} records`);
+          console.log(`  🟡 Pending: ${pendingRecords.length} records`);
+          console.log(`  🟢 Validated: ${validatedRecords.length} records (will NOT be extracted)`);
+          
+          // Build the batch prioritizing not-extracted, then pending, never validated
+          const prioritizedData = [...notExtractedRecords, ...pendingRecords];
+          
+          // Apply 50-record limit for AI tools to prevent excessive processing
+          const limitedPreviousData = prioritizedData.slice(0, 50);
+          console.log(`🎯 AI tool expects List Item - using ${limitedPreviousData.length} prioritized records (from ${prioritizedData.length} eligible, ${previousData.length} total)`);
+          
+          if (limitedPreviousData.length > 0) {
+            console.log(`  First record:`, limitedPreviousData[0]);
+            console.log(`  Last record:`, limitedPreviousData[limitedPreviousData.length - 1]);
+          }
+          
+          // Format previousData for the AI tool - it should contain merged column information
+          toolInputs['List Item'] = limitedPreviousData.map(record => {
+            // Include identifierId and all column values from the record
+            const formattedRecord: any = {};
+            
+            // Always include identifierId if present
+            if (record.identifierId) {
+              formattedRecord.identifierId = record.identifierId;
+            }
+            
+            // Include all other fields from the record
+            for (const [key, value] of Object.entries(record)) {
+              if (key !== 'identifierId') {
+                formattedRecord[key] = value;
+              }
+            }
+            
+            return formattedRecord;
+          });
+          
+          console.log(`✅ Populated List Item with ${toolInputs['List Item'].length} records from previousData`);
+          console.log(`  Sample records:`, toolInputs['List Item'].slice(0, 3));
+        } else if (toolInputs['List Item'] && Array.isArray(toolInputs['List Item'])) {
+          console.log(`✅ List Item already provided via customInputs: ${toolInputs['List Item'].length} records`);
+          // Limit to 50 records for AI processing
+          if (toolInputs['List Item'].length > 50) {
+            console.log(`⚠️ Limiting List Item from ${toolInputs['List Item'].length} to 50 records for AI processing`);
+            toolInputs['List Item'] = toolInputs['List Item'].slice(0, 50);
+          }
+        }
       }
       
       // Add value configuration to tool inputs so AI tools can access inputValues
