@@ -463,10 +463,20 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // 1. Find data input array if exists
+      // Check if this is document-based extraction (Info Page) or array-based (Data Table)
       const dataInput = this.findDataInput(tool, inputs);
+      const hasDocument = inputs['document'] || inputs['0.4q2kmgz9hxo'] || inputs['sessionDocumentContent'];
+      const hasAIQuery = inputs['AI Query'] || inputs['valueConfiguration']?.inputValues?.['0.cdani1tj77s'];
+      
+      // Handle document-based extraction for Info Page fields
+      if (!dataInput && hasDocument && hasAIQuery) {
+        console.log('📄 Document-based AI extraction detected (Info Page field)');
+        return this.extractFromDocument(tool, inputs);
+      }
+      
+      // Original array-based extraction for Data Tables
       if (!dataInput || !Array.isArray(dataInput.value)) {
-        throw new Error('AI tool requires data input array');
+        throw new Error('AI tool requires either a data input array or document content with AI instructions');
       }
 
       // 2. Limit to 50 records for performance
@@ -545,6 +555,137 @@ export class ToolEngine {
       }
       
       throw error;
+    }
+  }
+  
+  /**
+   * Extract single value from document (Info Page extraction)
+   */
+  private async extractFromDocument(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+    try {
+      // Get document content
+      const documentContent = inputs['document'] || inputs['0.4q2kmgz9hxo'] || inputs['sessionDocumentContent'] || '';
+      
+      // Get AI instructions
+      let aiQuery = inputs['AI Query'] || '';
+      const valueConfig = inputs['valueConfiguration'];
+      
+      // Extract from inputValues if not already set
+      if (!aiQuery && valueConfig?.inputValues) {
+        for (const [key, val] of Object.entries(valueConfig.inputValues)) {
+          if (typeof val === 'string' && !val.startsWith('@')) {
+            aiQuery = val;
+            break;
+          }
+        }
+      }
+      
+      // Build extraction prompt
+      const prompt = `You are extracting a specific value from a document.
+
+Field to Extract: "${valueConfig?.valueName || 'Value'}"
+${valueConfig?.description ? `Description: ${valueConfig.description}` : ''}
+Extraction Instructions: ${aiQuery || 'Extract the requested value from the document'}
+
+Document Content:
+================
+${documentContent}
+================
+
+Instructions:
+1. Extract only the requested value from the document
+2. Return ONLY a JSON object in this exact format:
+{
+  "extractedValue": "<the extracted value>",
+  "validationStatus": "valid",
+  "aiReasoning": "<brief explanation of where you found it>",
+  "confidenceScore": <0-100>,
+  "documentSource": "<section or location in document>"
+}
+
+3. If the value cannot be found, use:
+{
+  "extractedValue": null,
+  "validationStatus": "invalid", 
+  "aiReasoning": "Value not found in document",
+  "confidenceScore": 0,
+  "documentSource": "NOT_FOUND"
+}
+
+Extract the value now:`;
+
+      // Log the prompt
+      console.log('\n🔍 ========== DOCUMENT EXTRACTION PROMPT ==========');
+      console.log('Field Name:', valueConfig?.valueName);
+      console.log('AI Instructions:', aiQuery);
+      console.log('Document Length:', documentContent.length, 'characters');
+      console.log('\n--- PROMPT BEGINS ---');
+      console.log(prompt);
+      console.log('--- PROMPT ENDS ---');
+      console.log('🔍 ========== END OF PROMPT ==========\n');
+      
+      // Call Gemini API
+      console.log(`🤖 Calling Gemini API for single value extraction`);
+      const response = await genAI.models.generateContent({
+        model: tool.llmModel || "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
+      });
+      
+      // Extract response
+      const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      // Log the raw response
+      console.log('\n🤖 ========== RAW AI RESPONSE ==========');
+      console.log('Response Length:', rawResponse.length, 'characters');
+      console.log('\n--- RESPONSE BEGINS ---');
+      console.log(rawResponse);
+      console.log('--- RESPONSE ENDS ---');
+      console.log('🤖 ========== END OF AI RESPONSE ==========\n');
+      
+      // Parse the response
+      let result: ToolResult;
+      try {
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          result = {
+            extractedValue: parsed.extractedValue,
+            validationStatus: parsed.validationStatus || "valid",
+            aiReasoning: parsed.aiReasoning || "Extracted from document",
+            confidenceScore: parsed.confidenceScore || 85,
+            documentSource: parsed.documentSource || "Document"
+          };
+        } else {
+          throw new Error("No JSON found in response");
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        result = {
+          extractedValue: null,
+          validationStatus: "invalid",
+          aiReasoning: "Failed to parse AI response",
+          confidenceScore: 0,
+          documentSource: "ERROR"
+        };
+      }
+      
+      console.log(`✅ Document extraction complete:`, result);
+      return [result];
+      
+    } catch (error) {
+      console.error('❌ Document extraction error:', error);
+      return [{
+        extractedValue: null,
+        validationStatus: "invalid" as const,
+        aiReasoning: `Extraction failed: ${error instanceof Error ? error.message : String(error)}`,
+        confidenceScore: 0,
+        documentSource: "ERROR"
+      }];
     }
   }
   
