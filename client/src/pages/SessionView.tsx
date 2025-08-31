@@ -41,6 +41,7 @@ import type {
   ValidationStatus 
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useToast } from "@/hooks/use-toast";
 
 // Field Selection Modal Content Component
 const FieldSelectionModalContent = ({
@@ -1283,6 +1284,7 @@ const AIExtractionModal = ({
 
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
+  const { toast } = useToast();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editingTableField, setEditingTableField] = useState<string | null>(null);
