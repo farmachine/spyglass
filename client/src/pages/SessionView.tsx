@@ -1123,6 +1123,8 @@ export default function SessionView() {
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
   const [editingDisplayNames, setEditingDisplayNames] = useState<Record<string, boolean>>({});
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  const [extractingToolId, setExtractingToolId] = useState<string | null>(null);
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('info');
   const [selectedReasoning, setSelectedReasoning] = useState<{
@@ -1600,6 +1602,28 @@ export default function SessionView() {
     },
     onError: (error: any) => {
       console.error('Failed to update field:', error);
+    }
+  });
+
+  // Extract single field using existing column extraction endpoint
+  const extractField = useMutation({
+    mutationFn: async ({ stepId, valueId, documentId }: { stepId: string; valueId: string; documentId?: string }) => {
+      return apiRequest(`/api/sessions/${sessionId}/extract-column`, {
+        method: "POST",
+        body: JSON.stringify({
+          stepId,
+          valueId,
+          documentId,
+          previousData: []
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/validations/project", projectId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/validations`] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to extract field:', error);
     }
   });
 
@@ -3003,6 +3027,65 @@ Thank you for your assistance.`;
     }
   };
 
+  // Field selection functions
+  const handleFieldSelection = (fieldId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFields);
+    if (checked) {
+      newSelected.add(fieldId);
+    } else {
+      newSelected.delete(fieldId);
+    }
+    setSelectedFields(newSelected);
+  };
+
+  // Group extraction function
+  const handleGroupExtraction = async (toolId: string, stepValues: any[]) => {
+    if (extractingToolId) return; // Prevent multiple simultaneous extractions
+    
+    setExtractingToolId(toolId);
+    
+    try {
+      // Get step ID from any value in the group (they all have the same stepId)
+      const stepId = stepValues[0]?.stepId;
+      if (!stepId) {
+        console.error('No step ID found for extraction');
+        return;
+      }
+
+      // Use primary document or first available document
+      const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+      const documentId = primaryDoc?.id;
+
+      // Filter to only selected fields in this group, or all fields if none selected
+      const fieldsToExtract = stepValues.filter(value => 
+        selectedFields.size === 0 || selectedFields.has(value.id)
+      );
+
+      if (fieldsToExtract.length === 0) {
+        console.log('No fields selected for extraction');
+        return;
+      }
+
+      console.log(`Extracting ${fieldsToExtract.length} fields from tool group ${toolId}`);
+
+      // Extract each field individually
+      for (const stepValue of fieldsToExtract) {
+        try {
+          await extractField.mutateAsync({
+            stepId,
+            valueId: stepValue.id,
+            documentId
+          });
+          console.log(`✅ Extracted field: ${stepValue.valueName}`);
+        } catch (error) {
+          console.error(`❌ Failed to extract field ${stepValue.valueName}:`, error);
+        }
+      }
+    } finally {
+      setExtractingToolId(null);
+    }
+  };
+
   const handleDateChange = async (fieldName: string, dateValue: string) => {
     const validation = getValidation(fieldName);
     if (validation) {
@@ -4090,12 +4173,24 @@ Thank you for your assistance.`;
                             <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/30 dark:bg-gray-800/30">
                               {/* Magic Wand Icon for extraction groups */}
                               {toolId !== 'manual' && (
-                                <div className="absolute top-3 right-3">
+                                <div className="absolute top-3 right-3 flex items-center gap-2">
+                                  {/* Selection count for this group */}
+                                  {selectedFields.size > 0 && stepValues.some(sv => selectedFields.has(sv.id)) && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {stepValues.filter(sv => selectedFields.has(sv.id)).length} selected
+                                    </span>
+                                  )}
                                   <button 
-                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors"
-                                    title="Extract all fields in this group"
+                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors disabled:opacity-50"
+                                    title={selectedFields.size > 0 ? "Extract selected fields" : "Extract all fields in this group"}
+                                    onClick={() => handleGroupExtraction(toolId, stepValues)}
+                                    disabled={extractingToolId === toolId}
                                   >
-                                    <Wand2 className="w-4 h-4" />
+                                    {extractingToolId === toolId ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Wand2 className="w-4 h-4" />
+                                    )}
                                   </button>
                                 </div>
                               )}
@@ -4197,6 +4292,14 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
+                                {/* Selection checkbox for non-manual fields */}
+                                {toolId !== 'manual' && (
+                                  <Checkbox
+                                    checked={selectedFields.has(stepValue.id)}
+                                    onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
+                                    className="h-4 w-4"
+                                  />
+                                )}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   {fieldName}
                                 </Label>
