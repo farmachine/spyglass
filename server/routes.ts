@@ -1786,8 +1786,8 @@ except Exception as e:
           
           if (step.values) {
             for (const value of step.values) {
-              // Find validation for this value
-              const validation = allValidations.find(v => v.fieldId === value.id);
+              // Find validation for this value - use valueId for new architecture
+              const validation = allValidations.find(v => v.valueId === value.id || v.fieldId === value.id);
               infoData.push({
                 fieldName: value.valueName || 'Unknown Field',
                 value: validation?.extractedValue || ''
@@ -1807,8 +1807,8 @@ except Exception as e:
           const recordMap = new Map<number, any>();
           
           for (const value of stepValues) {
-            // Find all validations for this value (across all records)
-            const valueValidations = allValidations.filter(v => v.fieldId === value.id);
+            // Find all validations for this value (across all records) - use valueId for new architecture
+            const valueValidations = allValidations.filter(v => v.valueId === value.id || v.fieldId === value.id);
             
             for (const validation of valueValidations) {
               const recordIndex = validation.recordIndex ?? 0;
