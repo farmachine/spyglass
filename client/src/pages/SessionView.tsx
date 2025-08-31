@@ -213,7 +213,11 @@ const FieldSelectionModalContent = ({
                                 onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
                                 className="text-xs min-h-[60px] w-full"
                               />
-                            ) : config.type === 'parameter' && config.key.toLowerCase().includes('document') ? (
+                            ) : config.type === 'references' ? (
+                              <div className="text-blue-600 dark:text-blue-400 text-xs">
+                                {config.value} <span className="text-gray-500">(read-only)</span>
+                              </div>
+                            ) : (
                               <Select
                                 value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value[0] : config.value) || ''}
                                 onValueChange={(value) => handleInputChange(stepValue.id, config.key, value)}
@@ -230,24 +234,6 @@ const FieldSelectionModalContent = ({
                                   ))}
                                 </SelectContent>
                               </Select>
-                            ) : config.type === 'references' ? (
-                              <div className="text-blue-600 dark:text-blue-400 text-xs">
-                                {config.value} <span className="text-gray-500">(read-only)</span>
-                              </div>
-                            ) : config.type === 'array' && !config.key.toLowerCase().includes('document') ? (
-                              <Input
-                                placeholder="Enter comma-separated values..."
-                                value={fieldInputs[stepValue.id]?.[config.key] || (Array.isArray(config.value) ? config.value.join(', ') : config.value) || ''}
-                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value.split(',').map(v => v.trim()))}
-                                className="text-xs h-8"
-                              />
-                            ) : (
-                              <Input
-                                placeholder="Enter value..."
-                                value={fieldInputs[stepValue.id]?.[config.key] || config.value || ''}
-                                onChange={(e) => handleInputChange(stepValue.id, config.key, e.target.value)}
-                                className="text-xs h-8"
-                              />
                             )}
                           </div>
                         </div>
