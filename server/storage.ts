@@ -3676,16 +3676,32 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
-  // Chat Messages (stub implementation for now)
+  // Chat Messages (in-memory implementation)
+  private chatMessages: Map<string, any[]> = new Map();
+
   async saveChatMessage(sessionId: string, userId: string, role: string, content: string): Promise<void> {
-    // Stub implementation - just log for now
+    const message = {
+      id: this.generateUUID(),
+      sessionId,
+      userId,
+      role,
+      content,
+      timestamp: new Date().toISOString()
+    };
+    
+    if (!this.chatMessages.has(sessionId)) {
+      this.chatMessages.set(sessionId, []);
+    }
+    
+    const messages = this.chatMessages.get(sessionId)!;
+    messages.push(message);
+    
     console.log(`Chat message saved: [${role}] ${content.substring(0, 50)}...`);
     return Promise.resolve();
   }
 
   async getChatMessages(sessionId: string): Promise<any[]> {
-    // Stub implementation - return empty array for now
-    return [];
+    return this.chatMessages.get(sessionId) || [];
   }
 }
 
