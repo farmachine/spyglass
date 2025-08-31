@@ -4082,9 +4082,16 @@ Thank you for your assistance.`;
                         
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
-                        // Handle field name mismatch: step config has typo, but validation uses correct schema name
+                        // For Info Page fields, look up validation by fieldId (step value ID) for better accuracy
+                        // This handles cases where field names might have typos or mismatches
+                        const validationByFieldId = validations.find(v => v.fieldId === stepValue.id);
+                        
+                        // Fallback to field name lookup with typo correction
                         const correctedFieldName = fieldName.replace('Sheme', 'Scheme');
-                        const validation = getValidation(fieldName) || getValidation(correctedFieldName);
+                        const validationByName = getValidation(fieldName) || getValidation(correctedFieldName);
+                        
+                        // Prefer fieldId lookup (more reliable), fallback to name lookup
+                        const validation = validationByFieldId || validationByName;
                         
                         // Debug: Check validation lookup after save
                         if (fieldName === 'Pension Sheme Name') {

@@ -1,0 +1,71 @@
+CREATE VALIDATION - About to create validation with data: {
+  "sessionId": "29e7713e-e4b9-4966-b414-5f4393164266",
+  "validationType": "schema_field",
+  "dataType": "TEXT",
+  "fieldId": "f357a84d-d08a-43f1-985d-7d0e0e4187ec",
+  "extractedValue": "Ersatz",
+  "validationStatus": "manual",
+  "manuallyVerified": true,
+  "manuallyUpdated": true,
+  "confidenceScore": 100
+}
+CREATE VALIDATION - Created validation: {
+  "id": "fe319558-f24e-44d5-90b4-3455515f1ed8",
+  "sessionId": "29e7713e-e4b9-4966-b414-5f4393164266",
+  "stepId": null,
+  "valueId": null,
+  "identifierId": null,
+  "validationType": "schema_field",
+  "dataType": "TEXT",
+  "fieldId": "f357a84d-d08a-43f1-985d-7d0e0e4187ec",
+  "collectionId": null,
+  "collectionName": null,
+  "recordIndex": 0,
+  "extractedValue": "Ersatz",
+  "originalExtractedValue": null,
+  "originalConfidenceScore": 0,
+  "originalAiReasoning": null,
+  "validationStatus": "manual",
+  "aiReasoning": null,
+  "manuallyVerified": true,
+  "manuallyUpdated": true,
+  "confidenceScore": 100,
+  "documentSource": null,
+  "documentSections": null,
+  "createdAt": "2025-08-31T10:55:49.371Z",
+  "updatedAt": "2025-08-31T10:55:49.371Z"
+}
+10:55:49 AM [express] POST /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/validations 201 in 515ms :: [JSON response - 653 chars]
+10:55:49 AM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 3ms
+10:55:52 AM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/validations 200 in 2899ms
+10:55:54 AM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266 304 in 27ms
+10:55:54 AM [browser] 📝 🔍 FIELD LOOKUP DEBUG for Pension Sheme Name
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [browser] 📝   - correctedFieldName: Pension Scheme Name
+10:55:54 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation found: true
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation id: c642c44a-11b1-4683-a633-61afd62f8136
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation fieldId: ce6dbf10-8af4-4b4c-835f-ed994d3806ed
+10:55:54 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:55:54 AM [express] GET /api/sessions/29e7713e-e4b9-4966-b414-5f4393164266/documents 304 in 42ms
+10:55:54 AM [browser] 📝   - validation extractedValue: test
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [express] GET /api/validations/project/915d87a3-dd55-401e-8f8b-df38132c2215 200 in 9ms
+10:55:54 AM [browser] 📝   - all validations with field info: [{"id":"c642c44a-11b1-4683-a633-61afd62f8136","fieldId":"ce6dbf10-8af4-4b4c-835f-ed994d3806ed","fieldName":"Pe...
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [browser] 📝 🔍 FIELD LOOKUP DEBUG for Pension Sheme Name
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation found: true
+10:55:54 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:55:54 AM [browser] 📝   - correctedFieldName: Pension Scheme Name
+10:55:54 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation id: c642c44a-11b1-4683-a633-61afd62f8136
+10:55:54 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:55:54 AM [browser] 📝   - validation fieldId: ce6dbf10-8af4-4b4c-835f-ed994d3806ed
+10:55:54 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:55 AM [browser] 📝   - validation extractedValue: test
+10:55:55 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+10:55:55 AM [browser] 📝   - all validations with field info: [{"id":"c642c44a-11b1-4683-a633-61afd62f8136","fieldId":"ce6dbf10-8af4-4b4c-835f-ed994d3806ed","fieldName":"Pe...
+10:55:55 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
