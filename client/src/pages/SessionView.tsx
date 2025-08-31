@@ -3209,60 +3209,65 @@ Thank you for your assistance.`;
   const handleExtractSelectedFields = async (selectedFieldIds: string[], fieldInputs: Record<string, any>) => {
     if (!currentToolGroup || extractingToolId) return;
     
-    setExtractingToolId(currentToolGroup.toolId);
-    setShowFieldSelectionModal(false);
+    // DEBUG MODE - Just log the data instead of extracting
+    console.log('=== EXTRACTION DEBUG ===');
+    console.log('Selected Field IDs:', selectedFieldIds);
+    console.log('Field Inputs from modal:', fieldInputs);
+    console.log('Current Tool Group:', currentToolGroup);
     
-    try {
-      // Get step ID from any value in the group
-      const stepId = currentToolGroup.stepValues[0]?.stepId;
-      if (!stepId) {
-        console.error('No step ID found for extraction');
-        return;
+    // Get step ID from any value in the group
+    const stepId = currentToolGroup.stepValues[0]?.stepId;
+    console.log('Step ID:', stepId);
+    
+    // Filter to only selected fields
+    const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
+      selectedFieldIds.includes(value.id)
+    );
+    
+    console.log(`\nSelected ${fieldsToExtract.length} fields for extraction:`);
+    
+    // Log each selected value object
+    fieldsToExtract.forEach((stepValue, index) => {
+      console.log(`\n--- Selected Value ${index + 1} ---`);
+      console.log('Full stepValue object:', stepValue);
+      console.log('ID:', stepValue.id);
+      console.log('Name:', stepValue.valueName);
+      console.log('Description:', stepValue.description);
+      console.log('Data Type:', stepValue.dataType);
+      console.log('Tool ID:', stepValue.toolId);
+      console.log('Original inputValues:', stepValue.inputValues);
+      console.log('Custom inputs from modal:', fieldInputs[stepValue.id]);
+      
+      // Get user-selected document for this field
+      const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+      let documentId = userSelectedDoc;
+      
+      if (!documentId) {
+        // Fall back to primary or first document
+        const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+        documentId = primaryDoc?.id;
       }
-
-      // Filter to only selected fields
-      const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
-        selectedFieldIds.includes(value.id)
-      );
-
-      if (fieldsToExtract.length === 0) {
-        console.log('No fields selected for extraction');
-        return;
-      }
-
-      console.log(`Extracting ${fieldsToExtract.length} selected fields with custom inputs`);
-
-      // Extract each field individually with user-selected inputs
-      for (const stepValue of fieldsToExtract) {
-        try {
-          // Get user-selected document for this field, or fall back to primary/first
-          const userSelectedDoc = fieldInputs[stepValue.id]?.document;
-          let documentId = userSelectedDoc;
-          
-          if (!documentId) {
-            // Fall back to primary or first document
-            const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
-            documentId = primaryDoc?.id;
-          }
-
-          console.log(`Extracting field "${stepValue.valueName}" with document: ${documentId}`);
-          console.log(`Field inputs:`, fieldInputs[stepValue.id]);
-
-          await extractField.mutateAsync({
-            stepId,
-            valueId: stepValue.id,
-            documentId,
-            customInputs: fieldInputs[stepValue.id] // Pass user-selected inputs
-          });
-          console.log(`✅ Extracted field: ${stepValue.valueName}`);
-        } catch (error) {
-          console.error(`❌ Failed to extract field ${stepValue.valueName}:`, error);
-        }
-      }
-    } finally {
-      setExtractingToolId(null);
-      setCurrentToolGroup(null);
-    }
+      
+      console.log('Document ID to use:', documentId);
+      console.log('Would extract with params:', {
+        stepId,
+        valueId: stepValue.id,
+        documentId,
+        customInputs: fieldInputs[stepValue.id]
+      });
+    });
+    
+    console.log('\n=== END DEBUG ===\n');
+    
+    // Close modal and reset state
+    setShowFieldSelectionModal(false);
+    setExtractingToolId(null);
+    setCurrentToolGroup(null);
+    
+    toast({
+      title: "Debug Mode",
+      description: `Check console for ${fieldsToExtract.length} selected value objects`,
+    });
   };
 
   const handleDateChange = async (fieldName: string, dateValue: string) => {
