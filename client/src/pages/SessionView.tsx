@@ -3230,13 +3230,20 @@ Thank you for your assistance.`;
         return;
       }
 
-      console.log(`Extracting ${fieldsToExtract.length} selected fields with custom inputs`);
+      console.log(`Extracting ${fieldsToExtract.length} selected fields using batch extraction`);
 
-      // Extract each field individually with user-selected inputs
-      for (const stepValue of fieldsToExtract) {
-        try {
-          // Get user-selected document for this field, or fall back to primary/first
-          const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+      // Check if we should use batch extraction (multiple fields from same info page)
+      const isInfoPage = currentToolGroup.stepValues[0]?.stepType === 'InfoPage';
+      
+      if (isInfoPage && fieldsToExtract.length > 1) {
+        // Use batch extraction for multiple info page fields
+        const valueIds = fieldsToExtract.map(f => f.id);
+        const documentIds: Record<string, string> = {};
+        const customInputs: Record<string, any> = {};
+        
+        // Prepare document IDs and custom inputs for each value
+        fieldsToExtract.forEach(field => {
+          const userSelectedDoc = fieldInputs[field.id]?.document;
           let documentId = userSelectedDoc;
           
           if (!documentId) {
@@ -3244,19 +3251,64 @@ Thank you for your assistance.`;
             const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
             documentId = primaryDoc?.id;
           }
-
-          console.log(`Extracting field "${stepValue.valueName}" with document: ${documentId}`);
-          console.log(`Field inputs:`, fieldInputs[stepValue.id]);
-
-          await extractField.mutateAsync({
+          
+          if (documentId) {
+            documentIds[field.id] = documentId;
+          }
+          
+          // Store custom inputs if provided
+          if (fieldInputs[field.id]) {
+            customInputs[field.id] = fieldInputs[field.id];
+          }
+        });
+        
+        console.log(`📊 Batch extracting ${valueIds.length} fields in a single AI call`);
+        
+        // Make batch extraction API call
+        const response = await apiRequest('/api/sessions/' + sessionId + '/extract-batch', {
+          method: 'POST',
+          body: JSON.stringify({
             stepId,
-            valueId: stepValue.id,
-            documentId,
-            customInputs: fieldInputs[stepValue.id] // Pass user-selected inputs
+            valueIds,
+            documentIds,
+            customInputs,
+            previousData: [] // Add previous data if needed
+          })
+        });
+        
+        if (response.success) {
+          console.log(`✅ Batch extraction completed: ${response.totalExtracted} fields extracted`);
+          
+          // Invalidate validations to refresh the UI
+          await queryClient.invalidateQueries({ 
+            queryKey: ['/api/validations/project', project?.id] 
           });
-          console.log(`✅ Extracted field: ${stepValue.valueName}`);
-        } catch (error) {
-          console.error(`❌ Failed to extract field ${stepValue.valueName}:`, error);
+        }
+      } else {
+        // Fall back to individual extraction for single fields or non-info pages
+        for (const stepValue of fieldsToExtract) {
+          try {
+            const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+            let documentId = userSelectedDoc;
+            
+            if (!documentId) {
+              const primaryDoc = sessionDocuments?.find(d => d.isPrimary) || sessionDocuments?.[0];
+              documentId = primaryDoc?.id;
+            }
+
+            console.log(`Extracting field "${stepValue.valueName}" with document: ${documentId}`);
+            console.log(`Field inputs:`, fieldInputs[stepValue.id]);
+
+            await extractField.mutateAsync({
+              stepId,
+              valueId: stepValue.id,
+              documentId,
+              customInputs: fieldInputs[stepValue.id]
+            });
+            console.log(`✅ Extracted field: ${stepValue.valueName}`);
+          } catch (error) {
+            console.error(`❌ Failed to extract field ${stepValue.valueName}:`, error);
+          }
         }
       }
     } finally {

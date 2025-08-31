@@ -6617,6 +6617,203 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Batch extraction endpoint for multiple values in a single AI call
+  app.post("/api/sessions/:sessionId/extract-batch", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { stepId, valueIds, documentIds, customInputs } = req.body;
+      let { previousData } = req.body;
+      
+      console.log(`📊 Running BATCH extraction for session ${sessionId}`);
+      console.log(`   Step ID: ${stepId}, Value IDs: ${valueIds.length} values`);
+      console.log(`   Previous data records: ${previousData?.length || 0}`);
+      
+      // Get the step details
+      const step = await storage.getWorkflowStep(stepId);
+      if (!step) {
+        return res.status(404).json({ message: "Workflow step not found" });
+      }
+      
+      // Get all values to extract
+      const values = await Promise.all(valueIds.map((id: string) => storage.getStepValue(id)));
+      const validValues = values.filter(v => v !== null);
+      
+      if (validValues.length === 0) {
+        return res.status(404).json({ message: "No valid values found" });
+      }
+      
+      // Get session and documents
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      const sessionDocuments = await storage.getSessionDocuments(sessionId);
+      if (sessionDocuments.length === 0) {
+        return res.status(400).json({ message: "No documents available for extraction" });
+      }
+      
+      // Get the project for prompts
+      const project = await storage.getProject(session.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Group values by document
+      const valuesByDocument = new Map<string, any[]>();
+      
+      for (let i = 0; i < validValues.length; i++) {
+        const value = validValues[i];
+        const docId = documentIds?.[value.id] || documentIds?.default || 
+                     sessionDocuments.find(d => d.isPrimary)?.id || 
+                     sessionDocuments[0].id;
+        
+        if (!valuesByDocument.has(docId)) {
+          valuesByDocument.set(docId, []);
+        }
+        valuesByDocument.get(docId)!.push(value);
+      }
+      
+      const results = [];
+      
+      // Process each document group with a single AI call
+      for (const [docId, docValues] of valuesByDocument) {
+        const targetDoc = sessionDocuments.find(d => d.id === docId);
+        if (!targetDoc) continue;
+        
+        console.log(`📝 Extracting ${docValues.length} values from document ${targetDoc.fileName || targetDoc.name} in a single AI call`);
+        
+        // Get tools for all values
+        const tools = await Promise.all(docValues.map(v => storage.getExcelWizardryFunction(v.toolId)));
+        
+        // Build extraction prompts for all values
+        const extractionTasks = docValues.map((value, index) => {
+          const tool = tools[index];
+          const customInput = customInputs?.[value.id] || {};
+          
+          // Get AI instructions from various sources
+          let aiInstructions = '';
+          if (customInput['0.cdani1tj77s']) {
+            aiInstructions = customInput['0.cdani1tj77s'];
+          } else if (value.inputValues?.['0.cdani1tj77s']) {
+            aiInstructions = value.inputValues['0.cdani1tj77s'];
+          } else if (tool?.aiPrompt) {
+            aiInstructions = tool.aiPrompt;
+          }
+          
+          return {
+            id: value.id,
+            name: value.valueName,
+            description: value.description || '',
+            dataType: value.dataType || 'text',
+            instructions: aiInstructions
+          };
+        });
+        
+        // Create batch extraction prompt
+        const prompt = `You are extracting data from "${targetDoc.fileName || targetDoc.name}".
+
+Extract the following ${extractionTasks.length} values:
+${extractionTasks.map((task, i) => `
+${i + 1}. "${task.name}"${task.description ? ` - ${task.description}` : ''}
+   Type: ${task.dataType}
+   ${task.instructions ? `Instructions: ${task.instructions}` : ''}`).join('\n')}
+
+Document content:
+${targetDoc.content || ''}
+
+${previousData && previousData.length > 0 ? `
+Context from previous extractions:
+${JSON.stringify(previousData.slice(0, 5), null, 2)}
+` : ''}
+
+Return a JSON object with the extracted values. Use the exact field names as keys:
+{
+  ${extractionTasks.map(t => `"${t.name}": <extracted value or null if not found>`).join(',\n  ')}
+}
+
+Important:
+- Extract each value according to its type and instructions
+- Return null for values that cannot be found
+- Ensure the response is valid JSON
+- Do not include any text outside the JSON object`;
+
+        // Call AI for batch extraction
+        const aiResponse = await callGeminiAPI(prompt, project.geminiApiKey || undefined);
+        
+        // Parse the AI response
+        let extractedData: Record<string, any> = {};
+        try {
+          // Try to parse JSON from the response
+          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            extractedData = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error("No JSON found in AI response");
+          }
+        } catch (parseError) {
+          console.error("Failed to parse AI response:", parseError);
+          // Fallback: create empty results
+          docValues.forEach(v => {
+            extractedData[v.valueName] = null;
+          });
+        }
+        
+        // Save validations for each extracted value
+        for (const value of docValues) {
+          const extractedValue = extractedData[value.valueName];
+          
+          // Create or update validation
+          const validation = await storage.createOrUpdateValidation({
+            sessionId,
+            projectFieldId: value.projectFieldId || null,
+            stepId,
+            stepValueId: value.id,
+            value: extractedValue !== null && extractedValue !== undefined ? String(extractedValue) : null,
+            status: extractedValue !== null && extractedValue !== undefined ? 'pending_review' : 'pending',
+            isManuallyEdited: false,
+            confidence: extractedValue !== null && extractedValue !== undefined ? 0.85 : 0,
+            validationErrors: extractedValue === null || extractedValue === undefined ? 
+              JSON.stringify(['No value extracted']) : null,
+            extractedFrom: 'ai_batch',
+            metadata: JSON.stringify({
+              documentId: targetDoc.id,
+              documentName: targetDoc.fileName || targetDoc.name,
+              batchExtraction: true,
+              extractedAt: new Date().toISOString()
+            })
+          });
+          
+          results.push({
+            valueId: value.id,
+            valueName: value.valueName,
+            extractedValue,
+            validation,
+            documentUsed: {
+              id: targetDoc.id,
+              name: targetDoc.fileName || targetDoc.name
+            }
+          });
+        }
+      }
+      
+      console.log(`✅ Batch extraction completed for ${results.length} values`);
+      
+      res.json({
+        success: true,
+        results,
+        totalExtracted: results.length
+      });
+      
+    } catch (error) {
+      console.error("Batch extraction error:", error);
+      res.status(500).json({ 
+        message: "Failed to perform batch extraction",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Individual column extraction endpoint
   app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
     try {
