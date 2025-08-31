@@ -4012,48 +4012,37 @@ Thank you for your assistance.`;
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {(() => {
-                        // Show general info validations (not associated with any collection)
-                        const infoValidations = validations.filter(v => 
-                          !v.collectionName && 
-                          !v.fieldName?.includes('.')
-                        );
+                        // Get the "Data Fields" workflow step and display all its configured values
+                        const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
                         
-                        // Debug: Check if we're showing all the right fields
-                        console.log('🔍 DATA FIELDS DEBUG:');
-                        console.log('  - Total validations:', validations.length);
-                        console.log('  - Info validations found:', infoValidations.length);
-                        console.log('  - Info validation details:', infoValidations.map(v => ({
-                          fieldName: v.fieldName,
-                          extractedValue: v.extractedValue,
-                          validationStatus: v.validationStatus
-                        })));
                         
-                        if (infoValidations.length === 0) {
+                        if (!dataFieldsStep?.values || dataFieldsStep.values.length === 0) {
                           return (
                             <div className="col-span-full text-center text-gray-500 py-8">
-                              <p>No data fields have been configured or extracted yet.</p>
-                              <p className="text-sm mt-2">Fields will appear here once documents are processed.</p>
+                              <p>No data fields have been configured for this step.</p>
+                              <p className="text-sm mt-2">Configure fields in the project settings to see them here.</p>
                             </div>
                           );
                         }
                         
-                        return infoValidations
-                          .sort((a, b) => (a.fieldName || '').localeCompare(b.fieldName || ''))
-                          .map((validation) => {
-                        const fieldName = validation.fieldName || '';
-                        const originalValue = extractedData[fieldName];
-                        const displayValue = validation.extractedValue ?? originalValue ?? null;
+                        return dataFieldsStep.values
+                          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                          .map((stepValue) => {
+                        const fieldName = stepValue.valueName;
+                        // For step values, validation field name includes the step name
+                        const stepFieldName = `Data Fields.${fieldName}[0]`;
+                        const validation = getValidation(stepFieldName);
+                        const originalValue = extractedData[stepFieldName] || extractedData[fieldName];
                         
-                        // Show field if it has a value OR if there's a validation for it
-                        if (originalValue !== undefined || validation) {
-                          // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                          let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                          if (displayValue === "null" || displayValue === "undefined") {
-                            displayValue = null;
-                          }
-                          
-                          return (
-                            <div key={validation.id} className="space-y-2">
+                        // Show all configured step values
+                        // Use validation's extractedValue (which includes manual edits), not the original extracted value
+                        let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                        if (displayValue === "null" || displayValue === "undefined") {
+                          displayValue = null;
+                        }
+                        
+                        return (
+                            <div key={stepValue.id} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
@@ -4137,7 +4126,7 @@ Thank you for your assistance.`;
                               <div>
                                 {(() => {
                                   const isEditing = editingField === fieldName;
-                                  const fieldType = 'TEXT'; // Default to text for general info fields
+                                  const fieldType = stepValue.dataType;
                                   
                                   if (isEditing) {
                                     return (
@@ -4218,11 +4207,13 @@ Thank you for your assistance.`;
                                   }
                                 })()}
                               </div>
-                              
+                              {stepValue.description && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {stepValue.description}
+                                </p>
+                              )}
                             </div>
                           );
-                        }
-                        return null;
                       });
                       })()}
                     </div>
