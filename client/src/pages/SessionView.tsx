@@ -3074,33 +3074,28 @@ Thank you for your assistance.`;
           }
         });
       } else {
-        // Create new validation record for Info Page field
-        // Find the schema field ID for this field name
-        const schemaField = project?.schemaFields?.find(field => 
-          field.fieldName === fieldName || 
-          field.fieldName === fieldName.replace('Sheme', 'Scheme') // Handle typo
-        );
+        // Create new validation record directly from step value configuration
+        // Find the step value configuration for this field
+        const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
         
-        if (!schemaField) {
-          console.error('❌ No schema field found for:', fieldName);
-          console.error('❌ Available schema fields:', project?.schemaFields?.map(f => f.fieldName));
+        if (!stepValue) {
+          console.error('❌ No step value found for:', fieldName);
           return;
         }
         
         const createData = {
           sessionId: sessionId,
           validationType: 'schema_field',
-          fieldId: schemaField.id,
+          fieldId: stepValue.id, // Use step value ID directly
           fieldName: fieldName,
           extractedValue: valueToStore,
           validationStatus: 'manual',
           manuallyVerified: true,
           manuallyUpdated: true,
           confidenceScore: 100,
-          dataType: fieldType || 'text'
+          dataType: stepValue.dataType || 'text'
         };
         
-        console.log('🔍 CREATING VALIDATION:', createData);
         
         await apiRequest(`/api/sessions/${sessionId}/validations`, {
           method: 'POST',
@@ -4071,14 +4066,6 @@ Thank you for your assistance.`;
                         const correctedFieldName = fieldName.replace('Sheme', 'Scheme');
                         const validation = getValidation(fieldName) || getValidation(correctedFieldName);
                         
-                        // Debug: Check what validation is being found after save
-                        console.log('🔍 FIELD LOOKUP:', {
-                          fieldName,
-                          validationFound: !!validation,
-                          validationId: validation?.id,
-                          extractedValue: validation?.extractedValue,
-                          allValidationFields: validations.map(v => ({ fieldName: v.fieldName, id: v.id, value: v.extractedValue }))
-                        });
                         const originalValue = extractedData[fieldName];
                         
                         // Show all configured step values
