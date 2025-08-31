@@ -4082,32 +4082,8 @@ Thank you for your assistance.`;
                         
                         // For Info Page steps, no validation records exist upfront
                         // They're only created when user manually populates or via extraction
-                        // For Info Page fields, look up validation by fieldId (step value ID) for better accuracy
-                        // This handles cases where field names might have typos or mismatches
-                        const validationByFieldId = validations.find(v => v.fieldId === stepValue.id);
-                        
-                        // Fallback to field name lookup with typo correction
-                        const correctedFieldName = fieldName.replace('Sheme', 'Scheme');
-                        const validationByName = getValidation(fieldName) || getValidation(correctedFieldName);
-                        
-                        // Prefer fieldId lookup (more reliable), fallback to name lookup
-                        const validation = validationByFieldId || validationByName;
-                        
-                        // Debug: Check validation lookup after save
-                        if (fieldName === 'Pension Sheme Name') {
-                          console.log('🔍 FIELD LOOKUP DEBUG for', fieldName);
-                          console.log('  - correctedFieldName:', correctedFieldName);
-                          console.log('  - validation found:', !!validation);
-                          console.log('  - validation id:', validation?.id);
-                          console.log('  - validation fieldId:', validation?.fieldId);
-                          console.log('  - validation extractedValue:', validation?.extractedValue);
-                          console.log('  - all validations with field info:', validations.map(v => ({
-                            id: v.id,
-                            fieldId: v.fieldId,
-                            fieldName: v.fieldName,
-                            extractedValue: v.extractedValue
-                          })));
-                        }
+                        // Simple lookup: step value id → validation fieldId
+                        const validation = validations.find(v => v.fieldId === stepValue.id);
                         
                         const originalValue = extractedData[fieldName];
                         
