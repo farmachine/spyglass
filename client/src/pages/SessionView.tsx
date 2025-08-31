@@ -3041,6 +3041,13 @@ Thank you for your assistance.`;
   const handleSave = async (fieldName: string, newValue?: string) => {
     const validation = getValidation(fieldName);
     
+    console.log('🔍 SAVE DEBUG:');
+    console.log('  - fieldName:', fieldName);
+    console.log('  - validation found:', !!validation);
+    console.log('  - validation id:', validation?.id);
+    console.log('  - newValue:', newValue);
+    console.log('  - editValue:', editValue);
+    
     if (validation) {
       // Use provided value or current edit value
       const valueToUse = newValue !== undefined ? newValue : editValue;
