@@ -4835,7 +4835,7 @@ Thank you for your assistance.`;
                                             >
                                               <div 
                                                 className="w-2 h-2 rounded-full"
-                                                style={{ backgroundColor: allValid ? '#10b981' : '#9ca3af' }}
+                                                style={{ backgroundColor: allValid ? '#10b981' : '#4F63A4' }}
                                               />
                                             </button>
                                           );
