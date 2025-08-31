@@ -113,11 +113,13 @@ const FieldSelectionModalContent = ({
         {stepValues.map((stepValue) => {
           // Check if this value needs document selection
           const needsDocumentSelection = stepValue.inputValues && 
-            Object.entries(stepValue.inputValues).some(([key, value]) => 
-              value === 'user_document' || 
-              (typeof value === 'string' && value.includes('user_document')) ||
-              key.toLowerCase().includes('document')
-            );
+            Object.entries(stepValue.inputValues).some(([key, value]) => {
+              if (typeof value === 'string') {
+                const lowerValue = value.toLowerCase();
+                return lowerValue.includes('user') && lowerValue.includes('document');
+              }
+              return key.toLowerCase().includes('document');
+            });
 
           return (
             <div key={stepValue.id} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
