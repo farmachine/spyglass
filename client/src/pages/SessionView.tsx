@@ -141,15 +141,16 @@ const FieldSelectionModalContent = ({
                   )}
                 </div>
 
-                {/* Only show document selection if needed */}
-                {needsDocumentSelection && selectedFields.has(stepValue.id) && (
+                {/* Show document selection if needed */}
+                {needsDocumentSelection && (
                   <div className="mt-3">
                     <Label className="text-xs text-gray-600 dark:text-gray-400">
-                      Select Document:
+                      Document Source:
                     </Label>
                     <Select
                       value={fieldInputs[stepValue.id]?.document || ''}
                       onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
+                      disabled={!selectedFields.has(stepValue.id)}
                     >
                       <SelectTrigger className="text-xs h-9 mt-1">
                         <SelectValue placeholder="Choose a document..." />
