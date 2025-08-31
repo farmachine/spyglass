@@ -463,26 +463,53 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // 1. Find data input array if exists
-      const dataInput = this.findDataInput(tool, inputs);
-      if (!dataInput || !Array.isArray(dataInput.value)) {
-        throw new Error('AI tool requires data input array');
-      }
+      // Check if tool expects data array or document input
+      const hasDataParam = tool.inputParameters?.some(p => p.type === 'data');
+      const hasDocumentParam = tool.inputParameters?.some(p => p.type === 'document');
+      
+      let prompt: string;
+      let inputArray: any[] = [];
+      
+      if (hasDataParam) {
+        // Tool expects data array input
+        const dataInput = this.findDataInput(tool, inputs);
+        if (!dataInput || !Array.isArray(dataInput.value)) {
+          throw new Error('AI tool requires data input array');
+        }
 
-      // 2. Limit to 50 records for performance
-      const AI_RECORD_LIMIT = 50;
-      const inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+        // Limit to 50 records for performance
+        const AI_RECORD_LIMIT = 50;
+        inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+        
+        // Build prompt using tool's AI prompt template with data array
+        prompt = this.buildAIPrompt(tool, inputs, inputArray);
+      } else if (hasDocumentParam) {
+        // Tool expects document input
+        console.log('📄 AI tool expects document input');
+        
+        // Find document content in inputs
+        const documentContent = this.findDocumentInput(tool, inputs);
+        if (!documentContent) {
+          console.log('⚠️ No document content found for AI tool');
+          throw new Error('AI tool requires document input');
+        }
+        
+        // Build prompt for document-based extraction
+        prompt = this.buildDocumentAIPrompt(tool, inputs, documentContent);
+        
+        // Create a single dummy record for result mapping
+        inputArray = [{ identifierId: null }];
+      } else {
+        throw new Error('AI tool has no valid input parameter (data or document)');
+      }
       
-      // 3. Build prompt using tool's AI prompt template
-      const prompt = this.buildAIPrompt(tool, inputs, inputArray);
-      
-      // 4. Log the prompt for debugging
+      // Log the prompt for debugging
       console.log('\n📝 AI EXTRACTION PROMPT:');
       console.log('='.repeat(80));
       console.log(prompt);
       console.log('='.repeat(80));
       
-      // 5. Call Gemini API
+      // Call Gemini API
       if (progressCallback) {
         progressCallback(0, inputArray.length, 'Processing with AI...');
       }
@@ -497,11 +524,11 @@ export class ToolEngine {
         ]
       });
       
-      // 6. Extract and parse response
+      // Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsedResults = this.parseAIResponse(rawResponse);
       
-      // 7. Map results to input records with identifierId preservation
+      // Map results to input records with identifierId preservation
       const results = this.mapResultsToInputs(parsedResults, inputArray);
       
       if (progressCallback) {
@@ -542,6 +569,88 @@ export class ToolEngine {
       }
     }
     return null;
+  }
+
+  /**
+   * Find the document input parameter from inputs
+   */
+  private findDocumentInput(tool: Tool, inputs: Record<string, any>): string | null {
+    // Check for document parameter in tool inputs
+    for (const param of tool.inputParameters || []) {
+      if (param.type === 'document') {
+        // Try various possible keys
+        const possibleKeys = [
+          param.name,
+          param.id,
+          'Document',
+          'document',
+          'document_content',
+          'sessionDocumentContent'
+        ];
+        
+        for (const key of possibleKeys) {
+          if (inputs[key] && typeof inputs[key] === 'string') {
+            console.log(`📄 Found document content in ${key}`);
+            return inputs[key];
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Build AI prompt for document-based extraction
+   */
+  private buildDocumentAIPrompt(tool: Tool, inputs: Record<string, any>, documentContent: string): string {
+    const basePrompt = tool.aiPrompt || '';
+    
+    // Get the Data Description from inputs
+    const dataDescription = inputs['Data Description'] || 
+                           inputs['description'] || 
+                           inputs['AI Query'] || 
+                           '';
+    
+    // Get value configuration if present
+    const valueConfig = inputs['valueConfiguration'];
+    const valueName = valueConfig?.valueName || '';
+    const valueDescription = valueConfig?.description || '';
+    
+    // Build the prompt
+    let prompt = basePrompt;
+    
+    // Replace placeholders in the prompt
+    prompt = prompt.replace(/\{document\}/g, documentContent);
+    prompt = prompt.replace(/\{Document\}/g, documentContent);
+    prompt = prompt.replace(/\{Data Description\}/g, dataDescription);
+    prompt = prompt.replace(/\{description\}/g, dataDescription);
+    
+    // If no base prompt or it's too short, build a default one
+    if (!prompt || prompt.length < 50) {
+      prompt = `You are an expert at extracting information from documents. Your task is to identify specific columns in the provided Document based on the Data Description in relation to the column's contents.
+      
+Document:
+${documentContent}
+
+Data Description:
+${dataDescription}
+
+${valueName ? `You are looking for: ${valueName}` : ''}
+${valueDescription ? `Additional context: ${valueDescription}` : ''}
+
+Please analyze the document and return a JSON array of objects, where each object contains:
+- identifierId: null (always null for document extraction)
+- extractedValue: The column names that match the Data Description
+- validationStatus: "valid" if confident, "pending" if uncertain
+- aiReasoning: Brief explanation of why this column matches
+- confidenceScore: A number between 0 and 1
+- documentSource: The section where found
+
+Important: Focus on identifying columns that contain the types of data described in the Data Description.`;
+    }
+    
+    return prompt;
   }
   
   /**
