@@ -1715,6 +1715,74 @@ except Exception as e:
     }
   });
 
+  // Chat endpoints for Session Assistant
+  app.get("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      // Get chat messages from database
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages || []);
+    } catch (error) {
+      console.error("Failed to fetch chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+
+  app.post("/api/sessions/:sessionId/chat", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { message } = req.body;
+      const userId = req.user?.id;
+
+      if (!message || !userId) {
+        return res.status(400).json({ message: "Message and user ID required" });
+      }
+
+      // Get session and related data
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Get workflow steps and values for the project
+      const workflowSteps = await storage.getWorkflowSteps(session.projectId);
+      const stepValues = await storage.getAllStepValues(session.projectId);
+      
+      // Get all validations for the session
+      const validations = await storage.getFieldValidations(sessionId);
+      
+      // Get session documents for context
+      const sessionDocuments = await storage.getSessionDocuments(sessionId);
+      
+      console.log(`Chat request for session ${sessionId}: ${message.substring(0, 50)}...`);
+      console.log(`Found ${workflowSteps.length} workflow steps, ${stepValues.length} step values, and ${validations.length} validations`);
+      console.log(`Found ${sessionDocuments.length} documents for context`);
+
+      // Save user message
+      await storage.saveChatMessage(sessionId, userId, 'user', message);
+
+      // Generate AI response
+      const aiResponse = await generateChatResponse(message, {
+        session,
+        validations,
+        workflowSteps,
+        stepValues,
+        documents: sessionDocuments
+      });
+
+      // Save AI response
+      await storage.saveChatMessage(sessionId, userId, 'assistant', aiResponse);
+
+      // Return all messages
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ message: "Failed to process chat message" });
+    }
+  });
+
   // Direct Excel export endpoint - bypass frontend filtering
   app.get('/api/sessions/:sessionId/direct-excel-data', async (req, res) => {
     try {

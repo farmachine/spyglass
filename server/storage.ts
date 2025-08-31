@@ -173,6 +173,7 @@ export interface IStorage {
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  saveChatMessage(sessionId: string, userId: string, role: 'user' | 'assistant', content: string): Promise<ChatMessage>;
 
   // Excel Wizardry Functions
   getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]>;
@@ -213,6 +214,7 @@ export interface IStorage {
 
   // Step Values
   getStepValues(stepId: string): Promise<StepValue[]>;
+  getAllStepValues(projectId: string): Promise<StepValue[]>;
   getStepValue(id: string): Promise<StepValue | undefined>;
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
@@ -1667,6 +1669,15 @@ export class MemStorage implements IStorage {
     };
     this.chatMessages.set(id, chatMessage);
     return chatMessage;
+  }
+
+  async saveChatMessage(sessionId: string, userId: string, role: 'user' | 'assistant', content: string): Promise<ChatMessage> {
+    return this.createChatMessage({
+      sessionId,
+      userId,
+      role,
+      content,
+    });
   }
 
   // Excel Wizardry Functions
