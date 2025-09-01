@@ -671,6 +671,20 @@ ${JSON.stringify(dataArray, null, 2)}
 \`\`\`
 
 `;
+      
+      // Add critical instruction for identifierId preservation
+      const hasIdentifierIds = dataArray.some(item => item.identifierId);
+      if (hasIdentifierIds) {
+        prompt += `=== CRITICAL REQUIREMENT ===
+Each item in the list above has an "identifierId" field. You MUST:
+1. Include the EXACT SAME "identifierId" in your response for each item
+2. Return results in ANY order, but each result MUST have its corresponding identifierId
+3. The identifierId links the extracted value to the correct row/record
+4. Example: If input has {"identifierId": "abc-123", "Column Name": "Date"}, 
+   your output MUST include {"identifierId": "abc-123", "extractedValue": "..."}
+
+`;
+      }
     }
     
     // NO additional instructions or requirements added here
@@ -731,81 +745,50 @@ ${JSON.stringify(dataArray, null, 2)}
    * Map AI results to input records, preserving identifierId
    */
   private mapResultsToInputs(parsedResults: any[], inputArray: any[]): ToolResult[] {
-    // Create map of input records by identifierId for validation
-    const inputMap = new Map<string, any>();
-    for (const input of inputArray) {
-      if (input.identifierId) {
-        inputMap.set(input.identifierId, input);
-      }
-    }
-    
-    // Process results from AI - trust the AI's identifierId mapping
-    const results: ToolResult[] = [];
-    const processedIds = new Set<string>();
-    
-    // First pass: Process all AI results with their identifierIds
+    // Create map of results by identifierId
+    const resultMap = new Map<string, any>();
     for (const result of parsedResults) {
       if (result.identifierId) {
-        // Check if this identifierId is valid (exists in input)
-        if (inputMap.has(result.identifierId)) {
-          results.push({
-            identifierId: result.identifierId, // Use AI's identifierId
-            extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
-            validationStatus: result.validationStatus || "valid",
-            aiReasoning: result.aiReasoning || "",
-            confidenceScore: result.confidenceScore || 95,
-            documentSource: result.documentSource || ""
-          });
-          processedIds.add(result.identifierId);
-        } else {
-          console.warn(`⚠️ AI returned unknown identifierId: ${result.identifierId}`);
-        }
+        resultMap.set(result.identifierId, result);
       }
     }
     
-    // Second pass: Handle any missing inputs (AI didn't return a result for them)
-    for (const input of inputArray) {
-      if (input.identifierId && !processedIds.has(input.identifierId)) {
-        results.push({
-          identifierId: input.identifierId,
-          extractedValue: "Not Found",
-          validationStatus: "invalid",
-          aiReasoning: "No result from AI",
-          confidenceScore: 0,
-          documentSource: ""
-        });
-      }
-    }
-    
-    // If no identifierIds were found, fall back to position-based mapping
-    if (results.length === 0 && parsedResults.length > 0) {
-      console.warn('⚠️ No identifierIds found in AI results, falling back to position-based mapping');
-      return inputArray.map((input, index) => {
-        const result = index < parsedResults.length ? parsedResults[index] : null;
-        
-        if (result) {
-          return {
-            identifierId: input.identifierId || null,
-            extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
-            validationStatus: result.validationStatus || "valid",
-            aiReasoning: result.aiReasoning || "",
-            confidenceScore: result.confidenceScore || 95,
-            documentSource: result.documentSource || ""
-          };
+    // Map each input to its result - AI MUST preserve identifierIds
+    return inputArray.map((input, index) => {
+      const inputId = input.identifierId;
+      
+      // Try to find result by identifierId first
+      let result = resultMap.get(inputId);
+      
+      // Fallback to position-based matching if AI didn't preserve IDs
+      if (!result && index < parsedResults.length) {
+        result = parsedResults[index];
+        if (result && inputId) {
+          console.warn(`⚠️ AI didn't preserve identifierId at position ${index}. Expected: ${inputId}, Got: ${result.identifierId || 'none'}`);
         }
-        
+      }
+      
+      if (result) {
         return {
-          identifierId: input.identifierId || null,
-          extractedValue: "Not Found",
-          validationStatus: "invalid",
-          aiReasoning: "No result from AI",
-          confidenceScore: 0,
-          documentSource: ""
+          identifierId: inputId, // Always use input's identifierId
+          extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
+          validationStatus: result.validationStatus || "valid",
+          aiReasoning: result.aiReasoning || "",
+          confidenceScore: result.confidenceScore || 95,
+          documentSource: result.documentSource || ""
         };
-      });
-    }
-    
-    return results;
+      }
+      
+      // Return "Not Found" for missing results
+      return {
+        identifierId: inputId,
+        extractedValue: "Not Found",
+        validationStatus: "invalid",
+        aiReasoning: "No result from AI",
+        confidenceScore: 0,
+        documentSource: ""
+      };
+    });
   }
   
   /**
