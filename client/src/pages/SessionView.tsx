@@ -2256,6 +2256,7 @@ export default function SessionView() {
           
           console.log(`  - Found ${verifiedIdentifierIds.size} records with ALL previous values verified`);
           console.log(`  - Total validations for these verified records: ${stepValidations.length}`);
+          console.log(`  - Referenced step values:`, referencedStep.values?.map(v => v.valueName));
           
           // Group by identifier ID to compile records
           const recordsByIdentifier = new Map<string, any>();
@@ -2278,6 +2279,60 @@ export default function SessionView() {
               }
             }
           });
+          
+          // CRITICAL FIX: Also check for ALL referenced columns from inputValues
+          // to ensure we include columns that may not have validations yet
+          if (valueToRun.inputValues) {
+            const neededColumns = new Set<string>();
+            
+            // Parse inputValues to find which specific columns are needed
+            console.log(`🔍 Parsing inputValues to find needed columns for ${valueName}`);
+            Object.values(valueToRun.inputValues).forEach(inputValue => {
+              if (typeof inputValue === 'string' && inputValue.includes('@')) {
+                const match = inputValue.match(/@[^.]+\.(.+)/);
+                if (match) {
+                  neededColumns.add(match[1].trim());
+                }
+              } else if (Array.isArray(inputValue)) {
+                inputValue.forEach(v => {
+                  if (typeof v === 'string' && v.includes('@')) {
+                    const match = v.match(/@[^.]+\.(.+)/);
+                    if (match) {
+                      neededColumns.add(match[1].trim());
+                    }
+                  }
+                });
+              }
+            });
+            
+            console.log(`📋 Needed columns for ${valueName}:`, Array.from(neededColumns));
+            
+            // For each identifier, ensure we have ALL needed columns
+            recordsByIdentifier.forEach((record, identifierId) => {
+              neededColumns.forEach(columnName => {
+                // Find the value in the referenced step that matches this column name
+                const stepValue = referencedStep.values?.find(v => v.valueName === columnName);
+                if (stepValue && !(columnName in record)) {
+                  // Try to find a validation for this specific value and identifier
+                  // Look in ALL validations, not just the filtered ones
+                  const validation = allStepValidations.find(v => 
+                    v.identifierId === identifierId &&
+                    ((v as any).field_id === stepValue.id || (v as any).fieldId === stepValue.id || 
+                     (v as any).value_id === stepValue.id || (v as any).valueId === stepValue.id)
+                  );
+                  
+                  if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined) {
+                    record[columnName] = validation.extractedValue;
+                    console.log(`  Added missing column "${columnName}" for identifier ${identifierId}: ${validation.extractedValue}`);
+                  } else {
+                    // If no validation exists, set to null so the column is still present
+                    record[columnName] = null;
+                    console.log(`  No validation found for column "${columnName}" for identifier ${identifierId}, setting to null`);
+                  }
+                }
+              });
+            });
+          }
           
           // Convert to array
           previousColumnsData.push(...Array.from(recordsByIdentifier.values()));
