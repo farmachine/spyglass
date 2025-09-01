@@ -3802,6 +3802,20 @@ except Exception as e:
                   (v.recordIndex || 0) === expectedValidation.recordIndex
                 );
                 
+                // Skip creating validation records for "Not Found" or empty responses
+                const shouldSkipRecord = !aiData || 
+                  !aiData.extracted_value || 
+                  aiData.extracted_value.trim() === '' ||
+                  aiData.extracted_value.trim().toLowerCase() === 'not found' ||
+                  aiData.extracted_value.trim().toLowerCase() === 'n/a' ||
+                  aiData.extracted_value.trim().toLowerCase() === 'none' ||
+                  aiData.extracted_value.trim() === '-';
+                
+                if (shouldSkipRecord && !existingValidation) {
+                  console.log(`⏭️ SKIPPING: ${fieldName} - no meaningful value to extract ("${aiData?.extracted_value || 'null'}")`);
+                  continue;
+                }
+
                 // Create validation data - use AI data if available, otherwise create empty record
                 const validationData = {
                   sessionId: sessionId,
@@ -7406,14 +7420,8 @@ def extract_function(Column_Name, Excel_File):
       // Handle reference documents - check if any parameter expects them (GENERIC APPROACH)
       const documentParams = tool.inputParameters?.filter(p => p.type === 'document') || [];
       
-      console.log(`🔍 DEBUG: Found ${documentParams.length} document parameters for tool ${tool.name}`);
-      console.log(`🔍 DEBUG: Tool input parameters:`, tool.inputParameters?.map(p => `${p.name} (${p.id}) - ${p.type}`));
-      console.log(`🔍 DEBUG: Value inputValues keys:`, Object.keys(value.inputValues || {}));
-      
       for (const docParam of documentParams) {
         const paramKey = docParam.id || docParam.name;
-        
-        console.log(`🔍 DEBUG: Processing document parameter: ${docParam.name} (id: ${docParam.id}, key: ${paramKey})`);
         
         // Skip if this parameter already has content
         if (toolInputs[paramKey] || toolInputs[docParam.name]) {
@@ -7427,8 +7435,6 @@ def extract_function(Column_Name, Excel_File):
         // Check if there are reference document IDs in the value's inputValues for this parameter
         const refDocIds = value.inputValues?.[paramKey] || 
                          value.inputValues?.[docParam.name];
-        
-        console.log(`🔍 DEBUG: Found document IDs for ${paramKey}:`, refDocIds);
         
         if (refDocIds) {
           const { loadReferenceDocuments, extractDocumentIds } = await import('./referenceDocumentLoader');
