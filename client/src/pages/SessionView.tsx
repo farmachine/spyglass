@@ -2349,23 +2349,22 @@ export default function SessionView() {
           (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
         );
         
-        const uniqueIndices = [...new Set(collectionValidations.map(v => v.recordIndex).filter(idx => idx !== null))];
+        // Get unique identifierIds from all validations for this step
+        const uniqueIdentifierIds = [...new Set(collectionValidations
+          .map(v => v.identifierId)
+          .filter(id => id !== null && id !== undefined)
+        )];
         
-        // For each record, compile data from previous columns
-        for (const recordIndex of uniqueIndices) {
-          // Get the identifier ID from the FIRST column's validation (ID column)
-          // The identifierId should be on the validation record for the first value
-          const firstValue = workflowStep.values[0];
-          const firstColumnFieldName = `${stepName}.${firstValue.valueName}[${recordIndex}]`;
-          const firstColumnValidation = validations.find(v => 
-            v.fieldName === firstColumnFieldName
-          );
-          
+        // For each unique identifierId, compile data from all columns
+        for (const identifierId of uniqueIdentifierIds) {
           // Build record data with identifierId as the FIRST property
           const recordData: any = {
-            // Use the identifierId field from the first column's validation record
-            identifierId: firstColumnValidation?.identifierId || null
+            identifierId: identifierId
           };
+          
+          // Get the recordIndex from any validation with this identifierId (for backwards compatibility)
+          const anyValidation = collectionValidations.find(v => v.identifierId === identifierId);
+          const recordIndex = anyValidation?.recordIndex ?? 0;
           
           // Check if ALL previous columns have valid data for this record
           let allPreviousColumnsValid = true;
@@ -2437,14 +2436,17 @@ export default function SessionView() {
         
         if (existingValidations.length > 0) {
           // We have existing validations, use their identifierIds
-          const uniqueIndices = [...new Set(existingValidations.map(v => v.recordIndex).filter(idx => idx !== null))];
+          const uniqueIdentifierIds = [...new Set(existingValidations
+            .map(v => v.identifierId)
+            .filter(id => id !== null && id !== undefined)
+          )];
           
-          for (const recordIndex of uniqueIndices) {
-            const validation = existingValidations.find(v => v.recordIndex === recordIndex);
-            if (validation?.identifierId) {
+          for (const identifierId of uniqueIdentifierIds) {
+            const validation = existingValidations.find(v => v.identifierId === identifierId);
+            if (validation) {
               previousColumnsData.push({
-                identifierId: validation.identifierId,
-                _recordIndex: recordIndex // Include record index for reference
+                identifierId: identifierId,
+                _recordIndex: validation.recordIndex // Include record index for reference
               });
             }
           }
