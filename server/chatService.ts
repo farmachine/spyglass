@@ -34,7 +34,7 @@ export async function generateChatResponse(message: string, context: ChatContext
     // Group collection validations by collection name for cross-validation analysis
     const collectionGroups: { [key: string]: FieldValidation[] } = {};
     collectionValidations.forEach(validation => {
-      const collectionName = validation.fieldName.split('.')[0];
+      const collectionName = validation.collectionName || 'Unknown';
       if (!collectionGroups[collectionName]) {
         collectionGroups[collectionName] = [];
       }
@@ -60,18 +60,24 @@ VALIDATION STATISTICS:
   * Pending: ${statusCounts.pending}
   * Manual: ${statusCounts.manual}
 
-SCHEMA FIELDS DATA:
-${schemaValidations.map(v => 
-  `- ${v.fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`
-).join('\n')}
+EXTRACTED DATA:
+${schemaValidations.map(v => {
+  // Find the field name from the project fields based on fieldId
+  const field = context.projectFields.find(f => f.id === v.fieldId);
+  const fieldName = field?.fieldName || `Field ${v.fieldId}`;
+  return `- ${fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`;
+}).join('\n')}
 
 COLLECTION DATA (Cross-validation capable):
 ${Object.entries(collectionGroups).map(([collectionName, validations]) => {
   const recordCount = Math.max(...validations.map(v => v.recordIndex || 0)) + 1;
   return `\n${collectionName} Collection (${recordCount} records):
-${validations.slice(0, 10).map(v => 
-    `  - ${v.fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`
-  ).join('\n')}${validations.length > 10 ? `\n  ... and ${validations.length - 10} more fields in this collection` : ''}`;
+${validations.slice(0, 10).map(v => {
+    // Find the property name from collection properties
+    const prop = context.collectionProperties.find(p => p.id === v.fieldId);
+    const propName = prop?.propertyName || `Property ${v.fieldId}`;
+    return `  - Record ${v.recordIndex}: ${propName} = ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`;
+  }).join('\n')}${validations.length > 10 ? `\n  ... and ${validations.length - 10} more fields in this collection` : ''}`;
 }).join('\n')}
 
 PROJECT SCHEMA:

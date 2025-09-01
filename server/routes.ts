@@ -22,7 +22,7 @@ import { spawn } from "child_process";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, asc } from "drizzle-orm";
-import { workflowSteps, stepValues } from "@shared/schema";
+import { workflowSteps, stepValues, type StepValue, type ProjectSchemaField, type ObjectCollection, type CollectionProperty, type FieldValidation, type ExtractionSession } from "@shared/schema";
 import { 
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
@@ -9097,6 +9097,85 @@ def extract_function(Column_Name, Excel_File):
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(500).json({ success: false });
+    }
+  });
+
+  // Chat endpoints for session assistant
+  app.get('/api/sessions/:sessionId/chat', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      res.status(500).json({ message: 'Failed to fetch chat messages' });
+    }
+  });
+
+  app.post('/api/sessions/:sessionId/chat', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { content } = req.body;
+      const userId = req.user!.id;
+
+      // Save user message
+      const userMessage = await storage.createChatMessage({
+        sessionId,
+        userId,
+        role: 'user',
+        content
+      });
+
+      // Get session context for AI
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+
+      // Get all validations for this session
+      const validations = await storage.getFieldValidations(sessionId);
+      
+      // Get project details
+      const projectId = session.projectId;
+      
+      // Get workflow steps and their values for more context
+      const workflowSteps = await storage.getWorkflowSteps(projectId);
+      const stepValues: StepValue[] = [];
+      for (const step of workflowSteps) {
+        const values = await storage.getStepValuesByStep(step.id);
+        stepValues.push(...values);
+      }
+
+      // Get project schema information
+      const projectFields = await storage.getProjectSchemaFields(projectId);
+      const collections = await storage.getObjectCollections(projectId);
+      const collectionProperties: CollectionProperty[] = [];
+      for (const collection of collections) {
+        const props = await storage.getCollectionProperties(collection.id);
+        collectionProperties.push(...props);
+      }
+
+      // Generate AI response using all extracted data
+      const aiResponse = await generateChatResponse(content, {
+        session,
+        validations,
+        projectFields,
+        collections,
+        collectionProperties
+      });
+
+      // Save assistant message
+      const assistantMessage = await storage.createChatMessage({
+        sessionId,
+        userId,
+        role: 'assistant',
+        content: aiResponse
+      });
+
+      res.json(assistantMessage);
+    } catch (error) {
+      console.error('Error processing chat message:', error);
+      res.status(500).json({ message: 'Failed to process chat message' });
     }
   });
 
