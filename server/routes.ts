@@ -9148,7 +9148,7 @@ def extract_function(Column_Name, Excel_File):
       const workflowSteps = await storage.getWorkflowSteps(projectId);
       const stepValues: StepValue[] = [];
       for (const step of workflowSteps) {
-        const values = await storage.getStepValuesByStep(step.id);
+        const values = await storage.getStepValues(step.id);
         stepValues.push(...values);
       }
 
