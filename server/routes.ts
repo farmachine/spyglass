@@ -6838,14 +6838,49 @@ def extract_function(Column_Name, Excel_File):
         }
         console.log(`🎯 Previous data available after filtering:`, previousData ? `${previousData.length} records` : 'None');
         
+        // First, collect all UUID references and resolve them
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidToValueName = new Map();
+        
+        // Collect all unique UUIDs from input values
+        const allUuids = new Set();
+        for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
+          if (Array.isArray(paramValue)) {
+            paramValue.forEach(item => {
+              if (typeof item === 'string' && uuidRegex.test(item)) {
+                allUuids.add(item);
+              }
+            });
+          }
+        }
+        
+        // Resolve all UUIDs to value names in parallel
+        if (allUuids.size > 0) {
+          console.log(`🆔 Resolving ${allUuids.size} UUID references to value names`);
+          const uuidArray = Array.from(allUuids);
+          const valueInfos = await Promise.all(
+            uuidArray.map(uuid => storage.getStepValueById(uuid))
+          );
+          
+          uuidArray.forEach((uuid, index) => {
+            const valueInfo = valueInfos[index];
+            if (valueInfo && valueInfo.valueName) {
+              uuidToValueName.set(uuid, valueInfo.valueName);
+              console.log(`🆔 Resolved UUID ${uuid} to: ${valueInfo.valueName}`);
+            }
+          });
+        }
+        
         // Look for references to previous columns (e.g., @Column Names)
         for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
           // Check if paramValue is an array of references (like ["@Column Name Mapping.Column Names", "@Column Name Mapping.Worksheet Name"])
           if (Array.isArray(paramValue)) {
             console.log(`🔄 Processing array parameter ${paramName} with ${paramValue.length} items`);
             
-            // Check if array contains references
-            const hasReferences = paramValue.some(item => typeof item === 'string' && item.startsWith('@'));
+            // Check if array contains references (@ references or UUID references)
+            const hasReferences = paramValue.some(item => 
+              typeof item === 'string' && (item.startsWith('@') || uuidRegex.test(item))
+            );
             
             if (hasReferences && previousData && previousData.length > 0) {
               // This is an array of column references - combine data from multiple columns
@@ -6867,17 +6902,31 @@ def extract_function(Column_Name, Excel_File):
                   
                   // Process each reference in the array
                   for (const ref of paramValue) {
-                    if (typeof ref === 'string' && ref.startsWith('@')) {
-                      const refColumn = ref.substring(1);
-                      let refColumnName = refColumn;
+                    if (typeof ref === 'string') {
+                      let refColumnName = '';
                       
-                      if (refColumn.includes('.')) {
-                        const parts = refColumn.split('.');
-                        refColumnName = parts[parts.length - 1];
+                      if (ref.startsWith('@')) {
+                        // Handle @ reference
+                        const refColumn = ref.substring(1);
+                        refColumnName = refColumn;
+                        
+                        if (refColumn.includes('.')) {
+                          const parts = refColumn.split('.');
+                          refColumnName = parts[parts.length - 1];
+                        }
+                      } else if (uuidRegex.test(ref)) {
+                        // Handle UUID reference - use pre-resolved value name
+                        refColumnName = uuidToValueName.get(ref);
+                        if (!refColumnName) {
+                          console.warn(`⚠️ Could not resolve UUID reference: ${ref}`);
+                          continue;
+                        }
                       }
                       
-                      // Add this column's value to the combined record
-                      combinedRecord[refColumnName] = record[refColumnName] || null;
+                      if (refColumnName) {
+                        // Add this column's value to the combined record
+                        combinedRecord[refColumnName] = record[refColumnName] || null;
+                      }
                     }
                   }
                   
@@ -6912,17 +6961,31 @@ def extract_function(Column_Name, Excel_File):
                   
                   // Process each reference in the array
                   for (const ref of paramValue) {
-                    if (typeof ref === 'string' && ref.startsWith('@')) {
-                      const refColumn = ref.substring(1);
-                      let refColumnName = refColumn;
+                    if (typeof ref === 'string') {
+                      let refColumnName = '';
                       
-                      if (refColumn.includes('.')) {
-                        const parts = refColumn.split('.');
-                        refColumnName = parts[parts.length - 1];
+                      if (ref.startsWith('@')) {
+                        // Handle @ reference
+                        const refColumn = ref.substring(1);
+                        refColumnName = refColumn;
+                        
+                        if (refColumn.includes('.')) {
+                          const parts = refColumn.split('.');
+                          refColumnName = parts[parts.length - 1];
+                        }
+                      } else if (uuidRegex.test(ref)) {
+                        // Handle UUID reference - use pre-resolved value name
+                        refColumnName = uuidToValueName.get(ref);
+                        if (!refColumnName) {
+                          console.warn(`⚠️ Could not resolve UUID reference: ${ref}`);
+                          continue;
+                        }
                       }
                       
-                      // Add this column's value to the combined record
-                      combinedRecord[refColumnName] = rowData[refColumnName] || null;
+                      if (refColumnName) {
+                        // Add this column's value to the combined record
+                        combinedRecord[refColumnName] = rowData[refColumnName] || null;
+                      }
                     }
                   }
                   
