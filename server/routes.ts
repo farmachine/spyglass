@@ -7112,24 +7112,49 @@ def extract_function(Column_Name, Excel_File):
             
             for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
               if (Array.isArray(paramValue)) {
-                // Check if array contains references
-                const hasReferences = paramValue.some(item => typeof item === 'string' && item.startsWith('@'));
+                // Check if array contains references (either @-prefixed or UUID format)
+                const hasReferences = paramValue.some(item => {
+                  if (typeof item === 'string') {
+                    return item.startsWith('@') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item);
+                  }
+                  return false;
+                });
+                
                 if (hasReferences) {
                   console.log(`📋 Found array references in ${paramName}: ${paramValue.length} items`);
                   
                   // Extract all column names from the references
                   for (const ref of paramValue) {
-                    if (typeof ref === 'string' && ref.startsWith('@')) {
-                      const refColumn = ref.substring(1);
-                      let refColumnName = refColumn;
+                    if (typeof ref === 'string') {
+                      let refColumnName = '';
                       
-                      if (refColumn.includes('.')) {
-                        const parts = refColumn.split('.');
-                        refColumnName = parts[parts.length - 1];
+                      if (ref.startsWith('@')) {
+                        // Handle @-prefixed references
+                        const refColumn = ref.substring(1);
+                        refColumnName = refColumn;
+                        
+                        if (refColumn.includes('.')) {
+                          const parts = refColumn.split('.');
+                          refColumnName = parts[parts.length - 1];
+                        }
+                      } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)) {
+                        // Handle UUID references - look up the value name
+                        console.log(`  🆔 Looking up value name for UUID: ${ref}`);
+                        try {
+                          const valueInfo = await storage.getStepValueById(ref);
+                          if (valueInfo && valueInfo.valueName) {
+                            refColumnName = valueInfo.valueName;
+                            console.log(`  ✅ Resolved UUID ${ref.substring(0, 8)}... to column: ${refColumnName}`);
+                          }
+                        } catch (error) {
+                          console.log(`  ❌ Failed to resolve UUID ${ref}: ${error}`);
+                        }
                       }
                       
-                      allReferencedColumns.add(refColumnName);
-                      console.log(`  📌 Added referenced column: ${refColumnName}`);
+                      if (refColumnName) {
+                        allReferencedColumns.add(refColumnName);
+                        console.log(`  📌 Added referenced column: ${refColumnName}`);
+                      }
                     }
                   }
                 }
