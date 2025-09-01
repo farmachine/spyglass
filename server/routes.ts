@@ -7655,21 +7655,23 @@ def extract_function(Column_Name, Excel_File):
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
         
-        // If previousData is provided, use its identifierIds directly
+        // If previousData is provided, create a Set of valid identifierIds
         // This is the source of truth for row identifiers
-        let previousDataIdentifiers: Map<number, string> = new Map();
+        let validIdentifierIds: Set<string> = new Set();
+        let previousDataIndex: Map<string, number> = new Map(); // Map identifierId to its original index
         if (previousData && previousData.length > 0) {
           console.log(`📊 Using identifierIds from previousData (${previousData.length} records)`);
           for (let i = 0; i < previousData.length; i++) {
             const record = previousData[i];
             if (record.identifierId) {
-              previousDataIdentifiers.set(i, record.identifierId);
+              validIdentifierIds.add(record.identifierId);
+              previousDataIndex.set(record.identifierId, i);
               if (i < 5) {
                 console.log(`  Record ${i} -> ${record.identifierId}`);
               }
             }
           }
-          console.log(`📊 Found ${previousDataIdentifiers.size} identifierIds from previousData`);
+          console.log(`📊 Found ${validIdentifierIds.size} identifierIds from previousData`);
         }
         
         // Create new validations ONLY for the actual AI results returned
@@ -7679,30 +7681,39 @@ def extract_function(Column_Name, Excel_File):
         for (let i = 0; i < processedResults.length; i++) {
           const result = processedResults[i];
           
-          // Get the identifier ID based on whether this is the first column or a subsequent one
+          // Get the identifier ID - trust what the AI returns if it's valid
           let identifierId: string | null = null;
           let recordIndex = i; // Default to the result index
           
-          // CRITICAL: Always use position-based identifierId mapping to prevent scrambling
-          // DO NOT trust the AI result's identifierId as it might reorder results
-          if (previousDataIdentifiers.size > 0) {
-            // Use the identifierId from previousData map based on position
-            identifierId = previousDataIdentifiers.get(i) || null;
-            if (identifierId) {
-              console.log(`🔗 Using identifierId from previousData for position ${i}: ${identifierId}`);
-              // Validate that the AI result identifierId matches (if present)
-              if (result.identifierId && result.identifierId !== identifierId) {
-                console.log(`⚠️ AI result identifierId mismatch at position ${i}: AI returned ${result.identifierId}, expected ${identifierId} - using expected one`);
-              }
-            } else {
-              // Fallback if we don't have an identifier for this row - always use crypto.randomUUID()
+          // If we have previousData, validate and use the AI's identifierId
+          if (validIdentifierIds.size > 0) {
+            // Check if the AI returned a valid identifierId
+            if (result.identifierId && validIdentifierIds.has(result.identifierId)) {
+              // AI returned a valid identifierId - use it
+              identifierId = result.identifierId;
+              // Get the original index for this identifierId
+              recordIndex = previousDataIndex.get(identifierId) ?? i;
+              console.log(`✅ AI returned valid identifierId: ${identifierId} (original index: ${recordIndex})`);
+            } else if (result.identifierId) {
+              // AI returned an identifierId but it's not in our valid set
+              console.log(`⚠️ AI returned unknown identifierId: ${result.identifierId} - generating new one`);
               identifierId = crypto.randomUUID();
-              console.log(`⚠️ No identifierId found in previousData for position ${i}, generated proper UUID: ${identifierId}`);
+            } else {
+              // AI didn't return an identifierId - generate one
+              console.log(`⚠️ AI didn't return identifierId for position ${i} - generating new one`);
+              identifierId = crypto.randomUUID();
             }
           } else {
-            // This is the first column being extracted - always use proper UUID
-            identifierId = crypto.randomUUID();
-            console.log(`🔗 Generated new UUID identifierId for first column at position ${i}: ${identifierId}`);
+            // This is the first column being extracted
+            if (result.identifierId) {
+              // Trust the AI's identifierId for first column
+              identifierId = result.identifierId;
+              console.log(`🔗 Using AI's identifierId for first column at position ${i}: ${identifierId}`);
+            } else {
+              // Generate new UUID if AI didn't provide one
+              identifierId = crypto.randomUUID();
+              console.log(`🔗 Generated new UUID identifierId for first column at position ${i}: ${identifierId}`);
+            }
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
