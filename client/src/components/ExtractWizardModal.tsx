@@ -152,72 +152,10 @@ export default function ExtractWizardModal({
           <div className="p-6 space-y-5">
             {/* Description */}
             {toolDescription && (
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="pb-2">
                 <p className="text-sm text-gray-700">{toolDescription}</p>
               </div>
             )}
-            
-            {/* Overview Section - Always visible */}
-            <div className="space-y-4">
-              {/* Rows to be updated */}
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Rows to be updated</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {stats.isComplete ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium text-green-600">
-                        All {stats.total} records complete
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-                        {stats.processing} records
-                      </Badge>
-                      {stats.extracted > 0 && (
-                        <span className="text-xs text-gray-500">
-                          ({stats.extracted} already done)
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* Documents to be referenced */}
-              {knowledgeDocuments && knowledgeDocuments.length > 0 && (
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <Files className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Reference documents</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-gray-50">
-                    {knowledgeDocuments.length} document{knowledgeDocuments.length > 1 ? 's' : ''}
-                  </Badge>
-                </div>
-              )}
-              
-              {/* Required documents from session */}
-              {needsDocument && (
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Session document required</span>
-                  </div>
-                  {selectedDocument ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-gray-300" />
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <Separator />
             
             {/* Collapsible Input Data Preview */}
             {hasInputData && (
@@ -227,11 +165,19 @@ export default function ExtractWizardModal({
                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                    <span className="text-sm font-medium text-gray-700">Input Data Preview</span>
-                    <Badge variant="outline" className="text-xs">
+                    <RefreshCw className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Rows to be updated</span>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs bg-blue-50 text-blue-700"
+                    >
                       {stats.processing} records
                     </Badge>
+                    {stats.extracted > 0 && (
+                      <span className="text-xs text-gray-500">
+                        ({stats.extracted} already done)
+                      </span>
+                    )}
                   </div>
                   {expandedSections.has('data') ? (
                     <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -307,10 +253,13 @@ export default function ExtractWizardModal({
                   className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <Files className="h-4 w-4" style={{ color: '#4F63A4' }} />
-                    <span className="text-sm font-medium text-gray-700">Reference Documents</span>
-                    <Badge variant="outline" className="text-xs">
-                      {knowledgeDocuments.length}
+                    <Files className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Reference documents</span>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs bg-gray-50"
+                    >
+                      {knowledgeDocuments.length} document{knowledgeDocuments.length > 1 ? 's' : ''}
                     </Badge>
                   </div>
                   {expandedSections.has('knowledge') ? (
