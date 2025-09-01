@@ -2566,89 +2566,9 @@ export default function SessionView() {
     console.log(`📊 Remaining records to extract: ${remainingData.length}`);
     console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + remainingData.length, extractedCount + 50)} of ${previousColumnsData.length}`);
     
-    // Filter previousColumnsData to only include referenced columns based on inputValues
+    // Don't filter the display data - show ALL available columns from previous steps
+    // The user needs to see all the data that's available, not just what this specific value references
     let filteredPreviousData = previousColumnsData;
-    if (valueToRun.inputValues && previousColumnsData.length > 0) {
-      const referencedColumns = new Set<string>();
-      
-      // Parse inputValues to find which columns are referenced
-      Object.entries(valueToRun.inputValues).forEach(([key, value]) => {
-        console.log(`📋 Parsing inputValue ${key}:`, value);
-        
-        if (typeof value === 'string') {
-          // Handle tag-style references (e.g., "Missing Fields • Missing Fields")
-          if (value.includes('•')) {
-            const tags = value.split('•').map(t => t.trim());
-            tags.forEach(tag => {
-              // Add the referenced field name
-              referencedColumns.add(tag);
-              console.log(`  - Added tag reference: "${tag}"`);
-            });
-          }
-          // Handle @ references (e.g., "@Column Name Mapping.Standard Equivalent")
-          else if (value.includes('@')) {
-            // Updated regex to handle spaces in column names - match until end of string, comma, or semicolon
-            const matches = value.match(/@[^.]+\.[^@,;]+/g);
-            if (matches) {
-              matches.forEach(match => {
-                // Split at the first dot and take everything after as the column name
-                const dotIndex = match.indexOf('.');
-                if (dotIndex !== -1) {
-                  const columnName = match.substring(dotIndex + 1).trim();
-                  if (columnName) {
-                    referencedColumns.add(columnName);
-                    console.log(`  - Added @ reference column: "${columnName}"`);
-                  }
-                }
-              });
-            }
-          }
-        } else if (Array.isArray(value)) {
-          // Handle array of references
-          console.log(`  - Processing array with ${value.length} items`);
-          value.forEach(v => {
-            if (typeof v === 'string') {
-              console.log(`    - Array item: "${v}"`);
-              if (v.includes('@')) {
-                // Use same regex as for strings to handle spaces in column names
-                const match = v.match(/@[^.]+\.[^@,;]+/);
-                if (match) {
-                  const dotIndex = match[0].indexOf('.');
-                  if (dotIndex !== -1) {
-                    const columnName = match[0].substring(dotIndex + 1).trim();
-                    if (columnName) {
-                      referencedColumns.add(columnName);
-                      console.log(`    - Extracted column: "${columnName}"`);
-                    }
-                  }
-                }
-              }
-            }
-          });
-        }
-      });
-      
-      // If we found specific column references, filter the data
-      if (referencedColumns.size > 0) {
-        console.log(`📋 Filtering to show only referenced columns:`, Array.from(referencedColumns));
-        
-        filteredPreviousData = previousColumnsData.map(record => {
-          const filteredRecord: any = {
-            identifierId: record.identifierId, // Always include identifierId
-            _recordIndex: record._recordIndex  // Include record index if present
-          };
-          
-          // Only include the referenced columns
-          referencedColumns.forEach(columnName => {
-            if (record.hasOwnProperty(columnName)) {
-              filteredRecord[columnName] = record[columnName];
-            }
-          });
-          
-          return filteredRecord;
-        });
-      }
-    }
     
     // Get the column order from the filtered data
     const columnOrder = filteredPreviousData.length > 0 
