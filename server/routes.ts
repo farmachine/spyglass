@@ -7339,12 +7339,19 @@ def extract_function(Column_Name, Excel_File):
           console.log(`  🟡 Pending: ${pendingRecords.length} records`);
           console.log(`  🟢 Validated: ${validatedRecords.length} records (will NOT be extracted)`);
           
-          // Build the batch prioritizing not-extracted, then pending, never validated
-          const prioritizedData = [...notExtractedRecords, ...pendingRecords];
+          // Build the batch maintaining original order but excluding validated records
+          // CRITICAL: Maintain the original order from previousData to ensure correct mapping
+          const eligibleData = previousData.filter(record => {
+            const identifierId = record.identifierId;
+            const validation = identifierId ? valueValidations.find(v => v.identifierId === identifierId) : null;
+            
+            // Include if not validated (pending or not extracted)
+            return !validation || validation.validationStatus !== 'valid';
+          });
           
           // Apply 50-record limit for AI tools to prevent excessive processing
-          const limitedPreviousData = prioritizedData.slice(0, 50);
-          console.log(`🎯 AI tool expects List Item - using ${limitedPreviousData.length} prioritized records (from ${prioritizedData.length} eligible, ${previousData.length} total)`);
+          const limitedPreviousData = eligibleData.slice(0, 50);
+          console.log(`🎯 AI tool expects List Item - using ${limitedPreviousData.length} records (from ${eligibleData.length} eligible, ${previousData.length} total)`);
           
           if (limitedPreviousData.length > 0) {
             console.log(`  First record:`, limitedPreviousData[0]);
