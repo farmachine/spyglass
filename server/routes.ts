@@ -2592,8 +2592,8 @@ except Exception as e:
                   toolInputs[key] = [];
                 }
               }
-              // Handle Reference Document - fetch when key is present OR value is @reference_document or value is an array (document IDs)
-              else if (key === 'Reference Document' || key === '0.4uir69thnel' || value === '@reference_document' || (Array.isArray(value) && key.includes('uir69thnel'))) {
+              // Handle Reference Document - fetch when value is @reference_document or value is an array (document IDs)
+              else if (value === '@reference_document' || (Array.isArray(value) && value.every(item => typeof item === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item)))) {
                 console.log('🔍 FETCHING REFERENCE DOCUMENTS...');
                 console.log(`  Key: ${key}, Value type: ${typeof value}, Is Array: ${Array.isArray(value)}`);
                 
@@ -2640,15 +2640,13 @@ except Exception as e:
                 
                 if (allDocContents.length > 0) {
                   const combinedContent = allDocContents.join('\n\n---\n\n');
-                  // Set reference document by both key name and ID
-                  toolInputs['Reference Document'] = combinedContent;
-                  toolInputs['0.4uir69thnel'] = combinedContent;
-                  console.log(`📚 ✅ Set reference document content (${combinedContent.length} chars)`);
+                  // Set reference document content for this parameter
+                  toolInputs[key] = combinedContent;
+                  console.log(`📚 ✅ Set reference document content for ${key} (${combinedContent.length} chars)`);
                   console.log(`📚 Preview of combined content: ${combinedContent.substring(0, 200)}...`);
                 } else {
                   console.log('⚠️ No reference documents found');
-                  toolInputs['Reference Document'] = '';
-                  toolInputs['0.4uir69thnel'] = '';
+                  toolInputs[key] = '';
                 }
               } else if (typeof value === 'object' && value !== null) {
                 // Handle nested input structure
@@ -7405,21 +7403,24 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
-      // Handle reference documents - check if any parameter expects them
-      const refDocParam = tool.inputParameters?.find(p => 
-        p.name === 'Reference Document' || 
-        p.id === '0.4uir69thnel' ||
-        p.name === 'reference_documents'
-      );
+      // Handle reference documents - check if any parameter expects them (GENERIC APPROACH)
+      const documentParams = tool.inputParameters?.filter(p => p.type === 'document') || [];
       
-      if (refDocParam && !toolInputs['Reference Document'] && !toolInputs['0.4uir69thnel']) {
-        console.log('🔍 Tool expects reference documents but none provided in toolInputs');
-        console.log('  Checking for reference document IDs in inputValues...');
+      for (const docParam of documentParams) {
+        const paramKey = docParam.id || docParam.name;
         
-        // Check if there are reference document IDs in the value's inputValues
-        const refDocIds = value.inputValues?.['0.4uir69thnel'] || 
-                         value.inputValues?.['Reference Document'] ||
-                         value.inputValues?.reference_documents;
+        // Skip if this parameter already has content
+        if (toolInputs[paramKey] || toolInputs[docParam.name]) {
+          console.log(`📄 Document parameter ${docParam.name} already has content`);
+          continue;
+        }
+        
+        console.log(`🔍 Checking document parameter: ${docParam.name} (${paramKey})`);
+        console.log('  Looking for document IDs in inputValues...');
+        
+        // Check if there are reference document IDs in the value's inputValues for this parameter
+        const refDocIds = value.inputValues?.[paramKey] || 
+                         value.inputValues?.[docParam.name];
         
         if (refDocIds) {
           const { loadReferenceDocuments, extractDocumentIds } = await import('./referenceDocumentLoader');
@@ -7429,10 +7430,9 @@ def extract_function(Column_Name, Excel_File):
             console.log(`📚 Loading ${documentIds.length} reference documents...`);
             const content = await loadReferenceDocuments(documentIds, session.projectId);
             
-            // Set reference document content for all possible keys
-            toolInputs['Reference Document'] = content;
-            toolInputs['0.4uir69thnel'] = content;
-            toolInputs[refDocParam.name] = content;
+            // Set reference document content for this specific parameter
+            toolInputs[paramKey] = content;
+            toolInputs[docParam.name] = content;
             
             console.log(`✅ Loaded reference document content: ${content.length} chars`);
             if (content.length > 0) {
