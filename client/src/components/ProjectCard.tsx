@@ -203,7 +203,7 @@ export default function ProjectCard({
 
   return (
     <>
-      <Card className={`bg-white dark:bg-gray-800 text-black dark:text-gray-100 rounded-xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
+      <Card className={`bg-white dark:bg-gray-800 text-black dark:text-gray-100 rounded-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`} style={{
         border: '1px solid #5065a5',
