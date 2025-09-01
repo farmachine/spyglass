@@ -9115,15 +9115,21 @@ def extract_function(Column_Name, Excel_File):
   app.post('/api/sessions/:sessionId/chat', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { sessionId } = req.params;
-      const { content } = req.body;
+      const { content, message } = req.body;
+      const messageContent = content || message || req.body.text || '';
       const userId = req.user!.id;
+      
+      // Validate message content
+      if (!messageContent || messageContent.trim() === '') {
+        return res.status(400).json({ message: 'Message content is required' });
+      }
 
       // Save user message
       const userMessage = await storage.createChatMessage({
         sessionId,
         userId,
         role: 'user',
-        content
+        content: messageContent
       });
 
       // Get session context for AI
@@ -9156,7 +9162,7 @@ def extract_function(Column_Name, Excel_File):
       }
 
       // Generate AI response using all extracted data
-      const aiResponse = await generateChatResponse(content, {
+      const aiResponse = await generateChatResponse(messageContent, {
         session,
         validations,
         projectFields,
