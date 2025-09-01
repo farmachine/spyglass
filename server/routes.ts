@@ -7595,24 +7595,26 @@ def extract_function(Column_Name, Excel_File):
           let identifierId: string | null = null;
           let recordIndex = i; // Default to the result index
           
-          // FIRST: Check if the result itself has an identifierId (from AI tools that preserve it)
-          if (result.identifierId) {
-            identifierId = result.identifierId;
-            console.log(`🔗 Using identifierId from result at index ${i}: ${identifierId}`);
-          } else if (previousDataIdentifiers.size > 0) {
-            // Use the identifierId from previousData map
+          // CRITICAL: Always use position-based identifierId mapping to prevent scrambling
+          // DO NOT trust the AI result's identifierId as it might reorder results
+          if (previousDataIdentifiers.size > 0) {
+            // Use the identifierId from previousData map based on position
             identifierId = previousDataIdentifiers.get(i) || null;
             if (identifierId) {
-              console.log(`🔗 Using identifierId from previousData for index ${i}: ${identifierId}`);
+              console.log(`🔗 Using identifierId from previousData for position ${i}: ${identifierId}`);
+              // Validate that the AI result identifierId matches (if present)
+              if (result.identifierId && result.identifierId !== identifierId) {
+                console.log(`⚠️ AI result identifierId mismatch at position ${i}: AI returned ${result.identifierId}, expected ${identifierId} - using expected one`);
+              }
             } else {
               // Fallback if we don't have an identifier for this row - always use crypto.randomUUID()
               identifierId = crypto.randomUUID();
-              console.log(`⚠️ No identifierId found in previousData for index ${i}, generated proper UUID: ${identifierId}`);
+              console.log(`⚠️ No identifierId found in previousData for position ${i}, generated proper UUID: ${identifierId}`);
             }
           } else {
             // This is the first column being extracted - always use proper UUID
             identifierId = crypto.randomUUID();
-            console.log(`🔗 Generated new UUID identifierId for first column at index ${i}: ${identifierId}`);
+            console.log(`🔗 Generated new UUID identifierId for first column at position ${i}: ${identifierId}`);
           }
           
           // Format field name to match UI expectations: "StepName.ValueName[index]"
