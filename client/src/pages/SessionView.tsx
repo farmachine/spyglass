@@ -1746,24 +1746,16 @@ export default function SessionView() {
     session?.sessionName || project?.name || "Session"
   );
 
-  const { data: validations = [], isLoading: validationsLoading, error: validationsError } = useQuery<FieldValidation[]>({
+  const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`),
-    enabled: !!sessionId,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    staleTime: 0, // Always fresh to ensure we see new extractions
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000 // 10 minutes
   });
-  
-  // Log validation fetch error if any
-  useEffect(() => {
-    if (validationsError) {
-      console.error('Failed to fetch validations:', validationsError);
-    }
-  }, [validationsError]);
 
   // Query for session documents
   const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
@@ -5117,6 +5109,7 @@ Thank you for your assistance.`;
                                     
                                     const validation = getValidation(fieldName, rowIdentifierId);
                                     
+
                                     
                                     // Try multiple possible property name mappings for extracted data
                                     const possibleKeys = [
@@ -5621,16 +5614,12 @@ Thank you for your assistance.`;
               // Small delay to ensure backend operations complete
               await new Promise(resolve => setTimeout(resolve, 500));
               
-              // Force a complete refresh of the validations data
-              // Remove queries from cache and wait briefly for backend commit
-              queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-              queryClient.removeQueries({ queryKey: ['/api/validations/project', projectId] });
-              
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              // Invalidate and refetch fresh data
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
               await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
+              
+              // Force refetch to ensure UI updates
+              await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              console.log('✅ Validation queries refreshed');
               
             } catch (error) {
               console.error('Error running column extraction:', error);
