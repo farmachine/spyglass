@@ -141,11 +141,100 @@ npm start               # Start production server
 - Word documents: Up to 25MB
 - Maximum 10 files per upload session
 
+## First Time Setup
+
+### Creating Your First User
+
+1. Start the application with `npm run dev`
+2. Navigate to `http://localhost:5000/register`
+3. Create an organization and admin user account
+4. Use these credentials to log in at `/login`
+
+### Sample Data
+
+To test the extraction workflow:
+1. Log in and create a new project
+2. Navigate to the project's Configure page
+3. Set up workflow steps (Info Pages for single values, Data Tables for lists)
+4. Create a new session and upload test documents
+5. Run extractions on your configured fields
+
+## Common Development Tasks
+
+### Adding a New API Endpoint
+
+1. Add the route handler in `server/routes.ts`
+2. Add any database operations to `server/storage.ts`
+3. Update TypeScript types in `shared/schema.ts` if needed
+4. Create/update React hooks in `client/src/hooks/`
+
+### Working with Python Extraction Scripts
+
+```bash
+# Test a Python script directly
+python extraction_wizardry.py < test_input.json
+
+# Debug Python subprocess calls from Node.js
+# Add console.log in server/routes.ts before spawn()
+# Python stdout/stderr will appear in terminal
+```
+
+### Database Operations
+
+```bash
+# Apply schema changes
+npm run db:push
+
+# Force push (data loss warning)
+npm run db:push --force
+
+# Connect to database directly
+psql $DATABASE_URL
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Python extraction fails silently**
+- Check Python dependencies are installed
+- Verify GEMINI_API_KEY is set correctly
+- Look for Python errors in server console output
+
+**Database connection errors**
+- Verify DATABASE_URL is correctly formatted
+- Check PostgreSQL is running
+- Ensure database exists and user has permissions
+
+**File upload issues**
+- Check file size limits in `server/routes.ts`
+- Verify mime type validation
+- Ensure temp directory has write permissions
+
+**Authentication problems**
+- Clear browser cookies/localStorage
+- Check SESSION_SECRET is set
+- Verify JWT token expiration
+
+## API Reference
+
+### Key Endpoints
+
+- `POST /api/auth/login` - User authentication
+- `GET /api/projects` - List user's projects
+- `POST /api/sessions/:id/documents` - Upload documents
+- `POST /api/sessions/:id/extract-column` - Run extraction
+- `GET /api/sessions/:id/validations` - Get extraction results
+- `POST /api/sessions/:id/export` - Export to Excel
+
+See `server/routes.ts` for complete API documentation.
+
 ## Getting Help
 
 - Check the codebase documentation in `CODEBASE_OVERVIEW.md`
 - Review the existing `replit.md` for detailed architecture information
 - Examine the shared schema in `shared/schema.ts` for database structure
+- Python extraction logic is in `extraction_wizardry.py`
 
 ## Security Notes
 
@@ -153,3 +242,4 @@ npm start               # Start production server
 - Session secrets should be cryptographically secure
 - Database credentials should follow principle of least privilege
 - File uploads are validated for type and size limits
+- Python functions run in sandboxed environment

@@ -25,6 +25,31 @@ extrapl follows a modern full-stack architecture with clear separation of concer
                        └─────────────────┘
 ```
 
+## Database Relationships
+
+### Entity Relationship Overview
+
+```
+organizations (1) ─────┬──── (*) users
+                       ├──── (*) projects ──────┬──── (*) workflowSteps ──── (*) stepValues
+                       │                        ├──── (*) extractionSessions ─┬── (*) sessionDocuments
+                       │                        │                             └── (*) fieldValidations
+                       │                        ├──── (*) knowledgeDocuments
+                       │                        ├──── (*) extractionRules
+                       │                        └──── (*) excelWizardryFunctions
+                       └──── (*) projectPublishing
+```
+
+### Key Relationships
+
+- **Multi-tenancy**: All data is scoped to organizations
+- **Projects**: Belong to organizations, define extraction workflows
+- **Workflow Steps**: Define the structure (Info Pages or Data Tables)
+- **Step Values**: Individual fields/columns within steps
+- **Sessions**: Instances of document processing for a project
+- **Validations**: Store extraction results linked to sessions and values
+- **Functions**: Reusable Python code for Excel extraction
+
 ## Core Components
 
 ### 1. Frontend (React/TypeScript)
@@ -204,24 +229,127 @@ AI Results → Manual Review Interface → User Validation → Status Updates �
 - Size limit enforcement
 - Temporary file cleanup
 
+## Understanding the Extraction Workflow
+
+### Complete Extraction Process
+
+1. **Project Configuration**
+   - User creates workflow steps (Info Pages or Data Tables)
+   - Each step contains values (fields/columns) to extract
+   - Values are configured with extraction tools (AI or Function-based)
+
+2. **Document Upload**
+   - Files uploaded to session
+   - Python `document_extractor.py` processes content
+   - Text stored in `session_documents` table
+
+3. **Extraction Execution**
+   - User selects values to extract
+   - `extraction_wizardry.py` orchestrates the process
+   - For AI: Sends document + prompts to Gemini
+   - For Functions: Executes stored Python pandas code
+   - Results include extracted value, confidence, reasoning
+
+4. **Identifier Reference Chaining**
+   - First column in Data Tables becomes identifier
+   - Subsequent extractions can reference previous results
+   - Uses `@column_name` syntax for references
+   - Enables multi-step dependent extractions
+
+5. **Validation & Export**
+   - Results stored in `fieldValidations` table
+   - Users review and validate/reject results
+   - Export generates Excel with proper sheet structure
+
+### Key Code Patterns
+
+#### API Route Pattern
+```typescript
+// server/routes.ts
+app.post("/api/resource", authenticateToken, async (req, res) => {
+  try {
+    const validated = insertSchema.parse(req.body);
+    const result = await storage.createResource(validated);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+
+#### React Query Hook Pattern
+```typescript
+// client/src/hooks/useResource.ts
+export function useResource(id: string) {
+  return useQuery({
+    queryKey: ['/api/resource', id],
+    enabled: !!id,
+  });
+}
+```
+
+#### Python Subprocess Pattern
+```typescript
+// server/routes.ts
+const python = spawn('python', ['script.py']);
+python.stdin.write(JSON.stringify(inputData));
+python.stdin.end();
+
+let output = '';
+python.stdout.on('data', (data) => {
+  output += data.toString();
+});
+
+python.on('close', (code) => {
+  if (code === 0) {
+    const result = JSON.parse(output);
+    res.json(result);
+  }
+});
+```
+
 ## Development Workflow
 
 ### 1. Database Changes
 1. Modify `shared/schema.ts`
 2. Run `npm run db:push` to sync schema
 3. Use `--force` flag if conflicts arise
+4. Update storage.ts interfaces if needed
 
 ### 2. Adding New Features
 1. Define API routes in `server/routes.ts`
-2. Create React components/pages in `client/src/`
-3. Add TypeScript types to `shared/schema.ts`
-4. Test functionality end-to-end
+2. Add storage methods in `server/storage.ts`
+3. Create React components/pages in `client/src/`
+4. Add TypeScript types to `shared/schema.ts`
+5. Create hooks in `client/src/hooks/`
+6. Test functionality end-to-end
 
 ### 3. AI Integration
 1. Add Python processing in appropriate service file
 2. Define extraction prompts in `all_prompts.py`
 3. Connect via API routes that call Python subprocess
 4. Handle results in frontend validation interface
+5. Test with sample documents
+
+### 4. Debugging Tips
+
+**Frontend Issues:**
+- Check browser console for errors
+- Use React DevTools for component state
+- Verify API responses in Network tab
+- Check TanStack Query cache state
+
+**Backend Issues:**
+- Add console.log before database operations
+- Check TypeScript compilation errors
+- Verify environment variables are loaded
+- Monitor Python subprocess output
+
+**Python Script Issues:**
+- Test scripts independently with JSON input
+- Add print statements for debugging
+- Check stderr output from subprocess
+- Verify all dependencies are installed
 
 ## Performance Considerations
 
