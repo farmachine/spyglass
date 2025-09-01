@@ -5001,6 +5001,26 @@ Thank you for your assistance.`;
                                   
                                   // Get the identifierId for this row
                                   const rowIdentifierId = (() => {
+                                    // For workflow steps, get the first column (ID column) value
+                                    if (workflowStep && workflowStep.values.length > 0) {
+                                      const firstColumn = workflowStep.values[0];
+                                      const idValue = item[firstColumn.valueName];
+                                      
+                                      // Find validation with matching ID value
+                                      if (idValue) {
+                                        const idValidation = validations.find(v => 
+                                          v.collectionName === collection.collectionName &&
+                                          v.extractedValue === idValue &&
+                                          v.valueId === firstColumn.id &&
+                                          v.identifierId
+                                        );
+                                        if (idValidation) {
+                                          return idValidation.identifierId;
+                                        }
+                                      }
+                                    }
+                                    
+                                    // Fallback: Try to find any validation for this row that has an identifierId
                                     const rowValidation = validations.find(v => 
                                       v.recordIndex === originalIndex &&
                                       v.collectionName === collection.collectionName &&
@@ -5075,7 +5095,26 @@ Thank you for your assistance.`;
                                     
                                     // Get the identifierId for this row
                                     const rowIdentifierId = (() => {
-                                      // Try to find any validation for this row that has an identifierId
+                                      // For workflow steps, get the first column (ID column) value
+                                      if (workflowStep && workflowStep.values.length > 0) {
+                                        const firstColumn = workflowStep.values[0];
+                                        const idValue = item[firstColumn.valueName];
+                                        
+                                        // Find validation with matching ID value
+                                        if (idValue) {
+                                          const idValidation = validations.find(v => 
+                                            v.collectionName === collection.collectionName &&
+                                            v.extractedValue === idValue &&
+                                            v.valueId === firstColumn.id &&
+                                            v.identifierId
+                                          );
+                                          if (idValidation) {
+                                            return idValidation.identifierId;
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Fallback: Try to find any validation for this row that has an identifierId
                                       const rowValidation = validations.find(v => 
                                         v.recordIndex === originalIndex &&
                                         v.collectionName === collection.collectionName &&
