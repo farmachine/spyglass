@@ -7417,7 +7417,8 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
-      // Handle reference documents - check if any parameter expects them (GENERIC APPROACH)
+      // STANDARDIZED DOCUMENT LOADING FOR ALL AI TOOLS
+      // This process is IDENTICAL for every AI tool - no special cases
       const documentParams = tool.inputParameters?.filter(p => p.type === 'document') || [];
       
       for (const docParam of documentParams) {
@@ -7425,14 +7426,13 @@ def extract_function(Column_Name, Excel_File):
         
         // Skip if this parameter already has content
         if (toolInputs[paramKey] || toolInputs[docParam.name]) {
-          console.log(`📄 Document parameter ${docParam.name} already has content`);
+          console.log(`✅ Document parameter ${docParam.name} already has content`);
           continue;
         }
         
-        console.log(`🔍 Checking document parameter: ${docParam.name} (${paramKey})`);
-        console.log('  Looking for document IDs in inputValues...');
+        console.log(`📄 Processing document parameter: ${docParam.name}`);
         
-        // Check if there are reference document IDs in the value's inputValues for this parameter
+        // Check if there are reference document IDs configured for this parameter
         const refDocIds = value.inputValues?.[paramKey] || 
                          value.inputValues?.[docParam.name];
         
@@ -7441,18 +7441,23 @@ def extract_function(Column_Name, Excel_File):
           const documentIds = extractDocumentIds(refDocIds);
           
           if (documentIds.length > 0) {
-            console.log(`📚 Loading ${documentIds.length} reference documents...`);
+            console.log(`  📚 Loading ${documentIds.length} reference documents for ${docParam.name}...`);
             const content = await loadReferenceDocuments(documentIds, session.projectId);
             
-            // Set reference document content for this specific parameter
+            // Set reference document content for this parameter
+            // Use both ID and name as keys for maximum compatibility
             toolInputs[paramKey] = content;
             toolInputs[docParam.name] = content;
             
-            console.log(`✅ Loaded reference document content: ${content.length} chars`);
-            if (content.length > 0) {
-              console.log(`📄 Content preview: ${content.substring(0, 300)}...`);
+            console.log(`  ✅ Loaded ${content.length} chars of reference content`);
+            if (content.length > 100) {
+              console.log(`  📄 Preview: ${content.substring(0, 100)}...`);
             }
+          } else {
+            console.log(`  ⚠️ No valid document IDs found in configuration`);
           }
+        } else {
+          console.log(`  ℹ️ No reference documents configured for this parameter`);
         }
       }
       

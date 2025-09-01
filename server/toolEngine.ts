@@ -571,93 +571,99 @@ export class ToolEngine {
   
   /**
    * Build AI prompt from tool template and inputs
+   * This is the STANDARDIZED prompt structure for ALL AI tools
    */
   private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[]): string {
     const basePrompt = tool.aiPrompt || '';
     
-    // Extract input values from value configuration
-    let aiQuery = inputs['AI Query'] || '';
-    const referenceDoc = inputs['Reference Document'] || inputs['document'] || '';
-    const additionalInstructions = inputs['0.hb25dnz5dmd'] || '';
-    
-    // Extract value configuration if present
+    // Extract value configuration - this tells us what field is being extracted
     const valueConfig = inputs['valueConfiguration'];
     const valueName = valueConfig?.valueName || '';
     const valueDescription = valueConfig?.description || '';
     const stepName = valueConfig?.stepName || '';
     const inputValues = valueConfig?.inputValues || {};
     
-    // Extract AI instructions from inputValues if not already set
-    if (!aiQuery && inputValues) {
-      console.log(`🔍 Looking for AI instructions in inputValues:`, JSON.stringify(inputValues, null, 2));
+    // STANDARDIZED INPUT EXTRACTION
+    // Process all tool parameters to build the input values section
+    const processedInputs: Record<string, string> = {};
+    
+    // Process each tool parameter to find its value
+    for (const param of tool.inputParameters || []) {
+      const paramId = param.id;
+      const paramName = param.name;
       
-      // Look for AI instructions in inputValues
-      // inputValues can have various keys like "0.xyz" (parameter IDs) or named keys
-      for (const [key, val] of Object.entries(inputValues)) {
-        console.log(`  Checking [${key}]: ${typeof val} = ${JSON.stringify(val)}`);
-        
-        if (typeof val === 'string') {
+      // Check for value in multiple places (in priority order)
+      let paramValue = 
+        inputs[paramName] ||                    // Direct by name
+        inputs[paramId] ||                      // Direct by ID
+        inputValues[paramId] ||                 // From value configuration by ID
+        inputValues[paramName] ||               // From value configuration by name
+        '';
+      
+      // Handle different parameter types
+      if (param.type === 'document') {
+        // Document content should already be loaded and available in inputs
+        if (paramValue && typeof paramValue === 'string' && paramValue.length > 0) {
+          processedInputs[paramName] = paramValue;
+          console.log(`📄 Found document content for ${paramName}: ${paramValue.length} chars`);
+        }
+      } else if (param.type === 'text') {
+        // Text instructions - skip pure data references
+        if (typeof paramValue === 'string') {
           // Skip pure data references (single token starting with @)
-          if (val.startsWith('@') && val.split(' ').length === 1) {
-            console.log(`    -> Skipping data reference`);
-            continue;
-          }
-          
-          // This is instruction text
-          if (val.trim().length > 0) {
-            aiQuery = val;
-            console.log(`🎯 Extracted AI instruction from inputValues[${key}]: "${val}"`);
-            break;
+          if (paramValue.startsWith('@') && paramValue.split(' ').length === 1) {
+            console.log(`⏭️ Skipping data reference for ${paramName}: ${paramValue}`);
+          } else if (paramValue.trim().length > 0) {
+            processedInputs[paramName] = paramValue;
+            console.log(`📝 Found text input for ${paramName}: "${paramValue}"`);
           }
         }
-      }
-      
-      if (!aiQuery) {
-        console.log(`⚠️ No AI instructions found in inputValues`);
+      } else if (param.type === 'data') {
+        // Data arrays are handled separately (dataArray parameter)
+        console.log(`📊 Data parameter ${paramName} will use provided dataArray`);
       }
     }
     
-    // Build layered prompt structure
+    // BUILD STANDARDIZED PROMPT STRUCTURE
+    // This structure is IDENTICAL for all AI tools
     let prompt = '';
     
-    // LAYER 1: Tool Prompt (the template explaining the function)
-    prompt += `=== TOOL FUNCTION ===
-${basePrompt}
+    // SECTION 1: Tool Function (the AI prompt template)
+    prompt += `📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+\`\`\`text
+${basePrompt.trim()}
+\`\`\`
 
 `;
     
-    // LAYER 2: Value Configuration (what the inputs actually are)
-    if (valueConfig) {
-      prompt += `=== VALUE CONFIGURATION ===
-Extracting: "${valueName}"
-${valueDescription ? `Description: ${valueDescription}` : ''}
-${stepName ? `From Step: ${stepName}` : ''}
-
-`;
-    }
-    
-    // LAYER 3: Input Values (the actual data being passed)
+    // SECTION 2: Input Values (the actual parameters being used)
     prompt += `=== INPUT VALUES ===
 
 `;
     
-    // Add AI Query if present
-    if (aiQuery) {
-      prompt += `**AI Query**: ${aiQuery}
-${additionalInstructions ? `Additional Instructions: ${additionalInstructions}` : ''}
+    // Add all processed inputs in a consistent order
+    // Sort by parameter order for consistency
+    const sortedParams = [...(tool.inputParameters || [])].sort((a, b) => {
+      // Put text params first, then documents, then data
+      const typeOrder = { text: 0, document: 1, data: 2 };
+      const aOrder = typeOrder[a.type as keyof typeof typeOrder] ?? 3;
+      const bOrder = typeOrder[b.type as keyof typeof typeOrder] ?? 3;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.name.localeCompare(b.name);
+    });
+    
+    for (const param of sortedParams) {
+      const value = processedInputs[param.name];
+      if (value) {
+        prompt += `**${param.name}**: ${value}
 
 `;
+      }
     }
     
-    // Add Reference Documents if present
-    if (referenceDoc) {
-      prompt += `**Reference Document**:
-${referenceDoc}
-
-`;
-    }
-    
-    // Add List Items (the data to process)
+    // Add List Items (the data to process) - this is standard for all AI tools
     if (dataArray && dataArray.length > 0) {
       prompt += `**List Items** (${dataArray.length} items to process):
 \`\`\`json
@@ -667,8 +673,8 @@ ${JSON.stringify(dataArray, null, 2)}
 `;
     }
     
-    // DO NOT add any system output requirements here
-    // Let each tool's own AI prompt handle its specific output format
+    // NO additional instructions or requirements added here
+    // Each tool's aiPrompt contains its own specific output format requirements
     
     return prompt;
   }

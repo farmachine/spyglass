@@ -1,0 +1,478 @@
+
+📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+```text
+For each `List Item`, use the `AI Query` against the `Reference Document` to extract relevant information and validate its accuracy. Return a JSON ARRAY of objects, where each object corresponds to a `List Item` and contains the following keys:
+
+*   **extractedValue**: The actual data extracted from the `Reference Document` based on the `AI Query` for the corresponding `List Item`. If no relevant information can be found, return "N/A".
+*   **validationStatus**: A string indicating whether the extracted value is "valid" or "invalid". A "valid" status indicates high confidence in the extracted value based on the `Reference Document` and `AI Query`. An "invalid" status should be assigned when confidence is low or no relevant information is found.
+*   **aiReasoning**: A detailed explanation of the AI's reasoning process for extracting the `extractedValue`, including how the `AI Query` was applied to the `Reference Document` and why the `validationStatus` was assigned.
+*   **confidenceScore**: A numerical score between 0 and 100 representing the AI's confidence in the accuracy of the `extractedValue`. A higher score indicates higher confidence.
+*   **documentSource**: A string specifying the exact source (e.g., page number, section title) within the `Reference Document` from which the `extractedValue` was obtained. If the information is derived from multiple sources within the document, list all relevant sources separated by commas. If no relevant source is found, return "N/A".
+
+The JSON ARRAY MUST use the identifierID from the input `List Item` array. This is CRUCIAL for proper record linkage and batch processing. Each object in the array corresponds to the `List Item` with the same identifierId the input list. So make sure to output each item with the same identifierId as its corresponding input. This important for updating the existing records properly.
+```
+
+=== INPUT VALUES ===
+
+**AI Query**: Map the values to the equivalent in the the standard fields mapping document. If you can't find a sensible mapping, just say 'Not Found'. Do not just copy the column value... The result needs to be the closest matching field name in the standard mappings documents i.e. the field name verbatim. Do not just modify the column name according to the document.
+
+
+**Reference Document**:
+=== Document: Standard_Field_Mappings_Relevant_Thresholds.pdf ===
+Standardised
+Column Name
+MemberID
+SectionMarker
+SpouseID
+SpousesMemberID
+DependantsID
+Dependants Member
+ID
+DoB
+DoB Spouse
+DoB Dependant
+Gender
+Gender Spouse
+Marital Status
+Retirement Age
+GMP Retirement Age
+Pre-78 Total
+Validation Rule
+N/A
+Consistent with the Benefits Schedule.
+N/A
+N/A
+N/A
+N/A
+Earlier than today, later than 1st Jan 1900.
+Earlier than today, later than 1st Jan 1900.
+Earlier than today, later than 1st Jan 2000.
+M or F
+M or F
+Married, Single, Civil Partnership
+Greater than 50 and less than 55.
+Satisfying the legislation on GMP retirement age
+>=0
+Pre-88 GMP
+Post-88 GMP
+Pre-97 XS
+97-09 Total Pension
+Post 09 Total
+Pension
+Transfer-In Pension
+Spouses Pre-78
+Total
+Spouses Pre-88
+GMP
+Spouses Post-88
+GMP
+Spouses Pre-97 XS
+Spouses 97-09 Total
+Pension
+Spouses Post 09
+Total Pensions
+Spouses Transfer-In
+Pension
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+>=0
+
+---
+
+=== Document: Standard_Field_Mappings_with_all_synonyms.pdf ===
+Basic Data Items
+Standardised
+Column Name
+MemberID
+SpouseID
+SpousesMemberID
+DependantsID
+Dependants Member
+ID
+DoB
+DoB Spouse
+DoB Dependant
+Gender
+Type
+Text
+Text
+Text
+Text
+Text
+Date
+Date
+Date
+Text
+Description
+A unique identifier for each scheme
+member.
+A unique identifier for each scheme
+spouse of scheme members.
+The memberID that the spouse is related
+to.
+A unique identifier for each scheme
+dependant of a scheme member.
+The memberID that the dependant is
+related to.
+The date of birth of the scheme member
+The date of birth of the scheme
+member's spouse or civil partner
+The dates of birth of the scheme
+member's dependants
+The gender of the scheme member
+Synonyms
+ID, ID of the member.
+ID, ID of the spouse member.
+ID, ID of the spouse member.
+ID, ID of the dependant member.
+ID, ID of the spouse member.
+Date of birth, birth date, DOB,
+DateOfBirth, Member Birth Date
+DOB Spouse, Spouse Date of Birth,
+Partner Birth Date
+DOB Dependant, Dependent Date of
+Birth, Child Birth Date
+Sex, Member Gender, Biological Sex
+Gender Spouse
+Marital Status
+Retirement Age or
+Retirement Date
+GMP Retirement Age
+or GMP Retirement
+Date
+Text
+Text
+Number or Date
+Number or Date
+The gender of the scheme member's
+spouse or civil partner.
+The marital status of the member.
+The normal retirement date or age that
+the scheme member is expected to
+retire.
+The normal retirement date or age that
+the scheme member is expected to take
+their GMP benefits.
+Sex, Sex Spouse, Spouse Gender,
+Partner Sex
+Married/Single/Divorced, Relationship
+Status, Civil Status
+NRA, Normal Retirement Age, Expected
+Retirement Date
+GMP NRA, GMP Normal Retirement Age,
+GMP Retirement Date
+Main Pension Benefits
+The following table is a list of the standardised column names for mapping purposes.
+Standardised
+Column Name
+Main Member
+Pre-78 Total
+Pre-88 GMP
+Standardised Column
+Name
+Spouse Member
+Spouses Pre-78 Total
+Spouses Pre-88 GMP
+Description
+Pension accrued before 6 April 1978 when
+legislation brought in contracting out and
+GMPs.
+GMP pension benefits accrued from 6 April
+1978 up to 5th April 1988.
+Synonyms
+Post-88 GMP
+Pre-97 XS
+97-09 Total Pension
+Post 09 Total
+Pension
+Transfer-In Pension
+Spouses Post-88 GMP
+Spouses Pre-97 XS
+Spouses 97-09 Total
+Pension
+Spouses Post 09 Total
+Pensions
+Spouses Transfer-In
+Pension
+GMP pension benefits accrued from 6 April
+1988 up to 5th April 1997.
+XS over GMP pension accrued on or after 6th
+April 1978 up to and including 5th April 1997.
+Total pension benefits accrued on or after 6th
+April 1997 up until and including 5th April
+2009.
+Total pension benefits accrued on or after 6th
+April 2009.
+Total pension amount credited on transfer
+into the scheme.
+
+**List Items** (50 items to process):
+```json
+[
+  {
+    "identifierId": "99355d64-73f8-4e83-8ef0-72b7e57d988f",
+    "Column Name": "Old Member's Reference No",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "66bd7000-13f1-4570-b0e3-19fc2a8fdbdb",
+    "Column Name": "Date Of Exit From Active Service",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "cd4eec36-c060-485a-ac44-d16e2518bc87",
+    "Column Name": "Date of Birth",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "a8ec5540-fa5b-4d42-8626-8c08bb4dbe99",
+    "Column Name": "Code For Previous Status",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "a8722c9f-a3b7-4f7a-9935-385435f75062",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "8892cb2a-3db3-41c4-a131-4216e25abe57",
+    "Column Name": "Member's Reference No",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "b00605d2-ab07-4036-88d9-0829078f3119",
+    "Column Name": "Sex Code",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "d182d56e-8d6c-4dfe-ad01-aa414142c2b5",
+    "Column Name": "Date Became Pensioner",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "9c5e286c-5910-41b5-b44d-87c6ecd05a58",
+    "Column Name": "Type Of Retirement",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "7c003de0-7c1b-41e2-be0b-94d045e2bc23",
+    "Column Name": "Total Pension Payable From Scheme At Last Valuation",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "915cea72-9955-47e8-aa7c-2f8c3e8c2a39",
+    "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "3967d736-5788-4b0c-91e2-102277ea3a30",
+    "Column Name": "Contingent Widow(er)'s Date Of Birth",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "ff8d8f3b-8f0c-4eea-8951-c1f850af4ad9",
+    "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 5% pa (or CPI capped at 5% pa for Section B members)",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "a024d178-c0df-4f5b-ac0e-4b3190152399",
+    "Column Name": "Code For Exit From Pensioner Status",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "0b89f31a-6ea1-4ac7-98e0-dfacd144122f",
+    "Column Name": "Married Indicator",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "1a4f84ae-ef00-4442-839c-a053c9751bd8",
+    "Column Name": "Component Of Pension At This Valuation Subject To RPI capped at 2.5% pa",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "3e741d23-44b9-4011-a6be-855a4e5bbbbb",
+    "Column Name": "Non-increasing pension",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "e6744b44-ab9f-4cce-88a7-0c5c9235b63a",
+    "Column Name": "Component Of Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "8fbdf2d0-20df-46f9-b4bf-bd0a1347e702",
+    "Column Name": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "eb58a126-0925-4857-856f-519fdce4672d",
+    "Column Name": "Pension Commuted At Retirement in Exchange for Tax Free Cash",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "7a166a09-4922-4225-8b46-cfac9a84247e",
+    "Column Name": "Postcode",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "20be3c2e-6317-4f47-92ec-4a3aadeaac88",
+    "Column Name": "Member's Reference No",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "a4d2f81a-506c-46a9-8010-7b61a2a136de",
+    "Column Name": "Contingent Widow(er)'s Sex Code",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "37bd7f2d-46fd-44e5-bfd6-fcb0877d4b66",
+    "Column Name": "Contingent Widow(er)'s Pension At This Valuation",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "675b812f-9498-4946-ab83-142732ed4b61",
+    "Column Name": "Date Of Exit From Pensioner Status",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "1232c4e6-61a4-4d1b-8679-8c8c04b7b95a",
+    "Column Name": "Old Supplementary Fund Indicator",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "f3bf2a25-d85e-44ad-9c51-5ecb2c1a44d8",
+    "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To RPI capped at 2.5% pa",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "c4631176-b08a-4d3e-82a8-a3429172731c",
+    "Column Name": "Non-increasing TV-in pension",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "441f23e2-3d10-4f41-bfe3-05e6d5b0acc8",
+    "Column Name": "Component Of Contingent Widow(er)'s Pension At This Valuation Subject To CPI capped at 2.5% pa (or fixed 5% pa for former Section B members)",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "6cd136dc-6276-466c-8956-40c1055200e3",
+    "Column Name": "Tax Free Cash taken at Retirement",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "723c24e3-e1b8-49be-9635-e76d11cfe74e",
+    "Column Name": "Total Pension Payable From Scheme At Retirement After Reduction for Tax Free Cash",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "e5c43096-0e6c-4f61-9e8c-2091f797f04a",
+    "Column Name": "Status",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "f83c5c22-a818-49b4-b3d1-5516d8137d29",
+    "Column Name": "Valuation Record Type",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "5ed4ba06-a5d2-4061-a0dd-fb27cb3601f4",
+    "Column Name": "Sex Code",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "3dee9571-49a2-439b-acd8-bcf94439d835",
+    "Column Name": "Date Pensionable Service Commenced",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "963b3b26-cabd-41f3-9cef-998c9bfd3741",
+    "Column Name": "Code For Previous Status",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "09c920c8-c373-467a-b191-3f0ccd32ca23",
+    "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "f8e62532-5ec2-4b1d-802b-02af2e45bb6e",
+    "Column Name": "Total Deferred Pension Payable From Scheme At Date Became Active Deferred Member",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "03172ead-13bd-43c5-a56e-a6f966a82cbd",
+    "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Statutory Revaluation In Deferment And CPI capped at 2.5% pa in payment",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "d1d35cbb-b833-4ea8-b94b-f5f7c4685fa4",
+    "Column Name": "Member's Total Normal Contributions With Interest To The Date Of This Valuation",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "9ac645d3-2310-40b5-9a37-beb46b25056c",
+    "Column Name": "Code For Exit From Active Deferred Member Status",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "be5e9591-4d0a-4aa5-bf38-498e568e6b6c",
+    "Column Name": "Old Supplementary Fund Indicator",
+    "Worksheet Name": "New_Pensioners"
+  },
+  {
+    "identifierId": "045417af-e58b-44c7-936d-f3ef563a9313",
+    "Column Name": "Benefits Scale Code",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "ff7829a8-bf98-439b-bb90-e3695f673f51",
+    "Column Name": "Date Of Birth",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "fc552339-bdf6-44bd-bb9f-8c746ece77b3",
+    "Column Name": "Date Became Active Deferred Member",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "b03998f9-ba87-44d0-943f-63a097a1feb3",
+    "Column Name": "Normal Retirement Date",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "204998bb-9ebc-43cb-818d-b1741563a440",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "ee6a211b-e473-4962-93f0-bf05b690a57f",
+    "Column Name": "Excess Component Of Deferred Pension At Date Became Active Deferred Member Subject To Both Statutory Revaluation In Deferment And RPI capped at 5% pa in payment",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "d3fdace9-94a9-4e1d-9bf1-13338191f6fe",
+    "Column Name": "Date Of Exit From Active Deferred Member Status",
+    "Worksheet Name": "Active deferreds"
+  },
+  {
+    "identifierId": "b8bd05a5-eafd-4768-8048-e9cf033956f5",
+    "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+    "Worksheet Name": "Active deferreds"
+  }
+]
+```
+
+
+================================================================================
