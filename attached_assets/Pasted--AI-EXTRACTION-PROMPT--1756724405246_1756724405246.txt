@@ -1,0 +1,232 @@
+📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+Provide reasoning for the extracted data from a previous step based on the provided `AI Instructions`, `Reference Documents`, and `Results from Previous Extraction`. Your output MUST be a JSON ARRAY of objects, where each object corresponds to a result in the `Results from Previous Extraction`, maintaining the SAME ORDER. Each object in the array must have the following keys:
+
+*   **extractedValue**: A detailed explanation of the extraction logic used to obtain the `Results from Previous Extraction`, referencing specific sections or keywords from the `Reference Documents` where applicable. This explanation should describe why the AI chose the specific extracted value and how it relates to the `AI Instructions`.`.
+*   **validationStatus**: A string value of either "valid" or "invalid". If the confidence score (described below) is above 75, set the value to "valid". Otherwise, set the value to "invalid".
+*   **aiReasoning**: A detailed explanation of the extraction logic used to obtain the `extractedValue`, referencing specific sections or keywords from the `Reference Documents` where applicable. This explanation should describe why the AI chose the specific extracted value and how it relates to the `AI Instructions`.
+*   **confidenceScore**: An integer between 0 and 100 representing the AI's confidence level in the extraction. This score should reflect the clarity of the relevant information in the `Reference Documents` and the certainty of the extraction logic.
+*   **documentSource**: A string referencing the specific source document and page number (if applicable) from the `Reference Documents` from which the `extractedValue` was derived. Be as specific as possible (e.g., "DocumentA, page 3", "Section 2.1 of DocumentB").
+
+Return multiple items as an array, maintaining the SAME ORDER as the input `Results from Previous Extraction` to ensure proper record linkage. 
+
+Required Output Format
+For each input record, produce exactly one output object:
+json{
+  "identifierId": "[PRESERVE ORIGINAL IDENTIFIER]",
+  "extractedValue": "[REASONING FOR WHY THE VALUES HAVE BEEN MAPPED TOGETHER BASED ON THE REFERENCED CONTENT]",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "[Detailed explanation of matching logic, including specific terminology mappings, contextual factors considered, and justification for the selected match]",
+  "confidenceScore": [0-100 integer],
+  "documentSource": "[Names of reference documents used for matching]"
+}
+
+
+=== INPUT VALUES ===
+
+**List Items** (50 items to process):
+```json
+[
+  {
+    "identifierId": "047a0b9b-bfd7-4ffb-84bb-2ee4387702b1",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "0e0f182b-2591-4744-af80-bf3033c2608d",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "6bf1e1e6-db98-47a9-8896-a87e8efaabfa",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "7a96a7bf-23a5-464c-880e-c25b5c07918a",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "6887469c-5500-4c1c-a0c6-38f122d41b4d",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "e97f0665-cbfa-4e87-b707-9215c530f907",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "81182980-5c99-498e-876b-9210e1a283aa",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "5fe0ee13-f474-4d3f-a8be-0996fe4648ed",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "54d64e14-390a-402f-ba0a-c3aa793f032f",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "65ba623a-aba2-4be8-aa67-7b3cfcce3b91",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "d6065092-d4c6-46bf-8af0-8147fd8415cd",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "c7b55e9b-d3a5-405f-9661-c4337ec83ffa",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "5747d7d6-cff0-452e-92ce-7a4165efbfd1",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "962ff37a-c4a4-4bb5-975a-54da3eb07870",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "b6941307-a25d-4a8d-a61e-ace6d885b723",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "23f06c5f-f785-4464-81bb-eed2cf4e3285",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "7422d1e6-b75d-4e26-b10f-0bc5b3e39804",
+    "Standard Equivalent": "Gender Spouse"
+  },
+  {
+    "identifierId": "e43fc8bd-6e29-4280-b02b-92f10b9e83a7",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "3ecc61bb-53a8-467d-a208-53c568dd4e2e",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "55c5e186-7b6e-438b-8085-e4945d881626",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "35c6f258-f1ed-47aa-aa29-41c9ff578cf6",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "dcbc704a-8863-4018-b5ce-e394eb3c199b",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "7348357f-3691-443a-b24a-5bd15a90d4ba",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "d2cca573-2a73-4646-aff0-0e29029d76f4",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "5a634af1-1a30-4d1d-97d6-2a9862661f2a",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "34ccf151-62e3-4bd0-9e36-fd856f3e17cc",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "ce86e0ca-c7d2-4a14-96d7-d48cd0cbe0da",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "436ec26d-1fc7-44c7-b2fb-516499c56c71",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "2a903697-53c0-4a1b-9dc8-74cdac21147d",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "52133143-c24f-4001-8921-f1043e6bb25b",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "92070142-1215-4dce-a727-97cc7f3ff675",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "eccc7f37-d4fd-40b3-b459-05e3ccb3ab9d",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "15298d18-ba5c-4d86-b0ad-57cdca1a045a",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "7b5367ac-60b3-43d5-8fc3-0c36ed74ec40",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "6a1502dc-9e2a-4867-a147-3aed2726379a",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "c1c16d65-af96-4b19-b1d7-ebdebbb43d02",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "750a8163-e617-414a-9882-f64873cb978f",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "8daa3e49-c47e-4833-a96c-a9ba8a20f627",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "5c914161-9799-4f7f-8468-a9261eed7d2d",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "a080c11e-f8e1-4c89-9870-f597d497c3dc",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "f84508fc-7056-4f20-8a0d-7906dd267487",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "2d96afe3-b4ab-430d-8cf5-2bb00168c0ef",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "1fef4202-5dc5-494d-be48-c1520e1bd414",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "2f18ab16-9463-4ee1-8a24-04577f445833",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "67e01c3a-9c43-4450-b508-6077e730c372",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "a5adfd55-1357-46a4-91a9-b78cc610d06d",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "99086ac9-4416-48b9-9f89-7960c6d24554",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "ab975b0f-eda5-4931-aff3-62c784626c43",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "e96cae30-2e3d-43ad-a816-960d9059faa7",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "169cb2d3-4dd0-4872-961e-a2f145b90813",
+    "Standard Equivalent": "Not Found"
+  }
+]
+```

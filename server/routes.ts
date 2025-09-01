@@ -7101,6 +7101,96 @@ def extract_function(Column_Name, Excel_File):
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
+          
+          // CRITICAL: Ensure all referenced columns are available in previousData
+          // Check if the value has array references that should be included
+          if (value.inputValues) {
+            console.log(`🔍 Checking if we need to rebuild previousData to include all referenced columns...`);
+            
+            // Find all array parameters that contain column references
+            const allReferencedColumns = new Set<string>();
+            
+            for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
+              if (Array.isArray(paramValue)) {
+                // Check if array contains references
+                const hasReferences = paramValue.some(item => typeof item === 'string' && item.startsWith('@'));
+                if (hasReferences) {
+                  console.log(`📋 Found array references in ${paramName}: ${paramValue.length} items`);
+                  
+                  // Extract all column names from the references
+                  for (const ref of paramValue) {
+                    if (typeof ref === 'string' && ref.startsWith('@')) {
+                      const refColumn = ref.substring(1);
+                      let refColumnName = refColumn;
+                      
+                      if (refColumn.includes('.')) {
+                        const parts = refColumn.split('.');
+                        refColumnName = parts[parts.length - 1];
+                      }
+                      
+                      allReferencedColumns.add(refColumnName);
+                      console.log(`  📌 Added referenced column: ${refColumnName}`);
+                    }
+                  }
+                }
+              }
+            }
+            
+            // If we found referenced columns but previousData is missing some, rebuild it
+            if (allReferencedColumns.size > 0) {
+              console.log(`🔧 Found ${allReferencedColumns.size} referenced columns:`, Array.from(allReferencedColumns));
+              
+              // Check what columns are currently available in previousData
+              const availableColumns = previousData.length > 0 ? Object.keys(previousData[0]).filter(k => k !== 'identifierId') : [];
+              console.log(`📊 Available columns in previousData:`, availableColumns);
+              
+              const missingColumns = Array.from(allReferencedColumns).filter(col => !availableColumns.includes(col));
+              if (missingColumns.length > 0) {
+                console.log(`❌ Missing columns in previousData:`, missingColumns);
+                console.log(`🔧 Need to rebuild previousData with all referenced columns...`);
+                
+                // Get fresh validations data to rebuild complete previousData
+                const allValidations = await storage.getFieldValidations(sessionId);
+                const stepValidations = allValidations.filter(v => v.stepId === step.id);
+                
+                console.log(`📋 Found ${stepValidations.length} validations for step ${step.stepName}`);
+                
+                // Group by identifierId to rebuild complete records
+                const dataByIdentifier = new Map();
+                
+                for (const validation of stepValidations) {
+                  if (!validation.identifierId) continue;
+                  
+                  if (!dataByIdentifier.has(validation.identifierId)) {
+                    dataByIdentifier.set(validation.identifierId, { identifierId: validation.identifierId });
+                  }
+                  
+                  // Extract column name from valueId or fieldName
+                  let columnName = '';
+                  if (validation.valueId) {
+                    // Look up value name by valueId
+                    const valueInfo = await storage.getStepValueById(validation.valueId);
+                    if (valueInfo) {
+                      columnName = valueInfo.valueName;
+                    }
+                  }
+                  
+                  if (columnName && allReferencedColumns.has(columnName)) {
+                    dataByIdentifier.get(validation.identifierId)[columnName] = validation.extractedValue;
+                    console.log(`  ✅ Added ${columnName} for identifier ${validation.identifierId?.substring(0, 8)}...`);
+                  }
+                }
+                
+                // Convert back to array format
+                const rebuiltData = Array.from(dataByIdentifier.values());
+                console.log(`🔧 Rebuilt previousData with ${rebuiltData.length} records containing all referenced columns`);
+                console.log(`   Sample rebuilt record:`, rebuiltData[0]);
+                
+                // Use the rebuilt data instead of the original previousData
+                previousData = rebuiltData;
+              }
+            }
+          }
           // CRITICAL: Prioritize records for extraction based on their validation status
           // Get existing validations for this value to check which records are already validated
           const existingValidations = await storage.getFieldValidations(sessionId);
