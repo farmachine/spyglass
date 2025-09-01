@@ -1127,12 +1127,15 @@ CRITICAL INSTRUCTION:
       }
     }
     
-    // Check if this is an AI Query Against Document tool and ensure proper format
-    if (tool.name?.toLowerCase().includes('query') || tool.name?.toLowerCase().includes('document')) {
-      // Ensure the prompt includes field validation output format with identifierId
-      if (!aiPrompt.includes('identifierId') && !aiPrompt.includes('REQUIRED OUTPUT FORMAT')) {
-        // Add the proper output format instructions
-        aiPrompt += `
+    // Check if this is an AI tool that processes list data and add appropriate instructions
+    if (tool.name?.toLowerCase().includes('query') || tool.name?.toLowerCase().includes('document') || 
+        (arrayParams.length > 0 && tool.toolType === 'AI_ONLY')) {
+      
+      // Check the tool's operation type to determine appropriate instructions
+      if (tool.operationType?.includes('update')) {
+        // For UPDATE operations - preserve identifierIds for record linkage
+        if (!aiPrompt.includes('identifierId') && !aiPrompt.includes('REQUIRED OUTPUT FORMAT')) {
+          aiPrompt += `
 
 REQUIRED OUTPUT FORMAT:
 Return a JSON array where each object contains these exact fields:
@@ -1145,17 +1148,62 @@ Return a JSON array where each object contains these exact fields:
   "documentSource": "Reference to the rule or section used for mapping"
 }
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS FOR UPDATE OPERATION:
 1. Each input object has an "identifierId" field - you MUST copy this EXACT value to your output
 2. For each input object, create exactly one output object with the SAME identifierId
-3. Use the Reference Document to determine the correct mapping for each value
-4. If no mapping exists in the Reference Document, return "Not Found" as extractedValue
+3. The identifierId links your output to the correct existing record
+4. If no value can be extracted, still include the record with "Not Found" as extractedValue
 5. The order and identifierId values MUST match exactly between input and output
 6. Return ONLY the JSON array, no explanations or markdown formatting
 
 EXAMPLE:
 If input has: {"identifierId": "abc-123", "ID": "Date of Birth", "Worksheet Name": "New_Pensioners"}
 Output must have: {"identifierId": "abc-123", "extractedValue": "DoB", ...other fields...}`;
+        }
+      } else if (tool.operationType?.includes('create')) {
+        // For CREATE operations - no identifierId preservation needed
+        if (!aiPrompt.includes('REQUIRED OUTPUT FORMAT')) {
+          aiPrompt += `
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array where each object contains these exact fields:
+{
+  "extractedValue": "The newly extracted/created value",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "Brief explanation of the extraction logic",
+  "confidenceScore": 80-100 for clear matches, 50-79 for partial matches, <50 for uncertain,
+  "documentSource": "Reference to the source of extraction"
+}
+
+IMPORTANT FOR CREATE OPERATION:
+1. You are creating NEW records - do NOT include "identifierId" in your output
+2. Each extracted item will be assigned a new unique identifier by the system
+3. Focus on extracting/creating the data values based on your tool's logic
+4. Return ONLY the JSON array, no explanations or markdown formatting
+5. The input data is for reference/context only - you are NOT updating existing records
+
+EXAMPLE OUTPUT:
+[{"extractedValue": "New Item 1", "validationStatus": "valid", "aiReasoning": "Found in source", "confidenceScore": 95, "documentSource": "Page 1"}]`;
+        }
+      } else {
+        // Default case - for tools without explicit operation type, use update behavior
+        // This maintains backward compatibility
+        if (!aiPrompt.includes('identifierId') && !aiPrompt.includes('REQUIRED OUTPUT FORMAT')) {
+          aiPrompt += `
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON array where each object contains these exact fields:
+{
+  "identifierId": "The identifier from the input data row (preserve if provided)",
+  "extractedValue": "The extracted/mapped value",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "Brief explanation",
+  "confidenceScore": 0-100 confidence score,
+  "documentSource": "Reference to source"
+}
+
+Note: If input includes identifierId, preserve it in your output. Otherwise, omit it.`;
+        }
       }
     }
     
