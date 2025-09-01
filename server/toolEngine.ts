@@ -488,15 +488,34 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     try {
-      // 1. Find data input array if exists
+      // Check if this is a CREATE operation
+      const isCreateOperation = tool.operationType?.includes('create');
+      
+      // 1. Find data input array if exists (required for UPDATE, optional for CREATE)
       const dataInput = this.findDataInput(tool, inputs);
-      if (!dataInput || !Array.isArray(dataInput.value)) {
-        throw new Error('AI tool requires data input array');
+      let inputArray: any[] = [];
+      
+      if (isCreateOperation) {
+        // CREATE operations don't require data input
+        if (dataInput && Array.isArray(dataInput.value)) {
+          // If data is provided, use it (but it's optional)
+          inputArray = dataInput.value.slice(0, 50);
+          console.log(`🆕 CREATE operation with ${inputArray.length} reference records`);
+        } else {
+          // No data input for CREATE operation - this is normal
+          console.log(`🆕 CREATE operation without data input - will generate new records`);
+          inputArray = [];
+        }
+      } else {
+        // UPDATE operations require data input
+        if (!dataInput || !Array.isArray(dataInput.value)) {
+          throw new Error('UPDATE AI tool requires data input array');
+        }
+        // 2. Limit to 50 records for performance
+        const AI_RECORD_LIMIT = 50;
+        inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+        console.log(`🔄 UPDATE operation with ${inputArray.length} records`);
       }
-
-      // 2. Limit to 50 records for performance
-      const AI_RECORD_LIMIT = 50;
-      const inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
       
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
@@ -509,7 +528,8 @@ export class ToolEngine {
       
       // 5. Call Gemini API
       if (progressCallback) {
-        progressCallback(0, inputArray.length, 'Processing with AI...');
+        const total = inputArray.length || 1; // For CREATE without data, use 1
+        progressCallback(0, total, 'Processing with AI...');
       }
       
       const response = await genAI.models.generateContent({
@@ -526,11 +546,28 @@ export class ToolEngine {
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsedResults = this.parseAIResponse(rawResponse);
       
-      // 7. Map results to input records with identifierId preservation
-      const results = this.mapResultsToInputs(parsedResults, inputArray);
+      // 7. Map results based on operation type
+      let results: ToolResult[];
+      if (isCreateOperation) {
+        // CREATE operations: AI generates new records
+        results = parsedResults.map((item: any) => ({
+          identifierId: null, // New records don't have identifierIds yet
+          extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
+          validationStatus: item.validationStatus || "pending",
+          aiReasoning: item.aiReasoning || "",
+          confidenceScore: item.confidenceScore || 85,
+          documentSource: item.documentSource || ""
+        }));
+        console.log(`🆕 CREATE operation generated ${results.length} new records`);
+      } else {
+        // UPDATE operations: Map to existing records
+        results = this.mapResultsToInputs(parsedResults, inputArray);
+        console.log(`🔄 UPDATE operation processed ${results.length} records`);
+      }
       
       if (progressCallback) {
-        progressCallback(inputArray.length, inputArray.length, 'Complete');
+        const total = inputArray.length || results.length || 1;
+        progressCallback(total, total, 'Complete');
       }
       
       console.log(`✅ AI extraction complete: ${results.length} results`);
@@ -539,19 +576,25 @@ export class ToolEngine {
     } catch (error) {
       console.error('❌ AI tool error:', error);
       
-      // Return error results maintaining identifierId mapping
-      const dataInput = this.findDataInput(tool, inputs);
-      if (dataInput && Array.isArray(dataInput.value)) {
-        return dataInput.value.map((item: any) => ({
-          identifierId: item.identifierId || null,
-          extractedValue: null,
-          validationStatus: "invalid" as const,
-          aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
-          confidenceScore: 0,
-          documentSource: "ERROR"
-        }));
+      // Return error results based on operation type
+      const isCreateOperation = tool.operationType?.includes('create');
+      
+      if (!isCreateOperation) {
+        // For UPDATE operations, maintain identifierId mapping
+        const dataInput = this.findDataInput(tool, inputs);
+        if (dataInput && Array.isArray(dataInput.value)) {
+          return dataInput.value.map((item: any) => ({
+            identifierId: item.identifierId || null,
+            extractedValue: null,
+            validationStatus: "invalid" as const,
+            aiReasoning: `AI processing failed: ${error instanceof Error ? error.message : String(error)}`,
+            confidenceScore: 0,
+            documentSource: "ERROR"
+          }));
+        }
       }
       
+      // For CREATE operations or when no data input, just throw the error
       throw error;
     }
   }
@@ -573,7 +616,7 @@ export class ToolEngine {
    * Build AI prompt from tool template and inputs
    * This is the STANDARDIZED prompt structure for ALL AI tools
    */
-  private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[]): string {
+  private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[] = []): string {
     const basePrompt = tool.aiPrompt || '';
     
     // Extract value configuration - this tells us what field is being extracted
@@ -663,7 +706,7 @@ ${basePrompt.trim()}
       }
     }
     
-    // Add List Items (the data to process) - this is standard for all AI tools
+    // Add List Items (the data to process) - only if data is provided
     if (dataArray && dataArray.length > 0) {
       prompt += `**List Items** (${dataArray.length} items to process):
 \`\`\`json
@@ -672,7 +715,7 @@ ${JSON.stringify(dataArray, null, 2)}
 
 `;
       
-      // Add critical instruction for identifierId preservation
+      // Add critical instruction for identifierId preservation (only for UPDATE operations)
       const hasIdentifierIds = dataArray.some(item => item.identifierId);
       if (hasIdentifierIds) {
         prompt += `=== CRITICAL REQUIREMENT ===
@@ -685,6 +728,11 @@ Each item in the list above has an "identifierId" field. You MUST:
 
 `;
       }
+    } else if (tool.operationType?.includes('create')) {
+      // For CREATE operations without data, add note about generating new records
+      prompt += `**Note**: This is a CREATE operation. You will generate new records based on the document and instructions provided.
+
+`;
     }
     
     // NO additional instructions or requirements added here
