@@ -7100,7 +7100,7 @@ def extract_function(Column_Name, Excel_File):
       // This is for cases like Standard Equivalent where previousData contains the merged column data
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
-        if (listItemParam && (!toolInputs['List Item'] || toolInputs['List Item'] === null) && previousData && previousData.length > 0) {
+        if (listItemParam && previousData && previousData.length > 0) {
           
           // CRITICAL: Ensure all referenced columns are available in previousData
           // Check if the value has array references that should be included
@@ -7213,6 +7213,12 @@ def extract_function(Column_Name, Excel_File):
                 
                 // Use the rebuilt data instead of the original previousData
                 previousData = rebuiltData;
+                
+                // CRITICAL: Also replace any existing toolInputs['List Item'] with the complete data
+                if (toolInputs['List Item']) {
+                  console.log(`🔄 Replacing existing incomplete List Item data with rebuilt complete data`);
+                }
+                // The rebuilt previousData will be used to create the List Item below
               }
             }
           }

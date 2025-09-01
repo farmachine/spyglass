@@ -1,0 +1,231 @@
+📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+Provide reasoning for the extracted data from a previous step based on the provided `AI Instructions`, `Reference Documents`, and `Results from Previous Extraction`. Your output MUST be a JSON ARRAY of objects, where each object corresponds to a result in the `Results from Previous Extraction`, maintaining the SAME ORDER. Each object in the array must have the following keys:
+
+*   **extractedValue**: A detailed explanation of the extraction logic used to obtain the `Results from Previous Extraction`, referencing specific sections or keywords from the `Reference Documents` where applicable. This explanation should describe why the AI chose the specific extracted value and how it relates to the `AI Instructions`.`.
+*   **validationStatus**: A string value of either "valid" or "invalid". If the confidence score (described below) is above 75, set the value to "valid". Otherwise, set the value to "invalid".
+*   **aiReasoning**: A detailed explanation of the extraction logic used to obtain the `extractedValue`, referencing specific sections or keywords from the `Reference Documents` where applicable. This explanation should describe why the AI chose the specific extracted value and how it relates to the `AI Instructions`.
+*   **confidenceScore**: An integer between 0 and 100 representing the AI's confidence level in the extraction. This score should reflect the clarity of the relevant information in the `Reference Documents` and the certainty of the extraction logic.
+*   **documentSource**: A string referencing the specific source document and page number (if applicable) from the `Reference Documents` from which the `extractedValue` was derived. Be as specific as possible (e.g., "DocumentA, page 3", "Section 2.1 of DocumentB").
+
+Return multiple items as an array, maintaining the SAME ORDER as the input `Results from Previous Extraction` to ensure proper record linkage. 
+
+Required Output Format
+For each input record, produce exactly one output object:
+json{
+  "identifierId": "[PRESERVE ORIGINAL IDENTIFIER]",
+  "extractedValue": "[REASONING FOR WHY THE VALUES HAVE BEEN MAPPED TOGETHER BASED ON THE REFERENCED CONTENT]",
+  "validationStatus": "valid" or "invalid",
+  "aiReasoning": "[Detailed explanation of matching logic, including specific terminology mappings, contextual factors considered, and justification for the selected match]",
+  "confidenceScore": [0-100 integer],
+  "documentSource": "[Names of reference documents used for matching]"
+}
+
+
+=== INPUT VALUES ===
+
+**List Items** (50 items to process):
+```json
+[
+  {
+    "identifierId": "7a92170e-2686-497d-991a-eee795ba3275",
+    "Standard Equivalent": "Gender Spouse"
+  },
+  {
+    "identifierId": "406b6a5b-659b-4939-ae02-cca9eb7539e7",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "3c468fc6-a48b-40f4-bc14-125d46638159",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "30d1ca48-66e5-4bce-b392-721231432445",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "ea0145c8-342e-4c42-b6af-8b2e917e75ec",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "ca22b846-f175-4c44-b49c-5834b734a924",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "159ee6d5-ff1a-4aac-8327-a4e7b396a09b",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "e23f642f-49a6-4921-a6c7-8586e9d787d4",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "23d97a68-79fe-40b1-9b42-d87953a109d8",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "fd704fd4-dc47-43a6-bb45-250f862c58c5",
+    "Standard Equivalent": "Post 09 Total Pension"
+  },
+  {
+    "identifierId": "26c974c6-4dba-4417-ba27-3096a0f6bcec",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "c0c6d8eb-a469-474b-8e66-37a7b0f32384",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "94567f13-013d-41da-a014-0db56679e33b",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "a4093f75-b6b5-4a99-999f-0343387d833a",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "714fb2ac-6bb5-4d3c-aa5c-92196f217c44",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "44350263-d05c-4357-a9c0-d880f07b304b",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "e2e8626d-4616-4bce-866a-95657f8442eb",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "5a30c835-dfcd-495b-8f2f-008582a04a44",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "9a230ee8-18fe-4b7f-a82f-a5d349235da6",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "2e06c807-405a-4f55-aae3-b92dfd6767d9",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "648b5cb7-7c23-460c-9e51-1076d5b795a5",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "8b183abc-b5b6-420d-8b36-449828e737c6",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "6323ac27-7009-4056-9946-e994b53d87e1",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "33f63aed-9a8d-4002-8be0-cb39e18dfba3",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "fedcab27-fd30-431f-ae77-c72635a8a383",
+    "Standard Equivalent": "Transfer-In Pension"
+  },
+  {
+    "identifierId": "8d136cd4-5f3f-46cb-b088-723f2e14e9c7",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "94b3950e-37e5-4209-bc30-878932bfe53b",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "3abf6b72-d6a6-41bb-a07c-a58dbeea3b1d",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "ec3c37f1-e067-4fc7-aaaf-2bac69a56a82",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "537116ab-9191-4021-aadc-b401d58bf4f3",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "7456c4ad-b319-4780-9a96-37365110191d",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "1b59956b-4aba-414d-9439-9efb78516e68",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "dceae8bf-d2ad-47fd-adaa-109f05771fb3",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "4845764c-e758-4568-9595-f5dd8ac0adde",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "c3ac54f8-0bf8-4666-a96f-21e71eb08898",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "a0862755-0b74-4526-b8d7-52b42b53f6f1",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "3acdd083-a383-4506-a0a8-22b0aeb146e7",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "3228c46a-03d6-491b-8be0-35edf5fe9abc",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "839ac6d5-27d8-4a04-9563-8cc0840c56eb",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "65b0d8a7-5b0f-497b-acb7-a2fad58bd7f7",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "9d7baf67-589d-4203-9eec-316fe5e5ac35",
+    "Standard Equivalent": "Transfer-In Pension"
+  },
+  {
+    "identifierId": "5253a427-a721-4b72-8ce3-3b5ff0a4d584",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "b57ef9b9-3214-4c99-b675-c6bb5e6961f4",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "310b41f1-42e2-4717-8e70-b7c7ee8ec33a",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "62e24e05-8559-43ce-b245-ed0facd9976c",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "c85d8628-c68f-49c5-9eaa-298be4a2b3ae",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "9a342064-1af3-4f2e-a42e-658c10da2d0b",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "55e6a128-767b-4cd8-98d9-514416e26285",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "427fd72b-8eca-42f0-81a5-e83f6f1455de",
+    "Standard Equivalent": "Not Found"
+  },
+  {
+    "identifierId": "797f7647-4cf0-4ca1-b22b-eda1dbcee65f",
+    "Standard Equivalent": "Retirement Age"
+  }
+]
