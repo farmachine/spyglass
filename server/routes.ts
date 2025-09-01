@@ -7658,20 +7658,26 @@ def extract_function(Column_Name, Excel_File):
         // If previousData is provided, create a Set of valid identifierIds
         // This is the source of truth for row identifiers
         let validIdentifierIds: Set<string> = new Set();
-        let previousDataIndex: Map<string, number> = new Map(); // Map identifierId to its original index
+        let previousDataIndex: Map<string, number> = new Map(); // Map identifierId to its index in previousData array
+        
+        // CRITICAL: Use the index of the identifier in the previousData array
+        // This ensures consistent row positioning across all column extractions
         if (previousData && previousData.length > 0) {
-          console.log(`📊 Using identifierIds from previousData (${previousData.length} records)`);
+          console.log(`📊 Building index map from ${previousData.length} records in previousData`);
+          
           for (let i = 0; i < previousData.length; i++) {
             const record = previousData[i];
             if (record.identifierId) {
               validIdentifierIds.add(record.identifierId);
               previousDataIndex.set(record.identifierId, i);
+              
               if (i < 5) {
-                console.log(`  Record ${i} -> ${record.identifierId}`);
+                console.log(`  Record index ${i} -> identifierId: ${record.identifierId}`);
               }
             }
           }
-          console.log(`📊 Found ${validIdentifierIds.size} identifierIds from previousData`);
+          
+          console.log(`📊 Mapped ${validIdentifierIds.size} identifierIds to their array indices`);
         }
         
         // Create new validations ONLY for the actual AI results returned
