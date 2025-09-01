@@ -6,6 +6,41 @@ extrapl is an AI-powered document data extraction platform for legal and busines
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Development Rules & Principles
+
+### Core Architectural Rules
+1. **NEVER hardcode fixes** - All solutions must respect the existing architecture
+2. **Suggest before implementing** - Propose changes and explain the approach before making them
+3. **Maintain data flow integrity** - Respect the established data pipeline: extraction → validation → display
+4. **Preserve existing patterns** - Follow established coding patterns and conventions in the codebase
+5. **No patchy workarounds** - Address root causes, not symptoms
+
+### Code Modification Guidelines
+1. **Investigate thoroughly first** - Understand the complete data flow before proposing changes
+2. **Respect the unified architecture** - Maintain consistency with workflow_steps and step_values tables
+3. **Trust AI outputs** - Assume AI is correct; fix data processing, not prompts
+4. **Maintain identifier consistency** - Use identifierId as the primary linking mechanism across all systems
+5. **No arbitrary reordering** - Preserve original data order throughout the pipeline
+
+### Communication Protocol
+1. **Explain the issue** - Clearly identify what's wrong and why
+2. **Propose the solution** - Describe the fix and its architectural impact
+3. **Wait for approval** - Get confirmation before implementing changes
+4. **Test thoroughly** - Verify changes work without breaking existing functionality
+5. **Document significant changes** - Update this file with architectural decisions
+
+### Data Integrity Rules
+1. **Maintain order consistency** - Data order from source must be preserved through extraction, storage, and display
+2. **Use proper identifiers** - Always use identifierId for row mapping, not array indices
+3. **Respect validation states** - Don't modify validated records unless explicitly requested
+4. **Preserve extraction context** - Keep reference documents and parameters intact
+
+### Tool & Extraction Rules
+1. **Tools are configuration-driven** - No hardcoded tool-specific logic
+2. **Extraction is generic** - All tools follow the same extraction pattern
+3. **AI prompts are data** - Store prompts in database, not in code
+4. **Functions are reusable** - Excel wizardry functions must work across different contexts
+
 ## System Architecture
 
 ### UI/UX Decisions
