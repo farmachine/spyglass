@@ -7734,21 +7734,53 @@ def extract_function(Column_Name, Excel_File):
             if (existingValidation.validationStatus === 'pending' || 
                 existingValidation.extractedValue === null || 
                 existingValidation.extractedValue === undefined) {
-              await storage.updateFieldValidation(existingValidation.id, {
-                extractedValue: result.extractedValue,
-                validationStatus: 'pending', // Set to pending for new extractions
-                aiReasoning: result.aiReasoning,
-                confidenceScore: result.confidenceScore,
-                documentSource: result.documentSource,
-                identifierId: identifierId,
-                extractedAt: new Date()
-              });
-              console.log(`📝 Updated validation for ${fieldName} (was ${existingValidation.validationStatus})`);
+              
+              // Check if the new value is meaningful before updating
+              const extractedVal = result.extractedValue;
+              const shouldSkipUpdate = !extractedVal || 
+                (typeof extractedVal === 'string' && (
+                  extractedVal.trim() === '' ||
+                  extractedVal.trim().toLowerCase() === 'not found' ||
+                  extractedVal.trim().toLowerCase() === 'n/a' ||
+                  extractedVal.trim().toLowerCase() === 'none' ||
+                  extractedVal.trim() === '-'
+                ));
+              
+              if (shouldSkipUpdate) {
+                console.log(`⏭️ Skipping update for ${fieldName} - no meaningful value ("${extractedVal}")`);
+              } else {
+                await storage.updateFieldValidation(existingValidation.id, {
+                  extractedValue: result.extractedValue,
+                  validationStatus: 'pending', // Set to pending for new extractions
+                  aiReasoning: result.aiReasoning,
+                  confidenceScore: result.confidenceScore,
+                  documentSource: result.documentSource,
+                  identifierId: identifierId,
+                  extractedAt: new Date()
+                });
+                console.log(`📝 Updated validation for ${fieldName} with value: "${result.extractedValue}" (was ${existingValidation.validationStatus})`);
+              }
             } else {
               console.log(`⚠️ Skipping update for ${fieldName} - unexpected validation status: ${existingValidation.validationStatus}`);
             }
           } else {
-            // Create new validation
+            // Check if the extracted value is meaningful before creating a validation record
+            const extractedVal = result.extractedValue;
+            const shouldSkipRecord = !extractedVal || 
+              (typeof extractedVal === 'string' && (
+                extractedVal.trim() === '' ||
+                extractedVal.trim().toLowerCase() === 'not found' ||
+                extractedVal.trim().toLowerCase() === 'n/a' ||
+                extractedVal.trim().toLowerCase() === 'none' ||
+                extractedVal.trim() === '-'
+              ));
+            
+            if (shouldSkipRecord) {
+              console.log(`⏭️ Skipping validation creation for ${fieldName} - no meaningful value ("${extractedVal}")`);
+              continue; // Skip to next result
+            }
+            
+            // Create new validation only for meaningful values
             // In the unified architecture, collectionId should be the stepId for Data Tables
             // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
@@ -7775,7 +7807,7 @@ def extract_function(Column_Name, Excel_File):
               collectionName: step.stepName,
               extractedAt: new Date()
             });
-            console.log(`✨ Created validation for ${fieldName}`);
+            console.log(`✨ Created validation for ${fieldName} with value: "${result.extractedValue}"`);
           }
         }
         
