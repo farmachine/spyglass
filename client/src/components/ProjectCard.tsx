@@ -206,8 +206,8 @@ export default function ProjectCard({
       <Card className={`bg-white dark:bg-gray-800 text-black dark:text-gray-100 rounded-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer group relative overflow-hidden h-[200px] flex flex-col ${
         project.status === "inactive" ? "opacity-60" : ""
       }`} style={{
-        border: '1px solid #5065a5',
-        boxShadow: '0 4px 8px -2px rgba(80, 101, 165, 0.15), 2px 0 6px -1px rgba(80, 101, 165, 0.1)'
+        border: '1px solid #a8b5d1',
+        boxShadow: '0 4px 8px -2px rgba(168, 181, 209, 0.15), 2px 0 6px -1px rgba(168, 181, 209, 0.1)'
       }}>
         <CardHeader className="pt-4 pb-2 flex-shrink-0">
           <div className="flex items-start justify-between">
