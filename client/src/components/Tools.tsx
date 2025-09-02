@@ -53,7 +53,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   // Delete tool mutation
   const deleteTool = useMutation({
     mutationFn: async (toolId: string) => {
-      return apiRequest(`/api/excel-functions/${toolId}`, {
+      return apiRequest(`/api/projects/${projectId}/excel-functions/${toolId}`, {
         method: 'DELETE'
       });
     },
