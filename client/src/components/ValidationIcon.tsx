@@ -89,14 +89,14 @@ export default function ValidationIcon({
         </div>
 
         {reasoning && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-800">
             <span className="font-medium">AI Reasoning:</span>
             <p className="mt-1">{reasoning}</p>
           </div>
         )}
 
         {confidenceScore > 0 && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-800">
             <span className="font-medium">Confidence:</span> {confidenceScore}%
           </div>
         )}
