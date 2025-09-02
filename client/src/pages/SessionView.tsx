@@ -1445,13 +1445,41 @@ export default function SessionView() {
       const collection = project?.collections.find(c => c.collectionName === collectionName);
       const property = collection?.properties?.find(p => p.propertyName === fieldName);
       
-      if (property) {
-        // Find identifierId for this row
-        const rowValidation = validations.find(v => 
-          v.recordIndex === recordIndex &&
-          v.collectionName === collectionName &&
-          v.identifierId
-        );
+      if (property && collection) {
+        // Find the identifierId from the first column (identifier column) of this row
+        // The first property in the collection is the identifier
+        const firstProperty = collection.properties?.[0];
+        let identifierId: string | null = null;
+        
+        if (firstProperty) {
+          // Find the validation for the first column (identifier) of this row
+          const identifierValidation = validations.find(v => 
+            v.recordIndex === recordIndex &&
+            v.collectionName === collectionName &&
+            v.fieldId === firstProperty.id
+          );
+          
+          if (identifierValidation?.identifierId) {
+            identifierId = identifierValidation.identifierId;
+            console.log(`Found identifierId from first column: ${identifierId}`);
+          }
+        }
+        
+        // If still no identifierId found, try any validation from this row
+        if (!identifierId) {
+          const rowValidation = validations.find(v => 
+            v.recordIndex === recordIndex &&
+            v.collectionName === collectionName &&
+            v.identifierId
+          );
+          identifierId = rowValidation?.identifierId || null;
+        }
+        
+        // If still no identifierId, generate a new one (for completely new rows)
+        if (!identifierId) {
+          identifierId = crypto.randomUUID();
+          console.log(`Generated new identifierId: ${identifierId}`);
+        }
         
         const newValidation = {
           validationType: 'collection_property',
@@ -1459,7 +1487,7 @@ export default function SessionView() {
           fieldId: property.id,
           collectionName: collectionName,
           recordIndex: recordIndex,
-          identifierId: rowValidation?.identifierId || crypto.randomUUID(),
+          identifierId: identifierId,
           extractedValue: currentValue,
           originalExtractedValue: currentValue,
           originalConfidenceScore: 100,
@@ -1473,14 +1501,19 @@ export default function SessionView() {
           documentSections: null
         };
         
+        console.log('Creating new validation:', newValidation);
+        
         try {
           const response = await apiRequest(`/api/sessions/${session?.id}/validations`, {
             method: 'POST',
             body: JSON.stringify(newValidation)
           });
           
+          console.log('Created validation response:', response);
+          
           // Refetch validations to update the UI
           await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+          await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         } catch (error) {
           console.error('Failed to create validation:', error);
         }
