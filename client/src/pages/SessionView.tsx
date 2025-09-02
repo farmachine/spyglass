@@ -1466,9 +1466,15 @@ export default function SessionView() {
       // Create new validation for fields without one
       // Find the collection property to get the field ID
       const collection = project?.collections.find(c => c.collectionName === collectionName);
+      console.log('Found collection:', collection);
+      console.log('All collections:', project?.collections?.map(c => c.collectionName));
+      
       const property = collection?.properties?.find(p => p.propertyName === fieldName);
+      console.log('Found property:', property);
+      console.log('All properties in collection:', collection?.properties?.map(p => p.propertyName));
       
       if (property && collection) {
+        console.log('Both collection and property found, proceeding to create validation...');
         // Find the identifierId from the first column (identifier column) of this row
         // The first property in the collection is the identifier
         const firstProperty = collection.properties?.[0];
@@ -1540,6 +1546,13 @@ export default function SessionView() {
         } catch (error) {
           console.error('Failed to create validation:', error);
         }
+      } else {
+        console.error('Could not find collection or property:', { 
+          collectionName, 
+          fieldName, 
+          collectionFound: !!collection, 
+          propertyFound: !!property 
+        });
       }
     }
   };
