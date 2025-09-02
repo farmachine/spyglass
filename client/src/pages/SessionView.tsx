@@ -2568,9 +2568,52 @@ export default function SessionView() {
     console.log(`📊 Remaining records to extract: ${remainingData.length}`);
     console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + remainingData.length, extractedCount + 50)} of ${previousColumnsData.length}`);
     
-    // Don't filter the display data - show ALL available columns from previous steps
-    // The user needs to see all the data that's available, not just what this specific value references
+    // Parse inputValues to find which columns are actually needed for this tool
+    const neededColumns = new Set<string>();
+    
+    if (valueToRun.inputValues) {
+      Object.values(valueToRun.inputValues).forEach(inputValue => {
+        if (typeof inputValue === 'string' && inputValue.includes('@')) {
+          const match = inputValue.match(/@[^.]+\.(.+)/);
+          if (match) {
+            neededColumns.add(match[1].trim());
+          }
+        } else if (Array.isArray(inputValue)) {
+          inputValue.forEach(v => {
+            if (typeof v === 'string' && v.includes('@')) {
+              const match = v.match(/@[^.]+\.(.+)/);
+              if (match) {
+                neededColumns.add(match[1].trim());
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // Filter the display data to only show referenced columns plus identifierId
     let filteredPreviousData = previousColumnsData;
+    
+    if (neededColumns.size > 0) {
+      // Filter each record to only include identifierId and needed columns
+      filteredPreviousData = previousColumnsData.map(record => {
+        const filteredRecord: any = {
+          identifierId: record.identifierId
+        };
+        
+        // Add only the columns that are referenced in inputValues
+        neededColumns.forEach(columnName => {
+          if (columnName in record) {
+            filteredRecord[columnName] = record[columnName];
+          }
+        });
+        
+        return filteredRecord;
+      });
+      
+      console.log(`📋 Filtered data to show only referenced columns:`, Array.from(neededColumns));
+      console.log(`📊 Records: ${filteredPreviousData.length} rows with ${Array.from(neededColumns).length + 1} columns (${Array.from(neededColumns).join(', ')} + identifierId)`);
+    }
     
     // Get the column order from the filtered data
     const columnOrder = filteredPreviousData.length > 0 
