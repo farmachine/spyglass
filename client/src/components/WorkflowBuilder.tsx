@@ -1017,6 +1017,7 @@ function ValueEditor({
                 value={value.name}
                 onChange={(e) => onUpdate({ name: e.target.value })}
                 placeholder="Value name..."
+                className="bg-white dark:bg-white"
               />
             </div>
             <div>
@@ -1025,7 +1026,7 @@ function ValueEditor({
                 value={value.dataType}
                 onValueChange={(val) => onUpdate({ dataType: val as WorkflowValue['dataType'] })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white dark:bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1074,7 +1075,7 @@ function ValueEditor({
                 onUpdate({ toolId: val, inputValues: {} });
               }}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 bg-white dark:bg-white">
                 <SelectValue placeholder="Select tool..." />
               </SelectTrigger>
               <SelectContent>
@@ -1187,7 +1188,7 @@ function ValueEditor({
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-white dark:bg-white">
                           <SelectValue placeholder="Add additional values to reference..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -1270,7 +1271,7 @@ function ValueEditor({
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-white dark:bg-white">
                           <SelectValue placeholder="Select documents..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -1322,7 +1323,7 @@ function ValueEditor({
                         inputValues: { ...value.inputValues, [param.id]: e.target.value }
                       })}
                       placeholder={param.description || `Enter ${param.name}...`}
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       rows={param.multiline ? 4 : 2}
                     />
                   ) : (
@@ -1332,7 +1333,7 @@ function ValueEditor({
                         inputValues: { ...value.inputValues, [param.id]: e.target.value }
                       })}
                       placeholder={param.description || `Enter ${param.name}...`}
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                     />
                   )}
                 </div>
@@ -1347,7 +1348,7 @@ function ValueEditor({
               value={value.description || ''}
               onChange={(e) => onUpdate({ description: e.target.value })}
               placeholder="Describe this value..."
-              className="w-full resize-none"
+              className="w-full resize-none bg-white dark:bg-white"
               rows={2}
             />
           </div>
