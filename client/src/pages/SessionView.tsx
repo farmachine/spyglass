@@ -1435,12 +1435,22 @@ export default function SessionView() {
       return fieldKey === editingTableField;
     });
     
+    console.log('Looking for validation with key:', editingTableField);
+    console.log('Found validation:', validation);
+    console.log('All validations count:', validations.length);
+    
     // Parse the field key to get collection, field, and index
     const match = editingTableField.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
-    if (!match) return;
+    if (!match) {
+      console.log('Failed to parse field key:', editingTableField);
+      return;
+    }
     
     const [, collectionName, fieldName, indexStr] = match;
     const recordIndex = parseInt(indexStr);
+    
+    console.log('Parsed field info:', { collectionName, fieldName, recordIndex });
+    console.log('Edit value to save:', editTableValue);
     
     // Clear editing state immediately for responsive UI
     const currentValue = editTableValue;
@@ -1448,9 +1458,11 @@ export default function SessionView() {
     setEditTableValue("");
     
     if (validation) {
+      console.log('Updating existing validation:', validation);
       // Update existing validation
       await handleSaveFieldEdit(validation.id, currentValue, 'valid');
     } else {
+      console.log('No existing validation found, creating new one...');
       // Create new validation for fields without one
       // Find the collection property to get the field ID
       const collection = project?.collections.find(c => c.collectionName === collectionName);
