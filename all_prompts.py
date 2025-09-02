@@ -104,280 +104,305 @@ Return JSON format:
 }}
 """
 
-EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content.
+EXCEL_FUNCTION_GENERATOR = """You must generate a complete Python function that extracts data from Excel content following EXACT patterns from working production tools.
 
-CRITICAL EXCEL DOCUMENT FORMAT TRAINING:
+CRITICAL EXCEL DOCUMENT FORMAT:
+Excel files are provided as TEXT STRINGS with this exact format:
 
-EXCEL FILE FORMAT IN THIS SYSTEM:
-Excel files are NOT provided as file paths or pandas-compatible files. Instead, they are provided as TEXT STRINGS with this exact format:
-
-```
 === Sheet: SheetName1 ===
-Column1 Column2 Column3 Column4
-value1  value2  value3  value4
-value5  value6  value7  value8
+Column1[TAB]Column2[TAB]Column3[TAB]Column4
+value1[TAB]value2[TAB]value3[TAB]value4
+value5[TAB]value6[TAB]value7[TAB]value8
 
 === Sheet: SheetName2 ===  
-HeaderA HeaderB HeaderC
-dataA1  dataB1  dataC1
-dataA2  dataB2  dataC2
-```
+HeaderA[TAB]HeaderB[TAB]HeaderC
+dataA1[TAB]dataB1[TAB]dataC1
+dataA2[TAB]dataB2[TAB]dataC2
 
-MANDATORY EXCEL PARSING RULES:
-1. NEVER use pandas.ExcelFile() or pd.read_excel() - the input is a TEXT STRING, not a file path
-2. Parse sheets using the delimiter pattern: `=== Sheet: SheetName ===`
-3. Split sheet content by newlines to get rows
-4. Split each row by tab character `\t` to get columns
-5. First row after sheet delimiter is the header row with column names
-6. Use regular expressions or string splitting for parsing
+Note: [TAB] represents the tab character (\\t)
 
-CORRECT EXCEL PARSING EXAMPLE:
-```python
-import re
+MANDATORY PARSING RULES:
+1. NEVER use pandas.ExcelFile() or pd.read_excel() - the input is a TEXT STRING
+2. Parse sheets using: `=== Sheet: SheetName ===`
+3. Split rows by newlines (\n)
+4. Split columns by TAB character (\t)
+5. First row after sheet delimiter contains headers
 
-def parse_excel_text(excel_text):
-    # Split by sheet delimiter, keeping sheet names
-    sheets_data = re.split(r'===\s*Sheet:\s*(.*?)\s*===', excel_text)
+CRITICAL INPUT PARAMETER HANDLING:
+Functions MUST handle multiple parameter name variations:
+
+Example Pattern:
+def extract_function(*args, **kwargs):
+    # Handle flexible input parameters like production tools
+    
+    # Extract document content (handle all common variations)
+    document = None
+    for doc_param in ['excel_file', 'excel_content', 'Excel File', 'document', 'Excel_File']:
+        if doc_param in kwargs:
+            document = kwargs[doc_param]
+            break
+    if not document and len(args) > 1:
+        document = args[1]  # Second positional argument
+    
+    # Extract data input (handle all common variations)
+    data_input = None
+    for data_param in ['column_data', 'Column Data', 'data', 'columns', 'Column_Name', 'field']:
+        if data_param in kwargs:
+            data_input = kwargs[data_param]
+            break
+    if not data_input and len(args) > 0:
+        data_input = args[0]  # First positional argument
+    
+    # Parse JSON strings if needed
+    if isinstance(data_input, str):
+        try:
+            import json
+            data_input = json.loads(data_input)
+        except:
+            pass  # Keep as string if not JSON
+
+MANDATORY OUTPUT FORMAT - ALL FUNCTIONS MUST RETURN THIS STRUCTURE:
+
+# For single results:
+return [{
+    "extractedValue": "actual extracted data or None",
+    "validationStatus": "valid" or "invalid",
+    "aiReasoning": "Clear explanation of what happened",
+    "confidenceScore": 100,  # 0-100 scale
+    "documentSource": "Sheet: SheetName" or "N/A"
+}]
+
+# For array results with identifierId:
+return [{
+    "identifierId": "unique-id-from-input",  # MUST preserve from input
+    "extractedValue": "data for this identifier",
+    "validationStatus": "valid",
+    "aiReasoning": "Found value in column X",
+    "confidenceScore": 95,
+    "documentSource": "Column: ColumnName"
+}]
+
+IDENTIFIER ID HANDLING FOR ARRAYS:
+
+Example Pattern:
+def handle_identifier_array(data_input):
+    # Process arrays with identifierId preservation
+    results = []
+    
+    # Check if input is array with identifierId
+    if isinstance(data_input, list) and len(data_input) > 0:
+        if isinstance(data_input[0], dict) and 'identifierId' in data_input[0]:
+            # Process each item preserving identifierId
+            for item in data_input:
+                identifier_id = item.get('identifierId')
+                value = item.get('extractedValue') or item.get('name') or item.get('ID')
+                
+                # Extract data for this specific item
+                extracted = process_single_item(value)
+                
+                results.append({
+                    "identifierId": identifier_id,  # MUST preserve
+                    "extractedValue": extracted,
+                    "validationStatus": "valid" if extracted else "invalid",
+                    "aiReasoning": f"Processed {value}",
+                    "confidenceScore": 100 if extracted else 0,
+                    "documentSource": "Input Data"
+                })
+    return results
+
+EXCEL PARSING HELPER FUNCTION:
+
+Example Pattern:
+def parse_excel_sheets(excel_text):
+    # Parse Excel text format into sheets dictionary
     sheets = {}
     
-    # Process pairs of sheet_name, sheet_content
-    for i in range(1, len(sheets_data), 2):
-        sheet_name = sheets_data[i].strip()
-        sheet_content = sheets_data[i+1].strip()
+    if "=== Sheet:" in excel_text:
+        # Split by sheet delimiter
+        sections = re.split(r'===\s*Sheet:\s*(.*?)\s*===', excel_text)
         
-        if sheet_content:
-            # Split into rows and get headers
-            rows = sheet_content.split('\n')
-            headers = [h.strip() for h in rows[0].split('\t')] if rows else []
-            sheets[sheet_name] = {
-                'headers': headers,
-                'rows': rows[1:] if len(rows) > 1 else []
-            }
+        # Process pairs of sheet_name, sheet_content
+        for i in range(1, len(sections), 2):
+            sheet_name = sections[i].strip()
+            sheet_content = sections[i+1].strip() if i+1 < len(sections) else ""
+            
+            if sheet_content:
+                lines = sheet_content.split('\n')
+                if lines:
+                    # First line is headers
+                    headers = [h.strip() for h in lines[0].split('\t')]
+                    # Rest are data rows
+                    rows = []
+                    for line in lines[1:]:
+                        row = [cell.strip() for cell in line.split('\t')]
+                        rows.append(row)
+                    
+                    sheets[sheet_name] = {
+                        'headers': headers,
+                        'rows': rows
+                    }
     
     return sheets
-```
 
-FUNCTION SIGNATURE REQUIREMENT:
-Your generated function must use this exact signature and handle the Excel text format:
-```python
-def extract_function(parameter1_name, parameter2_name):
-    # parameter1_name might be: Columns (array of objects with identifierId and name)
-    # parameter2_name might be: Excel_File (text string with sheet delimiters)
-    
-    results = []
-    
-    # Extract columns from data structure - CRITICAL: Handle identifierId format
-    columns = []
-    if isinstance(parameter1_name, dict) and 'rows' in parameter1_name:
-        identifier = parameter1_name.get('identifierColumn', 'Column Name')
-        for idx, row in enumerate(parameter1_name['rows']):
-            columns.append({
-                'identifierId': idx + 1,
-                'name': row[identifier]
-            })
-    elif isinstance(parameter1_name, list):
-        # Already in identifierId format: [{"identifierId": 1, "name": "Column Name"}]
-        columns = parameter1_name
-    else:
-        columns = [{'identifierId': 1, 'name': str(parameter1_name)}]
-    
-    # Parse Excel content to find worksheets and their headers
-    worksheets = {}
-    sections = parameter2_name.split('=== Sheet: ')
-    
-    for i in range(1, len(sections)):
-        section = sections[i].strip()
-        lines = section.split('\n')
-        if not lines:
-            continue
-        
-        # Extract worksheet name
-        worksheet_name = lines[0].split(' ===')[0].strip()
-        
-        # Extract headers (second line contains column headers)
-        if len(lines) > 1:
-            headers = [col.strip() for col in lines[1].split('\t')]
-            worksheets[worksheet_name] = headers
-    
-    # Process each column using the identifierId format
-    for i, column in enumerate(columns):
-        column_name = column.get('name', '')
-        identifier_id = column.get('identifierId', i + 1)
-        
-        # Find which worksheet contains this column
-        found_worksheet = None
-        for worksheet_name, headers in worksheets.items():
-            if column_name in headers:
-                found_worksheet = worksheet_name
-                break
-        
-        # Return results with identifierId preserved
-        results.append({
-            'validation_type': 'collection_property',
-            'extracted_value': found_worksheet or 'Not Found',
-            'identifierId': identifier_id,
-            'record_index': i,
-            'confidence_score': 1.0 if found_worksheet else 0.5,
-            'ai_reasoning': f"Column '{column_name}' {'found in worksheet ' + found_worksheet if found_worksheet else 'not found in any worksheet'}"
-        })
-    
-    return results
-```
+TWO OPERATION TYPES:
+1. **updateMultiple** - Updates existing records with identifierId matching:
+   - Input has identifierId for each record
+   - Must preserve identifierId in output
+   - Used when updating existing data rows
 
-COMMON MISTAKES TO AVOID:
-❌ Using pandas.ExcelFile(Excel_File) - will fail because Excel_File is text, not file path
-❌ Trying to read Excel_File as a file - it's a string with sheet delimiters
-❌ Expecting .xlsx/.xls file format - it's already converted to text with === delimiters
-❌ Not handling the specific `=== Sheet: Name ===` delimiter format
-❌ Not splitting by tab characters for column separation
+2. **createMultiple** - Creates new records:
+   - No identifierId in input
+   - Generate new data from documents
+   - Used for initial data extraction
 
-CRITICAL ARRAY ITERATION TRAINING WITH IDENTIFIERID FORMAT:
-When you receive data input parameters, they will be in identifierId format that needs individual processing:
+ERROR HANDLING PATTERN:
 
-SINGLE VALUE PROCESSING:
-- If input is single object/string: process once, return one result with identifierId
-- Example: {"identifierId": 1, "name": "Employee ID"} → find this one column, return result with identifierId: 1
+# Always return proper error structure
+if not document:
+    return [{
+        "extractedValue": None,
+        "validationStatus": "invalid",
+        "aiReasoning": "No Excel document provided",
+        "confidenceScore": 0,
+        "documentSource": "N/A"
+    }]
 
-ARRAY ITERATION PROCESSING (MOST COMMON):
-- Input is array of objects with identifierId and name: [{"identifierId": 1, "name": "Employee ID"}, {"identifierId": 2, "name": "Salary"}]
-- MUST iterate: for each item in array, extract item.name individually and preserve item.identifierId
-- MUST return: separate result for "Employee ID" with identifierId: 1, separate result for "Salary" with identifierId: 2
+if not data_input:
+    return [{
+        "extractedValue": None,
+        "validationStatus": "invalid",
+        "aiReasoning": "No input data provided",
+        "confidenceScore": 0,
+        "documentSource": "N/A"
+    }]
 
-ARRAY DETECTION PATTERNS:
-- Input parameter is list/array: [{"identifierId": 1, "name": "X"}, {"identifierId": 2, "name": "Y"}]
-- Multiple objects with identifierId and name indicates iteration needed
-- Function should loop through array items, process each name, preserve each identifierId
+COMPLETE WORKING EXAMPLE FROM PRODUCTION:
 
-CRITICAL REQUIREMENT - IDENTIFIERID PRESERVATION:
-✅ CORRECT: Each result MUST include the original identifierId from input
-✅ CORRECT: For column {"identifierId": 5, "name": "Date Of Birth"} → result must have "identifierId": 5
-❌ WRONG: Losing or changing the identifierId in results
-❌ WRONG: Using array index instead of original identifierId
+This is the exact pattern your generated function should follow:
 
-REQUIRED CODE PATTERN FOR IDENTIFIERID ARRAY PROCESSING:
-```python
-def extract_excel_data(columns_parameter, excel_content_parameter, identifier_references=None):
-    results = []
+import json
+import re
+
+def extract_function(*args, **kwargs):
+    # Example function following all production patterns
     
-    # Extract columns from identifierId format - this is the new standard format
-    columns = []
-    if isinstance(columns_parameter, list):
-        # Already in identifierId format: [{"identifierId": 1, "name": "Column Name"}]
-        columns = columns_parameter
-    elif isinstance(columns_parameter, dict) and 'rows' in columns_parameter:
-        # Convert from old rows format to identifierId format
-        identifier = columns_parameter.get('identifierColumn', 'Column Name')
-        for idx, row in enumerate(columns_parameter['rows']):
-            columns.append({
-                'identifierId': idx + 1,
-                'name': row[identifier]
-            })
-    else:
-        columns = [{'identifierId': 1, 'name': str(columns_parameter)}]
+    # 1. Handle flexible input parameters
+    document = None
+    for doc_param in ['excel_file', 'excel_content', 'Excel File', 'document']:
+        if doc_param in kwargs:
+            document = kwargs[doc_param]
+            break
     
-    # Parse Excel content to find worksheets and headers
-    worksheets = {}
-    sections = excel_content_parameter.split('=== Sheet: ')
-    for i in range(1, len(sections)):
-        section = sections[i].strip()
-        lines = section.split('\n')
-        if not lines:
-            continue
-        worksheet_name = lines[0].split(' ===')[0].strip()
-        if len(lines) > 1:
-            headers = [col.strip() for col in lines[1].split('\t')]
-            worksheets[worksheet_name] = headers
+    data_input = None
+    for data_param in ['column_data', 'Column Data', 'data', 'columns']:
+        if data_param in kwargs:
+            data_input = kwargs[data_param]
+            break
     
-    # Process each column - CRITICAL: preserve identifierId in results
-    for i, column in enumerate(columns):
-        column_name = column.get('name', '')
-        identifier_id = column.get('identifierId', i + 1)
-        
-        # Find which worksheet contains this column
-        found_worksheet = None
-        for worksheet_name, headers in worksheets.items():
-            if column_name in headers:
-                found_worksheet = worksheet_name
-                break
-        
-        # CRITICAL: Include identifierId in every result
-        results.append({
-            "validation_type": "collection_property",
-            "extracted_value": found_worksheet or 'Not Found',
-            "identifierId": identifier_id,  # MUST preserve original identifierId
-            "record_index": i,
-            "confidence_score": 1.0 if found_worksheet else 0.5,
-            "ai_reasoning": f"Column '{column_name}' {'found in worksheet ' + found_worksheet if found_worksheet else 'not found in any worksheet'}"
-        })
+    # 2. Validate inputs
+    if not document:
+        return [{
+            "extractedValue": None,
+            "validationStatus": "invalid",
+            "aiReasoning": "No Excel document provided",
+            "confidenceScore": 0,
+            "documentSource": "N/A"
+        }]
     
-    return results
-```
+    # 3. Parse JSON if needed
+    if isinstance(data_input, str):
+        try:
+            data_input = json.loads(data_input)
+        except:
+            pass
+    
+    # 4. Handle array with identifierId
+    if isinstance(data_input, list) and len(data_input) > 0:
+        if isinstance(data_input[0], dict) and 'identifierId' in data_input[0]:
+            results = []
+            
+            # Parse Excel sheets
+            sheets = parse_excel_sheets(document)
+            
+            # Process each item
+            for item in data_input:
+                identifier_id = item.get('identifierId')
+                value_to_find = item.get('extractedValue') or item.get('name') or item.get('ID')
+                
+                # Find value in sheets
+                found = None
+                source = "N/A"
+                
+                for sheet_name, sheet_data in sheets.items():
+                    if value_to_find in sheet_data.get('headers', []):
+                        found = f"Column in {sheet_name}"
+                        source = f"Sheet: {sheet_name}"
+                        break
+                
+                results.append({
+                    "identifierId": identifier_id,
+                    "extractedValue": found,
+                    "validationStatus": "valid" if found else "invalid",
+                    "aiReasoning": f"Searched for '{value_to_find}'",
+                    "confidenceScore": 100 if found else 0,
+                    "documentSource": source
+                })
+            
+            return results
+    
+    # 5. Handle single value
+    return [{
+        "extractedValue": "Single value result",
+        "validationStatus": "valid",
+        "aiReasoning": "Processed single input",
+        "confidenceScore": 95,
+        "documentSource": "Document"
+    }]
+
+KEY REQUIREMENTS FOR GENERATED FUNCTIONS:
+1. **Flexible Parameter Handling**: Use *args, **kwargs to accept various parameter names
+2. **Standard Output Format**: Always return list of dicts with extractedValue, validationStatus, etc.
+3. **IdentifierId Preservation**: For arrays, MUST preserve identifierId from input to output
+4. **Error Handling**: Return proper error structure even when extraction fails
+5. **Document Parsing**: Use === Sheet: Name === delimiters and tab-separated columns
+6. **Operation Types**: Handle both updateMultiple (with identifierId) and createMultiple (without)
 
 TARGET FIELDS TO EXTRACT:
 {target_fields}
 
-The function must accept the following parameters from the target fields and pass them straight to the output body. They should not influnce the function's behavior:
-
-"id"
-"collectionId"
-
-SOURCE DOCUMENTS (for context):
+SOURCE DOCUMENTS:
 {source_documents}
 
-NOTE: If source documents show "NO DOCUMENTS SELECTED", you must create a function that works purely from identifier_references without reading any document content.
-
-IDENTIFIER REFERENCES FROM PREVIOUS EXTRACTION:
+IDENTIFIER REFERENCES:
 {identifier_references}
 
 EXTRACTION NUMBER: {extraction_number}
 
-FUNCTION METADATA:
-Create a descriptive name and description for this function based on the extraction task.
-
-MANDATORY REQUIREMENTS:
-1. Function name MUST be: extract_excel_data(extracted_content, target_fields_data, identifier_references=None)
-2. Input format: extracted_content has lines like "=== Sheet: Name ===" followed by tab-separated rows (may be empty if no documents selected)
-3. ARRAY ITERATION LOGIC: If any input parameter (from target_fields_data) is an array, you MUST iterate through each array item:
-   - Check if parameter value is list: isinstance(param_value, list)
-   - If list: for item in param_value: process each item individually  
-   - If not list: process single value once
-   - Example: [{"Column Name": "A"}, {"Column Name": "B"}] → process "A", then process "B"
-4. If identifier_references is provided, the function MUST iterate through each identifier and extract the target field for that specific identifier
-5. If no documents are available (empty extracted_content), the function must work purely from identifier_references data
-6. Output format: Return a list of dictionaries, each with these exact keys:
-   - "validation_type": "collection_property"
-   - "data_type": field's property_type or "TEXT"
-   - "field_name": "CollectionName.FieldName[INDEX]" 
-   - "collection_id": field's collection id
-   - "field_id": field's id
-   - "extracted_value": the actual extracted data
-   - "confidence_score": 0.95
-   - "validation_status": "unverified"
-   - "ai_reasoning": brief explanation
-   - "record_index": unique number starting from 0
-
-CRITICAL INDEXING AND COUNT RULES:
-- If identifier_references provided: MUST return EXACTLY the same number of results as identifiers (e.g., 185 identifiers = 185 results)
-- Use record_index = 0 at start, increment by 1 for each result
-- If a value cannot be found for an identifier, still create a result with extracted_value: null
-- Every result must have different index: 0, 1, 2, 3, etc.
-- For each identifier, use the identifier value to find the corresponding target field value in the Excel data
-
-ITERATION LOGIC FOR SUBSEQUENT EXTRACTIONS:
-If identifier_references is provided:
-1. Loop through each identifier reference object
-2. Extract the identifier value (e.g., "Column Heading[0]: 'Member Reference No'")
-3. If documents available: Use this identifier to locate the target field in the Excel sheets
-4. If no documents available (NO DOCUMENTS SELECTED): Generate appropriate values based on identifier context and target field requirements
-5. For column extraction: find the worksheet containing this column and extract the target property (or generate contextually appropriate worksheet names if no docs)
-6. Maintain the same index as the identifier reference
-7. Set confidence_score appropriately (lower for generated vs extracted data)
+GENERATED FUNCTION REQUIREMENTS:
+1. **Function Name**: Choose a descriptive name based on the task (e.g., get_column_names, extract_worksheet_mapping)
+2. **Use Production Patterns**: Follow the COMPLETE WORKING EXAMPLE above
+3. **Parameter Flexibility**: Accept multiple parameter name variations
+4. **Output Format**: Return list of dicts with standard fields (extractedValue, validationStatus, etc.)
+5. **IdentifierId Handling**: Preserve identifierId for updateMultiple operations
+6. **Error Cases**: Always return proper error structure, never throw exceptions
 
 RESPONSE FORMAT:
-Return ONLY a valid JSON object with these four keys: function_name, description, tags, function_code
-Start response with opening brace and end with closing brace
-NO markdown blocks, NO explanations, ONLY the JSON object
-Escape all quotes and newlines properly in function_code field
+Return ONLY a valid JSON object with these keys:
+{
+    "function_name": "descriptive_function_name",
+    "description": "Clear description of what the function does",
+    "tags": ["excel", "extraction", "data"],
+    "function_code": "complete Python function as string with proper escaping"
+}
+
+CRITICAL REMINDERS:
+- NO markdown blocks in response
+- NO explanations outside JSON
+- Escape all quotes and newlines in function_code
+- Follow the COMPLETE WORKING EXAMPLE pattern exactly
+- Always return list of dicts with standard output format
+- Handle all parameter name variations
+- Preserve identifierId for array operations
 
 """
 
