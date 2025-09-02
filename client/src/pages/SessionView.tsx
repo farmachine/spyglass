@@ -2027,6 +2027,10 @@ export default function SessionView() {
       firstAdd: existingIndices.length === 0
     });
 
+    // Generate a new identifierId for this manually created row
+    const newIdentifierId = crypto.randomUUID();
+    console.log(`📝 Generated new identifierId for manual row: ${newIdentifierId}`);
+
     // Optimistic update: Create temporary validation records
     const tempValidations = collection.properties.map(property => ({
       id: `temp-${Date.now()}-${property.id}`,
@@ -2037,6 +2041,7 @@ export default function SessionView() {
       fieldName: `${collectionName}.${property.propertyName}[${newIndex}]`,
       collectionName: collectionName,
       recordIndex: newIndex,
+      identifierId: newIdentifierId, // Assign the same identifierId to all fields in this row
       extractedValue: null,
       originalExtractedValue: null,
       originalConfidenceScore: 0,
@@ -2071,6 +2076,7 @@ export default function SessionView() {
           fieldId: property.id,
           collectionName: collectionName, // Explicitly set the collection name
           recordIndex: newIndex,
+          identifierId: newIdentifierId, // Include the identifierId for all fields in this row
           extractedValue: null, // Use null instead of empty string for optional fields
           originalExtractedValue: null,
           originalConfidenceScore: 0,
