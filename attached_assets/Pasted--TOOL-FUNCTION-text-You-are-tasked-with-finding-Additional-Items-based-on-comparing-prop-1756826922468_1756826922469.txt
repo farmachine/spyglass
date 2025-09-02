@@ -1,0 +1,180 @@
+=== TOOL FUNCTION ===
+```text
+You are tasked with finding "Additional Items" based on comparing properties within the provided `Data`. Your primary goal is to extract and CREATE NEW records of items that appear in one list of records but are MISSING a corresponding property in another column within the same record. This is NOT a record linkage or mapping task. You are creating entirely NEW records.
+
+Your output MUST be a JSON ARRAY of objects, where each object represents a newly extracted item. Each object in the array MUST have the following keys:
+
+*   **extractedValue**: (String) The actual extracted data representing the "Additional Item". This should be the value of the item you're extracting.
+*   **validationStatus**: (String) Either "valid" or "invalid". Set to "valid" if you are confident in the extractedValue. Set to "invalid" if you have any doubts or low confidence.
+*   **aiReasoning**: (String) A brief explanation of the logic used to extract the `extractedValue`. Explain why you believe it is an "Additional Item" based on the data in `Data`.
+*   **confidenceScore**: (Integer) A numerical representation of your confidence in the extracted `extractedValue`, ranging from 0 (lowest) to 100 (highest).
+*   **documentSource**: (String) A clear reference to the source document or page within `Data` where the `extractedValue` was found.
+
+Remember, `Data` is provided for REFERENCE ONLY to understand the context and determine what "Additional Items" to extract. DO NOT attempt to link or map to any existing records within the database. Each extracted item should be treated as a new, independent record to be CREATED.
+
+Return multiple extracted items as a single JSON array, ordered as they appear in the source document.
+
+For example:
+[{"extractedValue": "result1", "validationStatus": "valid", "aiReasoning": "explanation1", "confidenceScore": 95, "documentSource": "source1"}, {"extractedValue": "result2", "validationStatus": "valid", "aiReasoning": "explanation2", "confidenceScore": 90, "documentSource": "source2"}]
+```
+
+=== INPUT VALUES ===
+
+**List Items** (29 items to process):
+```json
+[
+  {
+    "identifierId": "641a06fa-15f8-4230-8901-44afac4e2a53",
+    "Column Name": "Total Widow(er)'s Pension Payable From Scheme At This Valuation",
+    "Standard Equivalent": "Spouses Post 09 Total Pensions"
+  },
+  {
+    "identifierId": "0aad31b7-c6e1-4f8e-993a-983b5830043e",
+    "Column Name": "Member's Reference No",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "7e0990ea-3dce-4f57-9551-0407e8950eab",
+    "Column Name": "Sex Code",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "3a6262e4-4021-49c8-92fc-663a9203b758",
+    "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of Exit From Active Service",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "16db2ee4-8eea-408b-afa7-03093efbaecf",
+    "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Of This Valuation",
+    "Standard Equivalent": "Pre-88 GMP"
+  },
+  {
+    "identifierId": "43861f77-63bc-4353-bb5c-7031848e92ec",
+    "Column Name": "Contingent Widow(er)'s Date Of Birth",
+    "Standard Equivalent": "DoB Dependant"
+  },
+  {
+    "identifierId": "40ff49d6-a84e-4708-8b6a-a53e116e1c13",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of Exit From Active Service",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "b6c2e3cb-5c16-4373-8a11-2de6341ad7cd",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Of This Valuation",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "7af3072f-ad66-4d85-9462-61c30dffb839",
+    "Column Name": "Total Pension Payable From Scheme At This Valuation",
+    "Standard Equivalent": "Post 09 Total Pension"
+  },
+  {
+    "identifierId": "19ff89eb-987b-4a64-9435-498d2394c464",
+    "Column Name": "Contingent Widow(er)'s Sex Code",
+    "Standard Equivalent": "Gender Spouse"
+  },
+  {
+    "identifierId": "59b88ffd-dfea-4260-a000-aa9a65b35044",
+    "Column Name": "Non-increasing TV-in pension",
+    "Standard Equivalent": "Transfer-In Pension"
+  },
+  {
+    "identifierId": "2e7f8d42-7da7-42cc-852c-5a605d64274b",
+    "Column Name": "Sex Code",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "c3720c52-c912-4ce5-a110-5700b6ef023f",
+    "Column Name": "Total Pension Payable From Scheme At Retirement Before Reduction for Tax Free Cash",
+    "Standard Equivalent": "Post 09 Total Pension"
+  },
+  {
+    "identifierId": "39389881-76eb-416f-a055-8489247ea380",
+    "Column Name": "Member's Reference No",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "98ca9941-b579-4579-a6fb-3963fb380e44",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Active Deferred Member",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "4b431f1c-4b6b-4009-aa84-22784c808667",
+    "Column Name": "Normal Retirement Date",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "00c22557-3a29-40b4-8679-35f3c4579516",
+    "Column Name": "Total Contingent Widow(er) Pension Payable From Scheme At Date Became Active Deferred Member",
+    "Standard Equivalent": "Spouses Post 09 Total Pensions"
+  },
+  {
+    "identifierId": "386e122c-25df-4661-ba98-774ce0db4a7d",
+    "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 5% pa At Date Became Active Deferred Member",
+    "Standard Equivalent": "Spouses Post 09 Total Pensions"
+  },
+  {
+    "identifierId": "eae49b8d-e7c2-4666-bbb7-d6db768911fa",
+    "Column Name": "Spouse's Date of Birth",
+    "Standard Equivalent": "DoB Spouse"
+  },
+  {
+    "identifierId": "57c8ea54-ecf8-42a3-8e56-f69b991e8db2",
+    "Column Name": "Early Vesting Age",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "16f39a02-9e94-4630-afd9-bada9450cd9a",
+    "Column Name": "Married Indicator",
+    "Standard Equivalent": "Marital Status"
+  },
+  {
+    "identifierId": "50b1aa8b-1844-48a3-8c20-319ee9f35d43",
+    "Column Name": "Contingent Widow(er)'s Pension Subject To CPI capped at 2.5% pa At Date Became Active Deferred Member",
+    "Standard Equivalent": "Spouses Post 09 Total Pensions"
+  },
+  {
+    "identifierId": "abaf0d04-af26-4bb9-902c-847ea1008afb",
+    "Column Name": "Contingent Widow(er)'s Pension Subject To RPI capped at 2.5% pa At Date Became Active Deferred Member",
+    "Standard Equivalent": "Spouses Post 09 Total Pensions"
+  },
+  {
+    "identifierId": "78aabf5a-52ec-4bca-b5df-9e09f6588d8f",
+    "Column Name": "Member's Reference No",
+    "Standard Equivalent": "MemberID"
+  },
+  {
+    "identifierId": "baac352b-8662-4b81-b143-2c46b1a5a9c2",
+    "Column Name": "Date Of Birth",
+    "Standard Equivalent": "DoB"
+  },
+  {
+    "identifierId": "1c4978a2-ffb5-492b-8be5-704c49f0a21d",
+    "Column Name": "Normal Retirement Date",
+    "Standard Equivalent": "Retirement Age"
+  },
+  {
+    "identifierId": "9251cc30-3744-47b0-b09d-5ddd50eac753",
+    "Column Name": "Annual Post-5.4.1988 GMP Component At Date Became Deferred Pensioner",
+    "Standard Equivalent": "Post-88 GMP"
+  },
+  {
+    "identifierId": "5f20a6e9-c1ab-4d90-8bd5-5660b717f907",
+    "Column Name": "Sex Code",
+    "Standard Equivalent": "Gender"
+  },
+  {
+    "identifierId": "7bea777d-cb13-4b24-8093-65442542db09",
+    "Column Name": "Annual Pre-6.4.1988 GMP Component At Date Became Deferred Pensioner",
+    "Standard Equivalent": "Pre-88 GMP"
+  }
+]
+```
+
+=== CRITICAL REQUIREMENT ===
+Each item in the list above has an "identifierId" field. You MUST:
+1. Include the EXACT SAME "identifierId" in your response for each item
+2. Return results in ANY order, but each result MUST have its corresponding identifierId
+3. The identifierId links the extracted value to the correct row/record
+4. Example: If input has {"identifierId": "abc-123", "Column Name": "Date"}, 
+   your output MUST include {"identifierId": "abc-123", "extractedValue": "..."}

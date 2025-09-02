@@ -715,9 +715,12 @@ ${JSON.stringify(dataArray, null, 2)}
 
 `;
       
-      // Add critical instruction for identifierId preservation (only for UPDATE operations)
+      // Add critical instruction for identifierId preservation ONLY for UPDATE operations
       const hasIdentifierIds = dataArray.some(item => item.identifierId);
-      if (hasIdentifierIds) {
+      const isCreateOperation = tool.operationType?.toLowerCase().includes('create');
+      
+      if (hasIdentifierIds && !isCreateOperation) {
+        // Only add identifierId requirement for UPDATE operations
         prompt += `=== CRITICAL REQUIREMENT ===
 Each item in the list above has an "identifierId" field. You MUST:
 1. Include the EXACT SAME "identifierId" in your response for each item
@@ -725,6 +728,11 @@ Each item in the list above has an "identifierId" field. You MUST:
 3. The identifierId links the extracted value to the correct row/record
 4. Example: If input has {"identifierId": "abc-123", "Column Name": "Date"}, 
    your output MUST include {"identifierId": "abc-123", "extractedValue": "..."}
+
+`;
+      } else if (isCreateOperation) {
+        // For CREATE operations, clarify that identifierIds in input are for reference only
+        prompt += `**Note**: This is a CREATE operation. The identifierIds in the input data are for reference only. You will generate NEW records based on the instructions provided. Do NOT include identifierIds in your response.
 
 `;
       }
