@@ -611,41 +611,70 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             </div>
             
             <CardHeader className="pb-4 relative">
-              <div className="flex flex-col items-center">
-                {/* Dot and Title - Centered */}
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
+              {!step.isExpanded ? (
+                // Collapsed layout - title and description on same line
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    {/* Title and Description on same line */}
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0 mt-1.5"></div>
+                      <div className="flex items-baseline gap-3 flex-1">
+                        <h3 className="font-semibold text-[#071e54] dark:text-[#5A70B5]">
+                          {step.name || 'Unnamed'}
+                        </h3>
+                        {step.description && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {step.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   
-                  {editingStepId === step.id ? (
-                    <Input
-                      value={step.name}
-                      onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                      onBlur={() => setEditingStepId(null)}
-                      placeholder="Name..."
-                      className="max-w-xs text-center"
-                      autoFocus
-                    />
-                  ) : (
-                    <CardTitle 
-                      className="text-lg cursor-pointer text-[#071e54] dark:text-[#5A70B5] hover:text-[#071e54]/80 dark:hover:text-[#5A70B5]/80"
-                      onClick={() => setEditingStepId(step.id)}
-                    >
-                      {step.name || 'Unnamed'}
-                    </CardTitle>
+                  {/* Value names as horizontal grey blocks */}
+                  {step.values.length > 0 && (
+                    <div className="flex flex-wrap gap-2 ml-4">
+                      {step.values.map((value) => (
+                        <div 
+                          key={value.id}
+                          className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-400"
+                        >
+                          {value.name || 'Untitled'}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-
-
-
-                {/* Description - Centered (collapsed only) */}
-                {!step.isExpanded && step.description && (
-                  <div className="flex flex-col items-center">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{step.description}</p>
+              ) : (
+                // Expanded layout - centered title
+                <div className="flex flex-col items-center">
+                  {/* Dot and Title - Centered */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
+                    
+                    {editingStepId === step.id ? (
+                      <Input
+                        value={step.name}
+                        onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                        onBlur={() => setEditingStepId(null)}
+                        placeholder="Name..."
+                        className="max-w-xs text-center"
+                        autoFocus
+                      />
+                    ) : (
+                      <CardTitle 
+                        className="text-lg cursor-pointer text-[#071e54] dark:text-[#5A70B5] hover:text-[#071e54]/80 dark:hover:text-[#5A70B5]/80"
+                        onClick={() => setEditingStepId(step.id)}
+                      >
+                        {step.name || 'Unnamed'}
+                      </CardTitle>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Controls - Top right corner */}
-                <div className="absolute top-4 right-4 flex items-center gap-2">
+              {/* Controls - Top right corner */}
+              <div className="absolute top-4 right-4 flex items-center gap-2">
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
                     className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
@@ -691,7 +720,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </div>
 
               {step.isExpanded && (
                 <div className="mt-6 space-y-4">
