@@ -1466,9 +1466,16 @@ export default function SessionView() {
       // For data tables, we need to find the field ID from the step values, not collection properties
       // The columns in data tables come from workflow_steps/step_values, not the original collection schema
       
-      // Find the workflow step for this collection
+      console.log('All workflow steps:', project?.workflowSteps?.map(s => ({ 
+        stepName: s.stepName, 
+        stepType: s.stepType, 
+        collectionName: s.collectionName 
+      })));
+      
+      // Find the workflow step for this collection - check both by collectionName and stepName
       const workflowStep = project?.workflowSteps?.find(step => 
-        step.stepType === 'data_table' && step.collectionName === collectionName
+        (step.stepType === 'data_table' && step.collectionName === collectionName) ||
+        (step.stepType === 'data_table' && step.stepName === collectionName)
       );
       console.log('Found workflow step:', workflowStep);
       
