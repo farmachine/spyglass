@@ -157,7 +157,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         tags: data.tags || []
       });
       
-      return apiRequest(`/api/excel-functions/${editingFunction.id}`, {
+      return apiRequest(`/api/projects/${projectId}/excel-functions/${editingFunction.id}`, {
         method: "PUT",
         body: JSON.stringify({
           name: data.name,
