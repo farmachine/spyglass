@@ -482,7 +482,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       if (response.ok) {
         console.log('Workflow saved successfully');
         toast({
-          title: "Flow Saved",
+          title: "Steps Saved",
           description: "Your workflow has been saved successfully",
         });
         // Collapse all steps after successful save

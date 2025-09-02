@@ -305,7 +305,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
     { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
-      { id: "define" as const, label: "Flow", icon: StreamIcon, disabled: false }, // Flow always enabled
+      { id: "define" as const, label: "Steps", icon: StreamIcon, disabled: false }, // Steps always enabled
     ] : []),
     ...(canAccessPublishing ? [
       { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: showWelcomeFlow },

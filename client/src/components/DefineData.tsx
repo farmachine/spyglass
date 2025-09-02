@@ -391,7 +391,7 @@ export default function DefineData({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              <span style={{ color: '#4F63A4' }}>•</span> Flow
+              <span style={{ color: '#4F63A4' }}>•</span> Steps
             </h1>
             <p className="text-gray-600 dark:text-gray-100 mt-1">
               Design your data extraction workflow
@@ -407,7 +407,7 @@ export default function DefineData({
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white border border-gray-600"
             >
-              Save Flow
+              Save Steps
             </Button>
           </div>
         </div>
