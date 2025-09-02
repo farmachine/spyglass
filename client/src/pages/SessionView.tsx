@@ -1424,14 +1424,67 @@ export default function SessionView() {
       return fieldKey === editingTableField;
     });
     
+    // Parse the field key to get collection, field, and index
+    const match = editingTableField.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
+    if (!match) return;
+    
+    const [, collectionName, fieldName, indexStr] = match;
+    const recordIndex = parseInt(indexStr);
+    
+    // Clear editing state immediately for responsive UI
+    const currentValue = editTableValue;
+    setEditingTableField(null);
+    setEditTableValue("");
+    
     if (validation) {
-      // Clear editing state immediately for responsive UI
-      const currentValue = editTableValue;
-      setEditingTableField(null);
-      setEditTableValue("");
-      
-      // Then perform the save with optimistic update
+      // Update existing validation
       await handleSaveFieldEdit(validation.id, currentValue, 'valid');
+    } else {
+      // Create new validation for fields without one
+      // Find the collection property to get the field ID
+      const collection = project?.collections.find(c => c.collectionName === collectionName);
+      const property = collection?.properties?.find(p => p.propertyName === fieldName);
+      
+      if (property) {
+        // Find identifierId for this row
+        const rowValidation = validations.find(v => 
+          v.recordIndex === recordIndex &&
+          v.collectionName === collectionName &&
+          v.identifierId
+        );
+        
+        const newValidation = {
+          validationType: 'collection_property',
+          dataType: property.propertyType,
+          fieldId: property.id,
+          collectionName: collectionName,
+          recordIndex: recordIndex,
+          identifierId: rowValidation?.identifierId || crypto.randomUUID(),
+          extractedValue: currentValue,
+          originalExtractedValue: currentValue,
+          originalConfidenceScore: 100,
+          originalAiReasoning: 'Manually entered value',
+          validationStatus: 'valid',
+          aiReasoning: 'Manually entered value',
+          manuallyVerified: true,
+          manuallyUpdated: true,
+          confidenceScore: 100,
+          documentSource: 'Manual Entry',
+          documentSections: null
+        };
+        
+        try {
+          const response = await apiRequest(`/api/sessions/${session?.id}/validations`, {
+            method: 'POST',
+            body: JSON.stringify(newValidation)
+          });
+          
+          // Refetch validations to update the UI
+          await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        } catch (error) {
+          console.error('Failed to create validation:', error);
+        }
+      }
     }
   };
 
@@ -5270,8 +5323,11 @@ Thank you for your assistance.`;
                                             </span>
                                             
                                             {/* Inline editing or edit button */}
-                                            {validation && (() => {
-                                              const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
+                                            {(() => {
+                                              // Create a field key even if validation doesn't exist
+                                              const fieldKey = validation 
+                                                ? `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`
+                                                : `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                               const isEditingThisField = editingTableField === fieldKey;
                                               
                                               if (isEditingThisField) {
@@ -5335,7 +5391,22 @@ Thank you for your assistance.`;
                                                   <Button
                                                     size="sm"
                                                     variant="ghost"
-                                                    onClick={() => handleEditTableField(validation)}
+                                                    onClick={() => {
+                                                      if (validation) {
+                                                        handleEditTableField(validation);
+                                                      } else {
+                                                        // Create a temporary validation object for fields without validation
+                                                        const tempValidation = {
+                                                          id: `temp-${Date.now()}`,
+                                                          collectionName: collection.collectionName,
+                                                          fieldName: columnName,
+                                                          recordIndex: originalIndex,
+                                                          extractedValue: null,
+                                                          identifierId: rowIdentifierId
+                                                        } as FieldValidation;
+                                                        handleEditTableField(tempValidation);
+                                                      }
+                                                    }}
                                                     className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     title="Edit field value"
                                                   >
