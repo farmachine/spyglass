@@ -2502,7 +2502,7 @@ export default function SessionView() {
                 if (stepValue && !(columnName in record)) {
                   // Try to find a validation for this specific value and identifier
                   // Look in ALL validations, not just the filtered ones
-                  const validation = allStepValidations.find(v => 
+                  const validation = validations.find(v => 
                     v.identifierId === identifierId &&
                     ((v as any).field_id === stepValue.id || (v as any).fieldId === stepValue.id || 
                      (v as any).value_id === stepValue.id || (v as any).valueId === stepValue.id)
