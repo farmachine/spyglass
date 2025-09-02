@@ -3119,73 +3119,33 @@ export default function SessionView() {
     console.error('Failed to parse extracted data:', error);
   }
 
-  // Get validation for a specific field
+  // Get validation for a specific field - using identifierId for collection fields
   const getValidation = (fieldName: string, identifierId?: string | null) => {
-    // If we have an identifierId, try to find validation by identifierId and value name
-    if (identifierId) {
-      // Extract the value name from the fieldName (e.g., "Column Name Mapping.Standard Equivalent[0]" -> "Standard Equivalent")
-      const match = fieldName.match(/\.([^[]+)\[/);
-      if (match) {
-        const valueName = match[1];
-        const collectionMatch = fieldName.match(/^([^.]+)\./);
-        const collectionName = collectionMatch ? collectionMatch[1] : null;
-        
-        // Find validation by identifierId and collection/value names
-        const identifierValidation = validations.find(v => 
-          v.identifierId === identifierId &&
-          v.collectionName === collectionName &&
-          v.fieldName?.includes(`.${valueName}[`)
-        );
-        
-        if (identifierValidation) {
-          return identifierValidation;
-        }
+    // Check if this is a collection field (has format "Collection.Property[index]")
+    const collectionMatch = fieldName.match(/^([^.]+)\.([^[]+)\[(\d+)\]$/);
+    
+    if (collectionMatch) {
+      // This is a collection field - MUST use identifierId to prevent cross-row matching
+      if (!identifierId) {
+        return undefined;
       }
-    }
-    
-    // Fallback to fieldName-based lookup
-    const fieldValidations = validations.filter(v => v.fieldName === fieldName);
-    
-    if (fieldValidations.length === 0) {
-      // Removed verbose logging - validation not found is expected for unprocessed fields
-      return undefined;
-    }
-    
-    // If there are multiple validation records, prioritize by:
-    // 1. Records with actual extracted values (not null/empty)
-    // 2. Most recent records (by createdAt)
-    if (fieldValidations.length > 1) {
-      // Removed verbose logging to prevent console spam during renders
       
-      // First priority: records with actual extracted values
-      const validationsWithValues = fieldValidations.filter(v => 
-        v.extractedValue !== null && 
-        v.extractedValue !== undefined && 
-        v.extractedValue !== "" && 
-        v.extractedValue !== "null" && 
-        v.extractedValue !== "undefined"
+      const collectionName = collectionMatch[1];
+      const valueName = collectionMatch[2];
+      
+      // Find validation by identifierId and collection/value names
+      const identifierValidation = validations.find(v => 
+        v.identifierId === identifierId &&
+        v.collectionName === collectionName &&
+        v.fieldName?.includes(`.${valueName}[`)
       );
       
-      if (validationsWithValues.length > 0) {
-        // Sort by createdAt descending (most recent first) and return the first one
-        const bestValidation = validationsWithValues.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-        // Removed verbose logging to prevent console spam during renders
-        
-        // Debug logging for MSA field specifically
-        if (fieldName === 'MSA ID/Number') {
-          console.log(`MSA Field Debug - ExtractedValue: ${bestValidation.extractedValue}, ManuallyUpdated: ${bestValidation.manuallyUpdated}, ValidationStatus: ${bestValidation.validationStatus}`);
-        }
-        
-        return bestValidation;
-      }
-      
-      // Fallback: most recent record even if no value
-      const mostRecent = fieldValidations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-      console.log(`Selected most recent validation for ${fieldName}:`, mostRecent.extractedValue);
-      return mostRecent;
+      return identifierValidation;
+    } else {
+      // This is a schema field (Info Page field) - look up by exact fieldName match
+      // These don't have identifierId and use direct fieldName matching
+      return validations.find(v => v.fieldName === fieldName);
     }
-    
-    return fieldValidations[0];
   };
 
   // Get session status based on field verification
