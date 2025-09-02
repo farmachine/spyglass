@@ -964,6 +964,24 @@ function ValueEditor({
           ? JSON.parse(selectedTool.inputParameters)
           : selectedTool.inputParameters;
         setInputParameters(Array.isArray(params) ? params : []);
+        
+        // Check if parameters have changed and clear invalid input values
+        if (value.inputValues && Object.keys(value.inputValues).length > 0) {
+          const validParamIds = new Set(params.map((p: any) => p.id));
+          const currentInputIds = Object.keys(value.inputValues);
+          const hasInvalidInputs = currentInputIds.some(id => !validParamIds.has(id));
+          
+          if (hasInvalidInputs) {
+            // Remove invalid input values that don't match current parameters
+            const validInputValues: Record<string, any> = {};
+            currentInputIds.forEach(id => {
+              if (validParamIds.has(id)) {
+                validInputValues[id] = value.inputValues[id];
+              }
+            });
+            onUpdate({ inputValues: validInputValues });
+          }
+        }
       } catch (error) {
         console.error("Error parsing input parameters:", error);
         setInputParameters([]);

@@ -58,7 +58,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
     },
     onError: (error: any) => {
       console.error('Failed to delete tool:', error);
@@ -271,7 +271,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
         setDebugRecommendations('');
         setDebugText('');
         setTestResults(null);
-        await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+        await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
         console.log('✅ Tool has been updated with the suggested fixes!');
       }
 

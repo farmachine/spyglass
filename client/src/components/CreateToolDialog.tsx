@@ -176,7 +176,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       setEditingFunction?.(null);
       setOpen(false);
       resetForm();
@@ -212,7 +212,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     onSuccess: (response) => {
       console.log('🎉 CREATE TOOL SUCCESS CALLBACK TRIGGERED');
       console.log('📄 Response from successful creation:', JSON.stringify(response, null, 2));
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'excel-functions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       console.log('✅ Tool created successfully, closing modal in 1.5s...');
       setTimeout(() => {
         console.log('🔄 CLOSING MODAL AND RESETTING FORM');
