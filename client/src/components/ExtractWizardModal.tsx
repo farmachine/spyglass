@@ -216,7 +216,7 @@ export default function ExtractWizardModal({
                           <tbody>
                             {inputData.slice(0, 3).map((record, index) => (
                               <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
-                                <td className="w-32 px-2 py-1.5 text-gray-600 font-mono">
+                                <td className="w-32 px-2 py-1.5 text-gray-800 font-mono">
                                   <div className="truncate" title={record.identifierId || `Row ${index + 1}`}>
                                     {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
                                   </div>
@@ -228,7 +228,7 @@ export default function ExtractWizardModal({
                                     : allKeys;
                                     
                                   return orderedKeys.map(key => (
-                                    <td key={key} className="px-2 py-1.5 text-gray-700 min-w-[120px]">
+                                    <td key={key} className="px-2 py-1.5 text-gray-800 min-w-[120px]">
                                       <div className="truncate" title={String(record[key])}>
                                         {record[key] === null || record[key] === undefined ? '-' : String(record[key])}
                                       </div>

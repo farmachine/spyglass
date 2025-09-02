@@ -407,7 +407,7 @@ export default function AllData({ project }: AllDataProps) {
                           </div>
                         </Link>
                       </TableCell>
-                      <TableCell className="py-3 text-sm">
+                      <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300">
                         {session.documentCount || 0}
                       </TableCell>
                       <TableCell className="py-3">
@@ -421,7 +421,7 @@ export default function AllData({ project }: AllDataProps) {
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[32px]">
+                          <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
                             {progress.percentage}%
                           </span>
                         </div>
@@ -436,7 +436,7 @@ export default function AllData({ project }: AllDataProps) {
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-gray-800 dark:text-gray-400">
                           {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
                         </div>
                       </TableCell>
