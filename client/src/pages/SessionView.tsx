@@ -2754,7 +2754,8 @@ export default function SessionView() {
     }
     
     // Check how many records have already been extracted for this specific value
-    const existingValidationsForValue = validations.filter(v => v.valueId === valueId);
+    // Validations use fieldId, not valueId
+    const existingValidationsForValue = validations.filter(v => v.fieldId === valueId);
     const extractedCount = existingValidationsForValue.length;
     
     console.log(`🔢 Found ${extractedCount} existing validations for value: ${valueName}`);
