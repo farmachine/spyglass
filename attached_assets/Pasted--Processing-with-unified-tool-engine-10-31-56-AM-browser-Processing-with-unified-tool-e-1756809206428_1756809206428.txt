@@ -1,0 +1,61 @@
+🔧 Processing with unified tool engine...
+10:31:56 AM [browser] 📝 🔧 Processing with unified tool engine...
+10:31:56 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+📝 Set Column Name = {"name":"Columns","rows":[{"Column Name":"Benefits Scale Code"},{"Column Name":"Sex Code"},{"Column 
+📄 Using pre-extracted content for Excel File (12925 chars)
+🔄 Also adding excel_content for document parameter
+🐍 Normalized inputs for Python function: [
+  'column_name',
+  'Column Name',
+  'excel_file',
+  'excel_content',
+  'Excel File'
+]
+Python debug output: DEBUG: Received inputs keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']
+DEBUG: Input 'column_name': {'name': 'Columns', 'rows': [{'Column Name': 'Benefits Scale Code'}, {'Column Name': 'Sex Code'}, {'Column Name': 'Code For Previous Status'}, {'Column Name': "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"}, {'Column Name': "Beneficiary's Code"}], 'columns': [{'name': 'Column Name', 'identifierId': 0}], 'identifierColumn': 'Column Name'}
+DEBUG: Input 'Column Name': {'name': 'Columns', 'rows': [{'Column Name': 'Benefits Scale Code'}, {'Column Name': 'Sex Code'}, {'Column Name': 'Code For Previous Status'}, {'Column Name': "Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation"}, {'Column Name': "Beneficiary's Code"}], 'columns': [{'name': 'Column Name', 'identifierId': 0}], 'identifierColumn': 'Column Name'}
+DEBUG: Input 'excel_file' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+DEBUG: Input 'excel_content' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+DEBUG: Input 'Excel File' is string (12925 chars): === Sheet: New_Pensioners ===
+Old Member's Reference No   Member's Reference No   Employer Code   Sex Code...
+⚠️ Could not find value for parameter 'data'. Available keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']
+⚠️ Could not find value for parameter 'document'. Available keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']
+Error: find_incomplete_data() missing 2 required positional arguments: 'data' and 'document'
+Traceback (most recent call last):
+  File "/tmp/test_function_1756809116430.py", line 280, in <module>
+    result = func(**filtered_inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: find_incomplete_data() missing 2 required positional arguments: 'data' and 'document'
+
+
+✅ Tool execution completed
+10:31:56 AM [browser] 📝 ✅ Tool execution completed
+10:31:56 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+🎯 ========== TEST RESULTS ==========
+10:31:56 AM [browser] 📝 🎯 ========== TEST RESULTS ==========
+10:31:56 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Code execution failed: Python process exited with code 1: DEBUG: Received inputs keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']\nDEBUG: Input 'column_name': {'name': 'Columns', 'rows': [{'Column Name': 'Benefits Scale Code'}, {'Column Name': 'Sex Code'}, {'Column Name': 'Code For Previous Status'}, {'Column Name': \"Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation\"}, {'Column Name': \"Beneficiary's Code\"}], 'columns': [{'name': 'Column Name', 'identifierId': 0}], 'identifierColumn': 'Column Name'}\nDEBUG: Input 'Column Name': {'name': 'Columns', 'rows': [{'Column Name': 'Benefits Scale Code'}, {'Column Name': 'Sex Code'}, {'Column Name': 'Code For Previous Status'}, {'Column Name': \"Widow(er)'s Annual Pre-6.4.1988 GMP Component At Date Of This Valuation\"}, {'Column Name': \"Beneficiary's Code\"}], 'columns': [{'name': 'Column Name', 'identifierId': 0}], 'identifierColumn': 'Column Name'}\nDEBUG: Input 'excel_file' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\nDEBUG: Input 'excel_content' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\nDEBUG: Input 'Excel File' is string (12925 chars): === Sheet: New_Pensioners ===\nOld Member's Reference No\tMember's Reference No\tEmployer Code\tSex Code...\n⚠️ Could not find value for parameter 'data'. Available keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']\n⚠️ Could not find value for parameter 'document'. Available keys: ['column_name', 'Column Name', 'excel_file', 'excel_content', 'Excel File']\nError: find_incomplete_data() missing 2 required positional arguments: 'data' and 'document'\nTraceback (most recent call last):\n  File \"/tmp/test_function_1756809116430.py\", line 280, in <module>\n    result = func(**filtered_inputs)\n             ^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: find_incomplete_data() missing 2 required positional arguments: 'data' and 'document'\n\n",
+    "confidenceScore": 0,
+    "documentSource": "CODE_ERROR"
+  }
+]
+10:31:56 AM [browser] 📝 Results: [
+  {
+    "extractedValue": null,
+    "validationStatus": "invalid",
+    "aiReasoning": "Code execution failed: Python process exited with...
+10:31:56 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+10:31:56 AM [express] POST /api/excel-functions/test 200 in 480ms :: [JSON response - 2272 chars]
+10:31:56 AM [browser] 📝 🧪 Test Results - Raw JSON Response: {
+  "success": true,
+  "results": [
+    {
+      "extractedValue": null,
+      "validationStatus": "invalid",
+ ...
