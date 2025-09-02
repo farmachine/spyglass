@@ -2163,11 +2163,35 @@ export default function SessionView() {
     
     console.log(`  - hasColumnReferences: ${hasColumnReferences}`);
     
+    // Check if tool has a document input parameter
+    const hasDocumentInput = valueToRun.inputValues && 
+      Object.entries(valueToRun.inputValues).some(([key, value]) => {
+        // Handle arrays (like ["user_document"])
+        if (Array.isArray(value)) {
+          return value.some(v => {
+            if (typeof v === 'string') {
+              const lowerV = v.toLowerCase();
+              return lowerV.includes('user') && lowerV.includes('document') ||
+                     lowerV === 'user_document';
+            }
+            return false;
+          });
+        }
+        // Handle string values
+        if (typeof value === 'string') {
+          const lowerValue = value.toLowerCase();
+          return lowerValue.includes('user') && lowerValue.includes('document') ||
+                 lowerValue === 'user_document';
+        }
+        return key.toLowerCase().includes('document');
+      });
+    
     // A tool needs a document if:
     // - It's the Worksheet Name column (always needs document)
+    // - OR it has a document input parameter (like "user_document")
     // - OR it doesn't have @ references (meaning it needs actual document data)
-    // If it has @ references, it uses data from other columns, not documents
-    const needsDocument = isWorksheetNameColumn || !hasColumnReferences;
+    const needsDocument = isWorksheetNameColumn || hasDocumentInput || !hasColumnReferences;
+    console.log(`  - Has document input: ${hasDocumentInput}`);
     console.log(`  - RESULT: needsDocument = ${needsDocument}`);
     
     // Compile previous column data as input
