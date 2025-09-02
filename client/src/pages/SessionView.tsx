@@ -1366,6 +1366,7 @@ export default function SessionView() {
     toolType: string;
     toolDescription: string;
     toolId?: string;
+    toolOperationType?: string; // Add operation type
     inputValues?: any;
     knowledgeDocuments?: any[];
     extractedCount?: number;
@@ -2632,6 +2633,7 @@ export default function SessionView() {
       toolType: toolInfo?.name || 'extraction',
       toolDescription: valueToRun.description || '',
       toolId: valueToRun.toolId,
+      toolOperationType: toolInfo?.operationType || 'updateMultiple', // Pass the operation type
       inputValues: valueToRun.inputValues,
       knowledgeDocuments: referencedKnowledgeDocs,
       extractedCount: extractedCount,
@@ -5689,6 +5691,7 @@ Thank you for your assistance.`;
           title={`Extract ${columnExtractionModal.valueName}`}
           toolType={columnExtractionModal.toolType}
           toolDescription={columnExtractionModal.toolDescription}
+          toolOperationType={columnExtractionModal.toolOperationType}
           documents={sessionDocuments?.map(doc => ({
             id: doc.id,
             name: doc.fileName || doc.name || 'Untitled',

@@ -29,6 +29,7 @@ interface ExtractWizardModalProps {
   title: string;
   toolType?: string;
   toolDescription?: string;
+  toolOperationType?: string; // Add operation type
   documents: Array<{ id: string; name: string; type: string }>;
   inputData: any[];
   isLoading?: boolean;
@@ -47,6 +48,7 @@ export default function ExtractWizardModal({
   title,
   toolType = 'default',
   toolDescription,
+  toolOperationType = 'updateMultiple',
   documents,
   inputData,
   isLoading = false,
@@ -166,7 +168,9 @@ export default function ExtractWizardModal({
                 >
                   <div className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Rows to be updated</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {toolOperationType?.startsWith('create') ? 'Data for lookup' : 'Data to be updated'}
+                    </span>
                     <Badge 
                       variant="secondary" 
                       className="text-xs bg-blue-50 text-blue-700"
