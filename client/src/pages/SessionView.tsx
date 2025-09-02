@@ -1404,19 +1404,30 @@ export default function SessionView() {
   // Handler for inline table field editing
   const handleEditTableField = (validation: FieldValidation) => {
     const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
+    console.log('handleEditTableField called with:', {
+      fieldKey,
+      validation,
+      extractedValue: validation.extractedValue
+    });
     setEditingTableField(fieldKey);
     // If the value is null/undefined (displayed as "Not Found"), start with empty string
     // so user can enter a new value. If it has "Not Found" as actual text, keep it
     if (validation.extractedValue === null || validation.extractedValue === undefined) {
       setEditTableValue("");
+      console.log('Setting edit value to empty string for null/undefined');
     } else {
       setEditTableValue(validation.extractedValue || "");
+      console.log('Setting edit value to:', validation.extractedValue);
     }
   };
 
   // Handler to save inline table field edit
   const handleSaveTableFieldEdit = async () => {
-    if (!editingTableField) return;
+    console.log('handleSaveTableFieldEdit called, editingTableField:', editingTableField);
+    if (!editingTableField) {
+      console.log('No field being edited, returning');
+      return;
+    }
     
     // Find the validation that we're editing
     const validation = validations.find(v => {
@@ -5425,7 +5436,16 @@ Thank you for your assistance.`;
                                                     size="sm"
                                                     variant="ghost"
                                                     onClick={() => {
+                                                      console.log('Edit button clicked for:', {
+                                                        collectionName: collection.collectionName,
+                                                        columnName,
+                                                        originalIndex,
+                                                        rowIdentifierId,
+                                                        hasValidation: !!validation
+                                                      });
+                                                      
                                                       if (validation) {
+                                                        console.log('Editing existing validation:', validation);
                                                         handleEditTableField(validation);
                                                       } else {
                                                         // Create a temporary validation object for fields without validation
@@ -5437,6 +5457,7 @@ Thank you for your assistance.`;
                                                           extractedValue: null,
                                                           identifierId: rowIdentifierId
                                                         } as FieldValidation;
+                                                        console.log('Creating temp validation for editing:', tempValidation);
                                                         handleEditTableField(tempValidation);
                                                       }
                                                     }}
