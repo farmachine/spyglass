@@ -600,7 +600,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white dark:bg-white border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
+            <Card className="relative w-full bg-white dark:bg-white border border-gray-200 dark:border-gray-300 hover:border-gray-300 dark:hover:border-gray-400 hover:shadow-md transition-all">
             <CardHeader className="pb-4 relative">
               {!step.isExpanded ? (
                 // Collapsed layout - title then description below, then value cards
