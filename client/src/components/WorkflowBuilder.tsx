@@ -603,24 +603,22 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             <Card className="relative w-full bg-white dark:bg-white border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
             <CardHeader className="pb-4 relative">
               {!step.isExpanded ? (
-                // Collapsed layout - title and description on same line
+                // Collapsed layout - title then description below, then value cards
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-start gap-3">
-                    {/* Title and Description on same line */}
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0 mt-1.5"></div>
-                      <div className="flex items-baseline gap-3 flex-1">
-                        <h3 className="font-semibold text-[#071e54] dark:text-[#5A70B5]">
-                          {step.name || 'Unnamed'}
-                        </h3>
-                        {step.description && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {step.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                  {/* Title with dot properly aligned */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
+                    <h3 className="font-semibold text-[#071e54] dark:text-[#5A70B5]">
+                      {step.name || 'Unnamed'}
+                    </h3>
                   </div>
+                  
+                  {/* Description below the title */}
+                  {step.description && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 ml-4">
+                      {step.description}
+                    </p>
+                  )}
                   
                   {/* Value names as horizontal grey blocks */}
                   {step.values.length > 0 && (
