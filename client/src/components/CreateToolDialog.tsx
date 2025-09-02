@@ -1247,12 +1247,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                             {param.type === "data" && (
                               <div className="space-y-3">
                                 <Label className="text-sm font-medium text-gray-700">
-                                  Create session data collection (up to 5 rows)
+                                  Create sample data collection (up to 5 rows)
                                 </Label>
                                 
                                 {/* Sample Data Name */}
                                 <div>
-                                  <Label className="text-xs font-medium text-gray-600">Session Data Name</Label>
+                                  <Label className="text-xs font-medium text-gray-600">Sample Data Name</Label>
                                   <Input
                                     value={param.sampleData?.name || ''}
                                     onChange={(e) => updateSampleDataName(param.id, e.target.value)}
@@ -1406,7 +1406,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
                                 {(!param.sampleData || param.sampleData.columns.length === 0) && (
                                   <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
-                                    Click "Add Column" to start creating your session data collection
+                                    Click "Add Column" to start creating your sample data collection
                                   </div>
                                 )}
                               </div>

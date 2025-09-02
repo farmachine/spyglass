@@ -542,7 +542,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       
                       {param.type === 'data' && param.sampleData && (
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">Session Data:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Sample Data:</p>
                           {/* Check if sampleData is already in structured format */}
                           {Array.isArray(param.sampleData) ? (
                             // New structured format with identifierId
