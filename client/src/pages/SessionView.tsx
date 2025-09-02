@@ -2564,21 +2564,31 @@ export default function SessionView() {
             // Find the validation for this column and record
             // FIXED: Use step-based validation lookup for workflow values
             const validation = validations.find(v => {
-              // For workflow steps, match by step ID and value ID combination
-              const stepIdMatch = v.stepId === workflowStep.id;
-              const valueIdMatch = v.valueId === prevValue.id || (v as any).value_id === prevValue.id || (v as any).fieldId === prevValue.id || (v as any).field_id === prevValue.id;
+              // Match by identifierId and field/value ID
               const identifierMatch = v.identifierId === recordData.identifierId;
               
-              // Also check field name patterns as fallback
-              const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+              // Check various ID fields since the backend may use different names
+              const fieldIdMatch = v.fieldId === prevValue.id || 
+                                  v.valueId === prevValue.id || 
+                                  (v as any).value_id === prevValue.id || 
+                                  (v as any).field_id === prevValue.id;
               
-              return (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
+              // Also check by collection name and field name for backward compatibility
+              const collectionMatch = v.collectionName === stepName;
+              const fieldNameSimpleMatch = v.fieldName === prevValue.valueName;
+              
+              // Try multiple matching strategies
+              return identifierMatch && (fieldIdMatch || (collectionMatch && fieldNameSimpleMatch));
             });
             
-            console.log(`Looking for validation: valueId/fieldId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
+            console.log(`Looking for validation: valueId/fieldId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation ? { 
+              id: validation.id, 
+              extractedValue: validation.extractedValue,
+              validationStatus: validation.validationStatus 
+            } : 'none');
             
-            // Check if this column has a value
-            if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
+            // Check if this column has a value - "Not Found" is a valid value!
+            if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined) {
               // For the "Reasong" column, we should only process records that have valid mappings (not "Not Found")
               // This is because the AI needs to provide reasoning about actual mappings, not missing ones
               if (valueName === 'Reasong' && prevValue.valueName === 'Standard Equivalent' && validation.extractedValue === "Not Found") {
