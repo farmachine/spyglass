@@ -1463,29 +1463,43 @@ export default function SessionView() {
       await handleSaveFieldEdit(validation.id, currentValue, 'valid');
     } else {
       console.log('No existing validation found, creating new one...');
-      // Create new validation for fields without one
-      // Find the collection property to get the field ID
-      const collection = project?.collections.find(c => c.collectionName === collectionName);
-      console.log('Found collection:', collection);
-      console.log('All collections:', project?.collections?.map(c => c.collectionName));
+      // For data tables, we need to find the field ID from the step values, not collection properties
+      // The columns in data tables come from workflow_steps/step_values, not the original collection schema
       
-      const property = collection?.properties?.find(p => p.propertyName === fieldName);
-      console.log('Found property:', property);
-      console.log('All properties in collection:', collection?.properties?.map(p => p.propertyName));
+      // Find the workflow step for this collection
+      const workflowStep = project?.workflowSteps?.find(step => 
+        step.stepType === 'data_table' && step.collectionName === collectionName
+      );
+      console.log('Found workflow step:', workflowStep);
       
-      if (property && collection) {
-        console.log('Both collection and property found, proceeding to create validation...');
+      // Get step values from the workflow step's values array
+      const stepValues = workflowStep?.values || [];
+      
+      // Find the step value for this field
+      const stepValue = stepValues?.find(sv => 
+        sv.valueName === fieldName
+      );
+      console.log('Found step value:', stepValue);
+      console.log('All step values for this table:', stepValues?.map(sv => sv.valueName));
+      
+      // Use the step value ID as the field ID
+      const fieldId = stepValue?.id;
+      
+      if (fieldId && workflowStep) {
+        console.log('Found field ID from step value:', fieldId);
         // Find the identifierId from the first column (identifier column) of this row
-        // The first property in the collection is the identifier
-        const firstProperty = collection.properties?.[0];
+        // The first step value in the data table is the identifier
+        const firstStepValue = stepValues?.find(sv => 
+          sv.valueOrder === 0
+        );
         let identifierId: string | null = null;
         
-        if (firstProperty) {
+        if (firstStepValue) {
           // Find the validation for the first column (identifier) of this row
           const identifierValidation = validations.find(v => 
             v.recordIndex === recordIndex &&
             v.collectionName === collectionName &&
-            v.fieldId === firstProperty.id
+            v.fieldId === firstStepValue.id
           );
           
           if (identifierValidation?.identifierId) {
@@ -1502,6 +1516,9 @@ export default function SessionView() {
             v.identifierId
           );
           identifierId = rowValidation?.identifierId || null;
+          if (identifierId) {
+            console.log(`Found identifierId from any column in row: ${identifierId}`);
+          }
         }
         
         // If still no identifierId, generate a new one (for completely new rows)
@@ -1510,10 +1527,13 @@ export default function SessionView() {
           console.log(`Generated new identifierId: ${identifierId}`);
         }
         
+        // Get the data type from the step value
+        const dataType = stepValue?.valueType || 'text';
+        
         const newValidation = {
           validationType: 'collection_property',
-          dataType: property.propertyType,
-          fieldId: property.id,
+          dataType: dataType,
+          fieldId: fieldId,
           collectionName: collectionName,
           recordIndex: recordIndex,
           identifierId: identifierId,
@@ -1547,11 +1567,12 @@ export default function SessionView() {
           console.error('Failed to create validation:', error);
         }
       } else {
-        console.error('Could not find collection or property:', { 
+        console.error('Could not find workflow step or step value:', { 
           collectionName, 
           fieldName, 
-          collectionFound: !!collection, 
-          propertyFound: !!property 
+          workflowStepFound: !!workflowStep,
+          stepValueFound: !!stepValue,
+          fieldId 
         });
       }
     }
