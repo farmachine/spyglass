@@ -1472,10 +1472,10 @@ export default function SessionView() {
         collectionName: s.collectionName 
       })));
       
-      // Find the workflow step for this collection - check both by collectionName and stepName
+      // Find the workflow step for this collection - check both list and data_table types
       const workflowStep = project?.workflowSteps?.find(step => 
-        (step.stepType === 'data_table' && step.collectionName === collectionName) ||
-        (step.stepType === 'data_table' && step.stepName === collectionName)
+        ((step.stepType === 'data_table' || step.stepType === 'list') && step.collectionName === collectionName) ||
+        ((step.stepType === 'data_table' || step.stepType === 'list') && step.stepName === collectionName)
       );
       console.log('Found workflow step:', workflowStep);
       
