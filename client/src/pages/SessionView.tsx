@@ -2362,6 +2362,7 @@ export default function SessionView() {
     // Check if this value has @ references that need data from other steps
     const referencedSteps = new Set<string>();
     if (hasColumnReferences && valueToRun.inputValues) {
+      console.log(`🔍 Checking for cross-step references in ${valueName}'s inputValues`);
       Object.values(valueToRun.inputValues).forEach(value => {
         if (typeof value === 'string' && value.includes('@')) {
           const match = value.match(/@([^.]+)\./);
@@ -2384,7 +2385,10 @@ export default function SessionView() {
     }
     
     // If we have referenced steps, get data from those steps
+    // This should happen for ANY column that references other steps, including first columns
+    console.log(`📊 Referenced steps found: ${Array.from(referencedSteps).join(', ')} (count: ${referencedSteps.size})`);
     if (referencedSteps.size > 0) {
+      console.log(`✅ Loading data from ${referencedSteps.size} referenced step(s) for "${valueName}"`);
       // Get data from the referenced steps
       for (const referencedStepName of referencedSteps) {
         const referencedStep = project?.workflowSteps?.find(s => s.stepName === referencedStepName);
@@ -2526,6 +2530,7 @@ export default function SessionView() {
         }
       }
     } else if (workflowStep.values) {
+      console.log(`❌ No cross-step references found for "${valueName}" - using within-step data compilation`);
       // Original logic for within-step data compilation
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
