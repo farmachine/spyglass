@@ -7275,7 +7275,9 @@ def extract_function(Column_Name, Excel_File):
                     }
                   }
                   
-                  if (columnName && allReferencedColumns.has(columnName)) {
+                  // Include ALL columns from the step, not just referenced ones
+                  // This ensures complete data is available for AI reasoning
+                  if (columnName) {
                     dataByIdentifier.get(validation.identifierId)[columnName] = validation.extractedValue;
                     console.log(`  ✅ Added ${columnName} for identifier ${validation.identifierId?.substring(0, 8)}...`);
                   }

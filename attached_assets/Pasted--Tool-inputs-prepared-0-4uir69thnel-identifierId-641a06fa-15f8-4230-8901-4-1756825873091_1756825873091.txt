@@ -1,0 +1,267 @@
+ Tool inputs prepared: {
+  "0.4uir69thnel": [
+    {
+      "identifierId": "641a06fa-15f8-4230-8901-44afac4e2a53",
+      "Column Name": null,
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "0aad31b7-c6e1-4f8e-993a-983b5830043e",
+      "Column Name": null,
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "7e0990ea-3dce-4f57-9551-0407e8950eab",
+      "Column Name": null,
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "3a6262e4-4021-49c8-92fc-663a9203b758",
+      "Column Name": null,
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "16db2ee4-8eea-408b-afa7-03093efbaecf",
+      "Column Name": null,
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "43861f77-63bc-4353-bb5c-7031848e92ec",
+      "Column Name": null,
+      "Standard Equivalent": "DoB Dependant"
+    },
+    {
+      "identifierId": "40ff49d6-a84e-4708-8b6a-a53e116e1c13",
+      "Column Name": null,
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "b6c2e3cb-5c16-4373-8a11-2de6341ad7cd",
+      "Column Name": null,
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "7af3072f-ad66-4d85-9462-61c30dffb839",
+      "Column Name": null,
+      "Standard Equivalent": "Post 09 Total Pension"
+    },
+    {
+      "identifierId": "19ff89eb-987b-4a64-9435-498d2394c464",
+      "Column Name": null,
+      "Standard Equivalent": "Gender Spouse"
+    },
+    {
+      "identifierId": "59b88ffd-dfea-4260-a000-aa9a65b35044",
+      "Column Name": null,
+      "Standard Equivalent": "Transfer-In Pension"
+    },
+    {
+      "identifierId": "2e7f8d42-7da7-42cc-852c-5a605d64274b",
+      "Column Name": null,
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "c3720c52-c912-4ce5-a110-5700b6ef023f",
+      "Column Name": null,
+      "Standard Equivalent": "Post 09 Total Pension"
+    },
+    {
+      "identifierId": "39389881-76eb-416f-a055-8489247ea380",
+      "Column Name": null,
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "98ca9941-b579-4579-a6fb-3963fb380e44",
+      "Column Name": null,
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "4b431f1c-4b6b-4009-aa84-22784c808667",
+      "Column Name": null,
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "00c22557-3a29-40b4-8679-35f3c4579516",
+      "Column Name": null,
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "386e122c-25df-4661-ba98-774ce0db4a7d",
+      "Column Name": null,
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "eae49b8d-e7c2-4666-bbb7-d6db768911fa",
+      "Column Name": null,
+      "Standard Equivalent": "DoB Spouse"
+    },
+    {
+      "identifierId": "57c8ea54-ecf8-42a3-8e56-f69b991e8db2",
+      "Column Name": null,
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "16f39a02-9e94-4630-afd9-bada9450cd9a",
+      "Column Name": null,
+      "Standard Equivalent": "Marital Status"
+    },
+    {
+      "identifierId": "50b1aa8b-1844-48a3-8c20-319ee9f35d43",
+      "Column Name": null,
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "abaf0d04-af26-4bb9-902c-847ea1008afb",
+      "Column Name": null,
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "78aabf5a-52ec-4bca-b5df-9e09f6588d8f",
+      "Column Name": null,
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "baac352b-8662-4b81-b143-2c46b1a5a9c2",
+      "Column Name": null,
+      "Standard Equivalent": "DoB"
+    },
+    {
+      "identifierId": "1c4978a2-ffb5-492b-8be5-704c49f0a21d",
+      "Column Name": null,
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "9251cc30-3744-47b0-b09d-5ddd50eac753",
+      "Column Name": null,
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "5f20a6e9-c1ab-4d90-8bd5-5660b717f907",
+      "Column Name": null,
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "7bea777d-cb13-4b24-8093-65442542db09",
+      "Column Name": null,
+      "Standard Equivalent": "Pre-88 GMP"
+    }
+  ],
+  "0.hb25dnz5dmd": "Please give a reasoning for the mapping of the column names to the fields in the standard mappings document.",
+  "0.smml31ympvp": [
+    {
+      "identifierId": "641a06fa-15f8-4230-8901-44afac4e2a53",
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "0aad31b7-c6e1-4f8e-993a-983b5830043e",
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "7e0990ea-3dce-4f57-9551-0407e8950eab",
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "3a6262e4-4021-49c8-92fc-663a9203b758",
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "16db2ee4-8eea-408b-afa7-03093efbaecf",
+      "Standard Equivalent": "Pre-88 GMP"
+    },
+    {
+      "identifierId": "43861f77-63bc-4353-bb5c-7031848e92ec",
+      "Standard Equivalent": "DoB Dependant"
+    },
+    {
+      "identifierId": "40ff49d6-a84e-4708-8b6a-a53e116e1c13",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "b6c2e3cb-5c16-4373-8a11-2de6341ad7cd",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "7af3072f-ad66-4d85-9462-61c30dffb839",
+      "Standard Equivalent": "Post 09 Total Pension"
+    },
+    {
+      "identifierId": "19ff89eb-987b-4a64-9435-498d2394c464",
+      "Standard Equivalent": "Gender Spouse"
+    },
+    {
+      "identifierId": "59b88ffd-dfea-4260-a000-aa9a65b35044",
+      "Standard Equivalent": "Transfer-In Pension"
+    },
+    {
+      "identifierId": "2e7f8d42-7da7-42cc-852c-5a605d64274b",
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "c3720c52-c912-4ce5-a110-5700b6ef023f",
+      "Standard Equivalent": "Post 09 Total Pension"
+    },
+    {
+      "identifierId": "39389881-76eb-416f-a055-8489247ea380",
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "98ca9941-b579-4579-a6fb-3963fb380e44",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "4b431f1c-4b6b-4009-aa84-22784c808667",
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "00c22557-3a29-40b4-8679-35f3c4579516",
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "386e122c-25df-4661-ba98-774ce0db4a7d",
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "eae49b8d-e7c2-4666-bbb7-d6db768911fa",
+      "Standard Equivalent": "DoB Spouse"
+    },
+    {
+      "identifierId": "57c8ea54-ecf8-42a3-8e56-f69b991e8db2",
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "16f39a02-9e94-4630-afd9-bada9450cd9a",
+      "Standard Equivalent": "Marital Status"
+    },
+    {
+      "identifierId": "50b1aa8b-1844-48a3-8c20-319ee9f35d43",
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "abaf0d04-af26-4bb9-902c-847ea1008afb",
+      "Standard Equivalent": "Spouses Post 09 Total Pensions"
+    },
+    {
+      "identifierId": "78aabf5a-52ec-4bca-b5df-9e09f6588d8f",
+      "Standard Equivalent": "MemberID"
+    },
+    {
+      "identifierId": "baac352b-8662-4b81-b143-2c46b1a5a9c2",
+      "Standard Equivalent": "DoB"
+    },
+    {
+      "identifierId": "1c4978a2-ffb5-492b-8be5-704c49f0a21d",
+      "Standard Equivalent": "Retirement Age"
+    },
+    {
+      "identifierId": "9251cc30-3744-47b0-b09d-5ddd50eac753",
+      "Standard Equivalent": "Post-88 GMP"
+    },
+    {
+      "identifierId": "5f20a6e9-c1ab-4d90-8bd5-5660b717f907",
+      "Standard Equivalent": "Gender"
+    },
+    {
+      "identifierId": "7bea777d-cb13-4b24-8093-65442542db09",
+      "Standard Equivalent": "Pre-88 GMP"
+    }
+  ]
