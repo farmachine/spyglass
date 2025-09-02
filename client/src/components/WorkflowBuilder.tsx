@@ -949,29 +949,40 @@ function ValueEditor({
 
 
 
-  // Value icon - matches the tool type
+  // Value icon - matches the tool type with green indicator for configured values
   const getValueIcon = () => {
     if (selectedTool) {
-      if (selectedTool.toolType === "AI_ONLY") {
-        return <Brain className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
-      } else {
-        return <Code className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
-      }
+      // Green dot for configured values (like column headers)
+      return <div className="w-2 h-2 bg-green-500 rounded-full" />;
     }
-    // Default dot when no tool selected
-    return <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full" />;
+    // Gray dot when no tool selected
+    return <div className="w-2 h-2 bg-gray-400 rounded-full" />;
+  };
+
+  // Tool type badge for additional context
+  const getToolTypeBadge = () => {
+    if (!selectedTool) return null;
+    
+    if (selectedTool.toolType === "AI_ONLY") {
+      return <Brain className="h-3 w-3 text-gray-500 dark:text-gray-400" />;
+    } else {
+      return <Code className="h-3 w-3 text-gray-500 dark:text-gray-400" />;
+    }
   };
 
   return (
-    <div className="border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-md transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-white relative">
+    <div className="border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-white relative">
       <div className="flex flex-col items-center">
-        {/* Icon and Name Header - Centered, Non-editable */}
+        {/* Icon and Name Header - Centered, matching column header style */}
         <div className="flex items-center gap-2 mb-1">
-          {/* Value icon */}
+          {/* Green/Gray dot indicator like column headers */}
           {getValueIcon()}
           
-          {/* Name Display Only */}
-          <div className="font-medium text-[#071e54] dark:text-[#5A70B5]">
+          {/* Tool type badge */}
+          {getToolTypeBadge()}
+          
+          {/* Name Display with consistent font weight */}
+          <div className="font-semibold text-sm text-gray-700 dark:text-gray-300">
             {value.name || "Untitled Value"}
           </div>
         </div>
@@ -981,27 +992,25 @@ function ValueEditor({
           <p className="text-sm text-gray-600 dark:text-gray-400 text-center">{value.description}</p>
         )}
 
-        {/* Controls - Top right corner */}
-        <div className="absolute top-4 right-4 flex items-center gap-1">
+        {/* Controls - Top right corner with cleaner styling */}
+        <div className="absolute top-3 right-3 flex items-center gap-1">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             )}
           </button>
 
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={onDelete}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
           >
-            <X className="h-4 w-4" />
-          </Button>
+            <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          </button>
         </div>
       </div>
 
