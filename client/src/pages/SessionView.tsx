@@ -2496,7 +2496,18 @@ export default function SessionView() {
       previousColumnsData.slice(0, 3));
     
     // Get tool information if available
-    const toolInfo = project?.tools?.find((t: any) => t.id === valueToRun?.toolId);
+    // Note: Tools are not part of the project object, so we'll need to fetch them separately
+    // For now, we'll determine the operation type from the tool description
+    const toolInfo = null; // project?.tools doesn't exist
+    
+    // Infer operation type from description - if it "finds" or "identifies" something, it's creating new records
+    const inferredOperationType = valueToRun.description && 
+      (valueToRun.description.toLowerCase().includes('find') || 
+       valueToRun.description.toLowerCase().includes('identif') ||
+       valueToRun.description.toLowerCase().includes('discover') ||
+       valueToRun.description.toLowerCase().includes('detect')) 
+      ? 'createMultiple' 
+      : 'updateMultiple';
     
     // Create field information that includes the actual tool configuration
     const fieldWithToolConfig = {
@@ -2630,10 +2641,10 @@ export default function SessionView() {
       previousData: filteredPreviousData, // Show only referenced columns, not all data
       columnOrder: columnOrder, // Pass the column order
       needsDocument: needsDocument,
-      toolType: toolInfo?.name || 'extraction',
+      toolType: 'extraction',
       toolDescription: valueToRun.description || '',
       toolId: valueToRun.toolId,
-      toolOperationType: toolInfo?.operationType || 'updateMultiple', // Pass the operation type
+      toolOperationType: inferredOperationType, // Pass the inferred operation type
       inputValues: valueToRun.inputValues,
       knowledgeDocuments: referencedKnowledgeDocs,
       extractedCount: extractedCount,
