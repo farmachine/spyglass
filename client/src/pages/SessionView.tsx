@@ -5273,12 +5273,12 @@ Thank you for your assistance.`;
                               }
                               
                               
-                              return filteredItems.map(({ item, originalIndex }) => (
+                              return filteredItems.map(({ item, originalIndex }, displayIndex) => (
                                 <TableRow 
                                   key={originalIndex} 
                                   className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
                                   style={{
-                                    backgroundColor: originalIndex % 2 === 0 
+                                    backgroundColor: displayIndex % 2 === 0 
                                       ? 'transparent' 
                                       : 'rgba(79, 99, 164, 0.03)'
                                   }}
