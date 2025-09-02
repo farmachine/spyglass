@@ -959,30 +959,23 @@ function ValueEditor({
     return <div className="w-2 h-2 bg-gray-400 rounded-full" />;
   };
 
-  // Tool type badge for additional context
-  const getToolTypeBadge = () => {
-    if (!selectedTool) return null;
-    
-    if (selectedTool.toolType === "AI_ONLY") {
-      return <Brain className="h-3 w-3 text-gray-500 dark:text-gray-400" />;
-    } else {
-      return <Code className="h-3 w-3 text-gray-500 dark:text-gray-400" />;
-    }
-  };
-
   return (
-    <div className="border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-white dark:bg-white relative">
+    <div className="border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm transition-all rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-800 relative">
       <div className="flex flex-col items-center">
         {/* Icon and Name Header - Centered, matching column header style */}
         <div className="flex items-center gap-2 mb-1">
           {/* Green/Gray dot indicator like column headers */}
           {getValueIcon()}
           
-          {/* Tool type badge */}
-          {getToolTypeBadge()}
+          {/* Tool type icon matching column headers */}
+          {selectedTool && (
+            selectedTool.toolType === "AI_ONLY" ? 
+              <Brain className="h-4 w-4 text-gray-600 dark:text-gray-400" /> :
+              <Code className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          )}
           
-          {/* Name Display with consistent font weight */}
-          <div className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+          {/* Name Display with column header font style */}
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {value.name || "Untitled Value"}
           </div>
         </div>
