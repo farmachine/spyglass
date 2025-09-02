@@ -2397,7 +2397,7 @@ export default function SessionView() {
             if (!v.identifierId) return false;
             
             // Check if this validation belongs to one of the referenced step's values
-            const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+            const fieldId = v.fieldId || v.valueId;
             const belongsToStep = referencedStep.values?.some(val => val.id === fieldId);
             
             return belongsToStep;
@@ -2459,7 +2459,7 @@ export default function SessionView() {
               
               // Find which value this validation belongs to
               // The database uses field_id for workflow step values
-              const fieldId = (v as any).field_id || (v as any).fieldId || (v as any).value_id || (v as any).valueId;
+              const fieldId = v.fieldId || v.valueId;
               const value = referencedStep.values?.find(val => val.id === fieldId);
               if (value) {
                 recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
@@ -2504,8 +2504,7 @@ export default function SessionView() {
                   // Look in ALL validations, not just the filtered ones
                   const validation = validations.find(v => 
                     v.identifierId === identifierId &&
-                    ((v as any).field_id === stepValue.id || (v as any).fieldId === stepValue.id || 
-                     (v as any).value_id === stepValue.id || (v as any).valueId === stepValue.id)
+                    (v.fieldId === stepValue.id || v.valueId === stepValue.id)
                   );
                   
                   if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined) {
@@ -2566,7 +2565,7 @@ export default function SessionView() {
             const validation = validations.find(v => {
               // For workflow steps, match by step ID and value ID combination
               const stepIdMatch = v.stepId === workflowStep.id;
-              const valueIdMatch = v.valueId === prevValue.id || (v as any).value_id === prevValue.id || (v as any).fieldId === prevValue.id || (v as any).field_id === prevValue.id;
+              const valueIdMatch = v.valueId === prevValue.id || v.fieldId === prevValue.id;
               const identifierMatch = v.identifierId === recordData.identifierId;
               
               // Also check field name patterns as fallback
