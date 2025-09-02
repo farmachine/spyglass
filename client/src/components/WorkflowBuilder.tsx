@@ -601,15 +601,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
             <Card className="relative w-full bg-white dark:bg-white border-2 border-[#B8C5E0] dark:border-[#8B9DC3] hover:border-[#8B9DC3] dark:hover:border-[#7A8FC0] hover:shadow-md transition-all">
-            {/* Step type icon in top left corner */}
-            <div className="absolute top-4 left-4">
-              {step.type === 'list' ? (
-                <List className="h-5 w-5 text-[#071e54] dark:text-[#5A70B5]" />
-              ) : (
-                <Layers className="h-5 w-5 text-[#071e54] dark:text-[#5A70B5]" />
-              )}
-            </div>
-            
             <CardHeader className="pb-4 relative">
               {!step.isExpanded ? (
                 // Collapsed layout - title and description on same line
@@ -675,6 +666,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
               {/* Controls - Top right corner */}
               <div className="absolute top-4 right-4 flex items-center gap-2">
+                  {/* Step type icon */}
+                  <div className="p-1">
+                    {step.type === 'list' ? (
+                      <List className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <Layers className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </div>
+                  
                   <button
                     onClick={() => toggleStepExpanded(step.id)}
                     className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
