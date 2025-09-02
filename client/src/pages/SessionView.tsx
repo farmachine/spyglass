@@ -1405,7 +1405,13 @@ export default function SessionView() {
   const handleEditTableField = (validation: FieldValidation) => {
     const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
     setEditingTableField(fieldKey);
-    setEditTableValue(validation.extractedValue || "");
+    // If the value is null/undefined (displayed as "Not Found"), start with empty string
+    // so user can enter a new value. If it has "Not Found" as actual text, keep it
+    if (validation.extractedValue === null || validation.extractedValue === undefined) {
+      setEditTableValue("");
+    } else {
+      setEditTableValue(validation.extractedValue || "");
+    }
   };
 
   // Handler to save inline table field edit
