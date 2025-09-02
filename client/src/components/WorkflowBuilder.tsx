@@ -974,8 +974,8 @@ function ValueEditor({
               <Code className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           )}
           
-          {/* Name Display with column header font style */}
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {/* Name Display with column header font style - uppercase and gray */}
+          <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
             {value.name || "Untitled Value"}
           </div>
         </div>
