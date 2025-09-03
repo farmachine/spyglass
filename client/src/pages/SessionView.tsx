@@ -1465,7 +1465,8 @@ export default function SessionView() {
     console.log('All validations count:', validations.length);
     
     // Parse the field key to get collection, field, and index
-    const match = editingTableField.match(/^(.+?)\.(.+?)\[(\d+)\]$/);
+    // Handle collection names with dots (like "Section 5.1") by matching from the end
+    const match = editingTableField.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
     if (!match) {
       console.log('Failed to parse field key:', editingTableField);
       return;
