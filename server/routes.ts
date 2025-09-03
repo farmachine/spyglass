@@ -7567,37 +7567,38 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
-      // For CODE tools, ensure all configured inputs are passed
-      if (tool.toolType === 'CODE') {
-        // First, add all the resolved inputs from toolInputs
-        for (const param of tool.inputParameters || []) {
-          // Check if we already have a value for this parameter
-          if (toolInputs[param.name] !== undefined && toolInputs[param.name] !== null) {
-            console.log(`📝 CODE tool parameter ${param.name} already has value`);
-          } else if (param.type === 'document' && documentContent) {
-            // Add document content for document-type parameters
-            console.log(`📄 Adding session document content for CODE tool parameter: ${param.name}`);
-            toolInputs[param.name] = documentContent;
-          } else {
-            // Check if there's a matching value in the resolved toolInputs
-            const possibleKeys = [
-              param.name,
-              param.name.toLowerCase(),
-              param.name.replace(/\s+/g, '_').toLowerCase(),
-              param.name.replace(/\s+/g, '')
-            ];
-            
-            for (const key of possibleKeys) {
-              if (toolInputs[key] !== undefined) {
-                toolInputs[param.name] = toolInputs[key];
-                console.log(`📝 Mapped ${key} to CODE tool parameter ${param.name}`);
-                break;
-              }
+      // Ensure all configured inputs are passed for both CODE and AI tools
+      for (const param of tool.inputParameters || []) {
+        // Check if we already have a value for this parameter
+        if (toolInputs[param.name] !== undefined && toolInputs[param.name] !== null) {
+          console.log(`📝 Tool parameter ${param.name} already has value`);
+        } else if (param.type === 'document' && documentContent) {
+          // Add document content for document-type parameters
+          console.log(`📄 Adding session document content for tool parameter: ${param.name}`);
+          toolInputs[param.name] = documentContent;
+        } else if (param.type === 'data' && toolInputs['List Item']) {
+          // Map List Item to data-type parameters for AI tools
+          console.log(`📊 Mapping List Item to data parameter: ${param.name}`);
+          toolInputs[param.name] = toolInputs['List Item'];
+        } else {
+          // Check if there's a matching value in the resolved toolInputs
+          const possibleKeys = [
+            param.name,
+            param.name.toLowerCase(),
+            param.name.replace(/\s+/g, '_').toLowerCase(),
+            param.name.replace(/\s+/g, '')
+          ];
+          
+          for (const key of possibleKeys) {
+            if (toolInputs[key] !== undefined) {
+              toolInputs[param.name] = toolInputs[key];
+              console.log(`📝 Mapped ${key} to tool parameter ${param.name}`);
+              break;
             }
-            
-            if (toolInputs[param.name] === undefined) {
-              console.log(`⚠️ No value found for CODE tool parameter ${param.name}`);
-            }
+          }
+          
+          if (toolInputs[param.name] === undefined) {
+            console.log(`⚠️ No value found for tool parameter ${param.name}`);
           }
         }
       }
