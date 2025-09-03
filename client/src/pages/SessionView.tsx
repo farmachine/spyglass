@@ -2637,8 +2637,9 @@ export default function SessionView() {
           v.fieldName === `${stepName}.${key}`
         );
         
-        // Field must have a validation record with verified status
-        if (!validation || validation.validationStatus !== 'verified') {
+        // Field must have a validation record with valid or verified status (green checkmark)
+        if (!validation || (validation.validationStatus !== 'valid' && validation.validationStatus !== 'verified')) {
+          console.log(`Field ${key} for identifier ${record.identifierId}: status = ${validation?.validationStatus || 'no validation'}`);
           return false;
         }
         
