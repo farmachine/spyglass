@@ -2182,14 +2182,27 @@ export default function SessionView() {
 
   // Handler for adding new collection item
   const handleAddCollectionItem = async (collectionName: string) => {
-    if (!session || !project) return;
+    console.log('handleAddCollectionItem called with:', collectionName);
+    console.log('Session exists:', !!session);
+    console.log('Project exists:', !!project);
+    
+    if (!session || !project) {
+      console.log('Returning early - missing session or project');
+      return;
+    }
     
     // Check if this is a workflow step or a collection
     const workflowStep = project.workflowSteps?.find(step => step.stepName === collectionName);
     const collection = collections.find(c => c.collectionName === collectionName);
     
+    console.log('Found workflowStep:', !!workflowStep);
+    console.log('Found collection:', !!collection);
+    
     // Must be either a workflow step or a collection
-    if (!workflowStep && !collection) return;
+    if (!workflowStep && !collection) {
+      console.log('Returning early - no step or collection found');
+      return;
+    }
     
     // Find the highest existing record index for this collection using improved filtering
     const collectionValidations = validations.filter(v => {
@@ -5173,15 +5186,19 @@ Thank you for your assistance.`;
                               })()}
                               <TableHead className="w-14 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '56px', minWidth: '56px', maxWidth: '56px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
-                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  <button
+                                    onClick={() => {
+                                      console.log('Add button clicked for:', collection.collectionName);
+                                      console.log('Collection:', collection);
+                                      console.log('Session exists:', !!session);
+                                      console.log('Project exists:', !!project);
+                                      handleAddCollectionItem(collection.collectionName);
+                                    }}
+                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded flex items-center justify-center transition-colors"
                                     title="Add new item"
                                   >
                                     <Plus className="h-4 w-4" />
-                                  </Button>
+                                  </button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
