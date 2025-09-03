@@ -549,10 +549,21 @@ export class ToolEngine {
       // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      // Log a snippet of the raw response around the problematic position
+      // Log the response size
+      console.log(`📏 AI Response Size: ${rawResponse.length} characters`);
+      
+      // Log a snippet of the raw response around the problematic position if large
       if (rawResponse.length > 24335) {
         console.log('Raw AI response around position 24335:');
-        console.log(rawResponse.substring(24300, 24400));
+        console.log(rawResponse.substring(24300, Math.min(24400, rawResponse.length)));
+      }
+      
+      // If response is very large, log the beginning and end
+      if (rawResponse.length > 10000) {
+        console.log('Response start (first 500 chars):');
+        console.log(rawResponse.substring(0, 500));
+        console.log('Response end (last 500 chars):');
+        console.log(rawResponse.substring(rawResponse.length - 500));
       }
       
       const parsedResults = this.parseAIResponse(rawResponse);
