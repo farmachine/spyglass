@@ -2497,31 +2497,69 @@ except Exception as e:
                   
                   console.log(`📊 Filtered to ${filteredIdentifierValidations.length} records with validated previous values (from ${identifierValidations.length} total)`);
                   
+                  // Determine which columns to include based on tool configuration
+                  const columnsToInclude = new Set<string>();
+                  
+                  // ALWAYS include the first column (identifier)
+                  if (identifierValue) {
+                    columnsToInclude.add(identifierValue.valueName);
+                    console.log(`📊 Always including first column: ${identifierValue.valueName}`);
+                  }
+                  
+                  // Parse inputValues to find referenced columns
+                  if (workflowValue.inputValues) {
+                    for (const [key, value] of Object.entries(workflowValue.inputValues)) {
+                      if (typeof value === 'string') {
+                        // Check for @-references like "@Column Name"
+                        if (value.startsWith('@')) {
+                          const columnName = value.substring(1);
+                          const referencedValue = stepValues.find(v => v.valueName === columnName);
+                          if (referencedValue) {
+                            columnsToInclude.add(referencedValue.valueName);
+                            console.log(`📊 Including referenced column: ${referencedValue.valueName}`);
+                          }
+                        }
+                      } else if (Array.isArray(value)) {
+                        // Check array values for references
+                        value.forEach(v => {
+                          if (typeof v === 'string' && v.startsWith('@')) {
+                            const columnName = v.substring(1);
+                            const referencedValue = stepValues.find(val => val.valueName === columnName);
+                            if (referencedValue) {
+                              columnsToInclude.add(referencedValue.valueName);
+                              console.log(`📊 Including referenced column: ${referencedValue.valueName}`);
+                            }
+                          }
+                        });
+                      }
+                    }
+                  }
+                  
+                  console.log(`📊 Will include columns: ${Array.from(columnsToInclude).join(', ')}`);
+                  
                   const mergedData = filteredIdentifierValidations.map((identifierVal: any) => {
                     const record: any = {
                       identifierId: identifierVal.identifierId || `record-${identifierVal.recordIndex}`
                     };
                     
-                    // CRITICAL: Always include the identifier field (first column) in the output
-                    // This ensures the first value is always present in extraction data
-                    if (identifierValue) {
-                      record[identifierValue.valueName] = identifierVal.extractedValue || '';
-                    }
-                    
-                    // Add data from each value in the step (including identifier again if it's in the list)
+                    // Add only the columns that should be included
                     for (const stepValue of stepValues) {
                       const valueName = stepValue.valueName;
-                      const validationsForValue = valueValidationMap[valueName];
                       
-                      // Find matching validation by record index
-                      const matchingValidation = validationsForValue.find((v: any) => 
-                        v.recordIndex === identifierVal.recordIndex
-                      );
-                      
-                      if (matchingValidation) {
-                        record[valueName] = matchingValidation.extractedValue || '';
-                      } else {
-                        record[valueName] = '';
+                      // Include this column if it's in our include set
+                      if (columnsToInclude.has(valueName)) {
+                        const validationsForValue = valueValidationMap[valueName];
+                        
+                        // Find matching validation by record index
+                        const matchingValidation = validationsForValue.find((v: any) => 
+                          v.recordIndex === identifierVal.recordIndex
+                        );
+                        
+                        if (matchingValidation) {
+                          record[valueName] = matchingValidation.extractedValue || '';
+                        } else {
+                          record[valueName] = '';
+                        }
                       }
                     }
                     
