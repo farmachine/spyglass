@@ -1052,7 +1052,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 {/* Output Type Selectors - Top Right */}
                 <div className="flex items-center gap-3">
                   <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                    This tool is to...
+                    Method
                   </Label>
                   <Select value={operationType} onValueChange={(value: "create" | "update") => setOperationType(value)}>
                     <SelectTrigger className="w-[100px] h-8 text-xs">
