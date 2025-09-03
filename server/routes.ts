@@ -9187,6 +9187,76 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Debug endpoint for fixing Document step ordering specifically
+  app.get('/debug-fix-document-step-order', async (req, res) => {
+    try {
+      console.log('🔧 Fixing Document step value ordering...');
+      
+      // Find the Document step
+      const documentSteps = await db
+        .select()
+        .from(workflowSteps)
+        .where(eq(workflowSteps.stepName, 'Document'));
+      
+      if (documentSteps.length === 0) {
+        return res.json({ success: false, message: 'Document step not found' });
+      }
+      
+      const documentStep = documentSteps[0];
+      console.log(`Found Document step: ${documentStep.id}`);
+      
+      // Get current step values
+      const values = await db
+        .select()
+        .from(stepValues)
+        .where(eq(stepValues.stepId, documentStep.id))
+        .orderBy(asc(stepValues.orderIndex));
+      
+      console.log('Current order:');
+      values.forEach((val, i) => {
+        console.log(`${i + 1}. ${val.valueName} (orderIndex: ${val.orderIndex})`);
+      });
+      
+      // Define the correct order: Document Name, Description, Section 5.1
+      const correctOrder = [
+        { name: 'DOCUMENT NAME', newIndex: 0 },
+        { name: 'DESCRIPTION', newIndex: 1 },
+        { name: 'SECTION 5.1', newIndex: 2 }
+      ];
+      
+      let updatesCount = 0;
+      
+      for (const update of correctOrder) {
+        const valueToUpdate = values.find(val => 
+          val.valueName.toUpperCase() === update.name
+        );
+        
+        if (valueToUpdate && valueToUpdate.orderIndex !== update.newIndex) {
+          console.log(`Updating ${valueToUpdate.valueName} orderIndex from ${valueToUpdate.orderIndex} to ${update.newIndex}`);
+          
+          await db
+            .update(stepValues)
+            .set({ orderIndex: update.newIndex })
+            .where(eq(stepValues.id, valueToUpdate.id));
+          
+          updatesCount++;
+        }
+      }
+      
+      console.log(`✅ Document step ordering fixed! Updated ${updatesCount} values.`);
+      res.json({ 
+        success: true, 
+        message: 'Document step value ordering fixed',
+        updatesCount,
+        newOrder: correctOrder.map(item => item.name)
+      });
+      
+    } catch (error) {
+      console.error('Error fixing Document step order:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Debug endpoint for fixing orderIndex based on creation time
   app.get('/debug-fix-orderindex-by-creation', async (req, res) => {
     try {
