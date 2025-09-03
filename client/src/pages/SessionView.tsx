@@ -5058,6 +5058,16 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
                       <CardContent className="p-0">
+                        {/* Test button outside table */}
+                        <div className="p-2 bg-yellow-100 border border-yellow-500">
+                          <button 
+                            onClick={() => alert('Test button works!')}
+                            className="px-4 py-2 bg-blue-500 text-white rounded"
+                          >
+                            TEST BUTTON - CLICK ME
+                          </button>
+                          <span className="ml-2">Collection: {collection.collectionName}</span>
+                        </div>
                         <div className="session-table-wrapper" style={{ height: 'calc(100vh - 200px)', overflowY: 'auto', position: 'relative' }}>
                           <Table className="session-table compact">
                             <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
