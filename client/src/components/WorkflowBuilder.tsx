@@ -592,8 +592,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           <>
             <div className="w-3 h-3 rounded-full bg-gray-600 dark:bg-gray-400"></div>
             <div className="flex flex-col items-center">
-              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-400"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-300 -mt-1" />
             </div>
           </>
         )}
@@ -774,7 +774,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     {/* Grey line between values */}
                     {valueIndex < step.values.length - 1 && (
                       <div className="flex justify-center py-1">
-                        <div className="w-0.5 h-4 bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="w-0.5 h-4 bg-gray-300 dark:bg-gray-400"></div>
                       </div>
                     )}
                   </div>
@@ -789,7 +789,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Dotted line to Add Value button */}
                 {step.values.length > 0 && (
                   <div className="flex justify-center py-1">
-                    <div className="w-0.5 h-4 border-l-2 border-dashed border-gray-300 dark:border-gray-600"></div>
+                    <div className="w-0.5 h-4 border-l-2 border-dashed border-gray-300 dark:border-gray-400"></div>
                   </div>
                 )}
 
@@ -842,8 +842,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           {/* Arrow between steps */}
           {stepIndex < steps.length - 1 && (
             <div className="flex flex-col items-center py-2">
-              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-400"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-300 -mt-1" />
             </div>
           )}
           </div>
@@ -854,13 +854,13 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             {/* Start dot for empty state */}
             <div className="w-3 h-3 rounded-full bg-gray-600 dark:bg-gray-400"></div>
             <div className="flex flex-col items-center">
-              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-400"></div>
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-300 -mt-1" />
             </div>
             
             <Card className="p-12 w-3/4 bg-gray-50 dark:bg-slate-900 border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-sm transition-all">
               <div className="text-center">
-                <Layers className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <Layers className="h-12 w-12 text-gray-400 dark:text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No workflow steps yet</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">Start building your workflow by adding a step</p>
                 <Button onClick={addStep} className="gap-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600">
@@ -875,7 +875,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             {/* Dotted line from last card */}
             <div className="flex flex-col items-center py-2">
               <div className="w-0.5 h-8 border-l-2 border-dashed border-gray-400 dark:border-gray-600"></div>
-              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500 -mt-1" />
+              <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-300 -mt-1" />
             </div>
             
             {/* Add Step button */}
