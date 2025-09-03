@@ -920,7 +920,7 @@ function ValueEditor({
   
   // Get available values for referencing
   const getAvailableValues = () => {
-    const availableValues: Array<{id: string; name: string; stepName: string}> = [];
+    const availableValues: Array<{id: string; valueId: string; name: string; stepName: string}> = [];
     
     // Get current step index
     const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
@@ -930,7 +930,8 @@ function ValueEditor({
       const prevStep = allSteps[i];
       prevStep.values.forEach(v => {
         availableValues.push({
-          id: `@${prevStep.name}.${v.name}`,
+          id: v.id, // Store the actual value ID
+          valueId: v.id, // Explicit value ID for clarity
           name: v.name,
           stepName: prevStep.name
         });
@@ -941,7 +942,8 @@ function ValueEditor({
     for (let i = 0; i < currentValueIndex; i++) {
       const prevValue = step.values[i];
       availableValues.push({
-        id: `@${step.name}.${prevValue.name}`,
+        id: prevValue.id, // Store the actual value ID
+        valueId: prevValue.id, // Explicit value ID for clarity
         name: prevValue.name,
         stepName: step.name
       });
@@ -1164,45 +1166,50 @@ function ValueEditor({
                       {/* Selected value badges */}
                       {(() => {
                         // For Data Table steps, the first value is the identifier
-                        let identifierRef = null;
+                        let identifierValueId = null;
                         if (step.type === 'list' && step.values[0]) {
-                          identifierRef = `@${step.name}.${step.values[0].name}`;
+                          identifierValueId = step.values[0].id;
                         }
                         
                         // Ensure identifier ref is always included if it exists
                         const rawValues = value.inputValues[param.id];
                         const currentValues = Array.isArray(rawValues) ? rawValues : (rawValues ? [rawValues] : []);
-                        const allValues = identifierRef 
-                          ? Array.from(new Set([identifierRef, ...currentValues]))
+                        const allValues = identifierValueId 
+                          ? Array.from(new Set([identifierValueId, ...currentValues]))
                           : currentValues;
                         
                         if (allValues.length > 0) {
                           return (
                             <div className="flex flex-wrap gap-2 mb-2">
-                              {allValues.map((valueRef: string, index: number) => {
-                                // Split the reference to display with dot separator
-                                const parts = valueRef.replace('@', '').split('.');
-                                const isIdentifier = valueRef === identifierRef;
+                              {allValues.map((valueId: string, index: number) => {
+                                // Find the actual value details for display
+                                const referencedValue = getAvailableValues().find(v => v.id === valueId) || 
+                                  (valueId === identifierValueId && step.values[0] ? 
+                                    { id: step.values[0].id, name: step.values[0].name, stepName: step.name, valueId: step.values[0].id } : 
+                                    null);
+                                const isIdentifier = valueId === identifierValueId;
+                                
+                                if (!referencedValue) return null;
                                 
                                 return (
                                   <Badge 
-                                    key={valueRef} 
+                                    key={valueId} 
                                     className={`flex items-center gap-1.5 ${
                                       isIdentifier 
                                         ? 'bg-[#071e54] text-white border-[#071e54] dark:bg-[#5A70B5] dark:border-[#5A70B5]' 
                                         : 'bg-[#E8EDF7] text-[#071e54] border-[#B8C5E0] hover:bg-[#DDE4F2] dark:bg-[#2A3550] dark:text-[#C5D3E8] dark:border-[#5A70B5]'
                                     }`}
                                   >
-                                    <span className={isIdentifier ? 'font-medium' : ''}>{parts[0]}</span>
+                                    <span className={isIdentifier ? 'font-medium' : ''}>{referencedValue.stepName}</span>
                                     <div className={`w-1.5 h-1.5 rounded-full ${
                                       isIdentifier ? 'bg-white/60 dark:bg-white/40' : 'bg-[#4F63A4] dark:bg-[#8B9DC3]'
                                     }`} />
-                                    <span>{parts[1]}</span>
+                                    <span>{referencedValue.name}</span>
                                     {!isIdentifier && (
                                       <X 
                                         className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
                                         onClick={() => {
-                                          const updatedValues = currentValues.filter((v: string) => v !== valueRef);
+                                          const updatedValues = currentValues.filter((v: string) => v !== valueId);
                                           onUpdate({
                                             inputValues: { ...value.inputValues, [param.id]: updatedValues }
                                           });
@@ -1238,14 +1245,14 @@ function ValueEditor({
                         <SelectContent>
                           {(() => {
                             // Filter out the identifier value if this is a Data Table step
-                            let identifierRef = null;
+                            let identifierValueId = null;
                             if (step.type === 'list' && step.values[0]) {
-                              identifierRef = `@${step.name}.${step.values[0].name}`;
+                              identifierValueId = step.values[0].id;
                             }
                             
                             const currentValues = value.inputValues[param.id] || [];
                             const availableValues = getAvailableValues().filter(av => 
-                              av.id !== identifierRef && // Exclude identifier (it's always included)
+                              av.id !== identifierValueId && // Exclude identifier (it's always included)
                               !currentValues.includes(av.id) // Exclude already selected values
                             );
                             

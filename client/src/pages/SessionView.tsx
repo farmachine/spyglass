@@ -2410,176 +2410,95 @@ export default function SessionView() {
     // Compile previous column data as input
     let previousColumnsData: any[] = [];
     
-    // Check if this value has @ references that need data from other steps
-    const referencedSteps = new Set<string>();
+    // Check if this value has references to other values (stored as value IDs)
+    const referencedValueIds = new Set<string>();
     if (hasColumnReferences && valueToRun.inputValues) {
-      console.log(`🔍 Checking for cross-step references in ${valueName}'s inputValues`);
+      console.log(`🔍 Checking for value ID references in ${valueName}'s inputValues`);
       Object.values(valueToRun.inputValues).forEach(value => {
-        if (typeof value === 'string' && value.includes('@')) {
-          const match = value.match(/@([^.]+)\./);
-          if (match) {
-            referencedSteps.add(match[1]);
-            console.log(`  - References step: "${match[1]}"`);
+        if (typeof value === 'string') {
+          // Check if it's a UUID (value ID) or legacy @-notation
+          if (value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            referencedValueIds.add(value);
+            console.log(`  - References value ID: "${value}"`);
+          } else if (value.includes('@')) {
+            // Legacy support for @-notation
+            console.log(`  - Legacy @ reference found: "${value}"`);
           }
         } else if (Array.isArray(value)) {
           value.forEach(v => {
-            if (typeof v === 'string' && v.includes('@')) {
-              const match = v.match(/@([^.]+)\./);
-              if (match) {
-                referencedSteps.add(match[1]);
-                console.log(`  - References step: "${match[1]}"`);
-              }
+            if (typeof v === 'string' && v.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              referencedValueIds.add(v);
+              console.log(`  - References value ID: "${v}"`);
             }
           });
         }
       });
     }
     
-    // If we have referenced steps, get data from those steps
-    // This should happen for ANY column that references other steps, including first columns
-    console.log(`📊 Referenced steps found: ${Array.from(referencedSteps).join(', ')} (count: ${referencedSteps.size})`);
-    if (referencedSteps.size > 0) {
-      console.log(`✅ Loading data from ${referencedSteps.size} referenced step(s) for "${valueName}"`);
-      // Get data from the referenced steps
-      for (const referencedStepName of referencedSteps) {
-        const referencedStep = project?.workflowSteps?.find(s => s.stepName === referencedStepName);
-        if (referencedStep) {
-          console.log(`📊 Getting data from referenced step: "${referencedStepName}"`);
-          
-          // Get all validations for the referenced step's field IDs
-          const allStepValidations = validations.filter(v => {
-            // Must have an identifierId
-            if (!v.identifierId) return false;
-            
-            // Check if this validation belongs to one of the referenced step's values
-            // Use valueId for matching (column mapping) as requested by user
-            const belongsToStep = referencedStep.values?.some(val => val.id === v.valueId);
-            
-            return belongsToStep;
-          });
-          
-          // Group by identifierId to check if ALL columns are verified (green checkmarks)
-          const verifiedIdentifierIds = new Set<string>();
-          const identifierGroups = new Map<string, any[]>();
-          
-          allStepValidations.forEach(v => {
-            if (!identifierGroups.has(v.identifierId)) {
-              identifierGroups.set(v.identifierId, []);
-            }
-            identifierGroups.get(v.identifierId)?.push(v);
-          });
-          
-          // Check each identifier group - only include records where ALL values are explicitly validated AND have valid content
-          identifierGroups.forEach((validations, identifierId) => {
-            const allVerified = validations.every(v => {
-              // Check validation status - must be explicitly validated (clicked to valid)
-              const statusValid = v.validationStatus === 'valid';
-              
-              // Check that the actual extracted value exists (can be "Not Found" if validated)
-              // "Not Found" is a valid value when it has been validated
-              const valueValid = v.extractedValue !== '' && 
-                               v.extractedValue !== null && 
-                               v.extractedValue !== undefined;
-              
-              // Both status AND content must be valid
-              return statusValid && valueValid;
-            });
-            
-            if (allVerified) {
-              verifiedIdentifierIds.add(identifierId);
-            }
-          });
-          
-          // Filter to only include records where ALL previous step values are verified
-          const stepValidations = allStepValidations.filter(v => 
-            verifiedIdentifierIds.has(v.identifierId) &&
-            (v.validationStatus === 'valid' || v.validationStatus === 'manual')
-          );
-          
-          console.log(`  - Found ${verifiedIdentifierIds.size} records with ALL previous values verified`);
-          console.log(`  - Total validations for these verified records: ${stepValidations.length}`);
-          console.log(`  - Referenced step values:`, referencedStep.values?.map(v => v.valueName));
-          
-          // Group by identifier ID to compile records
-          const recordsByIdentifier = new Map<string, any>();
-          
-          // Simply group all validations by identifier
-          stepValidations.forEach(v => {
-            if (v.identifierId) {
-              if (!recordsByIdentifier.has(v.identifierId)) {
-                recordsByIdentifier.set(v.identifierId, {
-                  identifierId: v.identifierId
-                });
-              }
-              
-              // Find which value this validation belongs to
-              // Use valueId for matching (column mapping) as requested by user
-              const value = referencedStep.values?.find(val => val.id === v.valueId);
-              if (value) {
-                recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
-              }
-            }
-          });
-          
-          // CRITICAL FIX: Also check for ALL referenced columns from inputValues
-          // to ensure we include columns that may not have validations yet
-          if (valueToRun.inputValues) {
-            const neededColumns = new Set<string>();
-            
-            // Parse inputValues to find which specific columns are needed
-            console.log(`🔍 Parsing inputValues to find needed columns for ${valueName}`);
-            Object.values(valueToRun.inputValues).forEach(inputValue => {
-              if (typeof inputValue === 'string' && inputValue.includes('@')) {
-                const match = inputValue.match(/@[^.]+\.(.+)/);
-                if (match) {
-                  neededColumns.add(match[1].trim());
-                }
-              } else if (Array.isArray(inputValue)) {
-                inputValue.forEach(v => {
-                  if (typeof v === 'string' && v.includes('@')) {
-                    const match = v.match(/@[^.]+\.(.+)/);
-                    if (match) {
-                      neededColumns.add(match[1].trim());
-                    }
-                  }
-                });
-              }
-            });
-            
-            console.log(`📋 Needed columns for ${valueName}:`, Array.from(neededColumns));
-            
-            // For each identifier, ensure we have ALL needed columns
-            recordsByIdentifier.forEach((record, identifierId) => {
-              neededColumns.forEach(columnName => {
-                // Find the value in the referenced step that matches this column name
-                const stepValue = referencedStep.values?.find(v => v.valueName === columnName);
-                if (stepValue && !(columnName in record)) {
-                  // Try to find a validation for this specific value and identifier
-                  // Look in ALL validations, not just the filtered ones
-                  const validation = validations.find(v => 
-                    v.identifierId === identifierId &&
-                    (v.fieldId === stepValue.id || v.valueId === stepValue.id)
-                  );
-                  
-                  if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined) {
-                    record[columnName] = validation.extractedValue;
-                    console.log(`  Added missing column "${columnName}" for identifier ${identifierId}: ${validation.extractedValue}`);
-                  } else {
-                    // If no validation exists, set to null so the column is still present
-                    record[columnName] = null;
-                    console.log(`  No validation found for column "${columnName}" for identifier ${identifierId}, setting to null`);
-                  }
-                }
-              });
+    // If we have referenced value IDs, get data from those values
+    console.log(`📊 Referenced value IDs found: ${Array.from(referencedValueIds).join(', ')} (count: ${referencedValueIds.size})`);
+    if (referencedValueIds.size > 0) {
+      console.log(`✅ Loading data from ${referencedValueIds.size} referenced value(s) for "${valueName}"`);
+      
+      // Get all validations that match the referenced value IDs
+      const allReferencedValidations = validations.filter(v => {
+        // Must have an identifierId
+        if (!v.identifierId) return false;
+        
+        // Check if this validation's valueId is in our referenced value IDs
+        return referencedValueIds.has(v.valueId || '');
+      });
+      
+      // Group by identifierId to check if ALL columns are verified
+      const verifiedIdentifierIds = new Set<string>();
+      const identifierGroups = new Map<string, any[]>();
+      
+      allReferencedValidations.forEach(v => {
+        if (!identifierGroups.has(v.identifierId!)) {
+          identifierGroups.set(v.identifierId!, []);
+        }
+        identifierGroups.get(v.identifierId!)?.push(v);
+      });
+      
+      // Check each identifier group - only include records where ALL values are validated
+      identifierGroups.forEach((validationGroup, identifierId) => {
+        const allVerified = validationGroup.every(v => {
+          const statusValid = v.validationStatus === 'valid' || v.validationStatus === 'manual';
+          const valueValid = v.extractedValue !== '' && v.extractedValue !== null && v.extractedValue !== undefined;
+          return statusValid && valueValid;
+        });
+        
+        if (allVerified) {
+          verifiedIdentifierIds.add(identifierId);
+        }
+      });
+      
+      // Compile records from validations
+      const recordsByIdentifier = new Map<string, any>();
+      
+      allReferencedValidations.forEach(v => {
+        if (v.identifierId && verifiedIdentifierIds.has(v.identifierId)) {
+          if (!recordsByIdentifier.has(v.identifierId)) {
+            recordsByIdentifier.set(v.identifierId, {
+              identifierId: v.identifierId
             });
           }
           
-          // Convert to array
-          previousColumnsData.push(...Array.from(recordsByIdentifier.values()));
-          console.log(`📊 Found ${recordsByIdentifier.size} records with verified data from step "${referencedStepName}"`);
+          // Find the value name from the project configuration
+          const referencedStepValue = project?.workflowSteps?.flatMap(s => s.values || [])
+            .find(val => val.id === v.valueId);
+          
+          if (referencedStepValue) {
+            recordsByIdentifier.get(v.identifierId)[referencedStepValue.valueName] = v.extractedValue;
+          }
         }
-      }
-    } else if (workflowStep.values) {
+      });
+      
+      // Convert to array
+      previousColumnsData = Array.from(recordsByIdentifier.values());
+      console.log(`📊 Found ${recordsByIdentifier.size} records with verified data from referenced values`);
+      
+    } else if (workflowStep && workflowStep.values) {
       console.log(`❌ No cross-step references found for "${valueName}" - using within-step data compilation`);
       // Original logic for within-step data compilation
       if (valueIndex > 0) {
