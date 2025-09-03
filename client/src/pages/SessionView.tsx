@@ -2559,9 +2559,23 @@ export default function SessionView() {
           let allPreviousColumnsValid = true;
           const tempRecordData: any = {};
           
-          // Iterate through previous columns
-          for (let i = 0; i < valueIndex; i++) {
-            const prevValue = workflowStep.values[i];
+          // CRITICAL: Always include the first column (identifier) for context
+          // Then include all columns up to (but not including) the current one
+          const columnsToInclude = [];
+          
+          // Always add first column
+          if (workflowStep.values[0]) {
+            columnsToInclude.push(0);
+          }
+          
+          // Add other previous columns (if not already included)
+          for (let i = 1; i < valueIndex; i++) {
+            columnsToInclude.push(i);
+          }
+          
+          // Iterate through columns to include
+          for (const colIndex of columnsToInclude) {
+            const prevValue = workflowStep.values[colIndex];
             
             // Find the validation for this column and record
             // FIXED: Use step-based validation lookup for workflow values
