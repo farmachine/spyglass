@@ -5544,15 +5544,18 @@ print(json.dumps(results))
     }
     
     // Process each value - either update existing or create new
-    for (const value of stepData.values || []) {
-      const valueData = {
+    for (let i = 0; i < (stepData.values || []).length; i++) {
+      const value = stepData.values[i];
+      
+      // Build value data for creation
+      const createValueData = {
         id: value.id,
         stepId: stepId,
         valueName: value.name,
         dataType: value.dataType,
         description: value.description,
         isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
-        orderIndex: value.orderIndex || 0,
+        orderIndex: value.orderIndex !== undefined ? value.orderIndex : i + 1, // Use provided or default to position
         toolId: value.toolId || null,  // Convert empty string to null
         inputValues: value.inputValues,
         autoVerificationConfidence: value.autoVerificationConfidence,
@@ -5560,13 +5563,29 @@ print(json.dumps(results))
       };
       
       if (existingValueIds.has(value.id)) {
-        // Update existing value
-        console.log(`  📝 Updating existing value: ${value.id}`);
-        await storage.updateStepValue(value.id, valueData);
+        // For updates, only include fields that should be updated (exclude orderIndex unless explicitly provided)
+        const updateValueData: any = {
+          valueName: value.name,
+          dataType: value.dataType,
+          description: value.description,
+          isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
+          toolId: value.toolId || null,
+          inputValues: value.inputValues,
+          autoVerificationConfidence: value.autoVerificationConfidence,
+          choiceOptions: value.choiceOptions
+        };
+        
+        // Only update orderIndex if explicitly provided in the request
+        if (value.orderIndex !== undefined) {
+          updateValueData.orderIndex = value.orderIndex;
+        }
+        
+        console.log(`  📝 Updating existing value: ${value.id} (preserving order_index unless explicitly changed)`);
+        await storage.updateStepValue(value.id, updateValueData);
       } else {
-        // Create new value
-        console.log(`  ➕ Creating new value: ${value.id}`);
-        await storage.createStepValue(valueData);
+        // Create new value with proper orderIndex
+        console.log(`  ➕ Creating new value: ${value.id} with orderIndex: ${createValueData.orderIndex}`);
+        await storage.createStepValue(createValueData);
       }
     }
     
