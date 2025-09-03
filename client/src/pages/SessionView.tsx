@@ -2639,10 +2639,10 @@ export default function SessionView() {
           return false;
         }
         
-        // Find validation by value_id and identifier_id  
+        // Find validation by value_id (new architecture) or field_id (legacy data)
         const validation = validations.find(v => 
           v.identifierId === record.identifierId &&
-          v.valueId === valueDefinition.id
+          (v.valueId === valueDefinition.id || v.fieldId === valueDefinition.id)
         );
         
         // Field must have a validation record with valid or verified status (green checkmark)
@@ -3174,12 +3174,12 @@ export default function SessionView() {
     if (identifierId) {
       return validations.find(v => 
         v.identifierId === identifierId &&
-        v.valueId === valueId
+        (v.valueId === valueId || v.fieldId === valueId) // Support both new (value_id) and legacy (field_id) data
       );
     }
     
     // For schema fields: match by valueId only (no identifierId for single-row fields)
-    return validations.find(v => v.valueId === valueId && !v.identifierId);
+    return validations.find(v => (v.valueId === valueId || v.fieldId === valueId) && !v.identifierId);
   };
 
   // Legacy helper for backward compatibility during transition
