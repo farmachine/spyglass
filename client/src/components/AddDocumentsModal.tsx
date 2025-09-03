@@ -64,9 +64,6 @@ export default function AddDocumentsModal({
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Debug log to check the mode
-  console.log('AddDocumentsModal mode:', mode);
 
 
   // Fetch project schema data
@@ -77,7 +74,7 @@ export default function AddDocumentsModal({
   // Fetch project tools for optional processing
   const { data: tools = [] } = useQuery({
     queryKey: ['/api/projects', projectId, 'excel-functions'],
-    enabled: !!projectId && mode === 'upload',
+    enabled: !!projectId && mode !== 'extract',
   });
 
   const validateFile = (file: File): string | null => {
@@ -560,8 +557,8 @@ export default function AddDocumentsModal({
           </div>
           )}
           
-          {/* Tool Processing Options - Only show in upload mode */}
-          {mode === 'upload' && (
+          {/* Tool Processing Options - Show when not in extract mode (i.e., upload mode) */}
+          {mode !== 'extract' && (
             <>
               <Separator />
               <div className="space-y-4">
@@ -662,7 +659,7 @@ export default function AddDocumentsModal({
                   </div>
                   
                   {/* Name and Description fields for upload mode */}
-                  {mode === 'upload' && file.status === 'pending' && (
+                  {mode !== 'extract' && file.status === 'pending' && (
                     <div className="space-y-3 pt-3 border-t">
                       <div className="space-y-2">
                         <Label htmlFor={`name-${file.id}`} className="text-sm">
