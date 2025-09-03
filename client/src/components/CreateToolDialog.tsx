@@ -76,7 +76,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const resetForm = () => {
     setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
-    setOutputType("single");
+    // outputType removed - always use multiple
     setOperationType("update");
     setInputParameters([]);
     setAiAssistanceRequired(false);
@@ -150,7 +150,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         name: data.name,
         description: data.description,
         toolType: data.toolType,
-        outputType: data.outputType,
+        outputType: "multiple",
         operationType: data.operationType,
         inputParameters: data.inputParameters,
         tags: data.tags || []
@@ -164,7 +164,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           functionCode: data.toolType === 'CODE' ? (data.functionCode || editingFunction.functionCode) : null,
           aiPrompt: data.toolType === 'AI_ONLY' ? (data.aiPrompt || editingFunction.aiPrompt) : null,
           toolType: data.toolType,
-          outputType: data.outputType,
+          outputType: "multiple",
           operationType: data.operationType,
           inputParameters: data.inputParameters,
           inputSchema: data.inputSchema,
@@ -217,8 +217,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       console.log('✅ Tool created successfully, closing modal in 1.5s...');
       setTimeout(() => {
         console.log('🔄 CLOSING MODAL AND RESETTING FORM');
-        setOpen(false);
+        // Clear editing function first to prevent form contamination
+        setEditingFunction?.(null);
         resetForm();
+        setOpen(false);
         setLoadingProgress(0);
         setLoadingMessage("");
       }, 1500); // Give time to see completion
