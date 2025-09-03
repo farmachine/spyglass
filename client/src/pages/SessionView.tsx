@@ -2598,29 +2598,42 @@ export default function SessionView() {
             
             if (colIndex === 0) {
               // SPECIAL HANDLING FOR FIRST COLUMN
-              // The first column might have been manually entered and have different metadata
-              // Try multiple lookup strategies to find it
+              // The first column data might be in a different collection with the same identifier
+              // or in the same collection with a different mapping
               
-              // Strategy 1: Look for any validation with this valueId and identifierId
+              // Strategy 1: Look for validation in the current step/collection
               validation = validations.find(v => 
                 (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
-                v.identifierId === identifierId
+                v.identifierId === identifierId &&
+                v.collectionName === stepName
               );
               
-              // Strategy 2: If not found, look without stepId requirement
+              // Strategy 2: If not found, look for the same column name in any collection with this identifier
               if (!validation) {
-                validation = collectionValidations.find(v => 
-                  (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
-                  v.identifierId === identifierId
-                );
+                validation = validations.find(v => {
+                  // Find any validation that has the same column name and identifier
+                  const matchesColumn = workflowStep.values.find(val => 
+                    (val.id === v.valueId || val.id === v.fieldId) && 
+                    val.valueName === prevValue.valueName
+                  );
+                  return matchesColumn && v.identifierId === identifierId;
+                });
               }
               
-              // Strategy 3: Look by field name pattern
-              if (!validation) {
-                validation = validations.find(v => 
-                  v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]` &&
-                  v.identifierId === identifierId
+              // Strategy 3: Look for the first column value with the same extracted value across different identifiers
+              // This handles the case where the same data has different identifiers in different collections
+              if (!validation && collectionValidations.length > 0) {
+                // Find a validation with the same collection and similar value
+                const sameCollectionValidations = collectionValidations.filter(v =>
+                  v.collectionName === stepName &&
+                  (v.valueId === prevValue.id || v.fieldId === prevValue.id)
                 );
+                
+                if (sameCollectionValidations.length > 0) {
+                  // Use the first one found as it likely has the right data
+                  validation = sameCollectionValidations[0];
+                  console.log(`🔍 Using first column from different identifier: ${validation.identifierId}`);
+                }
               }
               
               console.log(`🔍 First column "${prevValue.valueName}" lookup result:`, 
