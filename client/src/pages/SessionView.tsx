@@ -2649,6 +2649,15 @@ export default function SessionView() {
               
               console.log(`🔍 First column "${prevValue.valueName}" lookup result:`, 
                 validation ? `Found: "${validation.extractedValue}"` : 'NOT FOUND');
+              
+              // Debug: Log exactly what will be added
+              if (validation && validation.extractedValue) {
+                console.log(`✅ Will add first column "${prevValue.valueName}" = "${validation.extractedValue}" to record`);
+                // CRITICAL: Actually add the first column value to the record!
+                tempRecordData[prevValue.valueName] = validation.extractedValue;
+              } else {
+                console.log(`❌ First column "${prevValue.valueName}" will NOT be added (validation: ${!!validation}, extractedValue: ${validation?.extractedValue})`);
+              }
             } else {
               // Standard lookup for non-first columns
               validation = validations.find(v => {
