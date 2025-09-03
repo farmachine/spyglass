@@ -5054,21 +5054,10 @@ Thank you for your assistance.`;
                   
                   // Always show the table even when there are no records, so headers remain visible
 
-                  console.log('Rendering table check - activeTab:', activeTab, 'itemName:', item.itemName, 'Match:', activeTab === item.itemName);
                   return activeTab === item.itemName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
                       <CardContent className="p-0">
-                        {/* Test button outside table */}
-                        <div className="p-2 bg-yellow-100 border border-yellow-500">
-                          <button 
-                            onClick={() => alert('Test button works!')}
-                            className="px-4 py-2 bg-blue-500 text-white rounded"
-                          >
-                            TEST BUTTON - CLICK ME
-                          </button>
-                          <span className="ml-2">Collection: {collection.collectionName}</span>
-                        </div>
                         <div className="session-table-wrapper" style={{ height: 'calc(100vh - 200px)', overflowY: 'auto', position: 'relative' }}>
                           <Table className="session-table compact">
                             <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
@@ -5185,13 +5174,10 @@ Thank you for your assistance.`;
                               <TableHead className="w-14 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ width: '56px', minWidth: '56px', maxWidth: '56px' }}>
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <button
-                                    onClick={() => {
-                                      alert('Test click! Collection: ' + collection.collectionName);
-                                    }}
+                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
                                     className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded flex items-center justify-center transition-colors"
-                                    title="Add new item - Click me!"
+                                    title="Add new item"
                                     type="button"
-                                    style={{ zIndex: 9999, position: 'relative' }}
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
