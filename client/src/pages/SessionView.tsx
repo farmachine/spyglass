@@ -5156,7 +5156,10 @@ Thank you for your assistance.`;
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
+                                    onClick={() => {
+                                      console.log('🔥 BUTTON CLICKED!', collection.collectionName, collection);
+                                      handleAddCollectionItem(collection.collectionName);
+                                    }}
                                     className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                     title="Add new item"
                                   >
