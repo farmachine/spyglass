@@ -91,14 +91,19 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setCurrentEditingFunctionId(null); // Reset current editing function ID
   };
 
+  // Track previous open state to detect when dialog opens
+  const [prevOpen, setPrevOpen] = useState(false);
+  
   // Load editing function data when provided
   useEffect(() => {
-    if (editingFunction) {
+    if (editingFunction && open) {
       const functionId = editingFunction.id;
       
-      // Update form state when editing function changes or when reopening the same function
-      // Check if we're opening the dialog fresh (not already open) or if it's a different function
-      if (!open || currentEditingFunctionId !== functionId) {
+      // Reload form state when:
+      // 1. Dialog is opening (was closed, now open)
+      // 2. It's a different function
+      const isOpening = !prevOpen && open;
+      if (isOpening || currentEditingFunctionId !== functionId) {
         setFormData({
           name: editingFunction.name || "",
           description: editingFunction.description || "",
@@ -130,20 +135,23 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         setIsEditMode(true);
         setCurrentEditingFunctionId(functionId);
         setOpen(true);
-        console.log('🔧 Form loaded for editing function:', functionId, 'Type:', editingFunction.toolType);
+        console.log('🔧 Form loaded for editing function:', functionId, 'Type:', editingFunction.toolType, 'OperationType:', editingFunction.operationType);
       } else {
-        console.log('🔧 Same function - preserving current form state:', functionId);
+        console.log('🔧 Preserving current form state for function:', functionId, '(Dialog already open with same function)');
       }
       
       // Always keep code section expanded if there's existing code (for regeneration)
       if (editingFunction.functionCode) {
         setCodeExpanded(true);
       }
-    } else {
+    } else if (!editingFunction) {
       setIsEditMode(false);
       setCurrentEditingFunctionId(null);
     }
-  }, [editingFunction, currentEditingFunctionId, open]);
+    
+    // Update prevOpen for next render
+    setPrevOpen(open);
+  }, [editingFunction, currentEditingFunctionId, open, prevOpen]);
 
   // Add update mutation for editing
   const updateTool = useMutation({
@@ -178,7 +186,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       });
     },
     onSuccess: () => {
+      // Invalidate and refetch to ensure fresh data
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      queryClient.refetchQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       setEditingFunction?.(null);
       setOpen(false);
       resetForm();
