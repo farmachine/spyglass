@@ -2730,8 +2730,29 @@ export default function SessionView() {
               });
             }
           }
+        } else {
+          // No existing validations for this step - look for identifiers from other columns in the same step
+          // This ensures we use the correct identifier that already has data
+          const stepValidations = validations.filter(v => 
+            v.stepId === workflowStep?.id || v.collectionName === stepName
+          );
+          
+          if (stepValidations.length > 0) {
+            const uniqueIdentifierIds = [...new Set(stepValidations
+              .map(v => v.identifierId)
+              .filter(id => id !== null && id !== undefined)
+            )];
+            
+            console.log(`🔍 Found ${uniqueIdentifierIds.length} existing identifiers from other columns in step "${stepName}"`);
+            
+            for (const identifierId of uniqueIdentifierIds) {
+              previousColumnsData.push({
+                identifierId: identifierId
+              });
+            }
+          }
         }
-        // If no existing validations, previousColumnsData will be empty and backend will generate new identifierIds
+        // If no existing validations at all, previousColumnsData will be empty and backend will generate new identifierIds
       }
     }
     
