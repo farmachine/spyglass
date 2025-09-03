@@ -2529,6 +2529,23 @@ export default function SessionView() {
       
     } else if (workflowStep && workflowStep.values) {
       console.log(`❌ No cross-step references found for "${valueName}" - using within-step data compilation`);
+      
+      // Log what validations are available for debugging
+      const stepValidations = validations.filter(v => 
+        v.stepId === workflowStep.id || 
+        v.collectionName === stepName || 
+        (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+      );
+      
+      console.log(`📊 Available validations for step "${stepName}":`, stepValidations.map(v => ({
+        columnName: workflowStep.values.find(val => val.id === v.valueId || val.id === v.fieldId)?.valueName || 'unknown',
+        valueId: v.valueId,
+        fieldId: v.fieldId,
+        identifierId: v.identifierId,
+        extractedValue: v.extractedValue,
+        stepId: v.stepId
+      })));
+      
       // Original logic for within-step data compilation
       if (valueIndex > 0) {
         // If this is not the first column, gather data from previous columns
@@ -2577,49 +2594,51 @@ export default function SessionView() {
           for (const colIndex of columnsToInclude) {
             const prevValue = workflowStep.values[colIndex];
             
-            console.log(`🔍 Looking for column ${colIndex} (${prevValue.valueName}), valueId=${prevValue.id}`);
+            let validation = null;
             
-            // Find the validation for this column and record
-            // FIXED: Use step-based validation lookup for workflow values
-            const validation = validations.find(v => {
-              // For workflow steps, match by step ID and value ID combination
-              const stepIdMatch = v.stepId === workflowStep.id;
-              const valueIdMatch = v.valueId === prevValue.id || v.fieldId === prevValue.id;
-              const identifierMatch = v.identifierId === recordData.identifierId;
+            if (colIndex === 0) {
+              // SPECIAL HANDLING FOR FIRST COLUMN
+              // The first column might have been manually entered and have different metadata
+              // Try multiple lookup strategies to find it
               
-              // Also check field name patterns as fallback
-              const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+              // Strategy 1: Look for any validation with this valueId and identifierId
+              validation = validations.find(v => 
+                (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
+                v.identifierId === identifierId
+              );
               
-              const matches = (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
-              
-              if (colIndex === 0 && !matches) {
-                // Debug first column lookup failures
-                console.log(`   ❌ First column validation check failed:`, {
-                  stepIdMatch,
-                  valueIdMatch,
-                  identifierMatch,
-                  fieldNameMatch,
-                  validation: {
-                    stepId: v.stepId,
-                    valueId: v.valueId,
-                    fieldId: v.fieldId,
-                    identifierId: v.identifierId,
-                    fieldName: v.fieldName,
-                    extractedValue: v.extractedValue
-                  },
-                  looking_for: {
-                    stepId: workflowStep.id,
-                    valueId: prevValue.id,
-                    identifierId: recordData.identifierId,
-                    fieldName: `${stepName}.${prevValue.valueName}[${recordIndex}]`
-                  }
-                });
+              // Strategy 2: If not found, look without stepId requirement
+              if (!validation) {
+                validation = collectionValidations.find(v => 
+                  (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
+                  v.identifierId === identifierId
+                );
               }
               
-              return matches;
-            });
-            
-            console.log(`   ✅ Found validation:`, validation ? `"${validation.extractedValue}"` : 'NOT FOUND');
+              // Strategy 3: Look by field name pattern
+              if (!validation) {
+                validation = validations.find(v => 
+                  v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]` &&
+                  v.identifierId === identifierId
+                );
+              }
+              
+              console.log(`🔍 First column "${prevValue.valueName}" lookup result:`, 
+                validation ? `Found: "${validation.extractedValue}"` : 'NOT FOUND');
+            } else {
+              // Standard lookup for non-first columns
+              validation = validations.find(v => {
+                // For workflow steps, match by step ID and value ID combination
+                const stepIdMatch = v.stepId === workflowStep.id;
+                const valueIdMatch = v.valueId === prevValue.id || v.fieldId === prevValue.id;
+                const identifierMatch = v.identifierId === recordData.identifierId;
+                
+                // Also check field name patterns as fallback
+                const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
+                
+                return (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
+              });
+            }
             
             // Check if this column has a value
             if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
@@ -2739,8 +2758,16 @@ export default function SessionView() {
     console.log(`❌ ${originalCount - previousColumnsData.length} records have invalid/missing previous values and were excluded`);
     
     // Log sample data to see what we're actually sending
-    console.log(`Sample of validated data being sent (first 3):`, 
+    console.log(`📋 FINAL DATA being sent to extraction (first 3 records):`, 
       previousColumnsData.slice(0, 3));
+    
+    // Specifically log what columns are present
+    if (previousColumnsData.length > 0) {
+      const columns = Object.keys(previousColumnsData[0]).filter(k => k !== 'identifierId');
+      console.log(`📋 Columns included in extraction data:`, columns);
+      console.log(`📋 First column (${workflowStep?.values[0]?.valueName}) included:`, 
+        columns.includes(workflowStep?.values[0]?.valueName || ''));
+    }
     
     // Get tool information if available
     // Note: Tools are not part of the project object, so we'll need to fetch them separately
