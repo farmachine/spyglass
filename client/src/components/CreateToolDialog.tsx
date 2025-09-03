@@ -96,9 +96,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     if (editingFunction) {
       const functionId = editingFunction.id;
       
-      // Only update form state if this is a different function than currently being edited
-      // This prevents regeneration from resetting the form state
-      if (currentEditingFunctionId !== functionId) {
+      // Update form state when editing function changes or when reopening the same function
+      // Check if we're opening the dialog fresh (not already open) or if it's a different function
+      if (!open || currentEditingFunctionId !== functionId) {
         setFormData({
           name: editingFunction.name || "",
           description: editingFunction.description || "",
@@ -143,7 +143,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       setIsEditMode(false);
       setCurrentEditingFunctionId(null);
     }
-  }, [editingFunction, currentEditingFunctionId]);
+  }, [editingFunction, currentEditingFunctionId, open]);
 
   // Add update mutation for editing
   const updateTool = useMutation({
