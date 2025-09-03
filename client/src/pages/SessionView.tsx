@@ -1356,7 +1356,7 @@ export default function SessionView() {
   const [showFieldSelectionModal, setShowFieldSelectionModal] = useState(false);
   const [currentToolGroup, setCurrentToolGroup] = useState<{toolId: string, stepValues: any[]} | null>(null);
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState('documents');
   const [selectedReasoning, setSelectedReasoning] = useState<{
     reasoning: string;
     fieldName: string;
