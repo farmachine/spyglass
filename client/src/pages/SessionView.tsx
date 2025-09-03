@@ -2566,6 +2566,13 @@ export default function SessionView() {
         );
         
         console.log(`📊 Found ${firstColumnValidations.length} first column validations with data for "${firstColumnValue.valueName}"`);
+        console.log(`📊 First column validations detail:`, firstColumnValidations.map(v => ({
+          id: v.id,
+          identifierId: v.identifierId,
+          extractedValue: v.extractedValue,
+          valueId: v.valueId,
+          fieldId: v.fieldId
+        })));
         
         // For each first column validation (which has both identifierId and value)
         for (const firstColValidation of firstColumnValidations) {
