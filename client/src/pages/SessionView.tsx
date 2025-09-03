@@ -2601,11 +2601,15 @@ export default function SessionView() {
               // The first column data might be in a different collection with the same identifier
               // or in the same collection with a different mapping
               
-              // Strategy 1: Look for validation in the current step/collection
+              // Strategy 1: Look for validation in the current step/collection WITH extracted value
+              // Prioritize records with actual values over null/empty ones
               validation = validations.find(v => 
                 (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
                 v.identifierId === identifierId &&
-                v.collectionName === stepName
+                v.collectionName === stepName &&
+                v.extractedValue !== null && 
+                v.extractedValue !== undefined && 
+                v.extractedValue !== ''
               );
               
               // Strategy 2: If not found, look for the same column name in any collection with this identifier
@@ -2616,17 +2620,24 @@ export default function SessionView() {
                     (val.id === v.valueId || val.id === v.fieldId) && 
                     val.valueName === prevValue.valueName
                   );
-                  return matchesColumn && v.identifierId === identifierId;
+                  return matchesColumn && 
+                    v.identifierId === identifierId &&
+                    v.extractedValue !== null && 
+                    v.extractedValue !== undefined && 
+                    v.extractedValue !== '';
                 });
               }
               
               // Strategy 3: Look for the first column value with the same extracted value across different identifiers
               // This handles the case where the same data has different identifiers in different collections
               if (!validation && collectionValidations.length > 0) {
-                // Find a validation with the same collection and similar value
+                // Find a validation with the same collection and similar value - WITH data
                 const sameCollectionValidations = collectionValidations.filter(v =>
                   v.collectionName === stepName &&
-                  (v.valueId === prevValue.id || v.fieldId === prevValue.id)
+                  (v.valueId === prevValue.id || v.fieldId === prevValue.id) &&
+                  v.extractedValue !== null && 
+                  v.extractedValue !== undefined && 
+                  v.extractedValue !== ''
                 );
                 
                 if (sameCollectionValidations.length > 0) {
