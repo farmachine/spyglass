@@ -61,7 +61,6 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 
 // import { EditFieldValueDialog } from "@/components/EditFieldValueDialog"; // Replaced with inline editing
 import AddDocumentsModal from "@/components/AddDocumentsModal";
-import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 
@@ -5803,12 +5802,13 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         }}
       />
-      {/* Document Upload Modal (upload only, no AI processing) */}
-      <DocumentUploadModal
+      {/* Document Upload Modal (upload only, with optional tool processing) */}
+      <AddDocumentsModal
         open={documentUploadModalOpen}
         onClose={() => setDocumentUploadModalOpen(false)}
         sessionId={sessionId!}
         projectId={projectId!}
+        mode="upload"
         onSuccess={() => {
           // Refresh session documents after successful upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
