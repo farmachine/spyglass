@@ -381,6 +381,31 @@ export default function AddDocumentsModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
+          {/* Tool Processing Options - Show at top for visibility */}
+          <div className="space-y-4 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div>
+              <Label htmlFor="tool-select" className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                Process With Tool (Optional)
+              </Label>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 mb-2">
+                Select a tool to process document content before saving. For example, use "Get Document Section" to extract specific parts.
+              </p>
+              <Select value={selectedToolId || ""} onValueChange={(value) => setSelectedToolId(value === "" ? null : value)}>
+                <SelectTrigger id="tool-select" className="bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="No processing (save full content)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No processing (save full content)</SelectItem>
+                  {tools?.map((tool: any) => (
+                    <SelectItem key={tool.id} value={tool.id}>
+                      {tool.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
           {/* Target Fields Section - Only show in extract mode */}
           {mode === 'extract' && (
           <div className="space-y-3">
@@ -556,33 +581,6 @@ export default function AddDocumentsModal({
             )}
           </div>
           )}
-          
-          {/* Tool Processing Options - Always show for testing */}
-          <Separator />
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="tool-select" className="text-sm font-medium">
-                Process With Tool (Optional)
-              </Label>
-              <p className="text-xs text-gray-500 mt-1 mb-2">
-                Select a tool to process document content before saving. For example, use "Get Document Section" to extract specific parts.
-              </p>
-              <Select value={selectedToolId || ""} onValueChange={(value) => setSelectedToolId(value === "" ? null : value)}>
-                <SelectTrigger id="tool-select">
-                  <SelectValue placeholder="No processing (save full content)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No processing (save full content)</SelectItem>
-                  {tools?.map((tool: any) => (
-                    <SelectItem key={tool.id} value={tool.id}>
-                      {tool.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <Separator />
           
           {/* File Drop Zone */}
           <div
