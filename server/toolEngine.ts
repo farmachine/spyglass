@@ -548,6 +548,13 @@ export class ToolEngine {
       
       // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      // Log a snippet of the raw response around the problematic position
+      if (rawResponse.length > 24335) {
+        console.log('Raw AI response around position 24335:');
+        console.log(rawResponse.substring(24300, 24400));
+      }
+      
       const parsedResults = this.parseAIResponse(rawResponse);
       
       // 7. Map results based on operation type
@@ -781,21 +788,63 @@ Each item in the list above has an "identifierId" field. You MUST:
       
       // Try to fix common JSON issues
       try {
-        // Fix unescaped newlines and quotes in string values
+        // More aggressive approach to fix malformed JSON
         let fixedJson = cleanJson;
         
-        // Replace actual newlines within string values with escaped newlines
-        // This regex matches strings and replaces newlines within them
-        fixedJson = fixedJson.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
-          return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-        });
+        // First, try to find where the JSON actually ends (before any trailing text)
+        const lastValidBrace = fixedJson.lastIndexOf('"}');
+        if (lastValidBrace > 0 && lastValidBrace < fixedJson.length - 10) {
+          // There might be extra content after the JSON
+          const nextBracket = fixedJson.indexOf(']', lastValidBrace);
+          if (nextBracket > 0) {
+            fixedJson = fixedJson.substring(0, nextBracket + 1);
+            console.log('Truncated JSON at position', nextBracket + 1);
+          }
+        }
+        
+        // Fix unescaped characters within string values
+        // Split by quote boundaries and process each segment
+        const segments = fixedJson.split('"');
+        for (let i = 1; i < segments.length; i += 2) {
+          // Every odd-indexed segment is inside quotes (string content)
+          if (segments[i]) {
+            // Escape newlines, tabs, and quotes within string values
+            segments[i] = segments[i]
+              .replace(/\\/g, '\\\\')  // Escape backslashes first
+              .replace(/\n/g, '\\n')   // Escape newlines
+              .replace(/\r/g, '\\r')   // Escape carriage returns
+              .replace(/\t/g, '\\t');  // Escape tabs
+          }
+        }
+        fixedJson = segments.join('"');
         
         // Try parsing the fixed JSON
         const parsed = JSON.parse(fixedJson);
-        console.log('Successfully parsed after fixing newlines');
+        console.log('Successfully parsed after fixing escape sequences');
         return Array.isArray(parsed) ? parsed : [parsed];
       } catch (fixError) {
         console.error('Failed to fix JSON:', fixError);
+        
+        // Try one more aggressive fix - extract just the essential fields
+        try {
+          const essentialPattern = /"identifierId"\s*:\s*"([^"]+)".*?"extractedValue"\s*:\s*"([^"\\]*(\\.[^"\\]*)*)"/gs;
+          const matches = [...cleanJson.matchAll(essentialPattern)];
+          
+          if (matches.length > 0) {
+            const results = matches.map(match => ({
+              identifierId: match[1],
+              extractedValue: match[2] || null,
+              validationStatus: "valid",
+              aiReasoning: "Extracted from malformed JSON response",
+              confidenceScore: 0.5,
+              documentSource: "RECOVERED"
+            }));
+            console.log(`Recovered ${results.length} records from malformed JSON`);
+            return results;
+          }
+        } catch (recoveryError) {
+          console.error('Recovery attempt failed:', recoveryError);
+        }
       }
       
       // Try to extract individual objects as fallback
