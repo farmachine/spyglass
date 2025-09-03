@@ -396,7 +396,7 @@ table td:last-child {
 .fixed-table-scroll {
   flex: 1;
   overflow-y: scroll !important;
-  overflow-x: auto;
+  overflow-x: hidden;
   position: relative;
   max-height: 100%;
 }
@@ -405,7 +405,7 @@ table td:last-child {
 .session-table-wrapper {
   height: 500px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   position: relative;
   display: block;
 }

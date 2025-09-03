@@ -372,7 +372,7 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </div>
           ) : (
-            <div className="border-t">
+            <div className="border-t overflow-x-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
