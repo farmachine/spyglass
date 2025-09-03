@@ -638,12 +638,23 @@ export class ToolEngine {
    * Find the data input parameter from inputs
    */
   private findDataInput(tool: Tool, inputs: Record<string, any>): { key: string; value: any } | null {
+    // First try to find by parameter type
     for (const [key, value] of Object.entries(inputs)) {
       const param = tool.inputParameters.find(p => p.id === key || p.name === key);
       if (param?.type === 'data' && Array.isArray(value)) {
         return { key, value };
       }
     }
+    
+    // Fallback: Look for common data keys used by extraction endpoints
+    const dataKeys = ['List Item', 'data', 'records', 'items', 'rows'];
+    for (const key of dataKeys) {
+      if (inputs[key] && Array.isArray(inputs[key])) {
+        console.log(`📊 Found data in fallback key: "${key}" with ${inputs[key].length} items`);
+        return { key, value: inputs[key] };
+      }
+    }
+    
     return null;
   }
   
