@@ -5584,7 +5584,38 @@ print(json.dumps(results))
     }
   });
 
-  // Update Excel wizardry function (project-scoped)
+  // Update Excel wizardry function (project-scoped) - PUT route
+  app.put("/api/projects/:projectId/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id, projectId } = req.params;
+      
+      console.log(`🔧 PUT update Excel function ${id} for project ${projectId} with data:`, JSON.stringify(req.body, null, 2));
+      
+      // Verify the function belongs to this project
+      const existingFunction = await storage.getExcelWizardryFunction(id);
+      if (!existingFunction) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      if (existingFunction.projectId !== projectId) {
+        return res.status(403).json({ message: "Function does not belong to this project" });
+      }
+
+      const updated = await storage.updateExcelWizardryFunction(id, req.body);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Excel wizardry function not found" });
+      }
+      
+      console.log(`✅ Successfully updated Excel function ${id}:`, JSON.stringify(updated, null, 2));
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating Excel wizardry function:", error);
+      res.status(500).json({ message: "Failed to update Excel wizardry function" });
+    }
+  });
+
+  // Update Excel wizardry function (project-scoped) - PATCH route
   app.patch("/api/projects/:projectId/excel-functions/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { id, projectId } = req.params;
