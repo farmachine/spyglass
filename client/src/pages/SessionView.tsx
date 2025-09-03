@@ -1883,8 +1883,8 @@ export default function SessionView() {
       const propertyType = workflowStep ? property.dataType : property.propertyType;
       
       // Get values for comparison using original indices
-      const aValidation = getValidation(`${collection.collectionName}.${propertyName}[${a.originalIndex}]`, aIdentifierId);
-      const bValidation = getValidation(`${collection.collectionName}.${propertyName}[${b.originalIndex}]`, bIdentifierId);
+      const aValidation = getValidationByFieldName(`${collection.collectionName}.${propertyName}[${a.originalIndex}]`, aIdentifierId);
+      const bValidation = getValidationByFieldName(`${collection.collectionName}.${propertyName}[${b.originalIndex}]`, bIdentifierId);
       
       let aValue = aValidation?.extractedValue || a.item[propertyName] || '';
       let bValue = bValidation?.extractedValue || b.item[propertyName] || '';
@@ -3180,43 +3180,45 @@ export default function SessionView() {
     console.error('Failed to parse extracted data:', error);
   }
 
-  // Get validation for a specific field - using identifierId for collection fields
-  const getValidation = (fieldName: string, identifierId?: string | null) => {
+  // Helper to get valueId from field name
+  const getValueIdFromFieldName = (fieldName: string) => {
     // Check if this is a collection field (has format "Collection.Property[index]")
-    // Use regex that matches the LAST dot before [index] to handle collection names with dots
     const collectionMatch = fieldName.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
     
     if (collectionMatch) {
-      // This is a collection field - MUST use identifierId to prevent cross-row matching
-      if (!identifierId) {
-        return undefined;
-      }
-      
       const collectionName = collectionMatch[1];
       const valueName = collectionMatch[2];
       
       // Find the step value for this field to get the valueId
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
-      
-      if (!stepValue) {
-        return undefined;
-      }
-      
-      // Find validation by identifierId and valueId (column matching)
-      // All validations in the same row share identifierId
-      // All validations in the same column share valueId
-      const identifierValidation = validations.find(v => 
-        v.identifierId === identifierId &&
-        v.valueId === stepValue.id
-      );
-      
-      return identifierValidation;
+      return stepValue?.id;
     } else {
-      // This is a schema field (Info Page field) - look up by exact fieldName match
-      // These don't have identifierId and use direct fieldName matching
-      return validations.find(v => v.fieldName === fieldName);
+      // This is a schema field - find by fieldName
+      const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
+      return schemaField?.id;
     }
+  };
+
+  // Get validation for a specific field using pure ID-based matching
+  const getValidation = (identifierId: string | null, valueId: string) => {
+    // For collection fields: match by identifierId (row) + valueId (column)
+    if (identifierId) {
+      return validations.find(v => 
+        v.identifierId === identifierId &&
+        v.valueId === valueId
+      );
+    }
+    
+    // For schema fields: match by valueId only (no identifierId for single-row fields)
+    return validations.find(v => v.valueId === valueId && !v.identifierId);
+  };
+
+  // Legacy helper for backward compatibility during transition
+  const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
+    const valueId = getValueIdFromFieldName(fieldName);
+    if (!valueId) return undefined;
+    return getValidation(identifierId || null, valueId);
   };
 
   // Get session status based on field verification
@@ -3576,7 +3578,7 @@ Thank you for your assistance.`;
   };
 
   const handleDateChange = async (fieldName: string, dateValue: string) => {
-    const validation = getValidation(fieldName);
+    const validation = getValidationByFieldName(fieldName);
     if (validation) {
       let valueToStore = dateValue;
       
@@ -3769,7 +3771,7 @@ Thank you for your assistance.`;
 
   // Simple toggle handler - toggles between pending and valid
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
-    const validation = getValidation(fieldName, identifierId);
+    const validation = getValidationByFieldName(fieldName, identifierId);
     if (validation) {
       // Simple toggle: if valid -> pending, if pending -> valid
       const newStatus: ValidationStatus = validation.validationStatus === 'valid' ? 'pending' : 'valid';
@@ -3803,7 +3805,7 @@ Thank you for your assistance.`;
 
 
   const handleRevertToAI = async (fieldName: string) => {
-    const validation = getValidation(fieldName);
+    const validation = getValidationByFieldName(fieldName);
     
     if (validation && validation.originalExtractedValue !== undefined && validation.originalExtractedValue !== null) {
       try {
@@ -3930,7 +3932,7 @@ Thank you for your assistance.`;
   };
 
   const renderFieldWithValidation = (fieldName: string, value: any, isSchemaField = false) => {
-    const validation = getValidation(fieldName);
+    const validation = getValidationByFieldName(fieldName);
     const isEditing = editingField === fieldName;
     const fieldType = getFieldType(fieldName);
     const displayName = getFieldDisplayName(fieldName);
@@ -4552,7 +4554,7 @@ Thank you for your assistance.`;
                       );
                       const rowIdentifierId = rowValidation?.identifierId || null;
                       
-                      const validation = getValidation(fieldName, rowIdentifierId);
+                      const validation = getValidationByFieldName(fieldName, rowIdentifierId);
                       
                       // Get the display value (same logic as table)
                       const possibleKeys = [
@@ -5260,7 +5262,7 @@ Thank you for your assistance.`;
                                     return rowValidation?.identifierId || null;
                                   })();
                                   
-                                  const validation = getValidation(fieldName, rowIdentifierId);
+                                  const validation = getValidationByFieldName(fieldName, rowIdentifierId);
                                   
                                   // Get the display value (same logic as what's shown in the table)
                                   const possibleKeys = [
@@ -5354,7 +5356,7 @@ Thank you for your assistance.`;
                                       return rowValidation?.identifierId || null;
                                     })();
                                     
-                                    const validation = getValidation(fieldName, rowIdentifierId);
+                                    const validation = getValidationByFieldName(fieldName, rowIdentifierId);
                                     
 
                                     
