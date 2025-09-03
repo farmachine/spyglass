@@ -7473,6 +7473,39 @@ def extract_function(Column_Name, Excel_File):
             console.log(`  Last record:`, limitedPreviousData[limitedPreviousData.length - 1]);
           }
           
+          // CRITICAL: Ensure the first column is always included for context
+          // Get the first column from the step to ensure it's included
+          const stepValues = await storage.getStepValues(stepId);
+          const firstColumn = stepValues.find(v => v.isIdentifier) || stepValues[0];
+          
+          if (firstColumn && limitedPreviousData.length > 0 && !(firstColumn.valueName in limitedPreviousData[0])) {
+            console.log(`📊 CRITICAL: First column "${firstColumn.valueName}" missing from data - fetching from database`);
+            
+            // Get all validations to find first column values
+            const firstColumnValidations = existingValidations.filter(v => 
+              (v.valueId === firstColumn.id || v.fieldId === firstColumn.id)
+            );
+            
+            // Build map of identifierId to first column value
+            const firstColumnMap = new Map();
+            firstColumnValidations.forEach(v => {
+              if (v.identifierId) {
+                firstColumnMap.set(v.identifierId, v.extractedValue || '');
+              }
+            });
+            
+            console.log(`📊 Built map with ${firstColumnMap.size} first column values`);
+            
+            // Add first column to each record
+            limitedPreviousData.forEach(record => {
+              if (record.identifierId && firstColumnMap.has(record.identifierId)) {
+                record[firstColumn.valueName] = firstColumnMap.get(record.identifierId);
+              }
+            });
+            
+            console.log(`✅ Added first column "${firstColumn.valueName}" to all records`);
+          }
+          
           // Format previousData for the AI tool - it should contain merged column information
           toolInputs['List Item'] = limitedPreviousData.map(record => {
             // Include identifierId and all column values from the record
@@ -7483,9 +7516,14 @@ def extract_function(Column_Name, Excel_File):
               formattedRecord.identifierId = record.identifierId;
             }
             
-            // Include all other fields from the record
+            // CRITICAL: Always put the first column second (after identifierId) for consistency
+            if (firstColumn && record[firstColumn.valueName] !== undefined) {
+              formattedRecord[firstColumn.valueName] = record[firstColumn.valueName];
+            }
+            
+            // Include all other fields from the record (except identifierId and first column which are already added)
             for (const [key, value] of Object.entries(record)) {
-              if (key !== 'identifierId') {
+              if (key !== 'identifierId' && key !== firstColumn?.valueName) {
                 formattedRecord[key] = value;
               }
             }
