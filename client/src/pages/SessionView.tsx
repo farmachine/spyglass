@@ -2563,8 +2563,10 @@ export default function SessionView() {
           
           if (columnDef && validation.extractedValue !== null && validation.extractedValue !== undefined) {
             record[columnDef.valueName] = validation.extractedValue;
+            console.log(`  Added ${columnDef.valueName} = "${validation.extractedValue}" to record`);
           }
         }
+        console.log(`  Record for ${identifierId}:`, record);
         
         // Only include records that have data for all previous columns (up to but not including current)
         let hasAllPreviousColumns = true;

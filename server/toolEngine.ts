@@ -520,10 +520,14 @@ export class ToolEngine {
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // 4. Log the prompt for debugging
+      // 4. Log the prompt for debugging (truncated for readability)
       console.log('\n📝 AI EXTRACTION PROMPT:');
       console.log('='.repeat(80));
-      console.log(prompt);
+      // Truncate document content if present
+      const truncatedPrompt = prompt.length > 2000 
+        ? prompt.substring(0, 1000) + '\n\n[... DOCUMENT CONTENT TRUNCATED ...]\n\n' + prompt.substring(prompt.length - 500)
+        : prompt;
+      console.log(truncatedPrompt);
       console.log('='.repeat(80));
       
       // 5. Call Gemini API
