@@ -179,8 +179,6 @@ export const sessionDocuments = pgTable("session_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
-  documentName: text("document_name"), // User-provided name for the document
-  documentDescription: text("document_description"), // User-provided description
   fileSize: integer("file_size"),
   mimeType: text("mime_type"),
   extractedContent: text("extracted_content"), // Text content extracted from the document

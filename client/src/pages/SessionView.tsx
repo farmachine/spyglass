@@ -61,6 +61,7 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 
 // import { EditFieldValueDialog } from "@/components/EditFieldValueDialog"; // Replaced with inline editing
 import AddDocumentsModal from "@/components/AddDocumentsModal";
+import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 
@@ -4884,14 +4885,9 @@ Thank you for your assistance.`;
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.documentName || doc.fileName}>
-                                          {doc.documentName || doc.fileName}
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.fileName}>
+                                          {doc.fileName}
                                         </p>
-                                        {doc.documentDescription && (
-                                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
-                                            {doc.documentDescription}
-                                          </p>
-                                        )}
                                       </div>
                                     </div>
                                   </td>
@@ -5802,13 +5798,12 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         }}
       />
-      {/* Document Upload Modal (upload only, with optional tool processing) */}
-      <AddDocumentsModal
+      {/* Document Upload Modal (upload only, no AI processing) */}
+      <DocumentUploadModal
         open={documentUploadModalOpen}
         onClose={() => setDocumentUploadModalOpen(false)}
         sessionId={sessionId!}
         projectId={projectId!}
-        mode="upload"
         onSuccess={() => {
           // Refresh session documents after successful upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
