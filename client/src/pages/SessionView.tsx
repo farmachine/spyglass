@@ -2476,6 +2476,34 @@ export default function SessionView() {
       // Compile records from validations
       const recordsByIdentifier = new Map<string, any>();
       
+      // First, include first columns from all referenced steps
+      const referencedStepIds = new Set(allReferencedValidations.map(v => v.stepId).filter(id => id));
+      referencedStepIds.forEach(stepId => {
+        const referencedStep = project?.workflowSteps?.find(s => s.id === stepId);
+        if (referencedStep && referencedStep.values && referencedStep.values[0]) {
+          const firstColumnId = referencedStep.values[0].id;
+          const firstColumnName = referencedStep.values[0].valueName;
+          console.log(`📝 Including first column "${firstColumnName}" from step "${referencedStep.name}"`);
+          
+          // Get validations for the first column
+          const firstColumnValidations = validations.filter(v => 
+            v.valueId === firstColumnId && 
+            v.identifierId && 
+            verifiedIdentifierIds.has(v.identifierId)
+          );
+          
+          firstColumnValidations.forEach(v => {
+            if (!recordsByIdentifier.has(v.identifierId)) {
+              recordsByIdentifier.set(v.identifierId, {
+                identifierId: v.identifierId
+              });
+            }
+            recordsByIdentifier.get(v.identifierId)[firstColumnName] = v.extractedValue;
+          });
+        }
+      });
+      
+      // Then add all referenced validations (including any duplicates which will be overwritten)
       allReferencedValidations.forEach(v => {
         if (v.identifierId && verifiedIdentifierIds.has(v.identifierId)) {
           if (!recordsByIdentifier.has(v.identifierId)) {
