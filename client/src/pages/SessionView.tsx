@@ -3604,8 +3604,15 @@ Thank you for your assistance.`;
     }
     
     // Find the step value for this field to get the proper fieldId
-    const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
-    const stepValue = dataFieldsStep?.values?.find(v => v.valueName === fieldName);
+    // Look through all workflow steps to find the field
+    let stepValue = null;
+    for (const step of project?.workflowSteps || []) {
+      const found = step.values?.find(v => v.valueName === fieldName);
+      if (found) {
+        stepValue = found;
+        break;
+      }
+    }
     
     if (!stepValue) {
       console.error('❌ No step value found for:', fieldName);
@@ -4278,77 +4285,27 @@ Thank you for your assistance.`;
                     <div className="truncate">Documents</div>
                   </button>
                 </div>
-
-                {/* Data Fields Tab (Info Page) */}
-                <div className="relative flex items-center">
-                  {/* Horizontal connecting line when selected */}
-                  {activeTab === 'info' && (
-                    <div className="absolute left-4 w-6 h-[2px] z-20" style={{ backgroundColor: '#4F63A4' }}></div>
-                  )}
-                  
-                  {/* Circular icon - solid dot without border */}
-                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    {(() => {
-                      const infoValidations = validations.filter(v => !v.collectionName && !v.fieldName?.includes('.'));
-                      const verifiedCount = infoValidations.filter(v => 
-                        v.validationStatus === 'valid' || 
-                        v.validationStatus === 'manual'
-                      ).length;
-                      const totalCount = infoValidations.length;
-                      
-                      return <div className={`w-2 h-2 rounded-full ${
-                        activeTab === 'info' ? '' : 'bg-slate-400 dark:bg-gray-500'
-                      }`} style={activeTab === 'info' ? { backgroundColor: '#4F63A4' } : {}}></div>;
-                    })()}
-                  </div>
-                  
-                  {/* Tab button */}
-                  <button
-                    onClick={() => setActiveTab('info')}
-                    className={`ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                      activeTab === 'info' 
-                        ? 'font-medium text-blue-900 dark:text-blue-200 hover:bg-slate-100 dark:hover:bg-gray-700' 
-                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal'
-                    }`}
-                  >
-                    <div className="truncate">Data Fields</div>
-                  </button>
-                </div>
                 
-                {/* Collection and List-type Workflow Step Tabs */}
+                {/* Workflow Steps - Both Info Pages and Data Tables */}
                 {(() => {
-                  // Combine collections and list-type workflow steps
-                  const listItems: Array<{ id: string; name: string; type: 'collection' | 'workflow' }> = [];
+                  // Get all workflow steps (info_page, data_table, list types)
+                  const allSteps: Array<{ id: string; name: string; stepType: string }> = [];
                   
-                  // Add collections
-                  if (collections) {
-                    collections.forEach(collection => {
-                      listItems.push({
-                        id: collection.id,
-                        name: collection.collectionName,
-                        type: 'collection'
-                      });
+                  // Add ALL workflow steps - not just list types
+                  if (project.workflowSteps) {
+                    project.workflowSteps.forEach(step => {
+                      // Skip the Documents step since it's already shown above
+                      if (step.stepName !== 'Documents') {
+                        allSteps.push({
+                          id: step.id,
+                          name: step.stepName,
+                          stepType: step.stepType
+                        });
+                      }
                     });
                   }
                   
-                  // Add list-type workflow steps that aren't already in collections
-                  if (project.workflowSteps) {
-                    project.workflowSteps
-                      .filter(step => step.stepType === 'list')
-                      .forEach(step => {
-                        // Only add if not already in collections
-                        const alreadyExists = listItems.some(item => item.name === step.stepName);
-                        if (!alreadyExists) {
-                          listItems.push({
-                            id: step.id,
-                            name: step.stepName,
-                            type: 'workflow'
-                          });
-                        }
-                      });
-                  }
-                  
-                  return listItems.map((item, index) => {
+                  return allSteps.map((item, index) => {
                     const itemValidations = validations.filter(v => 
                       v.collectionName === item.name || 
                       (v.fieldName && v.fieldName.startsWith(item.name + '.'))
@@ -4456,7 +4413,6 @@ Thank you for your assistance.`;
                       })() }}></div>
                       <h2 className="text-2xl font-bold dark:text-white">{(() => {
                         // Handle special tabs first
-                        if (activeTab === 'info') return 'Data Fields';
                         if (activeTab === 'documents') return 'Documents';
                         
                         // For all other tabs, display the activeTab name directly
@@ -4639,21 +4595,24 @@ Thank you for your assistance.`;
 
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full flex-1 overflow-hidden">
-              {/* Info Tab Content - Single Object View */}
-              {activeTab === 'info' && (
-                <div className="h-full overflow-auto">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                    Key information and fields extracted from this {(project.mainObjectName || "session").toLowerCase()}.
-                  </p>
-                  <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                  <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {(() => {
-                        // Get the "Data Fields" workflow step and display all its configured values
-                        const dataFieldsStep = project?.workflowSteps?.find(step => step.stepName === 'Data Fields');
+              {/* Info Page Content - For info_page type workflow steps */}
+              {(() => {
+                const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
+                if (currentStep?.stepType !== 'info_page') return null;
+                return (
+                  <div className="h-full overflow-auto">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                      Key information and fields extracted from this {(activeTab || "section").toLowerCase()}.
+                    </p>
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {(() => {
+                          // Display the configured values for the current info page step
+                          const currentInfoStep = currentStep;
                         
                         
-                        if (!dataFieldsStep?.values || dataFieldsStep.values.length === 0) {
+                        if (!currentInfoStep?.values || currentInfoStep.values.length === 0) {
                           return (
                             <div className="col-span-full text-center text-gray-500 py-8">
                               <p>No data fields have been configured for this step.</p>
@@ -4663,7 +4622,7 @@ Thank you for your assistance.`;
                         }
                         
                         // Group step values by toolId for extraction grouping
-                        const groupedValues = dataFieldsStep.values
+                        const groupedValues = currentInfoStep.values
                           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
                           .reduce((groups, stepValue) => {
                             const toolId = stepValue.toolId || 'manual';
@@ -4672,7 +4631,7 @@ Thank you for your assistance.`;
                             }
                             groups[toolId].push(stepValue);
                             return groups;
-                          }, {} as Record<string, typeof dataFieldsStep.values>);
+                          }, {} as Record<string, typeof currentInfoStep.values>);
 
                         return Object.entries(groupedValues).map(([toolId, stepValues]) => (
                           <div key={toolId} className="col-span-full space-y-4">
@@ -4893,7 +4852,8 @@ Thank you for your assistance.`;
                   </CardContent>
                 </Card>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Documents Tab Content */}
               {activeTab === 'documents' && (
