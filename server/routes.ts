@@ -7019,11 +7019,20 @@ def extract_function(Column_Name, Excel_File):
                 console.log(`✅ Previous data already has column properties directly`);
                 console.log(`  Available columns:`, Object.keys(previousData[0]).filter(k => k !== 'identifierId'));
                 
+                // Get the first column (identifier) from the step - do this once outside the loop
+                const stepValues = await storage.getStepValues(stepId);
+                const firstColumn = stepValues.find(v => v.isIdentifier) || stepValues[0];
+                
                 // Build combined data by extracting only the requested columns
                 for (const record of previousData) {
                   const combinedRecord: any = {
                     identifierId: record.identifierId
                   };
+                  
+                  // ALWAYS include the first column (identifier) from the step
+                  if (firstColumn && record[firstColumn.valueName]) {
+                    combinedRecord[firstColumn.valueName] = record[firstColumn.valueName];
+                  }
                   
                   // Process each reference in the array
                   for (const ref of paramValue) {

@@ -2536,10 +2536,6 @@ export default function SessionView() {
         v.collectionName === stepName
       );
       
-      console.log(`📊 Step validations for "${stepName}":`, stepValidations.length);
-      console.log(`📊 Current valueIndex:`, valueIndex);
-      console.log(`📊 Extracting column:`, workflowStep.values[valueIndex]?.valueName);
-      
       // Group all validations by identifierId
       const recordsByIdentifier = new Map<string, any>();
       
@@ -2557,7 +2553,6 @@ export default function SessionView() {
         
         // Get ALL validations for this identifierId (not just from stepValidations)
         const identifierValidations = validations.filter(v => v.identifierId === identifierId);
-        console.log(`  Identifier ${identifierId} has ${identifierValidations.length} total validations`);
         
         // Add each column's value to the record
         for (const validation of identifierValidations) {
@@ -2568,10 +2563,8 @@ export default function SessionView() {
           
           if (columnDef && validation.extractedValue !== null && validation.extractedValue !== undefined) {
             record[columnDef.valueName] = validation.extractedValue;
-            console.log(`    Found ${columnDef.valueName} = "${validation.extractedValue}"`);
           }
         }
-        console.log(`  Record before filtering:`, record);
         
         // ALWAYS include the first column (it's the identifier) and all previous columns
         let hasRequiredColumns = true;
