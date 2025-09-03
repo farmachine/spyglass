@@ -483,11 +483,14 @@ export type UserWithOrganization = User & {
 };
 
 export type ProjectWithDetails = Project & {
-  schemaFields: ProjectSchemaField[];
-  collections: (ObjectCollection & {
+  // DEPRECATED: Use workflowSteps instead
+  schemaFields?: ProjectSchemaField[];
+  // DEPRECATED: Use workflowSteps instead
+  collections?: (ObjectCollection & {
     properties: CollectionProperty[];
   })[];
-  workflowSteps?: (WorkflowStep & {
+  // Primary data structure - unified steps/values architecture
+  workflowSteps: (WorkflowStep & {
     values: StepValue[];
   })[];
   sessions: ExtractionSession[];

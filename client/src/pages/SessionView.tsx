@@ -27,7 +27,7 @@
  * 5. Export data → Excel files generated with proper structure
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -535,7 +535,7 @@ const AIExtractionModal = ({
     const wasSelected = selectedTargetFields.includes(fieldId);
     
     // Check if this field belongs to a collection by looking for collectionId
-    const allCollections = project?.collections || [];
+    const allCollections = collections || [];
     let fieldCollection = null;
     let isCollectionField = false;
     
@@ -739,7 +739,7 @@ const AIExtractionModal = ({
         }
         
         // Check if it's a collection property
-        for (const collection of project?.collections || []) {
+        for (const collection of collections || []) {
           const property = collection.properties?.find(p => p.id === field.id);
           if (property) {
             return {
@@ -868,7 +868,7 @@ const AIExtractionModal = ({
               id: project?.id,
               projectId: project?.id,
               schemaFields: project?.schemaFields || [],
-              collections: project?.collections || [],
+              collections: collections || [],
               workflowSteps: project?.workflowSteps || []
             },
             target_fields: targetField ? [targetField] : [],
@@ -908,7 +908,7 @@ const AIExtractionModal = ({
             id: project?.id,
             projectId: project?.id,
             schemaFields: project?.schemaFields || [],
-            collections: project?.collections || []
+            collections: collections || []
           },
           target_fields: targetFieldsWithSources
         };
@@ -985,7 +985,7 @@ const AIExtractionModal = ({
         console.log(`--- Field ${index + 1}: ${field.name} ---`);
         
         // Find the collection and property for this field
-        const allCollections = project?.collections || [];
+        const allCollections = collections || [];
         for (const collection of allCollections) {
           const property = collection.properties?.find(p => p.id === field.id);
           if (property) {
@@ -1012,11 +1012,11 @@ const AIExtractionModal = ({
 
   // Auto-select identifier fields when modal opens
   useEffect(() => {
-    if (isOpen && availableFields.length > 0 && project?.collections) {
+    if (isOpen && availableFields.length > 0 && collections) {
       const identifierFields: string[] = [];
       
       // Find all identifier fields
-      for (const collection of project.collections) {
+      for (const collection of collections) {
         for (const property of collection.properties || []) {
           if (property.isIdentifier && availableFields.some(f => f.id === property.id)) {
             identifierFields.push(property.id);
@@ -1064,7 +1064,7 @@ const AIExtractionModal = ({
                 let fieldCollection = null;
                 
                 // Check if this field belongs to any collection
-                const allCollections = project?.collections || [];
+                const allCollections = collections || [];
                 for (const collection of allCollections) {
                   const property = collection.properties?.find(p => p.id === field.id);
                   if (property) {
@@ -1182,7 +1182,7 @@ const AIExtractionModal = ({
                             {(() => {
                               // Find field description from project collections or schema
                               let fieldDescription = '';
-                              const allCollections = project?.collections || [];
+                              const allCollections = collections || [];
                               
                               // Check collections first
                               for (const collection of allCollections) {
@@ -1313,6 +1313,31 @@ const AIExtractionModal = ({
   );
 };
 
+// Helper function to convert workflowSteps to collections-like structure for backward compatibility
+const convertStepsToCollections = (workflowSteps: any[]) => {
+  if (!workflowSteps) return [];
+  
+  // Filter for list-type steps (data tables)
+  return workflowSteps
+    .filter(step => step.stepType === 'list')
+    .map(step => ({
+      id: step.id,
+      collectionName: step.stepName,
+      description: step.description,
+      properties: step.values?.map((value: any) => ({
+        id: value.id,
+        propertyName: value.valueName,
+        propertyType: value.dataType,
+        description: value.description,
+        isIdentifier: value.isIdentifier || false,
+        orderIndex: value.orderIndex,
+        choiceOptions: value.choiceOptions,
+        functionId: value.toolId,
+        autoVerificationConfidence: value.autoVerificationConfidence
+      })) || []
+    }));
+};
+
 export default function SessionView() {
   const { sessionId } = useParams(); // Remove projectId from params - we'll get it from session data
   const { toast } = useToast();
@@ -1386,8 +1411,8 @@ export default function SessionView() {
 
   // Helper function to find collection property data
   const findCollectionProperty = (validation: FieldValidation) => {
-    if (validation.validationType !== 'collection_property' || !project?.collections) return null;
-    for (const collection of project.collections) {
+    if (validation.validationType !== 'collection_property' || !collections) return null;
+    for (const collection of collections) {
       const property = collection.properties?.find(p => p.id === validation.fieldId);
       if (property) {
         return {
@@ -1657,7 +1682,7 @@ export default function SessionView() {
     }
     
     // Add collection sections that have data (like "Column Name Mapping (60)")
-    project?.collections?.forEach(collection => {
+    collections?.forEach(collection => {
       const collectionData = extractedData[collection.collectionName];
       const itemCount = Array.isArray(collectionData) ? collectionData.filter(item => 
         item && Object.values(item || {}).some(value => 
@@ -1902,6 +1927,14 @@ export default function SessionView() {
     `${session.sessionName} - ${project.name}` : 
     session?.sessionName || project?.name || "Session"
   );
+  
+  // Convert workflowSteps to collections for backward compatibility
+  // This allows us to gradually migrate from the old collections/fields architecture
+  // to the new unified steps/values architecture
+  const collections = useMemo(() => {
+    if (!project?.workflowSteps) return project?.collections || [];
+    return convertStepsToCollections(project.workflowSteps);
+  }, [project?.workflowSteps, project?.collections]);
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
@@ -1932,11 +1965,11 @@ export default function SessionView() {
 
   // Initialize collapse state once data is loaded
   useEffect(() => {
-    if (project?.collections && validations && session && !hasInitializedCollapsed) {
+    if (collections && validations && session && !hasInitializedCollapsed) {
       const extractedData = session.extractedData ? JSON.parse(session.extractedData) : {};
       const initialExpanded = new Set<string>();
       
-      project.collections.forEach(collection => {
+      collections.forEach(collection => {
         // Check if collection has data
         const collectionValidations = validations.filter(v => v.collectionName === collection.collectionName);
         const hasData = collectionValidations.length > 0 || 
@@ -1953,7 +1986,7 @@ export default function SessionView() {
       setExpandedCollections(initialExpanded);
       setHasInitializedCollapsed(true);
     }
-  }, [project?.collections, validations, session, hasInitializedCollapsed]);
+  }, [collections, validations, session, hasInitializedCollapsed]);
 
   const updateValidationMutation = useMutation({
     mutationFn: async (params: { id: string; data: Partial<FieldValidation> }) => {
@@ -2149,27 +2182,14 @@ export default function SessionView() {
 
   // Handler for adding new collection item
   const handleAddCollectionItem = async (collectionName: string) => {
-    console.log(`🚀 ADD ITEM CLICKED for: ${collectionName}`);
-    console.log('Session:', !!session, 'Project:', !!project);
-    
-    if (!session || !project) {
-      console.log('❌ Missing session or project');
-      return;
-    }
+    if (!session || !project) return;
     
     // Check if this is a workflow step or a collection
     const workflowStep = project.workflowSteps?.find(step => step.stepName === collectionName);
-    const collection = project.collections.find(c => c.collectionName === collectionName);
-    
-    console.log('Found workflowStep:', !!workflowStep, 'Found collection:', !!collection);
-    console.log('Workflow step details:', workflowStep);
-    console.log('Collection details:', collection);
+    const collection = collections.find(c => c.collectionName === collectionName);
     
     // Must be either a workflow step or a collection
-    if (!workflowStep && !collection) {
-      console.log('❌ No workflow step or collection found for:', collectionName);
-      return;
-    }
+    if (!workflowStep && !collection) return;
     
     // Find the highest existing record index for this collection using improved filtering
     const collectionValidations = validations.filter(v => {
@@ -2896,7 +2916,7 @@ export default function SessionView() {
     console.log(`${shouldVerify ? 'Verifying' : 'Unverifying'} all items in collection: ${collectionName}`);
     
     // Find the collection
-    const collection = project?.collections?.find(c => c.collectionName === collectionName);
+    const collection = collections?.find(c => c.collectionName === collectionName);
     if (!collection) {
       console.error(`Collection not found: ${collectionName}`);
       return;
@@ -3241,8 +3261,8 @@ export default function SessionView() {
     }
 
     // Add collection properties (from all collections)
-    if (project?.collections) {
-      project.collections.forEach(collection => {
+    if (collections) {
+      collections.forEach(collection => {
         if (collection.properties) {
           collection.properties.forEach(property => {
             allFields.push({
@@ -3788,7 +3808,7 @@ Thank you for your assistance.`;
     }
     
     // Check collection properties
-    for (const collection of project.collections) {
+    for (const collection of collections) {
       if (fieldName.startsWith(collection.collectionName + '.')) {
         const propertyName = fieldName.split('.')[1].split('[')[0]; // Remove [index] if present
         const property = collection.properties.find(p => p.propertyName === propertyName);
@@ -3865,7 +3885,7 @@ Thank you for your assistance.`;
     }
     
     // Check collection properties
-    for (const collection of project.collections) {
+    for (const collection of collections) {
       if (fieldName.startsWith(collection.collectionName + '.')) {
         const parts = fieldName.split('.');
         const propertyPart = parts[1]; // e.g., "Name[0]" or "Name"
@@ -4211,13 +4231,13 @@ Thank you for your assistance.`;
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
                 height: `${(() => {
                   let count = 1; // Start with 1 for General Information
-                  if (project.collections) {
-                    count += project.collections.length;
+                  if (collections) {
+                    count += collections.length;
                   }
                   if (project.workflowSteps) {
                     const additionalSteps = project.workflowSteps.filter(step => 
                       step.stepType === 'list' && 
-                      !project.collections?.some(c => c.collectionName === step.stepName)
+                      !collections?.some(c => c.collectionName === step.stepName)
                     ).length;
                     count += additionalSteps;
                   }
@@ -4295,8 +4315,8 @@ Thank you for your assistance.`;
                   const listItems: Array<{ id: string; name: string; type: 'collection' | 'workflow' }> = [];
                   
                   // Add collections
-                  if (project.collections) {
-                    project.collections.forEach(collection => {
+                  if (collections) {
+                    collections.forEach(collection => {
                       listItems.push({
                         id: collection.id,
                         name: collection.collectionName,
@@ -4490,8 +4510,8 @@ Thank you for your assistance.`;
             {/* Step Description - positioned below step header */}
             {(() => {
               // Get the active collection's description
-              const collections = project?.collections || [];
-              const activeCollection = collections.find(c => {
+              const collectionsList = collections || [];
+              const activeCollection = collectionsList.find(c => {
                 const stepName = c.collectionName;
                 const workflowSteps = project?.workflowSteps || [];
                 return workflowSteps.some(step => 
@@ -4983,7 +5003,7 @@ Thank you for your assistance.`;
                 const allListItems: Array<any> = [];
                 
                 // Add collections
-                project.collections.forEach(collection => {
+                collections.forEach(collection => {
                   allListItems.push({
                     ...collection,
                     itemType: 'collection',
@@ -5156,10 +5176,7 @@ Thank you for your assistance.`;
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => {
-                                      console.log('🔥 BUTTON CLICKED!', collection.collectionName, collection);
-                                      handleAddCollectionItem(collection.collectionName);
-                                    }}
+                                    onClick={() => handleAddCollectionItem(collection.collectionName)}
                                     className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                     title="Add new item"
                                   >
