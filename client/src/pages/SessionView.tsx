@@ -2610,8 +2610,25 @@ export default function SessionView() {
               }
               
               tempRecordData[prevValue.valueName] = validation.extractedValue;
+            } else if (colIndex === 0) {
+              // Special handling for first column - it must be included even if validation lookup fails
+              // Try alternative lookup methods for manually entered first column
+              const alternativeValidation = collectionValidations.find(v => 
+                (v.valueId === prevValue.id || v.fieldId === prevValue.id) && 
+                v.identifierId === identifierId
+              );
+              
+              if (alternativeValidation && alternativeValidation.extractedValue) {
+                tempRecordData[prevValue.valueName] = alternativeValidation.extractedValue;
+                console.log(`Found first column value via alternative lookup: ${prevValue.valueName} = ${alternativeValidation.extractedValue}`);
+              } else {
+                // If still no validation found, this record isn't ready for extraction
+                console.log(`WARNING: No first column value found for identifierId ${identifierId}`);
+                allPreviousColumnsValid = false;
+                break;
+              }
             } else {
-              // No extraction value at all - this record hasn't been processed
+              // For other columns, if no extraction value exists, skip this record
               allPreviousColumnsValid = false;
               break;
             }
