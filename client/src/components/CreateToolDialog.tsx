@@ -49,7 +49,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [open, setOpen] = useState(false);
   const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
-  const [outputType, setOutputType] = useState<"single" | "multiple">("single");
   const [operationType, setOperationType] = useState<"create" | "update">("update");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
   const [formData, setFormData] = useState({
@@ -120,16 +119,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         const cleanOpType = fullOpType.replace(/Multiple+$/, 'Multiple').replace(/Single+$/, 'Single');
         const baseOpType = cleanOpType.startsWith('create') ? 'create' : 'update';
         setOperationType(baseOpType as "create" | "update");
-        
-        // Parse outputType from the operationType string (authoritative source)
-        if (cleanOpType.includes('Single')) {
-          setOutputType('single');
-        } else if (cleanOpType.includes('Multiple')) {
-          setOutputType('multiple');
-        } else {
-          // Fallback to editingFunction.outputType if operationType parsing fails
-          setOutputType(editingFunction.outputType || "single");
-        }
         
         setInputParameters(editingFunction.inputParameters || []);
         setIsEditMode(true);
@@ -250,8 +239,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     mutationFn: async () => {
       console.log('🚀 NEW CLEAN CODE GENERATION - Using current form data');
       
-      // Build the full operationType enum value
-      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+      // Build the full operationType enum value - always Multiple
+      const fullOperationType = `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
       
       const formDataToSend = {
         projectId: projectId,
@@ -259,7 +248,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         description: formData.description,
         inputParameters: inputParameters,
         toolType: toolType,
-        outputType: outputType,
+        outputType: "multiple",
         operationType: fullOperationType,
         aiAssistanceRequired: formData.aiAssistanceRequired,
         aiAssistancePrompt: formData.aiAssistancePrompt
@@ -367,8 +356,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   // Regenerate function code mutation
   const regenerateToolCode = useMutation({
     mutationFn: async (toolId: string) => {
-      // Build the full operationType enum value
-      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+      // Build the full operationType enum value - always Multiple
+      const fullOperationType = `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
       
       return apiRequest(`/api/excel-functions/${toolId}/regenerate`, {
         method: 'PUT',
@@ -377,7 +366,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           description: formData.description,
           inputParameters: inputParameters,
           toolType: toolType,
-          outputType: outputType,
+          outputType: "multiple",
           operationType: fullOperationType,
           aiAssistanceRequired: formData.aiAssistanceRequired,
           aiAssistancePrompt: formData.aiAssistancePrompt,
@@ -906,15 +895,15 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       return;
     }
 
-    // Build the full operationType enum value
-    const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+    // Build the full operationType enum value - always Multiple
+    const fullOperationType = `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
 
     const toolData = {
       projectId,
       name: formData.name,
       description: formData.description,
       toolType,
-      outputType,
+      outputType: "multiple",
       operationType: fullOperationType,
       inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
@@ -1074,15 +1063,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                       <SelectItem value="update">Update</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={outputType} onValueChange={(value: "single" | "multiple") => setOutputType(value)}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single">Single Value</SelectItem>
-                      <SelectItem value="multiple">Multiple Records</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[140px] h-8 text-xs flex items-center px-3 border rounded-md bg-gray-50 text-gray-600">
+                    Multiple Records
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1494,15 +1477,15 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     variant="outline"
                     onClick={editingFunction ? handleRegenerateCode : () => {
                       // For new tools, trigger the generation process
-                      // Build the full operationType enum value
-                      const fullOperationType = `${operationType}${outputType === 'single' ? 'Single' : 'Multiple'}` as 'createSingle' | 'updateSingle' | 'createMultiple' | 'updateMultiple';
+                      // Build the full operationType enum value - always Multiple
+                      const fullOperationType = `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
                       
                       const toolData = {
                         projectId,
                         name: formData.name,
                         description: formData.description,
                         toolType,
-                        outputType,
+                        outputType: "multiple",
                         operationType: fullOperationType,
                         inputParameters,
                         aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
