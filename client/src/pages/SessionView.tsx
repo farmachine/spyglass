@@ -2808,8 +2808,14 @@ export default function SessionView() {
     
     // Check how many records have already been extracted for this specific value
     // Validations use fieldId, not valueId, and we need to filter by collection name too
+    // IMPORTANT: Only count validations that have actual extracted values, not empty placeholders
     const existingValidationsForValue = validations.filter(v => 
-      v.fieldId === valueId && v.collectionName === stepName
+      v.fieldId === valueId && 
+      v.collectionName === stepName &&
+      v.extractedValue !== null && 
+      v.extractedValue !== undefined && 
+      v.extractedValue !== '' &&
+      v.extractedValue !== 'Not Found'  // Don't count "Not Found" as extracted
     );
     const extractedCount = existingValidationsForValue.length;
     
