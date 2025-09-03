@@ -1567,8 +1567,8 @@ export default function SessionView() {
           validationType: 'collection_property',
           dataType: dataType,
           fieldId: fieldId,
+          valueId: fieldId, // Also send as valueId since backend expects this for new architecture
           collectionName: collectionName,
-          fieldName: `${collectionName}.${fieldName}[${recordIndex}]`, // Add proper fieldName
           recordIndex: recordIndex,
           identifierId: identifierId,
           extractedValue: currentValue,
@@ -3194,11 +3194,19 @@ export default function SessionView() {
       const collectionName = collectionMatch[1];
       const valueName = collectionMatch[2];
       
-      // Find validation by identifierId and collection/value names
+      // Find the step value for this field
+      const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
+      const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
+      
+      if (!stepValue) {
+        return undefined;
+      }
+      
+      // Find validation by identifierId, collectionName, and valueId (or fieldId as fallback)
       const identifierValidation = validations.find(v => 
         v.identifierId === identifierId &&
         v.collectionName === collectionName &&
-        v.fieldName?.includes(`.${valueName}[`)
+        (v.valueId === stepValue.id || v.fieldId === stepValue.id)
       );
       
       return identifierValidation;
