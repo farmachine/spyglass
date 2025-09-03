@@ -2563,23 +2563,45 @@ export default function SessionView() {
           
           if (columnDef && validation.extractedValue !== null && validation.extractedValue !== undefined) {
             record[columnDef.valueName] = validation.extractedValue;
-            console.log(`  Added ${columnDef.valueName} = "${validation.extractedValue}" to record`);
           }
         }
-        console.log(`  Record for ${identifierId}:`, record);
         
-        // Only include records that have data for all previous columns (up to but not including current)
-        let hasAllPreviousColumns = true;
-        for (let i = 0; i < valueIndex; i++) {
+        // ALWAYS include the first column (it's the identifier) and all previous columns
+        let hasRequiredColumns = true;
+        
+        // First column MUST always be present (it's the identifier)
+        const firstColName = workflowStep.values[0].valueName;
+        if (!record[firstColName]) {
+          hasRequiredColumns = false;
+        }
+        
+        // Check other previous columns (up to but not including current)
+        for (let i = 1; i < valueIndex; i++) {
           const colName = workflowStep.values[i].valueName;
           if (!record[colName]) {
-            hasAllPreviousColumns = false;
+            hasRequiredColumns = false;
             break;
           }
         }
         
-        if (hasAllPreviousColumns) {
-          recordsByIdentifier.set(identifierId, record);
+        if (hasRequiredColumns) {
+          // Ensure the record has columns in the right order
+          const orderedRecord: any = { identifierId };
+          
+          // Always add first column first (Document Name)
+          if (record[firstColName]) {
+            orderedRecord[firstColName] = record[firstColName];
+          }
+          
+          // Then add other columns in order
+          for (let i = 1; i < workflowStep.values.length; i++) {
+            const colName = workflowStep.values[i].valueName;
+            if (record[colName]) {
+              orderedRecord[colName] = record[colName];
+            }
+          }
+          
+          recordsByIdentifier.set(identifierId, orderedRecord);
         }
       }
       
