@@ -544,12 +544,23 @@ export class ToolEngine {
         progressCallback(0, total, 'Processing with AI...');
       }
       
+      // Calculate token limit based on batch size
+      // For large batches, we need more tokens to handle the response
+      const batchSize = inputArray?.length || 1;
+      const tokensPerRecord = 500; // Estimate 500 tokens per record for descriptions
+      const baseTokens = 8192;
+      const calculatedTokens = Math.max(baseTokens, batchSize * tokensPerRecord);
+      const maxTokenLimit = 32768; // Gemini's max limit
+      const finalTokenLimit = Math.min(calculatedTokens, maxTokenLimit);
+      
+      console.log(`📊 Batch size: ${batchSize}, Token limit: ${finalTokenLimit}`);
+      
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
         config: {
           responseMimeType: "application/json",
           temperature: 0.1,
-          maxOutputTokens: 8192
+          maxOutputTokens: finalTokenLimit
         },
         contents: [
           {
@@ -832,22 +843,39 @@ Each item in the list above has an "identifierId" field. You MUST:
     try {
       const parsed = JSON.parse(cleanJson);
       return Array.isArray(parsed) ? parsed : [parsed];
-    } catch (error) {
+    } catch (error: any) {
       console.error('Initial JSON parse error:', error);
+      console.log(`JSON parse failed at position: ${error.message}`);
+      console.log(`Response length: ${cleanJson.length} characters`);
       
       // Try to fix common JSON issues
       try {
         // More aggressive approach to fix malformed JSON
         let fixedJson = cleanJson;
         
-        // First, try to find where the JSON actually ends (before any trailing text)
-        const lastValidBrace = fixedJson.lastIndexOf('"}');
-        if (lastValidBrace > 0 && lastValidBrace < fixedJson.length - 10) {
-          // There might be extra content after the JSON
-          const nextBracket = fixedJson.indexOf(']', lastValidBrace);
-          if (nextBracket > 0) {
-            fixedJson = fixedJson.substring(0, nextBracket + 1);
-            console.log('Truncated JSON at position', nextBracket + 1);
+        // If the error mentions a position, try to truncate there
+        const positionMatch = error.message?.match(/position (\d+)/);
+        if (positionMatch) {
+          const errorPosition = parseInt(positionMatch[1]);
+          console.log(`Attempting to recover by truncating at error position ${errorPosition}`);
+          
+          // Find the last complete object before the error position
+          const beforeError = cleanJson.substring(0, errorPosition);
+          const lastCompleteObject = beforeError.lastIndexOf('},');
+          if (lastCompleteObject > 0) {
+            fixedJson = cleanJson.substring(0, lastCompleteObject + 1) + ']';
+            console.log(`Truncated at last complete object at position ${lastCompleteObject}`);
+          }
+        } else {
+          // First, try to find where the JSON actually ends (before any trailing text)
+          const lastValidBrace = fixedJson.lastIndexOf('"}');
+          if (lastValidBrace > 0 && lastValidBrace < fixedJson.length - 10) {
+            // There might be extra content after the JSON
+            const nextBracket = fixedJson.indexOf(']', lastValidBrace);
+            if (nextBracket > 0) {
+              fixedJson = fixedJson.substring(0, nextBracket + 1);
+              console.log('Truncated JSON at position', nextBracket + 1);
+            }
           }
         }
         
