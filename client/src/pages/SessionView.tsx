@@ -2151,9 +2151,12 @@ export default function SessionView() {
   const handleAddCollectionItem = async (collectionName: string) => {
     if (!session || !project) return;
     
-    // Find the collection
+    // Check if this is a workflow step or a collection
+    const workflowStep = project.workflowSteps?.find(step => step.stepName === collectionName);
     const collection = project.collections.find(c => c.collectionName === collectionName);
-    if (!collection) return;
+    
+    // Must be either a workflow step or a collection
+    if (!workflowStep && !collection) return;
     
     // Find the highest existing record index for this collection using improved filtering
     const collectionValidations = validations.filter(v => {
@@ -2187,31 +2190,40 @@ export default function SessionView() {
     const newIdentifierId = crypto.randomUUID();
     console.log(`📝 Generated new identifierId for manual row: ${newIdentifierId}`);
 
+    // Get properties/values based on whether this is a workflow step or collection
+    const itemProperties = workflowStep ? workflowStep.values : collection.properties;
+    
     // Optimistic update: Create temporary validation records
-    const tempValidations = collection.properties.map(property => ({
-      id: `temp-${Date.now()}-${property.id}`,
-      sessionId: session.id,
-      validationType: 'collection_property' as const,
-      dataType: property.propertyType,
-      fieldId: property.id,
-      fieldName: `${collectionName}.${property.propertyName}[${newIndex}]`,
-      collectionName: collectionName,
-      recordIndex: newIndex,
-      identifierId: newIdentifierId, // Assign the same identifierId to all fields in this row
-      extractedValue: null,
-      originalExtractedValue: null,
-      originalConfidenceScore: 0,
-      originalAiReasoning: null,
-      validationStatus: 'pending' as const,
-      aiReasoning: 'New item added by user',
-      manuallyVerified: false,
-      manuallyUpdated: false, // Don't mark as manually updated until user actually edits
-      confidenceScore: 0,
-      documentSource: 'Manual Entry',
-      documentSections: null,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }));
+    const tempValidations = itemProperties.map(property => {
+      // Handle different property structures for workflow steps vs collections
+      const propertyName = workflowStep ? property.valueName : property.propertyName;
+      const dataType = workflowStep ? property.dataType : property.propertyType;
+      
+      return {
+        id: `temp-${Date.now()}-${property.id}`,
+        sessionId: session.id,
+        validationType: 'collection_property' as const,
+        dataType: dataType,
+        fieldId: property.id,
+        fieldName: `${collectionName}.${propertyName}[${newIndex}]`,
+        collectionName: collectionName,
+        recordIndex: newIndex,
+        identifierId: newIdentifierId, // Assign the same identifierId to all fields in this row
+        extractedValue: null,
+        originalExtractedValue: null,
+        originalConfidenceScore: 0,
+        originalAiReasoning: null,
+        validationStatus: 'pending' as const,
+        aiReasoning: 'New item added by user',
+        manuallyVerified: false,
+        manuallyUpdated: false, // Don't mark as manually updated until user actually edits
+        confidenceScore: 0,
+        documentSource: 'Manual Entry',
+        documentSections: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    });
 
     // Optimistically update the cache
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
@@ -2223,12 +2235,16 @@ export default function SessionView() {
     });
     
     try {
-      // Create validation records for each property in the collection
-      const createPromises = collection.properties.map(property => {
+      // Create validation records for each property/value
+      const createPromises = itemProperties.map(property => {
+        // Handle different property structures for workflow steps vs collections
+        const propertyName = workflowStep ? property.valueName : property.propertyName;
+        const dataType = workflowStep ? property.dataType : property.propertyType;
+        
         const validationData = {
           // sessionId is automatically added by the backend
           validationType: 'collection_property',
-          dataType: property.propertyType, // TEXT, NUMBER, DATE, CHOICE
+          dataType: dataType, // TEXT, NUMBER, DATE, CHOICE
           fieldId: property.id,
           collectionName: collectionName, // Explicitly set the collection name
           recordIndex: newIndex,
@@ -2246,7 +2262,7 @@ export default function SessionView() {
           documentSections: null
         };
         
-        console.log(`Creating validation for ${collectionName}.${property.propertyName}[${newIndex}]:`, validationData);
+        console.log(`Creating validation for ${collectionName}.${propertyName}[${newIndex}]:`, validationData);
         
         return apiRequest(`/api/sessions/${session.id}/validations`, {
           method: 'POST',
