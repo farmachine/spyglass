@@ -1932,9 +1932,9 @@ export default function SessionView() {
   // This allows us to gradually migrate from the old collections/fields architecture
   // to the new unified steps/values architecture
   const collections = useMemo(() => {
-    if (!project?.workflowSteps) return project?.collections || [];
+    if (!project?.workflowSteps) return [];
     return convertStepsToCollections(project.workflowSteps);
-  }, [project?.workflowSteps, project?.collections]);
+  }, [project?.workflowSteps]);
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
@@ -2182,27 +2182,14 @@ export default function SessionView() {
 
   // Handler for adding new collection item
   const handleAddCollectionItem = async (collectionName: string) => {
-    console.log('handleAddCollectionItem called with:', collectionName);
-    console.log('Session exists:', !!session);
-    console.log('Project exists:', !!project);
+    if (!session || !project) return;
     
-    if (!session || !project) {
-      console.log('Returning early - missing session or project');
-      return;
-    }
-    
-    // Check if this is a workflow step or a collection
+    // Check if this is a workflow step
     const workflowStep = project.workflowSteps?.find(step => step.stepName === collectionName);
     const collection = collections.find(c => c.collectionName === collectionName);
     
-    console.log('Found workflowStep:', !!workflowStep);
-    console.log('Found collection:', !!collection);
-    
     // Must be either a workflow step or a collection
-    if (!workflowStep && !collection) {
-      console.log('Returning early - no step or collection found');
-      return;
-    }
+    if (!workflowStep && !collection) return;
     
     // Find the highest existing record index for this collection using improved filtering
     const collectionValidations = validations.filter(v => {
@@ -5188,14 +5175,12 @@ Thank you for your assistance.`;
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <button
                                     onClick={() => {
-                                      console.log('Add button clicked for:', collection.collectionName);
-                                      console.log('Collection:', collection);
-                                      console.log('Session exists:', !!session);
-                                      console.log('Project exists:', !!project);
-                                      handleAddCollectionItem(collection.collectionName);
+                                      alert('Test click! Collection: ' + collection.collectionName);
                                     }}
                                     className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded flex items-center justify-center transition-colors"
-                                    title="Add new item"
+                                    title="Add new item - Click me!"
+                                    type="button"
+                                    style={{ zIndex: 9999, position: 'relative' }}
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
