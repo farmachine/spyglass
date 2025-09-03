@@ -600,7 +600,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         
         {steps.map((step, stepIndex) => (
           <div key={step.id} className="flex flex-col items-center w-3/4">
-            <Card className="relative w-full bg-white dark:bg-white border border-gray-200 dark:border-gray-300 hover:border-gray-300 dark:hover:border-gray-400 hover:shadow-md transition-all">
+            <Card className="relative w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md transition-all">
             <CardHeader className="pb-4 relative">
               {!step.isExpanded ? (
                 // Collapsed layout - title then description below, then value cards
@@ -626,7 +626,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       {step.values.map((value) => (
                         <div 
                           key={value.id}
-                          className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-400"
+                          className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-300"
                         >
                           {value.name || 'Untitled'}
                         </div>
@@ -858,7 +858,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-300 -mt-1" />
             </div>
             
-            <Card className="p-12 w-3/4 bg-gray-50 dark:bg-slate-900 border-2 border-[#C5D3E8] dark:border-[#9AACC6] hover:border-[#B8C5E0] dark:hover:border-[#8B9DC3] hover:shadow-sm transition-all">
+            <Card className="p-12 w-3/4 bg-gray-50 dark:bg-gray-800 border-2 border-[#C5D3E8] dark:border-gray-600 hover:border-[#B8C5E0] dark:hover:border-gray-500 hover:shadow-sm transition-all">
               <div className="text-center">
                 <Layers className="h-12 w-12 text-gray-400 dark:text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No workflow steps yet</h3>
