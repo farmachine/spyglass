@@ -3188,19 +3188,25 @@ export default function SessionView() {
     if (collectionMatch) {
       // This is a collection field - MUST use identifierId to prevent cross-row matching
       if (!identifierId) {
+        console.log(`🔍 No identifierId provided for collection field: ${fieldName}`);
         return undefined;
       }
       
       const collectionName = collectionMatch[1];
       const valueName = collectionMatch[2];
       
+      console.log(`🔍 Looking for validation: fieldName=${fieldName}, identifierId=${identifierId}, collection=${collectionName}, value=${valueName}`);
+      
       // Find the step value for this field
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
       
       if (!stepValue) {
+        console.log(`🔍 No step value found for: ${collectionName}.${valueName}`);
         return undefined;
       }
+      
+      console.log(`🔍 Step value found: ${stepValue.id}`);
       
       // Find validation by identifierId, collectionName, and valueId (or fieldId as fallback)
       const identifierValidation = validations.find(v => 
@@ -3208,6 +3214,23 @@ export default function SessionView() {
         v.collectionName === collectionName &&
         (v.valueId === stepValue.id || v.fieldId === stepValue.id)
       );
+      
+      console.log(`🔍 Available validations for debugging:`, validations.map(v => ({
+        id: v.id,
+        identifierId: v.identifierId,
+        collectionName: v.collectionName,
+        valueId: v.valueId,
+        fieldId: v.fieldId,
+        extractedValue: v.extractedValue
+      })));
+      
+      console.log(`🔍 Found validation:`, identifierValidation ? {
+        id: identifierValidation.id,
+        identifierId: identifierValidation.identifierId,
+        valueId: identifierValidation.valueId,
+        fieldId: identifierValidation.fieldId,
+        extractedValue: identifierValidation.extractedValue
+      } : 'NONE');
       
       return identifierValidation;
     } else {
