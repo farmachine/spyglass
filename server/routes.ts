@@ -7956,7 +7956,9 @@ def extract_function(Column_Name, Excel_File):
                   extractedValue: result.extractedValue,
                   validationStatus: 'pending', // Set to pending for new extractions
                   aiReasoning: result.aiReasoning,
-                  confidenceScore: result.confidenceScore,
+                  confidenceScore: typeof result.confidenceScore === 'number' && result.confidenceScore <= 1 
+                    ? Math.round(result.confidenceScore * 100) // Convert decimal (0-1) to percentage (0-100)
+                    : result.confidenceScore || 0,
                   documentSource: result.documentSource,
                   identifierId: identifierId,
                   extractedAt: new Date()
@@ -8003,7 +8005,9 @@ def extract_function(Column_Name, Excel_File):
               validationStatus: 'pending', // Always set to pending for new extractions
               dataType: 'text',
               aiReasoning: result.aiReasoning,
-              confidenceScore: result.confidenceScore,
+              confidenceScore: typeof result.confidenceScore === 'number' && result.confidenceScore <= 1 
+                ? Math.round(result.confidenceScore * 100) // Convert decimal (0-1) to percentage (0-100)
+                : result.confidenceScore || 0,
               documentSource: result.documentSource,
               manuallyVerified: false,
               manuallyUpdated: false,
