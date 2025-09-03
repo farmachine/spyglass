@@ -2149,14 +2149,27 @@ export default function SessionView() {
 
   // Handler for adding new collection item
   const handleAddCollectionItem = async (collectionName: string) => {
-    if (!session || !project) return;
+    console.log(`🚀 ADD ITEM CLICKED for: ${collectionName}`);
+    console.log('Session:', !!session, 'Project:', !!project);
+    
+    if (!session || !project) {
+      console.log('❌ Missing session or project');
+      return;
+    }
     
     // Check if this is a workflow step or a collection
     const workflowStep = project.workflowSteps?.find(step => step.stepName === collectionName);
     const collection = project.collections.find(c => c.collectionName === collectionName);
     
+    console.log('Found workflowStep:', !!workflowStep, 'Found collection:', !!collection);
+    console.log('Workflow step details:', workflowStep);
+    console.log('Collection details:', collection);
+    
     // Must be either a workflow step or a collection
-    if (!workflowStep && !collection) return;
+    if (!workflowStep && !collection) {
+      console.log('❌ No workflow step or collection found for:', collectionName);
+      return;
+    }
     
     // Find the highest existing record index for this collection using improved filtering
     const collectionValidations = validations.filter(v => {
@@ -2191,7 +2204,7 @@ export default function SessionView() {
     console.log(`📝 Generated new identifierId for manual row: ${newIdentifierId}`);
 
     // Get properties/values based on whether this is a workflow step or collection
-    const itemProperties = workflowStep ? workflowStep.values : collection.properties;
+    const itemProperties = workflowStep ? workflowStep.values : (collection?.properties || []);
     
     // Optimistic update: Create temporary validation records
     const tempValidations = itemProperties.map(property => {
