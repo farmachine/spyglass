@@ -2577,6 +2577,8 @@ export default function SessionView() {
           for (const colIndex of columnsToInclude) {
             const prevValue = workflowStep.values[colIndex];
             
+            console.log(`🔍 Looking for column ${colIndex} (${prevValue.valueName}), valueId=${prevValue.id}`);
+            
             // Find the validation for this column and record
             // FIXED: Use step-based validation lookup for workflow values
             const validation = validations.find(v => {
@@ -2588,10 +2590,36 @@ export default function SessionView() {
               // Also check field name patterns as fallback
               const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
               
-              return (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
+              const matches = (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
+              
+              if (colIndex === 0 && !matches) {
+                // Debug first column lookup failures
+                console.log(`   ❌ First column validation check failed:`, {
+                  stepIdMatch,
+                  valueIdMatch,
+                  identifierMatch,
+                  fieldNameMatch,
+                  validation: {
+                    stepId: v.stepId,
+                    valueId: v.valueId,
+                    fieldId: v.fieldId,
+                    identifierId: v.identifierId,
+                    fieldName: v.fieldName,
+                    extractedValue: v.extractedValue
+                  },
+                  looking_for: {
+                    stepId: workflowStep.id,
+                    valueId: prevValue.id,
+                    identifierId: recordData.identifierId,
+                    fieldName: `${stepName}.${prevValue.valueName}[${recordIndex}]`
+                  }
+                });
+              }
+              
+              return matches;
             });
             
-            console.log(`Looking for validation: valueId/fieldId=${prevValue.id}, identifierId=${recordData.identifierId}, found:`, validation);
+            console.log(`   ✅ Found validation:`, validation ? `"${validation.extractedValue}"` : 'NOT FOUND');
             
             // Check if this column has a value
             if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
