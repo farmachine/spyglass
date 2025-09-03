@@ -6922,6 +6922,44 @@ def extract_function(Column_Name, Excel_File):
           } else {
             console.log(`🔍 Data does NOT have validationStatus - skipping filter`);
           }
+          
+          // CRITICAL: Always ensure the first column from the step is included
+          // Get all values from the current step
+          const stepValues = await storage.getStepValues(stepId);
+          const firstColumn = stepValues.find(v => v.isIdentifier) || stepValues[0];
+          
+          if (firstColumn && previousData.length > 0 && !(firstColumn.valueName in previousData[0])) {
+            console.log(`📊 ADDING MISSING FIRST COLUMN: ${firstColumn.valueName}`);
+            
+            // Get validations for the first column to add its data
+            const allValidations = await storage.getFieldValidations(sessionId);
+            const firstColumnValidations = allValidations.filter(v => v.valueId === firstColumn.id || v.fieldId === firstColumn.id);
+            console.log(`📊 Found ${firstColumnValidations.length} validations for first column`);
+            
+            // Create a map of identifierId to first column value
+            const firstColumnMap = new Map();
+            firstColumnValidations.forEach(v => {
+              if (v.identifierId) {
+                firstColumnMap.set(v.identifierId, v.extractedValue || '');
+              }
+            });
+            
+            // Add the first column data to each record
+            previousData = previousData.map(record => {
+              if (record.identifierId && firstColumnMap.has(record.identifierId)) {
+                return {
+                  ...record,
+                  [firstColumn.valueName]: firstColumnMap.get(record.identifierId)
+                };
+              }
+              return record;
+            });
+            
+            console.log(`✅ Added first column "${firstColumn.valueName}" to all records`);
+            if (previousData.length > 0) {
+              console.log(`📊 Updated record structure:`, Object.keys(previousData[0]));
+            }
+          }
         }
         console.log(`🎯 Previous data available after filtering:`, previousData ? `${previousData.length} records` : 'None');
         
