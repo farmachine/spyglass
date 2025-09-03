@@ -5006,8 +5006,8 @@ Thank you for your assistance.`;
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
                       <CardContent className="p-0">
-                        <div className="session-table-wrapper" style={{ height: 'calc(100vh - 200px)', overflowY: 'auto', position: 'relative' }}>
-                          <Table className="session-table compact">
+                        <div className="session-table-wrapper" style={{ height: 'calc(100vh - 200px)', overflow: 'auto', position: 'relative' }}>
+                          <Table className="session-table compact" style={{ minWidth: 'max-content' }}>
                             <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
                               <TableRow>
                               {/* Spacer column for left padding */}
@@ -5038,16 +5038,16 @@ Thank you for your assistance.`;
                                         className={`relative h-8 py-1 px-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                            columnType === 'TEXTAREA' ? 400 : 
-                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
-                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
-                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                            columnType === 'TEXT' ? 120 : 
-                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
-                                            columnName.toLowerCase().includes('status') ? 100 :
-                                      100
+                                            columnType === 'TEXTAREA' ? 500 : 
+                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 450 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 350 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 250 :
+                                            columnType === 'TEXT' ? 200 : 
+                                            columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
+                                            columnName.toLowerCase().includes('status') ? 150 :
+                                      200
                                     )}px`,
-                                    minWidth: '80px'
+                                    minWidth: columnType === 'TEXTAREA' || columnName.toLowerCase().includes('description') ? '400px' : '150px'
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
@@ -5358,16 +5358,16 @@ Thank you for your assistance.`;
                                         className="relative py-2.5 px-3"
                                         style={{ 
                                           width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                            columnType === 'TEXTAREA' ? 400 : 
-                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 300 :
-                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 280 :
-                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                            columnType === 'TEXT' ? 120 : 
-                                            columnType === 'NUMBER' || columnType === 'DATE' ? 80 :
-                                            columnName.toLowerCase().includes('status') ? 100 :
-                                            100
+                                            columnType === 'TEXTAREA' ? 500 : 
+                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 450 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 350 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 250 :
+                                            columnType === 'TEXT' ? 200 : 
+                                            columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
+                                            columnName.toLowerCase().includes('status') ? 150 :
+                                            200
                                           )}px`,
-                                          minWidth: '80px'
+                                          minWidth: columnType === 'TEXTAREA' || columnName.toLowerCase().includes('description') ? '400px' : '150px'
                                         }}
                                       >
                                         <div className="relative w-full h-full">
