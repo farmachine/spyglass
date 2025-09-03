@@ -4558,10 +4558,10 @@ Thank you for your assistance.`;
 
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full flex-1 overflow-hidden">
-              {/* Info Page Content - For info_page type workflow steps */}
+              {/* Info Page Content - For page type workflow steps */}
               {(() => {
                 const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
-                if (currentStep?.stepType !== 'info_page') return null;
+                if (currentStep?.stepType !== 'page') return null;
                 return (
                   <div className="h-full overflow-auto">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
