@@ -777,26 +777,59 @@ Each item in the list above has an "identifierId" field. You MUST:
       const parsed = JSON.parse(cleanJson);
       return Array.isArray(parsed) ? parsed : [parsed];
     } catch (error) {
-      console.error('JSON parse error:', error);
+      console.error('Initial JSON parse error:', error);
+      
+      // Try to fix common JSON issues
+      try {
+        // Fix unescaped newlines and quotes in string values
+        let fixedJson = cleanJson;
+        
+        // Replace actual newlines within string values with escaped newlines
+        // This regex matches strings and replaces newlines within them
+        fixedJson = fixedJson.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+          return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        });
+        
+        // Try parsing the fixed JSON
+        const parsed = JSON.parse(fixedJson);
+        console.log('Successfully parsed after fixing newlines');
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch (fixError) {
+        console.error('Failed to fix JSON:', fixError);
+      }
       
       // Try to extract individual objects as fallback
+      console.log('Attempting to extract individual objects from malformed JSON...');
       const objects = [];
-      const objectMatches = cleanJson.match(/\{[^{}]*"extractedValue"[^{}]*\}/g);
+      
+      // More robust regex to find objects with identifierId and extractedValue
+      const objectPattern = /\{[^{}]*"identifierId"\s*:\s*"[^"]+",.*?"extractedValue"\s*:.*?\}/gs;
+      const objectMatches = cleanJson.match(objectPattern);
       
       if (objectMatches) {
         for (const objStr of objectMatches) {
           try {
-            objects.push(JSON.parse(objStr));
-          } catch {
-            // Skip invalid objects
+            // Clean up the extracted object string
+            let cleanedObj = objStr
+              .replace(/[\n\r]+/g, ' ')  // Replace newlines with spaces
+              .replace(/\s+/g, ' ')       // Normalize whitespace
+              .replace(/,\s*}/g, '}');    // Remove trailing commas
+            
+            const parsed = JSON.parse(cleanedObj);
+            objects.push(parsed);
+            console.log(`Extracted object with identifierId: ${parsed.identifierId}`);
+          } catch (objError) {
+            console.error('Failed to parse extracted object:', objError);
           }
         }
       }
       
       if (objects.length > 0) {
+        console.log(`Successfully extracted ${objects.length} objects from malformed JSON`);
         return objects;
       }
       
+      // If we still can't parse anything, throw the original error
       throw error;
     }
   }
