@@ -64,6 +64,9 @@ export default function AddDocumentsModal({
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Debug log to check the mode
+  console.log('AddDocumentsModal mode:', mode);
 
 
   // Fetch project schema data
@@ -557,33 +560,35 @@ export default function AddDocumentsModal({
           </div>
           )}
           
-          <Separator />
-          
           {/* Tool Processing Options - Only show in upload mode */}
           {mode === 'upload' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="tool-select" className="text-sm font-medium">
-                  Process With Tool (Optional)
-                </Label>
-                <p className="text-xs text-gray-500 mt-1 mb-2">
-                  Select a tool to process document content before saving. For example, use "Get Document Section" to extract specific parts.
-                </p>
-                <Select value={selectedToolId || ""} onValueChange={(value) => setSelectedToolId(value === "" ? null : value)}>
-                  <SelectTrigger id="tool-select">
-                    <SelectValue placeholder="No processing (save full content)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No processing (save full content)</SelectItem>
-                    {tools?.map((tool: any) => (
-                      <SelectItem key={tool.id} value={tool.id}>
-                        {tool.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="tool-select" className="text-sm font-medium">
+                    Process With Tool (Optional)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1 mb-2">
+                    Select a tool to process document content before saving. For example, use "Get Document Section" to extract specific parts.
+                  </p>
+                  <Select value={selectedToolId || ""} onValueChange={(value) => setSelectedToolId(value === "" ? null : value)}>
+                    <SelectTrigger id="tool-select">
+                      <SelectValue placeholder="No processing (save full content)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No processing (save full content)</SelectItem>
+                      {tools?.map((tool: any) => (
+                        <SelectItem key={tool.id} value={tool.id}>
+                          {tool.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+              <Separator />
+            </>
           )}
           
           {/* File Drop Zone */}
