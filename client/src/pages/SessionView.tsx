@@ -5841,10 +5841,14 @@ Thank you for your assistance.`;
                 return;
               }
               
+              // CRITICAL: Send the complete unfiltered data for extraction
+              // The server needs all columns, especially the first column for context
+              const fullPreviousData = columnExtractionModal.previousData;
+              
               const requestPayload = {
                 stepId: workflowStep.id,
                 valueId: valueId,
-                previousData: previousData,
+                previousData: fullPreviousData, // Send FULL data, not filtered/display data
                 documentId: documentId
               };
               
