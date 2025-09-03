@@ -1568,6 +1568,7 @@ export default function SessionView() {
           dataType: dataType,
           fieldId: fieldId,
           collectionName: collectionName,
+          fieldName: `${collectionName}.${fieldName}[${recordIndex}]`, // Add proper fieldName
           recordIndex: recordIndex,
           identifierId: identifierId,
           extractedValue: currentValue,
