@@ -2626,13 +2626,23 @@ export default function SessionView() {
     
     // Apply validation-based filtering to ensure only fully validated records proceed
     previousColumnsData = previousColumnsData.filter(record => {
-      // Check each field in the record to ensure it's properly validated
+      // Check each field in the record to ensure it's properly validated (verified status)
       const allFieldsValid = Object.entries(record).every(([key, value]) => {
         // Skip meta fields like identifierId and _recordIndex
         if (key === 'identifierId' || key.startsWith('_')) return true;
         
-        // Check if the field value exists - "Not Found" is valid if it's been validated
-        // Only exclude truly empty values
+        // Find the validation record for this field and identifier
+        const validation = validations.find(v => 
+          v.identifierId === record.identifierId &&
+          v.fieldName === `${stepName}.${key}`
+        );
+        
+        // Field must have a validation record with verified status
+        if (!validation || validation.validationStatus !== 'verified') {
+          return false;
+        }
+        
+        // Also check that the field has a value (not empty)
         return value !== '' && 
                value !== null && 
                value !== undefined;
