@@ -2530,185 +2530,59 @@ export default function SessionView() {
     } else if (workflowStep && workflowStep.values) {
       console.log(`❌ No cross-step references found for "${valueName}" - using within-step data compilation`);
       
-      // Log what validations are available for debugging
+      // SIMPLIFIED LOGIC: Just group validations by identifierId and build records
       const stepValidations = validations.filter(v => 
         v.stepId === workflowStep.id || 
-        v.collectionName === stepName || 
-        (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
+        v.collectionName === stepName
       );
       
-      console.log(`📊 Available validations for step "${stepName}":`, stepValidations.map(v => ({
-        columnName: workflowStep.values.find(val => val.id === v.valueId || val.id === v.fieldId)?.valueName || 'unknown',
-        valueId: v.valueId,
-        fieldId: v.fieldId,
-        identifierId: v.identifierId,
-        extractedValue: v.extractedValue,
-        stepId: v.stepId
-      })));
+      // Group all validations by identifierId
+      const recordsByIdentifier = new Map<string, any>();
       
-      // Original logic for within-step data compilation
-      if (valueIndex > 0) {
-        // If this is not the first column, gather data from previous columns
-        // Get all unique record indices for this collection
-        const collectionValidations = validations.filter(v => 
-          v.collectionName === stepName || 
-          (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
-        );
+      // Get all unique identifierIds from step validations
+      const uniqueIdentifierIds = [...new Set(stepValidations
+        .map(v => v.identifierId)
+        .filter(id => id !== null && id !== undefined)
+      )];
+      
+      console.log(`📊 Found ${uniqueIdentifierIds.length} unique identifiers in step "${stepName}"`);
+      
+      // For each identifierId, build a complete record with all column values
+      for (const identifierId of uniqueIdentifierIds) {
+        const record: any = { identifierId };
         
-        // CRITICAL: Start with first column validations that have actual data
-        // The identifierId and first column value come from the same validation record
-        const firstColumnValue = workflowStep.values[0];
-        const firstColumnValidations = collectionValidations.filter(v => 
-          (v.valueId === firstColumnValue.id || v.fieldId === firstColumnValue.id) &&
-          v.extractedValue !== null && 
-          v.extractedValue !== undefined && 
-          v.extractedValue !== ''
-        );
+        // Get all validations for this identifierId
+        const identifierValidations = stepValidations.filter(v => v.identifierId === identifierId);
         
-        console.log(`📊 Found ${firstColumnValidations.length} first column validations with data for "${firstColumnValue.valueName}"`);
-        console.log(`📊 First column validations detail:`, firstColumnValidations.map(v => ({
-          id: v.id,
-          identifierId: v.identifierId,
-          extractedValue: v.extractedValue,
-          valueId: v.valueId,
-          fieldId: v.fieldId
-        })));
-        
-        // For each first column validation (which has both identifierId and value)
-        for (const firstColValidation of firstColumnValidations) {
-          const identifierId = firstColValidation.identifierId;
-          // Build record data with identifierId as the FIRST property
-          const recordData: any = {
-            identifierId: identifierId
-          };
-          
-          // CRITICAL: Add the first column value from the same validation record
-          const firstColName = workflowStep.values[0].valueName;
-          const firstColValue = firstColValidation.extractedValue;
-          
-          console.log(`📊 Using identifierId ${identifierId} with first column "${firstColName}" = "${firstColValue}"`);
-          
-          // Get the recordIndex from any validation with this identifierId (for backwards compatibility)
-          const anyValidation = collectionValidations.find(v => v.identifierId === identifierId);
-          const recordIndex = anyValidation?.recordIndex ?? 0;
-          
-          // Check if ALL previous columns have valid data for this record
-          let allPreviousColumnsValid = true;
-          const tempRecordData: any = {
-            // Start with the first column value already in tempRecordData
-            [firstColName]: firstColValue
-          };
-          
-          // Include all columns from 1 up to (but not including) the current one
-          // Column 0 is already added from firstColValidation
-          const columnsToInclude = [];
-          
-          // Add columns 1 through valueIndex-1
-          for (let i = 1; i < valueIndex; i++) {
-            columnsToInclude.push(i);
-          }
-          
-          // Iterate through columns to include (excluding first column which is already added)
-          for (const colIndex of columnsToInclude) {
-            const prevValue = workflowStep.values[colIndex];
-            
-            // Standard lookup for non-first columns
-            const validation = validations.find(v => {
-              // For workflow steps, match by step ID and value ID combination
-              const stepIdMatch = v.stepId === workflowStep.id;
-              const valueIdMatch = v.valueId === prevValue.id || v.fieldId === prevValue.id;
-              const identifierMatch = v.identifierId === identifierId;
-              
-              // Also check field name patterns as fallback
-              const fieldNameMatch = v.fieldName === `${stepName}.${prevValue.valueName}[${recordIndex}]`;
-              
-              return (stepIdMatch && valueIdMatch && identifierMatch) || (fieldNameMatch && identifierMatch);
-            });
-            
-            // Check if this column has a value
-            if (validation && validation.extractedValue !== null && validation.extractedValue !== undefined && validation.extractedValue !== "") {
-              // For the "Reasong" column, we should only process records that have valid mappings (not "Not Found")
-              // This is because the AI needs to provide reasoning about actual mappings, not missing ones
-              if (valueName === 'Reasong' && prevValue.valueName === 'Standard Equivalent' && validation.extractedValue === "Not Found") {
-                // Skip records with "Not Found" in Standard Equivalent when processing Reasong column
-                allPreviousColumnsValid = false;
-                break;
-              }
-              
-              // Check if validation is truly invalid (error or pending)
-              if (validation.validationStatus === 'pending' || validation.validationStatus === 'invalid') {
-                allPreviousColumnsValid = false;
-                break;
-              }
-              
-              tempRecordData[prevValue.valueName] = validation.extractedValue;
-            } else {
-              // For other columns, if no extraction value exists, skip this record
-              allPreviousColumnsValid = false;
-              break;
-            }
-          }
-          
-          // Only add this record if ALL previous columns are valid
-          if (allPreviousColumnsValid && (Object.keys(tempRecordData).length > 0 || valueIndex === 0)) {
-            // Merge the identifierId with the valid data
-            Object.assign(recordData, tempRecordData);
-            
-            // Debug: log what we're adding
-            console.log(`Adding record ${recordIndex} with data:`, recordData);
-            
-            previousColumnsData.push(recordData);
-          } else {
-            console.log(`Skipping record ${recordIndex} - allValid: ${allPreviousColumnsValid}, tempData:`, tempRecordData);
-          }
-        }
-      } else {
-        // This is the first column - check if we have existing validations with identifierIds
-        const existingValidations = validations.filter(v => 
-          v.collectionName === stepName || 
-          (v.fieldName && v.fieldName.startsWith(`${stepName}.`))
-        );
-        
-        if (existingValidations.length > 0) {
-          // We have existing validations, use their identifierIds
-          const uniqueIdentifierIds = [...new Set(existingValidations
-            .map(v => v.identifierId)
-            .filter(id => id !== null && id !== undefined)
-          )];
-          
-          for (const identifierId of uniqueIdentifierIds) {
-            const validation = existingValidations.find(v => v.identifierId === identifierId);
-            if (validation) {
-              previousColumnsData.push({
-                identifierId: identifierId,
-                _recordIndex: validation.recordIndex // Include record index for reference
-              });
-            }
-          }
-        } else {
-          // No existing validations for this step - look for identifiers from other columns in the same step
-          // This ensures we use the correct identifier that already has data
-          const stepValidations = validations.filter(v => 
-            v.stepId === workflowStep?.id || v.collectionName === stepName
+        // Add each column's value to the record
+        for (const validation of identifierValidations) {
+          // Find which column this validation belongs to
+          const columnDef = workflowStep.values.find(val => 
+            val.id === validation.valueId || val.id === validation.fieldId
           );
           
-          if (stepValidations.length > 0) {
-            const uniqueIdentifierIds = [...new Set(stepValidations
-              .map(v => v.identifierId)
-              .filter(id => id !== null && id !== undefined)
-            )];
-            
-            console.log(`🔍 Found ${uniqueIdentifierIds.length} existing identifiers from other columns in step "${stepName}"`);
-            
-            for (const identifierId of uniqueIdentifierIds) {
-              previousColumnsData.push({
-                identifierId: identifierId
-              });
-            }
+          if (columnDef && validation.extractedValue !== null && validation.extractedValue !== undefined) {
+            record[columnDef.valueName] = validation.extractedValue;
           }
         }
-        // If no existing validations at all, previousColumnsData will be empty and backend will generate new identifierIds
+        
+        // Only include records that have data for all previous columns (up to but not including current)
+        let hasAllPreviousColumns = true;
+        for (let i = 0; i < valueIndex; i++) {
+          const colName = workflowStep.values[i].valueName;
+          if (!record[colName]) {
+            hasAllPreviousColumns = false;
+            break;
+          }
+        }
+        
+        if (hasAllPreviousColumns) {
+          recordsByIdentifier.set(identifierId, record);
+        }
       }
+      
+      previousColumnsData = Array.from(recordsByIdentifier.values());
+      console.log(`📊 Compiled ${previousColumnsData.length} records with data for extraction`);
     }
     
     // Log filtering results
