@@ -5054,6 +5054,7 @@ Thank you for your assistance.`;
                   
                   // Always show the table even when there are no records, so headers remain visible
 
+                  console.log('Rendering table check - activeTab:', activeTab, 'itemName:', item.itemName, 'Match:', activeTab === item.itemName);
                   return activeTab === item.itemName ? (
                   <div key={collection.id} className="mt-0 px-0 ml-0 h-full">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30 h-full">
