@@ -1386,6 +1386,7 @@ export default function SessionView() {
     valueId: string;
     valueName: string;
     previousData: any[];
+    displayData?: any[]; // Data to show in modal (filtered columns)
     columnOrder?: string[]; // Add column order to show columns in correct order
     needsDocument: boolean;
     toolType: string;
@@ -2862,7 +2863,8 @@ export default function SessionView() {
       stepName: stepName,
       valueId: valueId,
       valueName: valueName,
-      previousData: filteredPreviousData, // Show only referenced columns, not all data
+      previousData: previousColumnsData, // Send FULL data to server for proper extraction
+      displayData: filteredPreviousData, // Show filtered columns in modal UI
       columnOrder: columnOrder, // Pass the column order
       needsDocument: needsDocument,
       toolType: 'extraction',
@@ -5887,7 +5889,7 @@ Thank you for your assistance.`;
             name: doc.fileName || doc.name || 'Untitled',
             type: doc.fileType || 'unknown'
           })) || []}
-          inputData={columnExtractionModal.previousData}
+          inputData={columnExtractionModal.displayData || columnExtractionModal.previousData}
           needsDocument={columnExtractionModal.needsDocument}
           isLoading={isColumnExtracting}
           inputValues={columnExtractionModal.inputValues}
