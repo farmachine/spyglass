@@ -2632,9 +2632,17 @@ export default function SessionView() {
         if (key === 'identifierId' || key.startsWith('_')) return true;
         
         // Find the validation record for this field and identifier
+        // Look for the value in the current step's values to get its ID
+        const valueDefinition = workflowStep?.values?.find(v => v.valueName === key);
+        if (!valueDefinition) {
+          console.log(`No value definition found for ${key}`);
+          return false;
+        }
+        
+        // Find validation by value_id and identifier_id  
         const validation = validations.find(v => 
           v.identifierId === record.identifierId &&
-          v.fieldName === `${stepName}.${key}`
+          v.valueId === valueDefinition.id
         );
         
         // Field must have a validation record with valid or verified status (green checkmark)
