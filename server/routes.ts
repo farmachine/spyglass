@@ -2502,7 +2502,13 @@ except Exception as e:
                       identifierId: identifierVal.identifierId || `record-${identifierVal.recordIndex}`
                     };
                     
-                    // Add data from each value in the step
+                    // CRITICAL: Always include the identifier field (first column) in the output
+                    // This ensures the first value is always present in extraction data
+                    if (identifierValue) {
+                      record[identifierValue.valueName] = identifierVal.extractedValue || '';
+                    }
+                    
+                    // Add data from each value in the step (including identifier again if it's in the list)
                     for (const stepValue of stepValues) {
                       const valueName = stepValue.valueName;
                       const validationsForValue = valueValidationMap[valueName];
