@@ -2452,8 +2452,8 @@ export default function SessionView() {
             if (!v.identifierId) return false;
             
             // Check if this validation belongs to one of the referenced step's values
-            const fieldId = v.fieldId || v.valueId;
-            const belongsToStep = referencedStep.values?.some(val => val.id === fieldId);
+            // Use valueId for matching (column mapping) as requested by user
+            const belongsToStep = referencedStep.values?.some(val => val.id === v.valueId);
             
             return belongsToStep;
           });
@@ -2513,9 +2513,8 @@ export default function SessionView() {
               }
               
               // Find which value this validation belongs to
-              // The database uses field_id for workflow step values
-              const fieldId = v.fieldId || v.valueId;
-              const value = referencedStep.values?.find(val => val.id === fieldId);
+              // Use valueId for matching (column mapping) as requested by user
+              const value = referencedStep.values?.find(val => val.id === v.valueId);
               if (value) {
                 recordsByIdentifier.get(v.identifierId)[value.valueName] = v.extractedValue;
               }
