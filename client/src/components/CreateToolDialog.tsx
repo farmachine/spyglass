@@ -1063,9 +1063,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                       <SelectItem value="update">Update</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="w-[140px] h-8 text-xs flex items-center px-3 border rounded-md bg-gray-50 text-gray-600">
-                    Multiple Records
-                  </div>
                 </div>
               </div>
             </CardHeader>
