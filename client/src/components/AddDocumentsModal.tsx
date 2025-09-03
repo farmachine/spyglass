@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Upload, X, FileText, CheckCircle, AlertTriangle, Target, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,6 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
@@ -32,6 +36,8 @@ interface UploadedFile {
   status: "pending" | "uploading" | "processing" | "completed" | "error";
   progress: number;
   error?: string;
+  name?: string; // User-provided name for the document
+  description?: string; // User-provided description for the document
 }
 
 interface TargetField {
@@ -56,6 +62,7 @@ export default function AddDocumentsModal({
   const [showTargetFields, setShowTargetFields] = useState(false);
   const [schemaFieldsExpanded, setSchemaFieldsExpanded] = useState(true);
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -63,6 +70,12 @@ export default function AddDocumentsModal({
   const { data: schemaFields = [] } = useProjectSchemaFields(projectId);
   const { data: collections = [] } = useObjectCollections(projectId);
   const { data: allProperties = [] } = useAllProjectProperties(projectId);
+  
+  // Fetch project tools for optional processing
+  const { data: tools = [] } = useQuery({
+    queryKey: ['/api/projects', projectId, 'excel-functions'],
+    enabled: !!projectId && mode === 'upload',
+  });
 
   const validateFile = (file: File): string | null => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -197,7 +210,12 @@ export default function AddDocumentsModal({
           // Upload mode: Only extract and save documents, no AI processing
           const uploadResponse = await apiRequest(`/api/sessions/${sessionId}/upload-documents`, {
             method: 'POST',
-            body: JSON.stringify({ files: [fileData] }),
+            body: JSON.stringify({ 
+              files: [fileData],
+              documentName: file.name || file.file.name, // Use provided name or filename
+              documentDescription: file.description || '',
+              toolId: selectedToolId // Optional tool for processing
+            }),
             headers: { 'Content-Type': 'application/json' }
           });
 
@@ -541,6 +559,33 @@ export default function AddDocumentsModal({
           
           <Separator />
           
+          {/* Tool Processing Options - Only show in upload mode */}
+          {mode === 'upload' && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="tool-select" className="text-sm font-medium">
+                  Process With Tool (Optional)
+                </Label>
+                <p className="text-xs text-gray-500 mt-1 mb-2">
+                  Select a tool to process document content before saving. For example, use "Get Document Section" to extract specific parts.
+                </p>
+                <Select value={selectedToolId || ""} onValueChange={(value) => setSelectedToolId(value === "" ? null : value)}>
+                  <SelectTrigger id="tool-select">
+                    <SelectValue placeholder="No processing (save full content)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No processing (save full content)</SelectItem>
+                    {tools?.map((tool: any) => (
+                      <SelectItem key={tool.id} value={tool.id}>
+                        {tool.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
           {/* File Drop Zone */}
           <div
             onDragEnter={handleDrag}
@@ -575,38 +620,77 @@ export default function AddDocumentsModal({
           {selectedFiles.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-gray-700">Selected Files ({selectedFiles.length})</h3>
-              {selectedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                  {getStatusIcon(file.status)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {file.file.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {(file.file.size / (1024 * 1024)).toFixed(1)} MB
-                    </p>
-                    {file.status !== "pending" && file.status !== "completed" && file.status !== "error" && (
-                      <Progress value={file.progress} className="mt-1" />
-                    )}
-                    {file.error && (
-                      <p className="text-xs text-red-600 mt-1">{file.error}</p>
+              {selectedFiles.map((file, index) => (
+                <div key={file.id} className={`${mode === 'upload' ? 'space-y-3 p-3' : 'flex items-center gap-3 p-3'} border rounded-lg`}>
+                  <div className={`${mode === 'upload' ? '' : 'flex items-center gap-3'}`}>
+                    {getStatusIcon(file.status)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {file.file.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(file.file.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
+                      {file.status !== "pending" && file.status !== "completed" && file.status !== "error" && (
+                        <Progress value={file.progress} className="mt-1" />
+                      )}
+                      {file.error && (
+                        <p className="text-xs text-red-600 mt-1">{file.error}</p>
+                      )}
+                    </div>
+                    <Badge className={getStatusColor(file.status)}>
+                      {file.status === "uploading" ? "Uploading" : 
+                       file.status === "processing" ? "Processing" : 
+                       file.status === "completed" ? "Completed" : 
+                       file.status === "error" ? "Error" : "Ready"}
+                    </Badge>
+                    {!isProcessing && file.status !== "processing" && file.status !== "uploading" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeFile(file.id)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                  <Badge className={getStatusColor(file.status)}>
-                    {file.status === "uploading" ? "Uploading" : 
-                     file.status === "processing" ? "Processing" : 
-                     file.status === "completed" ? "Completed" : 
-                     file.status === "error" ? "Error" : "Ready"}
-                  </Badge>
-                  {!isProcessing && file.status !== "processing" && file.status !== "uploading" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeFile(file.id)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  
+                  {/* Name and Description fields for upload mode */}
+                  {mode === 'upload' && file.status === 'pending' && (
+                    <div className="space-y-3 pt-3 border-t">
+                      <div className="space-y-2">
+                        <Label htmlFor={`name-${file.id}`} className="text-sm">
+                          Document Name
+                        </Label>
+                        <Input
+                          id={`name-${file.id}`}
+                          placeholder="Enter a name for this document"
+                          value={file.name || ''}
+                          onChange={(e) => {
+                            setSelectedFiles(prev => prev.map(f => 
+                              f.id === file.id ? { ...f, name: e.target.value } : f
+                            ));
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`desc-${file.id}`} className="text-sm">
+                          Description
+                        </Label>
+                        <Textarea
+                          id={`desc-${file.id}`}
+                          placeholder="Enter a description for this document (optional)"
+                          value={file.description || ''}
+                          onChange={(e) => {
+                            setSelectedFiles(prev => prev.map(f => 
+                              f.id === file.id ? { ...f, description: e.target.value } : f
+                            ));
+                          }}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}

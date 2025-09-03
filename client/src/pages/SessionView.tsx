@@ -4885,9 +4885,14 @@ Thank you for your assistance.`;
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.fileName}>
-                                          {doc.fileName}
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.documentName || doc.fileName}>
+                                          {doc.documentName || doc.fileName}
                                         </p>
+                                        {doc.documentDescription && (
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
+                                            {doc.documentDescription}
+                                          </p>
+                                        )}
                                       </div>
                                     </div>
                                   </td>

@@ -5081,7 +5081,7 @@ except Exception as e:
   app.post("/api/sessions/:sessionId/upload-documents", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { files } = req.body;
+      const { files, documentName, documentDescription, toolId } = req.body;
       
       console.log(`DOCUMENT UPLOAD: Starting document upload for session ${sessionId}`);
       console.log(`Processing ${files?.length || 0} documents`);
@@ -5171,15 +5171,49 @@ except Exception as e:
                   }
                 }
                 
+                // Process content through tool if provided
+                let processedContent = extractedText.text_content || '';
+                
+                if (toolId && toolId !== '') {
+                  try {
+                    console.log(`DOCUMENT UPLOAD: Processing with tool ${toolId}`);
+                    
+                    // Get the tool configuration
+                    const tool = await storage.getExcelWizardryFunction(toolId);
+                    if (!tool) {
+                      console.warn(`Tool ${toolId} not found, saving original content`);
+                    } else {
+                      // Run the tool on the document content
+                      const { runTool } = await import('./toolEngine');
+                      const toolResult = await runTool(tool, {
+                        document: processedContent,
+                        user_document: processedContent
+                      }, null, session.projectId);
+                      
+                      // Extract the processed content from the result
+                      // Tool result is in field validation format, but we only want the extractedValue
+                      if (toolResult && Array.isArray(toolResult) && toolResult.length > 0) {
+                        processedContent = toolResult[0].extractedValue || processedContent;
+                        console.log(`DOCUMENT UPLOAD: Tool processed content length: ${processedContent.length}`);
+                      }
+                    }
+                  } catch (toolError) {
+                    console.error(`Error processing with tool ${toolId}:`, toolError);
+                    // Continue with original content if tool processing fails
+                  }
+                }
+                
                 // Create session document record
                 const documentData = {
                   sessionId: sessionId,
                   fileName: extractedText.file_name,
                   fileSize: fileSize,
                   mimeType: originalFile?.mime_type || 'application/octet-stream',
-                  extractedContent: extractedText.text_content || '',
+                  extractedContent: processedContent,
                   pageCount: extractedText.page_count || null,
-                  extractionMethod: extractedText.extraction_method || 'gemini'
+                  extractionMethod: extractedText.extraction_method || 'gemini',
+                  documentName: documentName || extractedText.file_name,
+                  documentDescription: documentDescription || null
                 };
                 
                 console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content length being saved: ${documentData.extractedContent.length}`);
