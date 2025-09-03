@@ -7478,8 +7478,20 @@ def extract_function(Column_Name, Excel_File):
           const stepValues = await storage.getStepValues(stepId);
           const firstColumn = stepValues.find(v => v.isIdentifier) || stepValues[0];
           
-          if (firstColumn && limitedPreviousData.length > 0 && !(firstColumn.valueName in limitedPreviousData[0])) {
-            console.log(`📊 CRITICAL: First column "${firstColumn.valueName}" missing from data - fetching from database`);
+          console.log(`📊 DEBUG: Step values count: ${stepValues.length}`);
+          console.log(`📊 DEBUG: First column: ${firstColumn?.valueName || 'NOT FOUND'}`);
+          console.log(`📊 DEBUG: Limited previous data count: ${limitedPreviousData.length}`);
+          if (limitedPreviousData.length > 0) {
+            console.log(`📊 DEBUG: Keys in first record:`, Object.keys(limitedPreviousData[0]));
+            console.log(`📊 DEBUG: Full first record:`, limitedPreviousData[0]);
+          }
+          
+          if (firstColumn && limitedPreviousData.length > 0) {
+            const hasFirstColumn = firstColumn.valueName in limitedPreviousData[0];
+            console.log(`📊 DEBUG: Has first column "${firstColumn.valueName}"? ${hasFirstColumn}`);
+            
+            if (!hasFirstColumn) {
+              console.log(`📊 CRITICAL: First column "${firstColumn.valueName}" missing from data - fetching from database`);
             
             // Get all validations to find first column values
             const firstColumnValidations = existingValidations.filter(v => 
@@ -7504,6 +7516,7 @@ def extract_function(Column_Name, Excel_File):
             });
             
             console.log(`✅ Added first column "${firstColumn.valueName}" to all records`);
+            }
           }
           
           // Format previousData for the AI tool - it should contain merged column information
