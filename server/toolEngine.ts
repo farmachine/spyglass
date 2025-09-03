@@ -512,14 +512,17 @@ export class ToolEngine {
           inputArray = [];
         }
       } else {
-        // UPDATE operations require data input
+        // UPDATE operations typically require data input, but handle first extraction case
         if (!dataInput || !Array.isArray(dataInput.value)) {
-          throw new Error('UPDATE AI tool requires data input array');
+          // For initial extractions, UPDATE tools can work without existing data
+          console.log(`⚠️ UPDATE operation without data input - treating as initial extraction`);
+          inputArray = [];
+        } else {
+          // 2. Limit to 50 records for performance
+          const AI_RECORD_LIMIT = 50;
+          inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
+          console.log(`🔄 UPDATE operation with ${inputArray.length} records`);
         }
-        // 2. Limit to 50 records for performance
-        const AI_RECORD_LIMIT = 50;
-        inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
-        console.log(`🔄 UPDATE operation with ${inputArray.length} records`);
       }
       
       // 3. Build prompt using tool's AI prompt template
