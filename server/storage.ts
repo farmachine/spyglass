@@ -3601,7 +3601,7 @@ class PostgreSQLStorage implements IStorage {
             description: value.description,
             isIdentifier: step.type === 'list' && step.values[0]?.id === value.id,
             orderIndex: value.orderIndex || 0,
-            toolId: value.toolId === '' ? null : value.toolId,
+            toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId,
             inputValues: value.inputValues,
             autoVerificationConfidence: value.autoVerificationConfidence,
             choiceOptions: value.choiceOptions
@@ -3636,10 +3636,10 @@ class PostgreSQLStorage implements IStorage {
 
   async createStepValue(value: InsertStepValue): Promise<StepValue> {
     return this.retryOperation(async () => {
-      // Convert empty string toolId to null
+      // Convert empty string or 'manual' toolId to null
       const cleanedValue = {
         ...value,
-        toolId: value.toolId === '' ? null : value.toolId
+        toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId
       };
       console.log("\n📝 DATABASE INSERT - step_values table:");
       console.log(JSON.stringify(cleanedValue, null, 2));
@@ -3651,10 +3651,10 @@ class PostgreSQLStorage implements IStorage {
 
   async updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined> {
     return this.retryOperation(async () => {
-      // Convert empty string toolId to null
+      // Convert empty string or 'manual' toolId to null
       const cleanedValue = {
         ...value,
-        toolId: value.toolId === '' ? null : value.toolId
+        toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId
       };
       console.log("\n📝 DATABASE UPDATE - step_values table:");
       console.log("Value ID:", id);
