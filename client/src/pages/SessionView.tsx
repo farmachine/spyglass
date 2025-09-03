@@ -2752,7 +2752,10 @@ export default function SessionView() {
     const neededColumns = new Set<string>();
     
     // For Data Table steps, always include the first column (identifier) by default
-    if (workflowStep && workflowStep.stepType === 'list' && workflowStep.values && workflowStep.values[0]) {
+    // Check both stepType variations and step.type to ensure we catch it
+    if (workflowStep && workflowStep.values && workflowStep.values[0]) {
+      // Always add the first column for any multi-value step (Data Tables)
+      console.log(`📝 Adding first column by default: ${workflowStep.values[0].valueName}`);
       neededColumns.add(workflowStep.values[0].valueName);
     }
     
