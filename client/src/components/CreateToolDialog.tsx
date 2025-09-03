@@ -96,7 +96,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   
   // Load editing function data when provided
   useEffect(() => {
-    if (editingFunction && open) {
+    if (editingFunction) {
       const functionId = editingFunction.id;
       
       // Reload form state when:
