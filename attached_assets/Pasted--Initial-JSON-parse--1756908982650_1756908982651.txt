@@ -1,0 +1,33 @@
+================================================================================
+Initial JSON parse error: SyntaxError: Unexpected token 'e', "text
+5.  IN"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.parseAIResponse (/home/runner/workspace/server/toolEngine.ts:784:27)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:558:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:7771:23)
+Failed to fix JSON: SyntaxError: Unexpected token 'e', "text
+5.  IN"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.parseAIResponse (/home/runner/workspace/server/toolEngine.ts:822:29)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:558:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:7771:23)
+Attempting to extract individual objects from malformed JSON...
+❌ AI tool error: SyntaxError: Unexpected token 'e', "text
+5.  IN"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.parseAIResponse (/home/runner/workspace/server/toolEngine.ts:784:27)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:558:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:7771:23)
+Column extraction error: SyntaxError: Unexpected token 'e', "text
+5.  IN"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at ToolEngine.parseAIResponse (/home/runner/workspace/server/toolEngine.ts:784:27)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:558:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:7771:23)
+2:16:03 PM [express] POST /api/sessions/8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe/extract-column 500 in 1927ms :: {"message":"Failed to extract…
+2:16:03 PM [browser] ❌ Error running column extraction: {}
+2:16:03 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}

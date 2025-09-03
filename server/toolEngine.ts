@@ -417,6 +417,11 @@ export class ToolEngine {
     
     const response = await genAI.models.generateContent({
       model: "gemini-2.0-flash",
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        maxOutputTokens: 8192
+      },
       contents: [
         {
           role: "user",
@@ -538,6 +543,11 @@ export class ToolEngine {
       
       const response = await genAI.models.generateContent({
         model: tool.llmModel || "gemini-2.0-flash",
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 8192
+        },
         contents: [
           {
             role: "user",
@@ -700,6 +710,20 @@ export class ToolEngine {
 \`\`\`text
 ${basePrompt.trim()}
 \`\`\`
+
+=== REQUIRED OUTPUT FORMAT ===
+CRITICAL: You MUST return ONLY a valid JSON array. Do NOT include any text, markdown, or explanations.
+Your entire response must be a properly formatted JSON array that can be parsed by JSON.parse().
+Example format:
+[
+  {
+    "extractedValue": "Example Value",
+    "validationStatus": "valid",
+    "aiReasoning": "Found this value in the document",
+    "confidenceScore": 95,
+    "documentSource": "Section 1, Page 1"
+  }
+]
 
 `;
     
