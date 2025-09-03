@@ -955,12 +955,13 @@ function ValueEditor({
   // Show all tools without filtering
   const filteredTools = excelFunctions;
   
-  const selectedTool = excelFunctions.find(f => f.id === value.toolId);
+  const isManual = value.toolId === "manual";
+  const selectedTool = !isManual ? excelFunctions.find(f => f.id === value.toolId) : null;
   const [inputParameters, setInputParameters] = useState<any[]>([]);
 
   // Parse tool input parameters - include tool ID and functions array in dependencies
   useEffect(() => {
-    if (selectedTool?.inputParameters) {
+    if (!isManual && selectedTool?.inputParameters) {
       try {
         const params = typeof selectedTool.inputParameters === 'string' 
           ? JSON.parse(selectedTool.inputParameters)
@@ -1125,6 +1126,15 @@ function ValueEditor({
                 <SelectValue placeholder="Select tool..." />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="manual">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Add Manually</span>
+                  </div>
+                </SelectItem>
+                {filteredTools.length > 0 && (
+                  <div className="my-1 border-t border-gray-200" />
+                )}
                 {filteredTools.length === 0 ? (
                   <div className="p-2 text-sm text-gray-500">
                     No tools available
@@ -1151,11 +1161,20 @@ function ValueEditor({
             </Select>
           </div>
 
+          {/* Manual Entry Description */}
+          {isManual && (
+            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Manually enter values for this field without extraction
+              </p>
+            </div>
+          )}
+
           {/* Model Selection for AI Tools */}
 
 
           {/* Dynamic Input Parameters - integrated without container */}
-          {inputParameters.length > 0 && (
+          {!isManual && inputParameters.length > 0 && (
             <div className="space-y-3 mt-4" key={`${value.toolId}-params`}>
               <Label className="text-sm font-medium text-[#071e54] dark:text-[#5A70B5]">Input Values</Label>
               {inputParameters.map((param) => (
