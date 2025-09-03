@@ -174,13 +174,22 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         })
       });
     },
-    onSuccess: () => {
+    onSuccess: async (updatedData) => {
       // Invalidate and refetch to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
-      queryClient.refetchQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+      
+      // Update the editingFunction if the dialog is still open to show saved changes
+      if (editingFunction && updatedData) {
+        setEditingFunction?.(updatedData);
+      }
+      
+      // Close dialog and reset
       setEditingFunction?.(null);
       setOpen(false);
       resetForm();
+      
+      console.log('✅ Tool successfully updated:', updatedData);
     },
     onError: (error: any) => {
       console.error('Failed to update tool:', error);

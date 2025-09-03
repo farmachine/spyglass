@@ -5651,8 +5651,11 @@ print(json.dumps(results))
         return res.status(404).json({ message: "Excel wizardry function not found" });
       }
       
-      console.log(`✅ Successfully updated Excel function ${id}:`, JSON.stringify(updated, null, 2));
-      res.json(updated);
+      // Fetch the complete updated function to ensure all fields are returned
+      const completeFunction = await storage.getExcelWizardryFunction(id);
+      
+      console.log(`✅ Successfully updated Excel function ${id}:`, JSON.stringify(completeFunction, null, 2));
+      res.json(completeFunction);
     } catch (error) {
       console.error("Error updating Excel wizardry function:", error);
       res.status(500).json({ message: "Failed to update Excel wizardry function" });
