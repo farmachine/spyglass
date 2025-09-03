@@ -108,7 +108,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           llmModel: editingFunction.llmModel || "gemini-2.0-flash"
         });
         setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
-        setOutputType(editingFunction.outputType || "single");
         
         // Parse the full operationType enum back to base form
         const fullOpType = editingFunction.operationType || "updateMultiple";
@@ -117,11 +116,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         const baseOpType = cleanOpType.startsWith('create') ? 'create' : 'update';
         setOperationType(baseOpType as "create" | "update");
         
-        // Also parse outputType from the operationType if it's corrupted
+        // Parse outputType from the operationType string (authoritative source)
         if (cleanOpType.includes('Single')) {
           setOutputType('single');
         } else if (cleanOpType.includes('Multiple')) {
           setOutputType('multiple');
+        } else {
+          // Fallback to editingFunction.outputType if operationType parsing fails
+          setOutputType(editingFunction.outputType || "single");
         }
         
         setInputParameters(editingFunction.inputParameters || []);
