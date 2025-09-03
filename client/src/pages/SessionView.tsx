@@ -4240,21 +4240,21 @@ Thank you for your assistance.`;
           <div className="border-t border-slate-200 dark:border-gray-700 p-4 flex-1">
             {/* Continuous flow starting with Documents */}
             <div className="relative">
-              {/* Vertical connecting line - now includes Documents */}
+              {/* Vertical connecting line */}
               <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
                 height: `${(() => {
-                  let count = 1; // Start with 1 for General Information
-                  if (collections) {
-                    count += collections.length;
-                  }
+                  let count = 1; // Start with 1 for Documents tab
+                  
+                  // Add all workflow steps (except Documents which is already counted)
                   if (project.workflowSteps) {
-                    const additionalSteps = project.workflowSteps.filter(step => 
-                      step.stepType === 'list' && 
-                      !collections?.some(c => c.collectionName === step.stepName)
+                    const otherSteps = project.workflowSteps.filter(step => 
+                      step.stepName !== 'Documents'
                     ).length;
-                    count += additionalSteps;
+                    count += otherSteps;
                   }
-                  return count * 48 + 12;
+                  
+                  // Calculate height: 48px per item, but subtract some to stop at the last item's center
+                  return (count - 1) * 48 + 12; // Stop at last item's dot
                 })()}px` 
               }}></div>
               
