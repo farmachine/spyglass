@@ -102,6 +102,23 @@ export function PropertyDialogNew({
 
   const handleSubmit = async (data: PropertyForm) => {
     try {
+      // Handle manual entry differently
+      if (data.functionId === "manual") {
+        const enhancedData = {
+          ...data,
+          functionId: null, // No function for manual entry
+          collectionId,
+          extractionType: "MANUAL" as const,
+          requiredDocumentType: undefined,
+          description: "Manual data entry",
+          documentsRequired: false,
+        };
+        await onSave(enhancedData);
+        form.reset();
+        onOpenChange(false);
+        return;
+      }
+      
       // Add the extracted metadata from the selected function
       const selectedFunction = wizardryFunctions.find(f => f.id === data.functionId);
       const enhancedData = {
@@ -121,7 +138,9 @@ export function PropertyDialogNew({
   };
 
   // Get selected tool details
-  const selectedTool = wizardryFunctions.find(f => f.id === form.watch("functionId"));
+  const functionId = form.watch("functionId");
+  const isManual = functionId === "manual";
+  const selectedTool = !isManual ? wizardryFunctions.find(f => f.id === functionId) : null;
   const inputParameters = Array.isArray(selectedTool?.inputParameters) 
     ? selectedTool.inputParameters 
     : [];
@@ -311,10 +330,10 @@ export function PropertyDialogNew({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          {form.watch("functionId") && selectedTool ? (
+          {form.watch("functionId") && (selectedTool || isManual) ? (
             <>
               <DialogTitle className="flex items-center gap-2">
-                {selectedTool.name}
+                {isManual ? "Manual Entry" : selectedTool?.name}
                 {property?.isIdentifier && (
                   <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
                     <Key className="h-3 w-3 mr-1" />
@@ -323,7 +342,7 @@ export function PropertyDialogNew({
                 )}
               </DialogTitle>
               <DialogDescription>
-                {selectedTool.description}
+                {isManual ? "Manually enter values for this property without extraction" : selectedTool?.description}
               </DialogDescription>
             </>
           ) : (
@@ -368,6 +387,13 @@ export function PropertyDialogNew({
                   <SelectValue placeholder="Select method..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="manual">
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Manually
+                    </div>
+                  </SelectItem>
+                  <div className="my-1 border-t border-gray-200" />
                   {[...wizardryFunctions].sort((a, b) => a.name.localeCompare(b.name)).map((tool) => (
                     <SelectItem key={tool.id} value={tool.id}>
                       {tool.name}
@@ -489,8 +515,8 @@ export function PropertyDialogNew({
               )}
             </div>
 
-            {/* Data Sources Section - Only show when tool is selected */}
-            {selectedTool && inputParameters.length > 0 && (
+            {/* Data Sources Section - Only show when tool is selected and not manual */}
+            {selectedTool && !isManual && inputParameters.length > 0 && (
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-gray-600" />

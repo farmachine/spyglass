@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Settings, X } from "lucide-react";
+import { Brain, Settings, X, Plus } from "lucide-react";
 import type { ProjectSchemaField, KnowledgeDocument, ExcelWizardryFunction } from "@shared/schema";
 import { useAllCollectionsForReferences } from "@/hooks/useSchema";
 
@@ -112,7 +112,8 @@ export function SchemaFieldDialogNew({
     }
   }, [field, form]);
 
-  const selectedTool = wizardryFunctions.find(f => f.id === selectedToolId);
+  const isManual = selectedToolId === "manual";
+  const selectedTool = selectedToolId && !isManual ? wizardryFunctions.find(f => f.id === selectedToolId) : null;
 
   // Load input parameters when tool changes
   useEffect(() => {
@@ -367,6 +368,13 @@ export function SchemaFieldDialogNew({
                         <SelectValue placeholder="Choose an extraction method..." />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="manual">
+                          <div className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            <span>Add Manually</span>
+                          </div>
+                        </SelectItem>
+                        <div className="my-1 border-t border-gray-200" />
                         {wizardryFunctions.length === 0 ? (
                           <SelectItem value="none" disabled>No tools available</SelectItem>
                         ) : (
@@ -397,15 +405,17 @@ export function SchemaFieldDialogNew({
                 )}
               />
               
-              {selectedTool && (
+              {(selectedTool || isManual) && (
                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-gray-700">{selectedTool.description}</p>
+                  <p className="text-sm text-gray-700">
+                    {isManual ? "Manually enter values for this field without extraction" : selectedTool?.description}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Step 2: Tool Parameters */}
-            {selectedToolId && inputParameters.length > 0 && (
+            {selectedToolId && !isManual && inputParameters.length > 0 && (
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center text-xs font-semibold text-white">2</div>
