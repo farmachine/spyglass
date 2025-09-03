@@ -2751,19 +2751,44 @@ export default function SessionView() {
     // Parse inputValues to find which columns are actually needed for this tool
     const neededColumns = new Set<string>();
     
+    // For Data Table steps, always include the first column (identifier) by default
+    if (workflowStep && workflowStep.stepType === 'list' && workflowStep.values && workflowStep.values[0]) {
+      neededColumns.add(workflowStep.values[0].valueName);
+    }
+    
     if (valueToRun.inputValues) {
       Object.values(valueToRun.inputValues).forEach(inputValue => {
-        if (typeof inputValue === 'string' && inputValue.includes('@')) {
-          const match = inputValue.match(/@[^.]+\.(.+)/);
-          if (match) {
-            neededColumns.add(match[1].trim());
+        if (typeof inputValue === 'string') {
+          // Check for UUID value IDs
+          if (inputValue.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            // Find the value name for this ID
+            const referencedValue = workflowStep?.values?.find(v => v.id === inputValue);
+            if (referencedValue) {
+              neededColumns.add(referencedValue.valueName);
+            }
+          } else if (inputValue.includes('@')) {
+            // Legacy @-notation support
+            const match = inputValue.match(/@[^.]+\.(.+)/);
+            if (match) {
+              neededColumns.add(match[1].trim());
+            }
           }
         } else if (Array.isArray(inputValue)) {
           inputValue.forEach(v => {
-            if (typeof v === 'string' && v.includes('@')) {
-              const match = v.match(/@[^.]+\.(.+)/);
-              if (match) {
-                neededColumns.add(match[1].trim());
+            if (typeof v === 'string') {
+              // Check for UUID value IDs
+              if (v.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                // Find the value name for this ID
+                const referencedValue = workflowStep?.values?.find(val => val.id === v);
+                if (referencedValue) {
+                  neededColumns.add(referencedValue.valueName);
+                }
+              } else if (v.includes('@')) {
+                // Legacy @-notation support
+                const match = v.match(/@[^.]+\.(.+)/);
+                if (match) {
+                  neededColumns.add(match[1].trim());
+                }
               }
             }
           });
