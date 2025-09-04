@@ -3759,103 +3759,31 @@ Thank you for your assistance.`;
     setExtractingToolId(currentToolGroup.toolId);
     
     try {
-      // Get the documents with content
-      const documentsWithContent = [];
+      // COPY EXACT SAME APPROACH AS DATA TABLE EXTRACTION
+      // Just pass the documentId and let the backend retrieve the content
       
-      // Get document IDs from field inputs - EXACTLY as selected by user in modal
-      const documentIds = new Set<string>();
-      console.log('🔍 Field inputs from modal:', fieldInputs);
-      console.log('🔍 Session documents available:', sessionDocuments?.length || 0);
+      console.log('📋 Field inputs from modal:', fieldInputs);
+      console.log('🔍 Fields to extract:', fieldsToExtract.length);
       
-      // For multi-field values like "Report Info", the document is selected at the VALUE level
-      // The value ID is the key in fieldInputs where the document selection is stored
+      // Get the document ID selected by the user for this value
+      let selectedDocumentId = null;
+      
+      // For multi-field values like "Report Info", check the value ID for document selection
       fieldsToExtract.forEach(field => {
-        const valueId = field.id; // This is the value ID (e.g., for "Report Info")
-        console.log(`🔍 Checking value ${valueId} for document selection...`);
-        
+        const valueId = field.id;
         if (fieldInputs[valueId]?.document) {
-          console.log(`✅ User selected document ${fieldInputs[valueId].document} for value ${valueId}`);
-          documentIds.add(fieldInputs[valueId].document);
+          selectedDocumentId = fieldInputs[valueId].document;
+          console.log(`✅ Using document ${selectedDocumentId} selected for value ${valueId}`);
         }
       });
       
-      // If no documents selected in field inputs, check if fields need documents
-      if (documentIds.size === 0) {
-        console.log('⚠️ No document IDs found in field inputs, checking if fields need documents...');
-        
-        // For each field being extracted, check if it needs a document
-        fieldsToExtract.forEach(field => {
-          if (field.inputValues) {
-            Object.values(field.inputValues).forEach((value: any) => {
-              if (Array.isArray(value) && value.includes('user_document')) {
-                console.log(`📌 Field ${field.valueName} needs a document, auto-selecting first document`);
-                if (sessionDocuments && sessionDocuments.length > 0) {
-                  documentIds.add(sessionDocuments[0].id);
-                }
-              }
-            });
-          }
-        });
+      // If no document selected, use the first available document as fallback
+      if (!selectedDocumentId && sessionDocuments?.length > 0) {
+        selectedDocumentId = sessionDocuments[0].id;
+        console.log(`⚠️ No document selected, using first document: ${selectedDocumentId}`);
       }
       
-      console.log(`📄 Document IDs selected by user: ${Array.from(documentIds).join(', ')}`);
-      
-      // Look up the selected documents from sessionDocuments and retrieve their content
-      for (const docId of documentIds) {
-        console.log(`\n🔍 Looking up document ID: ${docId}`);
-        const doc = sessionDocuments?.find(d => d.id === docId);
-        
-        if (doc) {
-          console.log(`✅ Found document:`, {
-            id: doc.id,
-            fileName: doc.fileName || doc.documentName,
-            hasExtractedContent: !!doc.extractedContent,
-            contentLength: doc.extractedContent?.length || 0
-          });
-          
-          // Get the extracted content from the session document
-          const content = doc.extractedContent || '';
-          
-          if (content && content.length > 0) {
-            console.log(`📄 Successfully loaded ${content.length} chars of content`);
-            console.log(`📄 Preview:`, content.substring(0, 200));
-            
-            // Add document with content to the array
-            documentsWithContent.push({
-              file_name: doc.fileName || doc.documentName || 'document',
-              file_content: content,  // THIS is the extracted content that will be sent to AI
-              file_type: doc.fileType || doc.documentType || doc.mimeType || 'text/plain',
-              original_name: doc.fileName || doc.documentName || 'document'
-            });
-          } else {
-            console.log('❌ ERROR: Document has no extracted content!');
-            console.log('Document details:', doc);
-          }
-        } else {
-          console.log(`❌ ERROR: Could not find document with ID ${docId} in session documents!`);
-          console.log('Available document IDs:', sessionDocuments?.map(d => d.id));
-        }
-      }
-      
-      console.log(`📦 Documents with content prepared: ${documentsWithContent.length} documents`);
-      console.log(`📦 Document content lengths:`, documentsWithContent.map(d => `${d.file_name}: ${d.file_content.length} chars`));
-      
-      // If still no documents loaded, use first available document as fallback
-      if (documentsWithContent.length === 0 && sessionDocuments?.length > 0) {
-        console.log('⚠️ No documents loaded yet, using first document as fallback');
-        const firstDoc = sessionDocuments[0];
-        console.log('📄 Fallback document:', firstDoc);
-        
-        const content = firstDoc.extractedContent || '';
-        console.log(`📄 Using fallback document ${firstDoc.fileName || firstDoc.documentName}: ${content.length} chars`);
-        
-        documentsWithContent.push({
-          file_name: firstDoc.fileName || firstDoc.documentName || 'document',
-          file_content: content,
-          file_type: firstDoc.fileType || firstDoc.documentType || firstDoc.mimeType || 'text/plain',  
-          original_name: firstDoc.fileName || firstDoc.documentName || 'document'
-        });
-      }
+      console.log(`📄 Document ID to pass to backend: ${selectedDocumentId}`);
       
       // Group fields by value ID for multi-field extraction
       const fieldsByValue = new Map<string, any>();
@@ -3869,16 +3797,12 @@ Thank you for your assistance.`;
       
       // Process each value  
       for (const [valueId, value] of fieldsByValue) {
-        console.log(`🎯 Processing value ${valueId} with ${documentsWithContent.length} documents`);
-        console.log(`📄 Request documents:`, documentsWithContent);
-        console.log(`📄 Document contents being sent:`, documentsWithContent.map(d => ({
-          name: d.file_name,
-          contentLength: d.file_content?.length || 0,
-          first100Chars: d.file_content?.substring(0, 100) || 'NO CONTENT'
-        })));
+        console.log(`🎯 Processing value ${valueId}`);
+        console.log(`📄 Passing document ID to backend: ${selectedDocumentId}`);
         
         const requestData = {
-          files: documentsWithContent,
+          documentId: selectedDocumentId,  // PASS DOCUMENT ID LIKE DATA TABLE EXTRACTION
+          files: [],  // Empty files array - backend will retrieve content using documentId
           project_data: {
             id: project?.id,
             projectId: project?.id,

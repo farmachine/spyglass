@@ -2239,10 +2239,11 @@ except Exception as e:
   app.post("/api/sessions/:sessionId/extract", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { files, project_data, is_workflow_step, step_id, value_id, target_fields } = req.body;
+      const { files, project_data, is_workflow_step, step_id, value_id, target_fields, documentId } = req.body;
       
       const projectId = project_data?.projectId || project_data?.id;
       console.log(`STEP 1 EXTRACT: Starting extraction for session ${sessionId}`);
+      console.log(`   Document ID provided: ${documentId || 'none'}`);
       
       // Validate that we have a valid project ID
       if (!projectId) {
@@ -2252,12 +2253,34 @@ except Exception as e:
         });
       }
       
-      // Convert frontend file format to Python script expected format
-      const convertedFiles = (files || []).map((file: any) => ({
-        file_name: file.name,
-        file_content: file.content, // This is the data URL from FileReader
-        mime_type: file.type
-      }));
+      let convertedFiles = [];
+      
+      // HANDLE DOCUMENT ID - SAME AS DATA TABLE EXTRACTION
+      if (documentId) {
+        console.log(`📄 Looking up document ${documentId} from session documents`);
+        const sessionDocuments = await storage.getSessionDocuments(sessionId);
+        const documentToUse = sessionDocuments.find(d => d.id === documentId);
+        
+        if (documentToUse) {
+          const documentContent = documentToUse.extractedContent || documentToUse.documentContent || '';
+          console.log(`✅ Found document: ${documentToUse.fileName || documentToUse.documentName}, content length: ${documentContent.length}`);
+          
+          convertedFiles = [{
+            file_name: documentToUse.fileName || documentToUse.documentName || 'document',
+            file_content: documentContent,
+            mime_type: documentToUse.fileType || documentToUse.documentType || 'text/plain'
+          }];
+        } else {
+          console.log(`⚠️ Document ${documentId} not found in session documents`);
+        }
+      } else if (files && files.length > 0) {
+        // Convert frontend file format to Python script expected format
+        convertedFiles = (files || []).map((file: any) => ({
+          file_name: file.name,
+          file_content: file.content, // This is the data URL from FileReader
+          mime_type: file.type
+        }));
+      }
 
       // Get extraction rules for better AI guidance (with error handling)
       let extractionRules = [];
