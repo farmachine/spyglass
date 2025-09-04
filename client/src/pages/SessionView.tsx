@@ -3814,15 +3814,21 @@ Thank you for your assistance.`;
             // Check if this is a multi-field value
             if (value.fields && Array.isArray(value.fields)) {
               // Multi-field value - map each field with its own identifierId
-              return value.fields.map((field: any, idx: number) => ({
-                fieldName: field.name,
-                valueName: field.name, 
-                dataType: field.dataType || 'TEXT',
-                description: field.description || '',
-                identifierId: field.identifierId || `${valueId}_field_${idx}`, // Use stored or generate identifierId
-                fieldId: field.id,
-                valueId: valueId
-              }));
+              console.log(`📝 Multi-field value ${valueId} has ${value.fields.length} fields`);
+              return value.fields.map((field: any, idx: number) => {
+                const fieldConfig = {
+                  fieldName: field.name,
+                  valueName: field.name, 
+                  dataType: field.dataType || 'TEXT',
+                  description: field.description || '',
+                  identifierId: field.identifierId || `${valueId}_field_${idx}`, // CRITICAL: This maps AI results back
+                  id: field.id || field.identifierId || `${valueId}_field_${idx}`, // Backend looks for 'id'
+                  fieldId: field.id || field.identifierId || `${valueId}_field_${idx}`, // Also include as fieldId
+                  valueId: valueId
+                };
+                console.log(`📝 Field ${idx}: ${field.name}, identifierId: ${fieldConfig.identifierId}, fieldId: ${fieldConfig.fieldId}`);
+                return fieldConfig;
+              });
             } else if (value.fieldToExtract) {
               // Single field with explicit extraction config
               return [{

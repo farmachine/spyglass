@@ -2501,6 +2501,9 @@ except Exception as e:
           }
         }
         
+        // Log what we're passing to the tool
+        console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
+        
         // Run the tool  
         const toolResults = await toolEngine.runToolForExtraction(
           workflowValue.toolId,
@@ -2516,15 +2519,23 @@ except Exception as e:
         );
         
         console.log(`🎯 Tool execution complete. Results:`, toolResults?.length || 0, 'items');
+        console.log(`📊 Tool results:`, JSON.stringify(toolResults, null, 2));
         
         // Store the extraction results
         if (toolResults && Array.isArray(toolResults)) {
           // For Info Page multi-field extraction, each result corresponds to a field
           if (target_fields && target_fields.length > 0) {
             console.log(`📝 Saving ${toolResults.length} field results for Info Page`);
+            console.log(`📊 Matching results to ${target_fields.length} target fields`);
             
             // Map results by identifierId for accurate field matching
-            for (const result of toolResults) {
+            for (let i = 0; i < toolResults.length; i++) {
+              const result = toolResults[i];
+              console.log(`📊 Processing result ${i}:`, {
+                extractedValue: result.extractedValue,
+                identifierId: (result as any).identifierId
+              });
+              
               // Find the matching field by identifierId
               const field = target_fields.find((f: any) => 
                 f.identifierId === result.identifierId || 
@@ -2533,8 +2544,15 @@ except Exception as e:
               
               if (!field) {
                 console.warn(`⚠️ Could not find field for identifierId: ${(result as any).identifierId}`);
+                console.log(`📊 Available target field identifierIds:`, target_fields.map((f: any) => f.identifierId));
                 continue;
               }
+              
+              console.log(`✅ Matched result to field:`, {
+                fieldName: field.fieldName,
+                fieldId: field.id || field.fieldId,
+                identifierId: field.identifierId
+              });
               
               // Create validation record for this field
               const validationRecord = {
