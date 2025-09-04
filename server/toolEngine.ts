@@ -638,7 +638,21 @@ export class ToolEngine {
       
       // 7. Map results based on operation type
       let results: ToolResult[];
-      if (isCreateOperation) {
+      
+      // Check for multi-field extraction (Info Page fields)
+      if (inputs.__infoPageFields && inputArray.length === 0) {
+        // Multi-field extraction: AI returns results with identifierIds from __infoPageFields
+        console.log(`📋 Multi-field extraction: processing ${parsedResults.length} field results`);
+        results = parsedResults.map((item: any) => ({
+          identifierId: item.identifierId, // CRITICAL: Preserve the identifierId from AI response
+          extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
+          validationStatus: item.validationStatus || "valid",
+          aiReasoning: item.aiReasoning || "",
+          confidenceScore: item.confidenceScore || 85,
+          documentSource: item.documentSource || ""
+        }));
+        console.log(`✅ Multi-field extraction mapped ${results.length} results with identifierIds`);
+      } else if (isCreateOperation) {
         // CREATE operations: AI generates new records
         results = parsedResults.map((item: any) => ({
           identifierId: null, // New records don't have identifierIds yet
