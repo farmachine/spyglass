@@ -3693,7 +3693,9 @@ Thank you for your assistance.`;
       for (const docId of documentIds) {
         const doc = sessionDocuments?.find(d => d.id === docId);
         if (doc) {
-          const content = doc.fileContent || doc.content || '';
+          // Use extractedContent which is where the document text is stored
+          const content = doc.extractedContent || doc.fileContent || doc.content || '';
+          console.log(`📄 Loading document ${doc.fileName}: ${content.length} chars`);
           documentsWithContent.push({
             file_name: doc.fileName || doc.name || 'document',
             file_content: content,
