@@ -104,7 +104,35 @@ const FieldSelectionModalContent = ({
     });
     return initialSelection;
   });
-  const [fieldInputs, setFieldInputs] = useState<Record<string, any>>({});
+  // Pre-populate document selection for values that need it
+  const [fieldInputs, setFieldInputs] = useState<Record<string, any>>(() => {
+    const initialInputs: Record<string, any> = {};
+    
+    // Check if any step values need document selection and pre-select the first document
+    if (sessionDocuments && sessionDocuments.length > 0) {
+      stepValues.forEach(stepValue => {
+        const needsDoc = stepValue.inputValues && 
+          Object.entries(stepValue.inputValues).some(([key, value]) => {
+            if (Array.isArray(value)) {
+              return value.some(v => typeof v === 'string' && 
+                (v.toLowerCase().includes('user_document') || 
+                 (v.toLowerCase().includes('user') && v.toLowerCase().includes('document'))));
+            }
+            return typeof value === 'string' && 
+              (value.toLowerCase().includes('user_document') || 
+               (value.toLowerCase().includes('user') && value.toLowerCase().includes('document')));
+          });
+          
+        if (needsDoc) {
+          // Pre-select the first document for this value
+          initialInputs[stepValue.id] = { document: sessionDocuments[0].id };
+          console.log(`📌 Pre-selected document ${sessionDocuments[0].fileName} for value ${stepValue.valueName}`);
+        }
+      });
+    }
+    
+    return initialInputs;
+  });
 
   // Calculate total field count
   const getTotalFieldCount = () => {
@@ -3747,6 +3775,21 @@ Thank you for your assistance.`;
       console.log(`📦 Documents with content prepared: ${documentsWithContent.length} documents`);
       console.log(`📦 Document content lengths:`, documentsWithContent.map(d => `${d.file_name}: ${d.file_content.length} chars`));
       
+      // If no documents were loaded, check if we need to select the document from the modal
+      if (documentsWithContent.length === 0 && sessionDocuments?.length > 0) {
+        console.log('⚠️ No documents selected via field inputs, using first document as fallback');
+        const firstDoc = sessionDocuments[0];
+        const content = firstDoc.extractedContent || firstDoc.fileContent || firstDoc.content || '';
+        console.log(`📄 Using fallback document ${firstDoc.fileName}: ${content.length} chars`);
+        
+        documentsWithContent.push({
+          file_name: firstDoc.fileName || firstDoc.name || 'document',
+          file_content: content,
+          file_type: firstDoc.fileType || firstDoc.mimeType || 'text/plain',  
+          original_name: firstDoc.fileName || firstDoc.name
+        });
+      }
+      
       // Group fields by value ID for multi-field extraction
       const fieldsByValue = new Map<string, any>();
       fieldsToExtract.forEach(field => {
@@ -3759,6 +3802,9 @@ Thank you for your assistance.`;
       
       // Process each value  
       for (const [valueId, value] of fieldsByValue) {
+        console.log(`🎯 Processing value ${valueId} with ${documentsWithContent.length} documents`);
+        console.log(`📄 Request documents:`, documentsWithContent);
+        
         const requestData = {
           files: documentsWithContent,
           project_data: {
