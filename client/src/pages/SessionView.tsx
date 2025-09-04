@@ -3703,13 +3703,14 @@ Thank you for your assistance.`;
         }
       }
       
-      // Group fields by valueId for multi-field extraction
+      // Group fields by value ID for multi-field extraction
       const fieldsByValue = new Map<string, any[]>();
       fieldsToExtract.forEach(field => {
-        if (!fieldsByValue.has(field.valueId)) {
-          fieldsByValue.set(field.valueId, []);
+        const valueId = field.id; // The stepValue's id is the value ID
+        if (!fieldsByValue.has(valueId)) {
+          fieldsByValue.set(valueId, []);
         }
-        fieldsByValue.get(field.valueId)!.push(field);
+        fieldsByValue.get(valueId)!.push(field);
       });
       
       // Process each value group  
@@ -3723,9 +3724,14 @@ Thank you for your assistance.`;
             collections: collections || [],
             workflowSteps: project?.workflowSteps || []
           },
-          target_fields: fields.map(f => f.fieldToExtract),
+          target_fields: fields.map(f => f.fieldToExtract || {
+            // For single-field values, create the field object
+            fieldName: f.valueName,
+            fieldType: f.dataType,
+            description: f.description
+          }),
           is_workflow_step: true,
-          step_id: fields[0].stepId,
+          step_id: stepId, // Use the stepId we got at the beginning
           value_id: valueId
         };
         

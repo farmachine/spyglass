@@ -1,0 +1,33 @@
+WORKFLOW STEP EXTRACTION: Processing step 4c3c4da8-3151-4e78-bd7e-513cbfb7719f, value undefined
+WORKFLOW STEP: Target fields: [ undefined, undefined ]
+STEP 1: Extracting from 0 documents with 0 extraction rules
+TASK CLASSIFICATION:
+  Target fields: []
+  Excel column tasks: []
+  Complex tasks: []
+  Decision: Use CURRENT AI EXTRACTION
+TASK CLASSIFICATION: Collection record counts: { CSPs: 11, 'Section 5.1': 1 }
+TASK CLASSIFICATION: Target collections: []
+USING EXTRACTION WIZARDRY: Complex reasoning and analysis required
+STEP 1 extraction error: Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+Traceback (most recent call last):
+  File "/home/runner/workspace/extraction_wizardry.py", line 1662, in <module>
+    run_wizardry(data)
+  File "/home/runner/workspace/extraction_wizardry.py", line 1648, in run_wizardry
+    run_wizardry_with_gemini_analysis(data, extraction_number, llm_model)
+  File "/home/runner/workspace/extraction_wizardry.py", line 1417, in run_wizardry_with_gemini_analysis
+    function_data = generate_excel_function_with_gemini(identifier_targets, documents, identifier_references, extraction_number)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/extraction_wizardry.py", line 685, in generate_excel_function_with_gemini
+    prompt = EXCEL_FUNCTION_GENERATOR.format(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: '\n    "extractedValue"'
+
+6:38:44 PM [express] POST /api/sessions/8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe/extract 500 in 15555ms :: [JSON response - 1098 chars]
+6:38:44 PM [browser] ❌ Extraction error: {}
+6:38:44 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+6:38:44 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+6:38:44 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+6:38:44 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+6:38:44 PM [express] POST /api/dev
