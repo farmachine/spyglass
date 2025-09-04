@@ -2406,7 +2406,7 @@ except Exception as e:
         console.log(`🚀 Value: ${workflowValue.valueName}, Tool ID: ${workflowValue.toolId}`);
         
         // Get the tool details
-        const tool = await storage.getTool(workflowValue.toolId);
+        const tool = await storage.getExcelWizardryFunction(workflowValue.toolId);
         if (!tool) {
           console.error(`Tool ${workflowValue.toolId} not found`);
           return res.status(404).json({ 
