@@ -5555,8 +5555,9 @@ Thank you for your assistance.`;
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
                                 
-                                // Don't re-sort - values already come ordered from backend by orderIndex
-                                // Sorting here disrupts the stable order from the database
+                                // See replit.md Section 4: Data Flow Integrity
+                                // CRITICAL: Never re-sort data that's already ordered by backend
+                                // Backend provides columns sorted by orderIndex - preserve this order
                                 
                                 return columnsToDisplay
                                   .map((column, index) => {

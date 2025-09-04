@@ -2463,6 +2463,8 @@ except Exception as e:
         }
         
         // For Info Page multi-field extraction, add the field definitions
+        // See replit.md Section 3: Multi-Field vs Single-Field Extraction
+        // CRITICAL: __infoPageFields metadata must be preserved through entire extraction pipeline
         if (target_fields && target_fields.length > 0) {
           console.log('📋 Adding multi-field definitions for Info Page extraction');
           toolInputs.__infoPageFields = target_fields.map((f: any) => ({
