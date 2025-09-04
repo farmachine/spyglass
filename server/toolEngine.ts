@@ -602,8 +602,14 @@ export class ToolEngine {
       // 6. Extract and parse response
       const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
-      // Log the response size
+      // Log the response size and content
       console.log(`📏 AI Response Size: ${rawResponse.length} characters`);
+      
+      // Always log the full response if it's under 1000 chars (to debug empty results)
+      if (rawResponse.length < 1000) {
+        console.log('📝 Full AI Response:');
+        console.log(rawResponse);
+      }
       
       // Log a snippet of the raw response around the problematic position if large
       if (rawResponse.length > 24335) {
