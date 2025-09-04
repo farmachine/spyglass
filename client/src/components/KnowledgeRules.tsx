@@ -134,7 +134,6 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
-            <GraduationCap className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             Knowledge Base
           </CardTitle>
           <Button

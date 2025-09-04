@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench, Plus } from "lucide-react";
+import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench, Plus, GraduationCap } from "lucide-react";
 import { TideIcon, StreamIcon, ShipIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -110,7 +110,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const adminNavItems = [
     { id: "data" as const, label: "Extraction Steps", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge", icon: TideIcon, disabled: false },
+      { id: "knowledge" as const, label: "Knowledge", icon: GraduationCap, disabled: false },
       { id: "rules" as const, label: "Rules", icon: Brain, disabled: false },
       { id: "tools" as const, label: "Tools", icon: Wrench, disabled: false },
     ] : []),
