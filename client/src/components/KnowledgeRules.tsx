@@ -135,13 +135,14 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
           <CardTitle className="flex items-center gap-2">
             <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
             <GraduationCap className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            Knowledge Base ({knowledgeDocuments.length})
+            Knowledge Base
           </CardTitle>
           <Button
             onClick={() => {
               setEditingDocument(null);
               setKnowledgeDialogOpen(true);
             }}
+            className="bg-slate-700 hover:bg-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Document
@@ -322,23 +323,6 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            {getHeading().includes("•") ? (
-              <>
-                {getHeading().split(" • ")[0]} <span style={{ color: '#4F63A4' }}>•</span> {getHeading().split(" • ")[1]}
-              </>
-            ) : (
-              getHeading()
-            )}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {getDescription()}
-          </p>
-        </div>
-      </div>
-
       {mode === "knowledge" && renderKnowledgeSection()}
       {mode === "rules" && renderRulesSection()}
 

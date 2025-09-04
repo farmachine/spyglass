@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle, User, List, Plus } from "lucide-react";
+import { ArrowLeft, Upload, Database, Brain, Settings, FolderOpen, Home as HomeIcon, TrendingUp, Edit3, Check, X, AlertTriangle, CheckCircle, User, List, Plus, GraduationCap } from "lucide-react";
 import { WaveIcon, FlowIcon, StreamIcon, TideIcon, ShipIcon, DropletIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -304,7 +304,7 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const navItems = [
     { id: "data" as const, label: `All ${project.mainObjectName || "Session"}s`, icon: FlowIcon, disabled: showWelcomeFlow },
     ...(canAccessConfigTabs ? [
-      { id: "knowledge" as const, label: "Knowledge/Rules", icon: TideIcon, disabled: showWelcomeFlow },
+      { id: "knowledge" as const, label: "Knowledge Base", icon: GraduationCap, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Steps", icon: StreamIcon, disabled: false }, // Steps always enabled
     ] : []),
     ...(canAccessPublishing ? [
