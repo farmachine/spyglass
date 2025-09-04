@@ -2302,6 +2302,24 @@ except Exception as e:
         }
       }
 
+      // Check if this is a workflow step with a tool assigned
+      let shouldUseToolEngine = false;
+      let workflowValue: any = null;
+      
+      if (is_workflow_step && step_id && value_id) {
+        // Get the workflow step and value details to check for tool assignment
+        const workflowStep = project_data?.workflowSteps?.find((s: any) => s.id === step_id);
+        workflowValue = workflowStep?.values?.find((v: any) => v.id === value_id);
+        
+        if (workflowValue?.toolId) {
+          console.log(`🎯 TOOL DETECTED for workflow value: ${workflowValue.valueName}`);
+          console.log(`   Tool ID: ${workflowValue.toolId}`);
+          console.log(`   Step Type: ${workflowStep.stepType}`);
+          console.log(`   Is Info Page: ${workflowStep.stepType === 'info_page'}`);
+          shouldUseToolEngine = true;
+        }
+      }
+
       // Handle workflow step extraction differently
       let projectSchema;
       if (is_workflow_step && target_fields && target_fields.length > 0) {
@@ -2381,6 +2399,128 @@ except Exception as e:
       
       console.log('TASK CLASSIFICATION: Collection record counts:', collectionRecordCounts);
       console.log('TASK CLASSIFICATION: Target collections:', targetCollections);
+      
+      // Use tool engine if a tool is assigned to the workflow value
+      if (shouldUseToolEngine && workflowValue) {
+        console.log('🚀 USING TOOL ENGINE FOR WORKFLOW VALUE WITH ASSIGNED TOOL');
+        console.log(`🚀 Value: ${workflowValue.valueName}, Tool ID: ${workflowValue.toolId}`);
+        
+        // Get the tool details
+        const tool = await storage.getTool(workflowValue.toolId);
+        if (!tool) {
+          console.error(`Tool ${workflowValue.toolId} not found`);
+          return res.status(404).json({ 
+            success: false, 
+            error: `Tool ${workflowValue.toolId} not found` 
+          });
+        }
+        
+        console.log(`🎯 Using tool: ${tool.name} (type: ${tool.toolType})`);
+        
+        // Import tool engine to execute the tool
+        const { runToolForExtraction } = await import('./toolEngine');
+        
+        // Prepare inputs for the tool
+        const toolInputs: Record<string, any> = {};
+        
+        // For Info Page multi-field extraction, add the field definitions
+        if (target_fields && target_fields.length > 0) {
+          console.log('📋 Adding multi-field definitions for Info Page extraction');
+          toolInputs.__infoPageFields = target_fields.map((f: any) => ({
+            name: f.fieldName || f.valueName,
+            dataType: f.dataType || 'TEXT',
+            description: f.description || ''
+          }));
+          console.log('📋 Multi-field definitions:', toolInputs.__infoPageFields);
+        }
+        
+        // Add document content if needed
+        if (tool.inputParameters?.some((p: any) => p.type === 'document')) {
+          console.log('📄 Tool requires document content');
+          const documentFile = convertedFiles[0]; // Use first document
+          if (documentFile) {
+            toolInputs['document'] = documentFile.file_content || '';
+            toolInputs['Document'] = documentFile.file_content || '';
+            console.log(`📄 Added document content (${documentFile.file_content?.length || 0} chars)`);
+          }
+        }
+        
+        // Process configured input values
+        if (workflowValue.inputValues) {
+          for (const [key, value] of Object.entries(workflowValue.inputValues)) {
+            if (typeof value === 'string' && value === '@user_document') {
+              // Replace @user_document with actual document content
+              const documentFile = convertedFiles[0];
+              if (documentFile) {
+                toolInputs[key] = documentFile.file_content || '';
+                console.log(`📄 Replaced @user_document for ${key}`);
+              }
+            } else if (typeof value === 'string' && !value.startsWith('@')) {
+              // Add literal string values
+              toolInputs[key] = value;
+            }
+          }
+        }
+        
+        // Run the tool
+        const toolResults = await runToolForExtraction(
+          tool,
+          toolInputs,
+          sessionId,
+          project_id,
+          (current, total, message) => {
+            console.log(`Progress: ${current}/${total} - ${message}`);
+          }
+        );
+        
+        console.log(`🎯 Tool execution complete. Results:`, toolResults?.length || 0, 'items');
+        
+        // Store the extraction results
+        if (toolResults && Array.isArray(toolResults)) {
+          // For Info Page multi-field extraction, each result corresponds to a field
+          if (target_fields && target_fields.length > 0) {
+            console.log(`📝 Saving ${toolResults.length} field results for Info Page`);
+            
+            for (let i = 0; i < Math.min(toolResults.length, target_fields.length); i++) {
+              const field = target_fields[i];
+              const result = toolResults[i];
+              
+              // Create validation record for this field
+              const validationRecord = {
+                sessionId,
+                projectId: project_id,
+                fieldId: field.id || field.fieldId,
+                fieldName: field.fieldName || field.valueName,
+                extractedValue: result.extractedValue || '',
+                validationStatus: result.validationStatus || 'pending',
+                validationType: 'ai',
+                dataType: field.dataType || 'TEXT',
+                description: field.description || '',
+                identifierId: field.identifierId,
+                stepId: step_id,
+                valueId: value_id,
+                recordIndex: 0, // Info Page fields don't have record indices
+                collectionName: null,
+                documentSource: result.documentSource || '',
+                aiReasoning: result.aiReasoning || '',
+                confidenceScore: result.confidenceScore || 0,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              };
+              
+              console.log(`📝 Saving validation for field: ${field.fieldName || field.valueName}`);
+              await storage.createFieldValidation(validationRecord);
+            }
+          }
+        }
+        
+        // Return success response
+        return res.json({ 
+          success: true,
+          message: 'Extraction completed using tool engine',
+          extractedCount: toolResults?.length || 0
+        });
+      }
       
       if (isExcelColumnExtraction && is_workflow_step && value_id) {
         console.log('🚀 USING TOOL ENGINE FOR WORKFLOW VALUE EXTRACTION');
