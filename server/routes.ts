@@ -2484,6 +2484,17 @@ except Exception as e:
           }
         }
         
+        // CRITICAL: Add __infoPageFields for multi-field extraction
+        if (workflowStep.stepType === 'info_page' && target_fields && target_fields.length > 0) {
+          console.log(`📋 Adding __infoPageFields for multi-field extraction: ${target_fields.length} fields`);
+          toolInputs['__infoPageFields'] = target_fields.map((f: any) => ({
+            name: f.fieldName || f.valueName || f.name,
+            dataType: f.dataType || 'TEXT',
+            description: f.description || '',
+            identifierId: f.identifierId  // Include identifierId for proper result mapping
+          }));
+        }
+        
         // Process configured input values
         if (workflowValue.inputValues) {
           for (const [key, value] of Object.entries(workflowValue.inputValues)) {
