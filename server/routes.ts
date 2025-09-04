@@ -2738,15 +2738,70 @@ except Exception as e:
           }
           
           try {
+            // Check if this is an Info Page value with multiple fields
+            const isInfoPageWithFields = workflowStep.type === 'page' && workflowValue.fields && workflowValue.fields.length > 0;
+            
             // Run the tool
             const toolResults = await runToolForExtraction(
               workflowValue.toolId,
               toolInputs,
               sessionId,
-              projectId
+              projectId,
+              isInfoPageWithFields ? workflowValue.fields : undefined // Pass fields for Info Page values
             );
             
             console.log(`✅ Tool execution completed. Results count: ${toolResults.length}`);
+            
+            // Handle Info Page multi-field extraction differently
+            if (isInfoPageWithFields && workflowValue.fields) {
+              console.log('🎯 INFO PAGE MULTI-FIELD EXTRACTION - Saving field validations');
+              
+              // For Info Page values with fields, each result corresponds to a field
+              for (let i = 0; i < toolResults.length && i < workflowValue.fields.length; i++) {
+                const result = toolResults[i];
+                const field = workflowValue.fields[i];
+                const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}.${field.name}`;
+                
+                // Generate a unique identifierId for each field
+                const { v4: uuidv4 } = await import('uuid');
+                const fieldIdentifierId = uuidv4();
+                
+                const validation = {
+                  sessionId,
+                  validationType: 'schema_field',
+                  fieldId: value_id,
+                  extractedValue: result.extractedValue,
+                  originalExtractedValue: result.extractedValue,
+                  originalConfidenceScore: result.confidenceScore || 85,
+                  originalAiReasoning: result.aiReasoning || 'Extracted via AI tool',
+                  validationStatus: result.validationStatus || 'valid',
+                  aiReasoning: result.aiReasoning || 'Extracted via AI tool',
+                  confidenceScore: result.confidenceScore || 85,
+                  dataType: field.dataType.toLowerCase(),
+                  collectionName: workflowStep.stepName,
+                  collectionId: step_id,
+                  recordIndex: 0, // Info Pages typically have single records
+                  stepId: step_id,
+                  valueId: value_id,
+                  identifierId: fieldIdentifierId
+                };
+                
+                console.log(`  Saving field validation for: ${fieldName}`);
+                await storage.createFieldValidation(validation);
+              }
+              
+              console.log(`✅ Saved ${toolResults.length} field validations for Info Page value`);
+              
+              // Update session status
+              await storage.updateExtractionSession(sessionId, {
+                status: "extracted"
+              });
+              
+              return res.json({ 
+                message: "Multi-field extraction completed", 
+                extractedCount: toolResults.length
+              });
+            }
             
             // CRITICAL FIX: Map results back to inputs using identifierId
             console.log('🔍 MAPPING RESULTS BACK TO INPUTS:');

@@ -75,6 +75,8 @@ interface WorkflowValue {
   inputValues: Record<string, any>;
   outputDescription?: string;
   orderIndex: number;
+  // Multi-field support for Info Page values
+  fields?: Array<{name: string; dataType: string; description: string}>;
   // Original data reference
   originalId?: string;
 }
@@ -364,7 +366,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues
+          inputValues: value.inputValues,
+          fields: value.fields // Include fields for Info Page values
         }))
       }))
     };
@@ -460,7 +463,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           dataType: value.dataType,
           description: value.description,
           toolId: value.toolId,
-          inputValues: value.inputValues
+          inputValues: value.inputValues,
+          fields: value.fields // Include fields for Info Page values
         }))
       }))
     };
@@ -918,6 +922,11 @@ function ValueEditor({
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   
+  // Initialize fields for Info Page values
+  const [fields, setFields] = useState<Array<{name: string; dataType: string; description: string}>>(
+    value.fields || (step.type === 'page' ? [] : null)
+  );
+  
   // Get available values for referencing
   const getAvailableValues = () => {
     const availableValues: Array<{id: string; valueId: string; name: string; stepName: string}> = [];
@@ -1056,17 +1065,19 @@ function ValueEditor({
 
       {isExpanded && (
         <div className="space-y-3">
-          {/* Name and Data Type on same row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Name</Label>
-              <Input
-                value={value.name}
-                onChange={(e) => onUpdate({ name: e.target.value })}
-                placeholder="Value name..."
-                className="bg-white dark:bg-white"
-              />
-            </div>
+          {/* Name input */}
+          <div>
+            <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Name</Label>
+            <Input
+              value={value.name}
+              onChange={(e) => onUpdate({ name: e.target.value })}
+              placeholder="Value name..."
+              className="bg-white dark:bg-white"
+            />
+          </div>
+          
+          {/* For Data Table values, show single dataType field */}
+          {step.type === 'list' && (
             <div>
               <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Data Type</Label>
               <Select
@@ -1110,7 +1121,86 @@ function ValueEditor({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
+          
+          {/* For Info Page values, show fields editor */}
+          {step.type === 'page' && (
+            <div>
+              <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Fields</Label>
+              <div className="space-y-2 mt-2">
+                {fields?.map((field, idx) => (
+                  <div key={idx} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <Input
+                        value={field.name}
+                        onChange={(e) => {
+                          const newFields = [...(fields || [])];
+                          newFields[idx].name = e.target.value;
+                          setFields(newFields);
+                          onUpdate({ fields: newFields });
+                        }}
+                        placeholder="Field name..."
+                        className="bg-white dark:bg-white"
+                      />
+                      <Select
+                        value={field.dataType}
+                        onValueChange={(val) => {
+                          const newFields = [...(fields || [])];
+                          newFields[idx].dataType = val;
+                          setFields(newFields);
+                          onUpdate({ fields: newFields });
+                        }}
+                      >
+                        <SelectTrigger className="bg-white dark:bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="TEXT">Text</SelectItem>
+                          <SelectItem value="NUMBER">Number</SelectItem>
+                          <SelectItem value="DATE">Date</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <button
+                        onClick={() => {
+                          const newFields = (fields || []).filter((_, i) => i !== idx);
+                          setFields(newFields);
+                          onUpdate({ fields: newFields });
+                        }}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                      >
+                        <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      </button>
+                    </div>
+                    <Input
+                      value={field.description}
+                      onChange={(e) => {
+                        const newFields = [...(fields || [])];
+                        newFields[idx].description = e.target.value;
+                        setFields(newFields);
+                        onUpdate({ fields: newFields });
+                      }}
+                      placeholder="Description..."
+                      className="bg-white dark:bg-white"
+                    />
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newFields = [...(fields || []), { name: '', dataType: 'TEXT', description: '' }];
+                    setFields(newFields);
+                    onUpdate({ fields: newFields });
+                  }}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Field
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Tool */}
           <div>

@@ -676,6 +676,10 @@ export class ToolEngine {
   private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[] = []): string {
     const basePrompt = tool.aiPrompt || '';
     
+    // Check for multi-field Info Page extraction
+    const infoPageFields = inputs.__infoPageFields;
+    delete inputs.__infoPageFields; // Remove from inputs to avoid confusion
+    
     // Extract value configuration - this tells us what field is being extracted
     const valueConfig = inputs['valueConfiguration'];
     const valueName = valueConfig?.valueName || '';
@@ -775,6 +779,27 @@ Example format:
 
 `;
       }
+    }
+    
+    // Add field definitions for multi-field Info Page extraction
+    if (infoPageFields && Array.isArray(infoPageFields) && infoPageFields.length > 0) {
+      prompt += `
+=== MULTIPLE FIELDS TO EXTRACT ===
+You must extract the following ${infoPageFields.length} fields from the provided information:
+
+`;
+      infoPageFields.forEach((field: any, idx: number) => {
+        prompt += `**Field ${idx + 1}: ${field.name}**
+- Data Type: ${field.dataType}
+- Description: ${field.description || 'Extract this field'}
+
+`;
+      });
+      
+      prompt += `IMPORTANT: Return a JSON array with exactly ${infoPageFields.length} objects, one for each field listed above, in the same order.
+Each object must have these properties: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
+
+`;
     }
     
     // Add List Items (the data to process) - only if data is provided
@@ -1082,9 +1107,10 @@ Each item in the list above has an "identifierId" field. You MUST:
     toolId: string,
     inputs: Record<string, any>,
     sessionId: string,
-    projectId: string
+    projectId: string,
+    fields?: Array<{name: string; dataType: string; description: string}> // For multi-field Info Page values
   ): Promise<ToolResult[]> {
-    console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId });
+    console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length });
     
     // Get the tool from storage
     const tool = await storage.getExcelWizardryFunction(toolId);
@@ -1093,6 +1119,12 @@ Each item in the list above has an "identifierId" field. You MUST:
     }
     
     console.log('📦 Tool found:', tool.name);
+    
+    // If fields are provided (Info Page multi-field extraction), modify inputs to include fields info
+    if (fields && fields.length > 0 && tool.toolType === 'AI_ONLY') {
+      inputs.__infoPageFields = fields;
+      console.log('📋 Multi-field Info Page extraction:', fields.map(f => f.name).join(', '));
+    }
     
     // Execute the tool
     return this.testTool(tool, inputs);
