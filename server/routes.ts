@@ -2487,7 +2487,8 @@ except Exception as e:
           target_fields ? target_fields.map((f: any) => ({
             name: f.fieldName || f.valueName || f.name,
             dataType: f.dataType || 'TEXT',
-            description: f.description || ''
+            description: f.description || '',
+            identifierId: f.identifierId  // Include identifierId for proper mapping
           })) : undefined
         );
         
@@ -2499,9 +2500,18 @@ except Exception as e:
           if (target_fields && target_fields.length > 0) {
             console.log(`📝 Saving ${toolResults.length} field results for Info Page`);
             
-            for (let i = 0; i < Math.min(toolResults.length, target_fields.length); i++) {
-              const field = target_fields[i];
-              const result = toolResults[i];
+            // Map results by identifierId for accurate field matching
+            for (const result of toolResults) {
+              // Find the matching field by identifierId
+              const field = target_fields.find((f: any) => 
+                f.identifierId === result.identifierId || 
+                f.identifierId === (result as any).identifierId
+              );
+              
+              if (!field) {
+                console.warn(`⚠️ Could not find field for identifierId: ${(result as any).identifierId}`);
+                continue;
+              }
               
               // Create validation record for this field
               const validationRecord = {
@@ -2526,7 +2536,7 @@ except Exception as e:
                 updatedAt: new Date()
               };
               
-              console.log(`📝 Saving validation for field: ${field.fieldName || field.valueName}`);
+              console.log(`📝 Saving validation for field: ${field.fieldName || field.valueName} (ID: ${field.identifierId})`);
               await storage.createFieldValidation(validationRecord);
             }
           }

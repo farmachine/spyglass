@@ -814,11 +814,14 @@ Example format:
     if (infoPageFields && Array.isArray(infoPageFields) && infoPageFields.length > 0) {
       prompt += `
 === MULTIPLE FIELDS TO EXTRACT ===
-You must extract the following ${infoPageFields.length} fields from the provided information:
+You must extract the following ${infoPageFields.length} fields from the provided information.
+IMPORTANT: Each field has a unique identifierId that MUST be included in your response for proper mapping.
 
 `;
       infoPageFields.forEach((field: any, idx: number) => {
+        const fieldId = field.identifierId || `field_${idx}`;
         prompt += `**Field ${idx + 1}: ${field.name}**
+- Identifier ID: ${fieldId}
 - Data Type: ${field.dataType}
 - Description: ${field.description || 'Extract this field'}
 
@@ -826,7 +829,18 @@ You must extract the following ${infoPageFields.length} fields from the provided
       });
       
       prompt += `IMPORTANT: Return a JSON array with exactly ${infoPageFields.length} objects, one for each field listed above, in the same order.
-Each object must have these properties: extractedValue, validationStatus, aiReasoning, confidenceScore, documentSource
+Each object must have these properties:
+- identifierId: The EXACT Identifier ID from the field definition above
+- extractedValue: The value extracted for this field
+- validationStatus: Either "valid" or "invalid"
+- aiReasoning: Your explanation for the extraction
+- confidenceScore: A number between 0 and 100
+- documentSource: Where in the document this was found
+
+Example response format:
+[
+  {"identifierId": "${infoPageFields[0]?.identifierId || 'field_0'}", "extractedValue": "...", "validationStatus": "valid", "aiReasoning": "...", "confidenceScore": 95, "documentSource": "..."}${infoPageFields.length > 1 ? ',\n  {"identifierId": "' + (infoPageFields[1]?.identifierId || 'field_1') + '", "extractedValue": "...", "validationStatus": "valid", "aiReasoning": "...", "confidenceScore": 90, "documentSource": "..."}' : ''}
+]
 
 `;
     }
@@ -1137,7 +1151,7 @@ Each item in the list above has an "identifierId" field. You MUST:
     inputs: Record<string, any>,
     sessionId: string,
     projectId: string,
-    fields?: Array<{name: string; dataType: string; description: string}> // For multi-field Info Page values
+    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}> // For multi-field Info Page values with identifierIds
   ): Promise<ToolResult[]> {
     console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length });
     
