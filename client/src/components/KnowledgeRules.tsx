@@ -129,25 +129,32 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
   };
 
   const renderKnowledgeSection = () => (
-    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
-            Knowledge Base
-          </CardTitle>
-          <Button
-            onClick={() => {
-              setEditingDocument(null);
-              setKnowledgeDialogOpen(true);
-            }}
-            className="bg-slate-700 hover:bg-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Document
-          </Button>
-        </div>
-      </CardHeader>
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
+          Knowledge Base
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Upload reference documents, policies, and guidelines to improve extraction accuracy.
+        </p>
+      </div>
+      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Documents ({knowledgeDocuments.length})</CardTitle>
+            <Button
+              onClick={() => {
+                setEditingDocument(null);
+                setKnowledgeDialogOpen(true);
+              }}
+              className="bg-slate-700 hover:bg-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Document
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent>
         {knowledgeLoading ? (
           <div className="text-center py-8">Loading knowledge documents...</div>
@@ -223,27 +230,36 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 
   const renderRulesSection = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Extraction Rules ({extractionRules.length})
-          </CardTitle>
-          <Button
-            onClick={() => {
-              setEditingRule(null);
-              setRuleDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Rule
-          </Button>
-        </div>
-      </CardHeader>
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
+          Rules
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Configure extraction rules and validation logic for your documents.
+        </p>
+      </div>
+      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Extraction Rules ({extractionRules.length})</CardTitle>
+            <Button
+              onClick={() => {
+                setEditingRule(null);
+                setRuleDialogOpen(true);
+              }}
+              className="bg-slate-700 hover:bg-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Rule
+            </Button>
+          </div>
+        </CardHeader>
       <CardContent>
         {rulesLoading ? (
           <div className="text-center py-8">Loading extraction rules...</div>
@@ -318,6 +334,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 
   return (
