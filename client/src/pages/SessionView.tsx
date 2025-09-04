@@ -3706,19 +3706,35 @@ Thank you for your assistance.`;
       
       // Get document IDs from field inputs
       const documentIds = new Set<string>();
+      console.log('🔍 Field inputs:', fieldInputs);
+      console.log('🔍 Session documents available:', sessionDocuments?.length || 0);
+      
       Object.values(fieldInputs).forEach((input: any) => {
         if (input?.document) {
+          console.log(`📌 Found document ID in field inputs: ${input.document}`);
           documentIds.add(input.document);
         }
       });
       
+      console.log(`📄 Document IDs to load: ${Array.from(documentIds).join(', ')}`);
+      
       // Load document content for selected documents
       for (const docId of documentIds) {
         const doc = sessionDocuments?.find(d => d.id === docId);
+        console.log(`🔍 Looking for document ${docId}:`, doc ? 'FOUND' : 'NOT FOUND');
+        
         if (doc) {
+          // Log all properties to see what's available
+          console.log(`📋 Document properties:`, Object.keys(doc));
+          console.log(`📋 extractedContent:`, doc.extractedContent ? `${doc.extractedContent.length} chars` : 'undefined');
+          console.log(`📋 fileContent:`, doc.fileContent ? `${doc.fileContent.length} chars` : 'undefined');
+          console.log(`📋 content:`, doc.content ? `${doc.content.length} chars` : 'undefined');
+          
           // Use extractedContent which is where the document text is stored
           const content = doc.extractedContent || doc.fileContent || doc.content || '';
           console.log(`📄 Loading document ${doc.fileName}: ${content.length} chars`);
+          console.log(`📄 First 100 chars of content:`, content.substring(0, 100));
+          
           documentsWithContent.push({
             file_name: doc.fileName || doc.name || 'document',
             file_content: content,
@@ -3727,6 +3743,9 @@ Thank you for your assistance.`;
           });
         }
       }
+      
+      console.log(`📦 Documents with content prepared: ${documentsWithContent.length} documents`);
+      console.log(`📦 Document content lengths:`, documentsWithContent.map(d => `${d.file_name}: ${d.file_content.length} chars`));
       
       // Group fields by value ID for multi-field extraction
       const fieldsByValue = new Map<string, any>();
