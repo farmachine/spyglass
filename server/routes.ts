@@ -5613,6 +5613,7 @@ print(json.dumps(results))
         orderIndex: value.orderIndex !== undefined ? value.orderIndex : i + 1, // Use provided or default to position
         toolId: value.toolId || null,  // Convert empty string to null
         inputValues: value.inputValues,
+        fields: value.fields || null, // Add fields for multi-field Info Page values
         autoVerificationConfidence: value.autoVerificationConfidence,
         choiceOptions: value.choiceOptions
       };
@@ -5626,6 +5627,7 @@ print(json.dumps(results))
           isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
           toolId: value.toolId || null,
           inputValues: value.inputValues,
+          fields: value.fields || null, // Add fields for multi-field Info Page values
           autoVerificationConfidence: value.autoVerificationConfidence,
           choiceOptions: value.choiceOptions
         };
