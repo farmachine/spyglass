@@ -3736,13 +3736,24 @@ Thank you for your assistance.`;
       const documentIds = new Set<string>();
       console.log('🔍 Field inputs:', fieldInputs);
       console.log('🔍 Session documents available:', sessionDocuments?.length || 0);
+      console.log('🔍 Session documents:', sessionDocuments);
       
       // Check all field inputs for document selections
+      // For multi-field values, the document is selected at the value level
       Object.entries(fieldInputs).forEach(([fieldId, input]) => {
-        console.log(`🔍 Checking field ${fieldId}:`, input);
+        console.log(`🔍 Checking field/value ${fieldId}:`, input);
         if (input?.document) {
-          console.log(`📌 Found document ID in field inputs: ${input.document}`);
+          console.log(`📌 Found document ID in field inputs for ${fieldId}: ${input.document}`);
           documentIds.add(input.document);
+        }
+      });
+      
+      // Also check the fieldsToExtract to see if any have parent value IDs with document selection
+      fieldsToExtract.forEach(field => {
+        const valueId = field.id; // The value ID
+        if (fieldInputs[valueId]?.document) {
+          console.log(`📌 Found document ID for value ${valueId}: ${fieldInputs[valueId].document}`);
+          documentIds.add(fieldInputs[valueId].document);
         }
       });
       
