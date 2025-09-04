@@ -135,7 +135,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               dataType: value.dataType,
               toolId: value.toolId || '',
               inputValues: value.inputValues || {},
-              fields: value.fields || null, // Include fields for multi-field Info Page values
+              fields: value.fields?.map(f => ({ 
+                id: f.id || uuidv4(), // Ensure all fields have IDs
+                name: f.name,
+                dataType: f.dataType,
+                description: f.description
+              })) || null,
               orderIndex: value.orderIndex || 0
             })),
             isExpanded: false,
@@ -1190,7 +1195,7 @@ function ValueEditor({
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    const newFields = [...(fields || []), { name: '', dataType: 'TEXT', description: '' }];
+                    const newFields = [...(fields || []), { id: uuidv4(), name: '', dataType: 'TEXT', description: '' }];
                     setFields(newFields);
                     onUpdate({ fields: newFields });
                   }}

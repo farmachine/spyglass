@@ -2739,7 +2739,10 @@ except Exception as e:
           
           try {
             // Check if this is an Info Page value with multiple fields
-            const isInfoPageWithFields = workflowStep.type === 'page' && workflowValue.fields && workflowValue.fields.length > 0;
+            const isInfoPageWithFields = workflowStep?.stepType === 'info_page' && 
+                                         workflowValue?.fields && 
+                                         Array.isArray(workflowValue.fields) && 
+                                         workflowValue.fields.length > 0;
             
             // Run the tool
             const toolResults = await runToolForExtraction(
@@ -2762,14 +2765,10 @@ except Exception as e:
                 const field = workflowValue.fields[i];
                 const fieldName = `${workflowStep.stepName}.${workflowValue.valueName}.${field.name}`;
                 
-                // Generate a unique identifierId for each field
-                const { v4: uuidv4 } = await import('uuid');
-                const fieldIdentifierId = uuidv4();
-                
                 const validation = {
                   sessionId,
                   validationType: 'schema_field',
-                  fieldId: value_id,
+                  fieldId: field.id, // Use field's own ID for proper mapping
                   extractedValue: result.extractedValue,
                   originalExtractedValue: result.extractedValue,
                   originalConfidenceScore: result.confidenceScore || 85,
@@ -2783,7 +2782,7 @@ except Exception as e:
                   recordIndex: 0, // Info Pages typically have single records
                   stepId: step_id,
                   valueId: value_id,
-                  identifierId: fieldIdentifierId
+                  identifierId: field.id // Use field ID as identifier for consistency
                 };
                 
                 console.log(`  Saving field validation for: ${fieldName}`);
