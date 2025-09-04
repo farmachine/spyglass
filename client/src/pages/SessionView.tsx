@@ -165,22 +165,44 @@ const FieldSelectionModalContent = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSelectAll}
-          className="text-xs"
-        >
-          {selectedFields.size === getTotalFieldCount() ? 'Deselect All' : 'Select All'}
-        </Button>
-        <span className="text-sm text-gray-500">
-          {selectedFields.size} of {getTotalFieldCount()} selected
-        </span>
-      </div>
+    <div className="relative">
+      {/* Loading overlay during extraction */}
+      {isExtracting && (
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg min-h-[400px]">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-[#4F63A4]" />
+            <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+              Extracting data...
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+              Please wait while we process your selected fields
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-gray-400 dark:text-gray-500">
+              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:150ms]"></div>
+              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:300ms]"></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            className="text-xs"
+            disabled={isExtracting}
+          >
+            {selectedFields.size === getTotalFieldCount() ? 'Deselect All' : 'Select All'}
+          </Button>
+          <span className="text-sm text-gray-500">
+            {selectedFields.size} of {getTotalFieldCount()} selected
+          </span>
+        </div>
 
-      <div className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
+        <div className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
         {stepValues.map((stepValue) => {
           // Check if this value needs document selection
           const needsDocumentSelection = stepValue.inputValues && 
@@ -332,29 +354,30 @@ const FieldSelectionModalContent = ({
             );
           }
         })}
-      </div>
+        </div>
 
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel} disabled={isExtracting}>
-          Cancel
-        </Button>
-        <Button 
-          onClick={handleExtract} 
-          disabled={selectedFields.size === 0 || isExtracting}
-          className="bg-[#4F63A4] hover:bg-[#4F63A4]/90"
-        >
-          {isExtracting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Extracting...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4 mr-2" />
-              Extract {selectedFields.size} Field{selectedFields.size !== 1 ? 's' : ''}
-            </>
-          )}
-        </Button>
+        <div className="flex justify-end space-x-2 pt-4 border-t">
+          <Button variant="outline" onClick={onCancel} disabled={isExtracting}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleExtract} 
+            disabled={selectedFields.size === 0 || isExtracting}
+            className="bg-[#4F63A4] hover:bg-[#4F63A4]/90"
+          >
+            {isExtracting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Extracting...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4 mr-2" />
+                Extract {selectedFields.size} Field{selectedFields.size !== 1 ? 's' : ''}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
