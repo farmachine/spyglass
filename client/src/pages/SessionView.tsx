@@ -4854,7 +4854,7 @@ Thank you for your assistance.`;
                               )}
                               
                               {/* Fields Grid */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
                                 {stepValues.map((stepValue) => {
                                   const fieldName = stepValue.valueName;
                                   
@@ -4865,7 +4865,13 @@ Thank you for your assistance.`;
                                     // Multi-field Info Page value - get all validations for this value
                                     const fieldValidations = validations.filter(v => v.valueId === stepValue.id);
                                     
-                                    return stepValue.fields.map((field: any, fieldIndex: number) => {
+                                    return (
+                                      <div key={stepValue.id}>
+                                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                          {fieldName}
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          {stepValue.fields.map((field: any, fieldIndex: number) => {
                                               // Validations are saved in the same order as fields
                                               // So we can match by index
                                               const fieldValidation = fieldValidations[fieldIndex];
@@ -5052,8 +5058,11 @@ Thank you for your assistance.`;
                               </div>
                                                     </div>
                                                   );
-                                                });
-                                      } else {
+                                                })}
+                                        </div>
+                                      </div>
+                                    );
+                                  } else {
                                         // Single-field Info Page value (original logic)
                                         const validation = validations.find(v => v.fieldId === stepValue.id);
                                         const originalValue = extractedData[fieldName];
