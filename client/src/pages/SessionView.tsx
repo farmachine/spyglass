@@ -4637,22 +4637,40 @@ Thank you for your assistance.`;
                                 {stepValues.map((stepValue) => {
                                   const fieldName = stepValue.valueName;
                                   
-                                  // For Info Page steps, no validation records exist upfront
-                                  // They're only created when user manually populates or via extraction
-                            // Simple 1:1 lookup: step value id → validation fieldId
-                            const validation = validations.find(v => v.fieldId === stepValue.id);
-                            
-                            const originalValue = extractedData[fieldName];
-                            
-                            // Show all configured step values
-                            // Use validation's extractedValue (which includes manual edits), not the original extracted value
-                            let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                            if (displayValue === "null" || displayValue === "undefined") {
-                              displayValue = null;
-                            }
-                            
-                            return (
-                            <div key={stepValue.id} className="space-y-2">
+                                  // Check if this value has multiple fields defined
+                                  const hasMultipleFields = stepValue.fields && stepValue.fields.length > 0;
+                                  
+                                  if (hasMultipleFields) {
+                                    // Multi-field Info Page value - get all validations for this value
+                                    const fieldValidations = validations.filter(v => v.valueId === stepValue.id);
+                                    
+                                    return (
+                                      <div key={stepValue.id} className="col-span-2">
+                                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
+                                          <div className="mb-3 flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-gray-500" />
+                                            <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{fieldName}</h4>
+                                            {stepValue.description && (
+                                              <span className="text-sm text-gray-500 dark:text-gray-400">- {stepValue.description}</span>
+                                            )}
+                                          </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {stepValue.fields.map((field: any) => {
+                                              // Find validation for this specific field
+                                              const fieldValidation = fieldValidations.find(v => {
+                                                // Match by field name in the extracted value context
+                                                // Since we save validations per field, we need to match them properly
+                                                return v.dataType?.toLowerCase() === field.dataType?.toLowerCase() && 
+                                                       v.extractedValue !== null && v.extractedValue !== undefined;
+                                              }) || fieldValidations.find(v => v.fieldId === stepValue.id);
+                                              
+                                              let displayValue = fieldValidation?.extractedValue ?? null;
+                                              if (displayValue === "null" || displayValue === "undefined") {
+                                                displayValue = null;
+                                              }
+                                              
+                                              return (
+                                                <div key={field.name} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
@@ -4822,9 +4840,188 @@ Thank you for your assistance.`;
                                   {stepValue.description}
                                 </p>
                               )}
-                            </div>
-                                  );
-                                })}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      } else {
+                                        // Single-field Info Page value (original logic)
+                                        const validation = validations.find(v => v.fieldId === stepValue.id);
+                                        const originalValue = extractedData[fieldName];
+                                        
+                                        let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                        if (displayValue === "null" || displayValue === "undefined") {
+                                          displayValue = null;
+                                        }
+                                        
+                                        return (
+                                          <div key={stepValue.id} className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              {(() => {
+                                                const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                                const wasManuallyUpdated = validation && validation.manuallyUpdated;
+                                                const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
+                                                const score = Math.round(validation?.confidenceScore || 0);
+                                                
+                                                if (wasManuallyUpdated) {
+                                                  return (
+                                                    <div className="w-3 h-3 flex items-center justify-center">
+                                                      <User className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                    </div>
+                                                  );
+                                                } else if (isVerified) {
+                                                  return (
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleVerificationToggle(fieldName, false)}
+                                                            className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                                            aria-label="Click to unverify"
+                                                          >
+                                                            <span className="text-xs font-bold">✓</span>
+                                                          </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                          Verified with {score}% confidence
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
+                                                  );
+                                                } else if (hasValue && validation) {
+                                                  const colorClass = score >= 80 ? 'bg-green-500' : 
+                                                                   score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        if (validation.aiReasoning) {
+                                                          setSelectedReasoning({
+                                                            reasoning: validation.aiReasoning,
+                                                            fieldName: getFieldDisplayName(fieldName),
+                                                            confidenceScore: validation.confidenceScore || 0,
+                                                            getFieldDisplayName,
+                                                            validation,
+                                                            onVerificationChange: (isVerified) => handleVerificationToggle(fieldName, isVerified),
+                                                            isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
+                                                          });
+                                                        } else {
+                                                          handleVerificationToggle(fieldName, true);
+                                                        }
+                                                      }}
+                                                      className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
+                                                      title={`${score}% confidence - Click for AI analysis`}
+                                                    />
+                                                  );
+                                                } else if (!hasValue) {
+                                                  return (
+                                                    <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
+                                                      !
+                                                    </div>
+                                                  );
+                                                }
+                                                return <div className="w-3 h-3 flex-shrink-0"></div>;
+                                              })()}
+                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {fieldName}
+                                              </Label>
+                                            </div>
+                                            <div>
+                                              {(() => {
+                                                const isEditing = editingField === fieldName;
+                                                const fieldType = stepValue.dataType;
+                                                
+                                                if (isEditing) {
+                                                  return (
+                                                    <div className="flex items-center gap-2">
+                                                      {fieldType === 'DATE' ? (
+                                                        <Input
+                                                          type="date"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      ) : fieldType === 'NUMBER' ? (
+                                                        <Input
+                                                          type="number"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      ) : fieldType === 'BOOLEAN' ? (
+                                                        <Select value={editValue} onValueChange={setEditValue}>
+                                                          <SelectTrigger className="flex-1">
+                                                            <SelectValue placeholder="Select value" />
+                                                          </SelectTrigger>
+                                                          <SelectContent>
+                                                            <SelectItem value="true">True</SelectItem>
+                                                            <SelectItem value="false">False</SelectItem>
+                                                          </SelectContent>
+                                                        </Select>
+                                                      ) : fieldType === 'TEXTAREA' ? (
+                                                        <textarea
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                          rows={4}
+                                                        />
+                                                      ) : (
+                                                        <Input
+                                                          type="text"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      )}
+                                                      <Button size="sm" onClick={() => handleSave(fieldName)}>
+                                                        Save
+                                                      </Button>
+                                                      <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                                                        Cancel
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                } else {
+                                                  return (
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="flex-1">
+                                                        {fieldType === 'TEXTAREA' ? (
+                                                          <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
+                                                            <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
+                                                              {formatValueForDisplay(displayValue, fieldType)}
+                                                            </span>
+                                                          </div>
+                                                        ) : (
+                                                          <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                                            {formatValueForDisplay(displayValue, fieldType)}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleEdit(fieldName, displayValue)}
+                                                        className="h-6 px-2"
+                                                      >
+                                                        <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                }
+                                              })()}
+                                            </div>
+                                            {stepValue.description && (
+                                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                {stepValue.description}
+                                              </p>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    })}
                               </div>
                             </div>
                           </div>
