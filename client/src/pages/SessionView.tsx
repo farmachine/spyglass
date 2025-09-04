@@ -4655,28 +4655,33 @@ Thank you for your assistance.`;
                                             )}
                                           </div>
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {stepValue.fields.map((field: any) => {
-                                              // Find validation for this specific field
-                                              const fieldValidation = fieldValidations.find(v => {
-                                                // Match by field name in the extracted value context
-                                                // Since we save validations per field, we need to match them properly
-                                                return v.dataType?.toLowerCase() === field.dataType?.toLowerCase() && 
-                                                       v.extractedValue !== null && v.extractedValue !== undefined;
-                                              }) || fieldValidations.find(v => v.fieldId === stepValue.id);
+                                            {stepValue.fields.map((field: any, fieldIndex: number) => {
+                                              // Validations are saved in the same order as fields
+                                              // So we can match by index
+                                              const fieldValidation = fieldValidations[fieldIndex];
+                                              const fieldFullName = `${fieldName}.${field.name}`;
                                               
                                               let displayValue = fieldValidation?.extractedValue ?? null;
                                               if (displayValue === "null" || displayValue === "undefined") {
                                                 displayValue = null;
                                               }
                                               
+                                              // Debug log to see what we're working with
+                                              console.log(`Field ${fieldIndex} (${field.name}):`, {
+                                                field,
+                                                fieldValidation,
+                                                displayValue,
+                                                totalValidations: fieldValidations.length
+                                              });
+                                              
                                               return (
                                                 <div key={field.name} className="space-y-2">
                               <div className="flex items-center gap-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                  const wasManuallyUpdated = validation && validation.manuallyUpdated;
-                                  const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
-                                  const score = Math.round(validation?.confidenceScore || 0);
+                                  const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
+                                  const isVerified = fieldValidation?.validationStatus === 'valid' || fieldValidation?.validationStatus === 'manual';
+                                  const score = Math.round(fieldValidation?.confidenceScore || 0);
 
 
 
@@ -4696,7 +4701,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldName, false)}
+                                              onClick={() => handleVerificationToggle(fieldFullName, false)}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -4709,7 +4714,7 @@ Thank you for your assistance.`;
                                         </Tooltip>
                                       </TooltipProvider>
                                     );
-                                  } else if (hasValue && validation) {
+                                  } else if (hasValue && fieldValidation) {
                                     // Show colored confidence dot when not verified - clicking opens AI analysis modal
                                     const colorClass = score >= 80 ? 'bg-green-500' : 
                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
@@ -4717,19 +4722,19 @@ Thank you for your assistance.`;
                                     return (
                                       <button
                                         onClick={() => {
-                                          if (validation.aiReasoning) {
+                                          if (fieldValidation.aiReasoning) {
                                             setSelectedReasoning({
-                                              reasoning: validation.aiReasoning,
-                                              fieldName: getFieldDisplayName(fieldName),
-                                              confidenceScore: validation.confidenceScore || 0,
+                                              reasoning: fieldValidation.aiReasoning,
+                                              fieldName: getFieldDisplayName(fieldFullName),
+                                              confidenceScore: fieldValidation.confidenceScore || 0,
                                               getFieldDisplayName,
-                                              validation,
-                                              onVerificationChange: (isVerified) => handleVerificationToggle(fieldName, isVerified),
-                                              isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
+                                              validation: fieldValidation,
+                                              onVerificationChange: (isVerified) => handleVerificationToggle(fieldFullName, isVerified),
+                                              isVerified: fieldValidation.validationStatus === 'valid' || fieldValidation.validationStatus === 'manual'
                                             });
                                           } else {
                                             // If no reasoning available, just toggle verification
-                                            handleVerificationToggle(fieldName, true);
+                                            handleVerificationToggle(fieldFullName, true);
                                           }
                                         }}
                                         className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
@@ -4748,13 +4753,13 @@ Thank you for your assistance.`;
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  {fieldName}
+                                  {field.name}
                                 </Label>
                               </div>
                               <div>
                                 {(() => {
-                                  const isEditing = editingField === fieldName;
-                                  const fieldType = stepValue.dataType;
+                                  const isEditing = editingField === fieldFullName;
+                                  const fieldType = field.dataType || stepValue.dataType;
                                   
                                   if (isEditing) {
                                     return (
