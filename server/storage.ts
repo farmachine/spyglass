@@ -3603,6 +3603,7 @@ class PostgreSQLStorage implements IStorage {
             orderIndex: value.orderIndex || 0,
             toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId,
             inputValues: value.inputValues,
+            fields: value.fields || null, // Add fields for multi-field Info Page values
             autoVerificationConfidence: value.autoVerificationConfidence,
             choiceOptions: value.choiceOptions
           };
