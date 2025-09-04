@@ -120,9 +120,9 @@ export default function ExtractWizardModal({
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="flex items-center gap-2 text-xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-800">
+        <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
+          <DialogTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-white">
             <Sparkles className="h-5 w-5" style={{ color: '#4F63A4' }} />
             Extract: {title.replace('Extract ', '')}
           </DialogTitle>
@@ -157,49 +157,49 @@ export default function ExtractWizardModal({
             {/* Description */}
             {toolDescription && (
               <div className="pb-2">
-                <p className="text-sm text-gray-700">{toolDescription}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{toolDescription}</p>
               </div>
             )}
             
             {/* Collapsible Input Data Preview */}
             {hasInputData && (
-              <div className="border rounded-lg">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
                 <button
                   onClick={() => toggleSection('data')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">
+                    <RefreshCw className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {toolOperationType?.startsWith('create') ? 'Data for lookup' : 'Data to be updated'}
                     </span>
                     <Badge 
                       variant="secondary" 
-                      className="text-xs bg-blue-50 text-blue-700"
+                      className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                     >
                       {stats.processing} records
                     </Badge>
                     {stats.extracted > 0 && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         ({stats.extracted} already done)
                       </span>
                     )}
                   </div>
                   {expandedSections.has('data') ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
                 </button>
                 
                 {expandedSections.has('data') && (
                   <div className="px-4 pb-4">
-                    <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs table-fixed">
-                          <thead className="bg-gray-50 border-b">
+                          <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <tr>
-                              <th className="w-32 px-2 py-1.5 text-left font-medium text-gray-700">ID</th>
+                              <th className="w-32 px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">ID</th>
                               {(() => {
                                 if (inputData.length === 0) return null;
                                 const allKeys = Object.keys(inputData[0]).filter(k => k !== 'identifierId');
@@ -208,7 +208,7 @@ export default function ExtractWizardModal({
                                   : allKeys;
                                   
                                 return orderedKeys.map(key => (
-                                  <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700 min-w-[120px]">
+                                  <th key={key} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
                                     {key}
                                   </th>
                                 ));
@@ -217,8 +217,8 @@ export default function ExtractWizardModal({
                           </thead>
                           <tbody>
                             {inputData.slice(0, 3).map((record, index) => (
-                              <tr key={index} className="border-b last:border-b-0 hover:bg-gray-50/50">
-                                <td className="w-32 px-2 py-1.5 text-gray-800 font-mono">
+                              <tr key={index} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                <td className="w-32 px-2 py-1.5 text-gray-800 dark:text-gray-200 font-mono">
                                   <div className="truncate" title={record.identifierId || `Row ${index + 1}`}>
                                     {record.identifierId ? record.identifierId.substring(0, 8) + '...' : `Row ${index + 1}`}
                                   </div>
@@ -230,7 +230,7 @@ export default function ExtractWizardModal({
                                     : allKeys;
                                     
                                   return orderedKeys.map(key => (
-                                    <td key={key} className="px-2 py-1.5 text-gray-800 min-w-[120px]">
+                                    <td key={key} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[120px]">
                                       <div className="truncate" title={String(record[key])}>
                                         {record[key] === null || record[key] === undefined ? '-' : String(record[key])}
                                       </div>
@@ -243,7 +243,7 @@ export default function ExtractWizardModal({
                         </table>
                       </div>
                       {inputData.length > 3 && (
-                        <div className="px-2 py-1.5 bg-gray-50 text-xs text-gray-500 border-t">
+                        <div className="px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600">
                           ...and {inputData.length - 3} more records
                         </div>
                       )}
@@ -255,39 +255,39 @@ export default function ExtractWizardModal({
             
             {/* Collapsible Reference Documents */}
             {knowledgeDocuments && knowledgeDocuments.length > 0 && (
-              <div className="border rounded-lg">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
                 <button
                   onClick={() => toggleSection('knowledge')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <Files className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Reference documents</span>
+                    <Files className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Reference documents</span>
                     <Badge 
                       variant="secondary" 
-                      className="text-xs bg-gray-50"
+                      className="text-xs bg-gray-50 dark:bg-gray-700"
                     >
                       {knowledgeDocuments.length} document{knowledgeDocuments.length > 1 ? 's' : ''}
                     </Badge>
                   </div>
                   {expandedSections.has('knowledge') ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
                 </button>
                 
                 {expandedSections.has('knowledge') && (
                   <div className="px-4 pb-4 space-y-2">
                     {knowledgeDocuments.map((doc, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-3">
+                      <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium text-gray-700">
+                          <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             {doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-600 max-h-20 overflow-y-auto">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 max-h-20 overflow-y-auto">
                           {(() => {
                             let content = doc.documentContent || doc.content;
                             if (content && content !== '@reference_document') {
@@ -312,7 +312,7 @@ export default function ExtractWizardModal({
             {/* Document Selection */}
             {needsDocument && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Select document for extraction
                 </Label>
                 <Select value={selectedDocument} onValueChange={setSelectedDocument}>
@@ -355,7 +355,7 @@ export default function ExtractWizardModal({
         </ScrollArea>
         
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <Button 
             variant="outline" 
             onClick={onClose} 
