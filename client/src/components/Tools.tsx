@@ -364,7 +364,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    {tool.toolType === 'AI' ? (
+                    {tool.toolType === 'AI_ONLY' ? (
                       <Brain className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     ) : (
                       <Code className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -386,7 +386,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       <span>Used {tool.usageCount} times</span>
                     </div>
                     <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">
-                      {tool.toolType === 'AI' ? 'AI' : 'Code'}
+                      {tool.toolType === 'AI_ONLY' ? 'AI' : 'Code'}
                     </Badge>
                   </div>
                   
