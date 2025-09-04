@@ -4865,18 +4865,7 @@ Thank you for your assistance.`;
                                     // Multi-field Info Page value - get all validations for this value
                                     const fieldValidations = validations.filter(v => v.valueId === stepValue.id);
                                     
-                                    return (
-                                      <div key={stepValue.id} className="col-span-2">
-                                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-                                          <div className="mb-3 flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-gray-500" />
-                                            <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{fieldName}</h4>
-                                            {stepValue.description && (
-                                              <span className="text-sm text-gray-500 dark:text-gray-400">- {stepValue.description}</span>
-                                            )}
-                                          </div>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {stepValue.fields.map((field: any, fieldIndex: number) => {
+                                    return stepValue.fields.map((field: any, fieldIndex: number) => {
                                               // Validations are saved in the same order as fields
                                               // So we can match by index
                                               const fieldValidation = fieldValidations[fieldIndex];
@@ -5061,18 +5050,9 @@ Thank you for your assistance.`;
                                   }
                                 })()}
                               </div>
-                              {stepValue.description && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  {stepValue.description}
-                                </p>
-                              )}
                                                     </div>
                                                   );
-                                                })}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
+                                                });
                                       } else {
                                         // Single-field Info Page value (original logic)
                                         const validation = validations.find(v => v.fieldId === stepValue.id);
