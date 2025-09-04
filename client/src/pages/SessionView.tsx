@@ -3724,12 +3724,39 @@ Thank you for your assistance.`;
             collections: collections || [],
             workflowSteps: project?.workflowSteps || []
           },
-          target_fields: fields.map(f => f.fieldToExtract || {
-            // For single-field values, create the field object
-            fieldName: f.valueName,
-            fieldType: f.dataType,
-            description: f.description
-          }),
+          target_fields: fields.map(f => {
+            // Check if this is a multi-field value
+            if (f.fields && Array.isArray(f.fields)) {
+              // Multi-field value - map each field with its own identifierId
+              return f.fields.map((field: any, idx: number) => ({
+                fieldName: field.name,
+                valueName: field.name, 
+                dataType: field.dataType || 'TEXT',
+                description: field.description || '',
+                identifierId: field.identifierId || `${valueId}_field_${idx}`, // Generate identifierId if missing
+                fieldId: field.id,
+                valueId: valueId
+              }));
+            } else if (f.fieldToExtract) {
+              // Single field with explicit extraction config
+              return {
+                ...f.fieldToExtract,
+                identifierId: f.fieldToExtract.identifierId || f.identifierId || `${valueId}_field_0`
+              };
+            } else {
+              // Default single-field value
+              return {
+                fieldName: f.valueName,
+                valueName: f.valueName,
+                fieldType: f.dataType,
+                dataType: f.dataType,
+                description: f.description,
+                identifierId: f.identifierId || `${valueId}_field_0`,
+                fieldId: f.id,
+                valueId: valueId
+              };
+            }
+          }).flat(), // Flatten in case of multi-field arrays
           is_workflow_step: true,
           step_id: stepId, // Use the stepId we got at the beginning
           value_id: valueId

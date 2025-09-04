@@ -3593,6 +3593,16 @@ class PostgreSQLStorage implements IStorage {
 
         // Create the values for this step
         for (const value of step.values || []) {
+          // Ensure fields have identifierIds if this is a multi-field value
+          let processedFields = value.fields;
+          if (processedFields && Array.isArray(processedFields)) {
+            processedFields = processedFields.map((field: any, idx: number) => ({
+              ...field,
+              identifierId: field.identifierId || crypto.randomUUID()
+            }));
+            console.log("📋 Generated identifierIds for fields in workflow save:", processedFields.map((f: any) => ({ name: f.name, identifierId: f.identifierId })));
+          }
+          
           const valueData = {
             id: value.id,
             stepId: newStep.id,
@@ -3603,7 +3613,7 @@ class PostgreSQLStorage implements IStorage {
             orderIndex: value.orderIndex || 0,
             toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId,
             inputValues: value.inputValues,
-            fields: value.fields || null, // Add fields for multi-field Info Page values
+            fields: processedFields || null, // Add fields for multi-field Info Page values with identifierIds
             autoVerificationConfidence: value.autoVerificationConfidence,
             choiceOptions: value.choiceOptions
           };
@@ -3642,6 +3652,16 @@ class PostgreSQLStorage implements IStorage {
         ...value,
         toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId
       };
+      
+      // If this value has fields (multi-field Info Page value), ensure each field has an identifierId
+      if (cleanedValue.fields && Array.isArray(cleanedValue.fields)) {
+        cleanedValue.fields = cleanedValue.fields.map((field: any, idx: number) => ({
+          ...field,
+          identifierId: field.identifierId || crypto.randomUUID() // Generate UUID for each field
+        }));
+        console.log("📋 Generated identifierIds for multi-field value:", cleanedValue.fields.map((f: any) => ({ name: f.name, identifierId: f.identifierId })));
+      }
+      
       console.log("\n📝 DATABASE INSERT - step_values table:");
       console.log(JSON.stringify(cleanedValue, null, 2));
       const [result] = await this.db.insert(stepValues).values(cleanedValue).returning();
@@ -3657,6 +3677,16 @@ class PostgreSQLStorage implements IStorage {
         ...value,
         toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId
       };
+      
+      // If updating fields, ensure each field has an identifierId
+      if (cleanedValue.fields && Array.isArray(cleanedValue.fields)) {
+        cleanedValue.fields = cleanedValue.fields.map((field: any, idx: number) => ({
+          ...field,
+          identifierId: field.identifierId || crypto.randomUUID() // Generate UUID if missing
+        }));
+        console.log("📋 Ensured identifierIds for multi-field value update:", cleanedValue.fields.map((f: any) => ({ name: f.name, identifierId: f.identifierId })));
+      }
+      
       console.log("\n📝 DATABASE UPDATE - step_values table:");
       console.log("Value ID:", id);
       console.log("Update Data:", JSON.stringify(cleanedValue, null, 2));
