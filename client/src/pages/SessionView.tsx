@@ -88,8 +88,36 @@ const FieldSelectionModalContent = ({
   isExtracting: boolean;
   sessionDocuments?: any[];
 }) => {
-  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  // Initialize with all fields pre-selected
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(() => {
+    const initialSelection = new Set<string>();
+    stepValues.forEach(sv => {
+      if (sv.fields && Array.isArray(sv.fields)) {
+        // For multi-field values, add each field with format: valueId:fieldIndex
+        sv.fields.forEach((field: any, index: number) => {
+          initialSelection.add(`${sv.id}:${index}`);
+        });
+      } else {
+        // For single-field values, just add the value id
+        initialSelection.add(sv.id);
+      }
+    });
+    return initialSelection;
+  });
   const [fieldInputs, setFieldInputs] = useState<Record<string, any>>({});
+
+  // Calculate total field count
+  const getTotalFieldCount = () => {
+    let count = 0;
+    stepValues.forEach(sv => {
+      if (sv.fields && Array.isArray(sv.fields)) {
+        count += sv.fields.length;
+      } else {
+        count += 1;
+      }
+    });
+    return count;
+  };
 
   const handleFieldSelection = (fieldId: string, checked: boolean) => {
     const newSelected = new Set(selectedFields);
@@ -102,10 +130,21 @@ const FieldSelectionModalContent = ({
   };
 
   const handleSelectAll = () => {
-    if (selectedFields.size === stepValues.length) {
+    const totalFields = getTotalFieldCount();
+    if (selectedFields.size === totalFields) {
       setSelectedFields(new Set());
     } else {
-      setSelectedFields(new Set(stepValues.map(sv => sv.id)));
+      const allFields = new Set<string>();
+      stepValues.forEach(sv => {
+        if (sv.fields && Array.isArray(sv.fields)) {
+          sv.fields.forEach((field: any, index: number) => {
+            allFields.add(`${sv.id}:${index}`);
+          });
+        } else {
+          allFields.add(sv.id);
+        }
+      });
+      setSelectedFields(allFields);
     }
   };
 
@@ -134,10 +173,10 @@ const FieldSelectionModalContent = ({
           onClick={handleSelectAll}
           className="text-xs"
         >
-          {selectedFields.size === stepValues.length ? 'Deselect All' : 'Select All'}
+          {selectedFields.size === getTotalFieldCount() ? 'Deselect All' : 'Select All'}
         </Button>
         <span className="text-sm text-gray-500">
-          {selectedFields.size} of {stepValues.length} selected
+          {selectedFields.size} of {getTotalFieldCount()} selected
         </span>
       </div>
 
@@ -166,56 +205,121 @@ const FieldSelectionModalContent = ({
               return key.toLowerCase().includes('document');
             });
 
-          return (
-            <div key={stepValue.id} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <Checkbox
-                checked={selectedFields.has(stepValue.id)}
-                onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
-                className="mt-1"
-              />
-              <div className="flex-1 space-y-2">
-                <div>
-                  <div className="font-medium text-sm">{stepValue.valueName}</div>
-                  {stepValue.description && (
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {stepValue.description}
+          // Check if this is a multi-field value
+          if (stepValue.fields && Array.isArray(stepValue.fields) && stepValue.fields.length > 0) {
+            // Render multi-field value with individual field checkboxes
+            return (
+              <div key={stepValue.id} className="space-y-1">
+                {stepValue.fields.map((field: any, index: number) => {
+                  const fieldId = `${stepValue.id}:${index}`;
+                  return (
+                    <div key={fieldId} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <Checkbox
+                        checked={selectedFields.has(fieldId)}
+                        onCheckedChange={(checked) => handleFieldSelection(fieldId, !!checked)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <div className="font-medium text-sm">
+                            {stepValue.valueName} - {field.name}
+                          </div>
+                          {field.description && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {field.description}
+                            </div>
+                          )}
+                          {field.dataType && (
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              Type: {field.dataType}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Show document selection if needed */}
+                        {needsDocumentSelection && (
+                          <div className="mt-3">
+                            <Label className="text-xs text-gray-600 dark:text-gray-400">
+                              Document Source:
+                            </Label>
+                            <Select
+                              value={fieldInputs[fieldId]?.document || ''}
+                              onValueChange={(value) => handleInputChange(fieldId, 'document', value)}
+                              disabled={!selectedFields.has(fieldId)}
+                            >
+                              <SelectTrigger className="text-xs h-9 mt-1">
+                                <SelectValue placeholder="Choose a document..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sessionDocuments?.map((doc) => (
+                                  <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                                    {doc.fileName || doc.name || 'Untitled'}
+                                    {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {stepValue.dataType && (
-                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Type: {stepValue.dataType}
+                  );
+                })}
+              </div>
+            );
+          } else {
+            // Render single-field value
+            return (
+              <div key={stepValue.id} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <Checkbox
+                  checked={selectedFields.has(stepValue.id)}
+                  onCheckedChange={(checked) => handleFieldSelection(stepValue.id, !!checked)}
+                  className="mt-1"
+                />
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <div className="font-medium text-sm">{stepValue.valueName}</div>
+                    {stepValue.description && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {stepValue.description}
+                      </div>
+                    )}
+                    {stepValue.dataType && (
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        Type: {stepValue.dataType}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show document selection if needed */}
+                  {needsDocumentSelection && (
+                    <div className="mt-3">
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">
+                        Document Source:
+                      </Label>
+                      <Select
+                        value={fieldInputs[stepValue.id]?.document || ''}
+                        onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
+                        disabled={!selectedFields.has(stepValue.id)}
+                      >
+                        <SelectTrigger className="text-xs h-9 mt-1">
+                          <SelectValue placeholder="Choose a document..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sessionDocuments?.map((doc) => (
+                            <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                              {doc.fileName || doc.name || 'Untitled'}
+                              {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>
-
-                {/* Show document selection if needed */}
-                {needsDocumentSelection && (
-                  <div className="mt-3">
-                    <Label className="text-xs text-gray-600 dark:text-gray-400">
-                      Document Source:
-                    </Label>
-                    <Select
-                      value={fieldInputs[stepValue.id]?.document || ''}
-                      onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
-                      disabled={!selectedFields.has(stepValue.id)}
-                    >
-                      <SelectTrigger className="text-xs h-9 mt-1">
-                        <SelectValue placeholder="Choose a document..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sessionDocuments?.map((doc) => (
-                          <SelectItem key={doc.id} value={doc.id} className="text-xs">
-                            {doc.fileName || doc.name || 'Untitled'}
-                            {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
-            </div>
-          );
+            );
+          }
         })}
       </div>
 
@@ -3494,27 +3598,59 @@ Thank you for your assistance.`;
     const stepId = currentToolGroup.stepValues[0]?.stepId;
     console.log('Step ID:', stepId);
     
-    // Filter to only selected fields
-    const fieldsToExtract = currentToolGroup.stepValues.filter(value => 
-      selectedFieldIds.includes(value.id)
-    );
+    // Process selected fields - handle both single and multi-field selections
+    const fieldsToExtract: any[] = [];
+    
+    selectedFieldIds.forEach(fieldId => {
+      // Check if this is a multi-field selection (format: valueId:fieldIndex)
+      if (fieldId.includes(':')) {
+        const [valueId, fieldIndexStr] = fieldId.split(':');
+        const fieldIndex = parseInt(fieldIndexStr);
+        const stepValue = currentToolGroup.stepValues.find(v => v.id === valueId);
+        
+        if (stepValue && stepValue.fields && stepValue.fields[fieldIndex]) {
+          // Add the specific field from the multi-field value
+          fieldsToExtract.push({
+            ...stepValue,
+            fieldToExtract: stepValue.fields[fieldIndex],
+            fieldIndex: fieldIndex,
+            selectedFieldId: fieldId
+          });
+        }
+      } else {
+        // Single field value
+        const stepValue = currentToolGroup.stepValues.find(v => v.id === fieldId);
+        if (stepValue) {
+          fieldsToExtract.push({
+            ...stepValue,
+            selectedFieldId: fieldId
+          });
+        }
+      }
+    });
     
     console.log(`\nSelected ${fieldsToExtract.length} fields for extraction:`);
     
     // Log each selected value object
-    fieldsToExtract.forEach((stepValue, index) => {
-      console.log(`\n--- Selected Value ${index + 1} ---`);
-      console.log('Full stepValue object:', stepValue);
-      console.log('ID:', stepValue.id);
-      console.log('Name:', stepValue.valueName);
-      console.log('Description:', stepValue.description);
-      console.log('Data Type:', stepValue.dataType);
-      console.log('Tool ID:', stepValue.toolId);
-      console.log('Original inputValues:', stepValue.inputValues);
-      console.log('Custom inputs from modal:', fieldInputs[stepValue.id]);
+    fieldsToExtract.forEach((item, index) => {
+      console.log(`\n--- Selected Field ${index + 1} ---`);
+      console.log('Full stepValue object:', item);
+      console.log('ID:', item.id);
+      console.log('Name:', item.valueName);
+      
+      if (item.fieldToExtract) {
+        console.log('Specific field to extract:', item.fieldToExtract);
+        console.log('Field index:', item.fieldIndex);
+      }
+      
+      console.log('Description:', item.description);
+      console.log('Data Type:', item.dataType);
+      console.log('Tool ID:', item.toolId);
+      console.log('Original inputValues:', item.inputValues);
+      console.log('Custom inputs from modal:', fieldInputs[item.selectedFieldId]);
       
       // Get user-selected document for this field
-      const userSelectedDoc = fieldInputs[stepValue.id]?.document;
+      const userSelectedDoc = fieldInputs[item.selectedFieldId]?.document;
       let documentId = userSelectedDoc;
       
       if (!documentId) {
@@ -3526,9 +3662,10 @@ Thank you for your assistance.`;
       console.log('Document ID to use:', documentId);
       console.log('Would extract with params:', {
         stepId,
-        valueId: stepValue.id,
+        valueId: item.id,
+        fieldToExtract: item.fieldToExtract,
         documentId,
-        customInputs: fieldInputs[stepValue.id]
+        customInputs: fieldInputs[item.selectedFieldId]
       });
     });
     
