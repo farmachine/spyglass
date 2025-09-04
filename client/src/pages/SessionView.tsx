@@ -5563,7 +5563,7 @@ Thank you for your assistance.`;
                                     const columnId = column.id;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
-                                    const isLastColumn = index === sortedColumns.length - 1;
+                                    const isLastColumn = index === columnsToDisplay.length - 1;
                                     
                                     return (
                                       <TableHead 
