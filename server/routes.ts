@@ -2423,6 +2423,22 @@ except Exception as e:
         // Prepare inputs for the tool
         const toolInputs: Record<string, any> = {};
         
+        // Get documents - either from request or from session storage
+        let documentsForExtraction = convertedFiles;
+        if ((!documentsForExtraction || documentsForExtraction.length === 0) && sessionId) {
+          // Try to get documents from session storage
+          console.log('📄 No documents in request, fetching from session storage');
+          const sessionDocs = await storage.getSessionDocuments(sessionId);
+          if (sessionDocs && sessionDocs.length > 0) {
+            documentsForExtraction = sessionDocs.map(doc => ({
+              file_name: doc.documentName,
+              file_content: doc.extractedContent || '',
+              mime_type: doc.documentType
+            }));
+            console.log(`📄 Retrieved ${documentsForExtraction.length} documents from session`);
+          }
+        }
+        
         // For Info Page multi-field extraction, add the field definitions
         if (target_fields && target_fields.length > 0) {
           console.log('📋 Adding multi-field definitions for Info Page extraction');
@@ -2437,7 +2453,7 @@ except Exception as e:
         // Add document content if needed
         if (tool.inputParameters?.some((p: any) => p.type === 'document')) {
           console.log('📄 Tool requires document content');
-          const documentFile = convertedFiles[0]; // Use first document
+          const documentFile = documentsForExtraction[0]; // Use first document
           if (documentFile) {
             toolInputs['document'] = documentFile.file_content || '';
             toolInputs['Document'] = documentFile.file_content || '';
@@ -2450,7 +2466,7 @@ except Exception as e:
           for (const [key, value] of Object.entries(workflowValue.inputValues)) {
             if (typeof value === 'string' && value === '@user_document') {
               // Replace @user_document with actual document content
-              const documentFile = convertedFiles[0];
+              const documentFile = documentsForExtraction[0];
               if (documentFile) {
                 toolInputs[key] = documentFile.file_content || '';
                 console.log(`📄 Replaced @user_document for ${key}`);
@@ -2467,7 +2483,7 @@ except Exception as e:
           tool,
           toolInputs,
           sessionId,
-          project_id,
+          projectId,
           (current, total, message) => {
             console.log(`Progress: ${current}/${total} - ${message}`);
           }
@@ -2488,7 +2504,7 @@ except Exception as e:
               // Create validation record for this field
               const validationRecord = {
                 sessionId,
-                projectId: project_id,
+                projectId,
                 fieldId: field.id || field.fieldId,
                 fieldName: field.fieldName || field.valueName,
                 extractedValue: result.extractedValue || '',
