@@ -2558,7 +2558,7 @@ except Exception as e:
               const validationRecord = {
                 sessionId,
                 projectId,
-                fieldId: field.id || field.fieldId,
+                fieldId: value_id || field.id || field.fieldId, // Use value_id for multi-field values
                 fieldName: field.fieldName || field.valueName,
                 extractedValue: result.extractedValue || '',
                 validationStatus: result.validationStatus || 'pending',
