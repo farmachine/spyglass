@@ -2120,11 +2120,25 @@ export default function SessionView() {
   const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'documents'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
-    enabled: !!sessionId,
-    onSuccess: (data) => {
-      console.log('Session documents loaded:', data);
-    }
+    enabled: !!sessionId
   });
+
+  // Log session documents when they change
+  useEffect(() => {
+    if (sessionDocuments && sessionDocuments.length > 0) {
+      console.log('📚 Session documents loaded:', sessionDocuments.length, 'documents');
+      sessionDocuments.forEach((doc, index) => {
+        console.log(`📄 Document ${index + 1}:`, {
+          id: doc.id,
+          fileName: doc.fileName || doc.documentName,
+          hasExtractedContent: !!doc.extractedContent,
+          extractedContentLength: doc.extractedContent?.length || 0,
+          first100Chars: doc.extractedContent?.substring(0, 100) || 'NO CONTENT',
+          allProperties: Object.keys(doc)
+        });
+      });
+    }
+  }, [sessionDocuments]);
 
   // Fetch project-level validations for statistics cards
   const { data: projectValidations = [] } = useQuery<FieldValidation[]>({
@@ -3842,6 +3856,11 @@ Thank you for your assistance.`;
       for (const [valueId, value] of fieldsByValue) {
         console.log(`🎯 Processing value ${valueId} with ${documentsWithContent.length} documents`);
         console.log(`📄 Request documents:`, documentsWithContent);
+        console.log(`📄 Document contents being sent:`, documentsWithContent.map(d => ({
+          name: d.file_name,
+          contentLength: d.file_content?.length || 0,
+          first100Chars: d.file_content?.substring(0, 100) || 'NO CONTENT'
+        })));
         
         const requestData = {
           files: documentsWithContent,
