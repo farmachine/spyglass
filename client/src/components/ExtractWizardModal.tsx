@@ -128,25 +128,27 @@ export default function ExtractWizardModal({
           </DialogTitle>
         </DialogHeader>
         
-        {/* Loading State */}
+        {/* Loading overlay during extraction - same style as Info Page */}
         {isLoading && (
-          <div className="px-6 py-4 bg-blue-50 border-b">
-            <div className="flex items-center gap-3 mb-3">
-              <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#4F63A4' }} />
-              <span className="text-sm font-medium text-gray-900">Processing extraction...</span>
+          <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-[#4F63A4]" />
+              <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                Extracting data...
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+                {stats.isComplete 
+                  ? 'Finalizing extraction...'
+                  : stats.isAITool && stats.remaining > 50 
+                    ? `Analyzing records ${stats.startIndex}-${stats.endIndex} of ${stats.total} with AI`
+                    : `Processing records ${stats.startIndex}-${stats.endIndex} of ${stats.total}`}
+              </div>
+              <div className="flex items-center space-x-2 text-xs text-gray-400 dark:text-gray-500">
+                <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:150ms]"></div>
+                <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:300ms]"></div>
+              </div>
             </div>
-            <Progress 
-              value={75} 
-              className="h-2 bg-slate-200" 
-              style={{"--indicator-color": "#4F63A4"} as any}
-            />
-            <p className="text-xs text-gray-600 mt-2">
-              {stats.isComplete 
-                ? 'Finalizing extraction...'
-                : stats.isAITool && stats.remaining > 50 
-                  ? `Analyzing records ${stats.startIndex}-${stats.endIndex} of ${stats.total} with AI`
-                  : `Processing records ${stats.startIndex}-${stats.endIndex} of ${stats.total}`}
-            </p>
           </div>
         )}
         
