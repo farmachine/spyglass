@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, FileText, Plus, BookOpen, Edit, Trash2, Calendar, FileIcon } from "lucide-react";
+import { Brain, FileText, Plus, GraduationCap, Edit, Trash2, Calendar, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +109,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
   const getHeading = () => {
     switch (mode) {
       case "knowledge":
-        return "• Knowledge";
+        return "• Knowledge Base";
       case "rules":
         return "• Rules";
       default:
@@ -129,12 +129,13 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
   };
 
   const renderKnowledgeSection = () => (
-    <Card>
+    <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Knowledge Documents ({knowledgeDocuments.length})
+            <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
+            <GraduationCap className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            Knowledge Base ({knowledgeDocuments.length})
           </CardTitle>
           <Button
             onClick={() => {
@@ -152,11 +153,11 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
           <div className="text-center py-8">Loading knowledge documents...</div>
         ) : knowledgeDocuments.length === 0 ? (
           <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <FileText className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               No knowledge documents uploaded
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Upload reference documents, policies, and guidelines to improve extraction accuracy
             </p>
             <Button
@@ -173,19 +174,19 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
         ) : (
           <div className="space-y-4">
             {knowledgeDocuments.map((doc) => (
-              <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50">
+              <div key={doc.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <FileIcon className="h-5 w-5 text-blue-600 mt-1" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-gray-900">{doc.displayName || doc.fileName}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{doc.displayName || doc.fileName}</h4>
                         <Badge variant="secondary" className="text-xs">
                           {doc.fileType.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{doc.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{doc.description}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(doc.uploadedAt).toLocaleDateString()}
