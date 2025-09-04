@@ -2418,7 +2418,7 @@ except Exception as e:
         console.log(`🎯 Using tool: ${tool.name} (type: ${tool.toolType})`);
         
         // Import tool engine to execute the tool
-        const { runToolForExtraction } = await import('./toolEngine');
+        const { toolEngine } = await import('./toolEngine');
         
         // Prepare inputs for the tool
         const toolInputs: Record<string, any> = {};
@@ -2478,15 +2478,17 @@ except Exception as e:
           }
         }
         
-        // Run the tool
-        const toolResults = await runToolForExtraction(
-          tool,
+        // Run the tool  
+        const toolResults = await toolEngine.runToolForExtraction(
+          workflowValue.toolId,
           toolInputs,
           sessionId,
           projectId,
-          (current, total, message) => {
-            console.log(`Progress: ${current}/${total} - ${message}`);
-          }
+          target_fields ? target_fields.map((f: any) => ({
+            name: f.fieldName || f.valueName || f.name,
+            dataType: f.dataType || 'TEXT',
+            description: f.description || ''
+          })) : undefined
         );
         
         console.log(`🎯 Tool execution complete. Results:`, toolResults?.length || 0, 'items');
