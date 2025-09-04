@@ -5555,9 +5555,10 @@ Thank you for your assistance.`;
                                 // Use step values if available, otherwise fall back to collection properties
                                 const columnsToDisplay = workflowStep?.values || collection.properties;
                                 
-                                const sortedColumns = columnsToDisplay.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+                                // Don't re-sort - values already come ordered from backend by orderIndex
+                                // Sorting here disrupts the stable order from the database
                                 
-                                return sortedColumns
+                                return columnsToDisplay
                                   .map((column, index) => {
                                     const columnId = column.id;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
