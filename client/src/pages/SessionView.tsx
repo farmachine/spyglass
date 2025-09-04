@@ -207,22 +207,59 @@ const FieldSelectionModalContent = ({
 
           // Check if this is a multi-field value
           if (stepValue.fields && Array.isArray(stepValue.fields) && stepValue.fields.length > 0) {
-            // Render multi-field value with individual field checkboxes
+            // Render multi-field value with individual field checkboxes and shared document selection
+            const anyFieldSelected = stepValue.fields.some((field: any, index: number) => {
+              const fieldId = `${stepValue.id}:${index}`;
+              return selectedFields.has(fieldId);
+            });
+            
             return (
-              <div key={stepValue.id} className="space-y-1">
-                {stepValue.fields.map((field: any, index: number) => {
-                  const fieldId = `${stepValue.id}:${index}`;
-                  return (
-                    <div key={fieldId} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <Checkbox
-                        checked={selectedFields.has(fieldId)}
-                        onCheckedChange={(checked) => handleFieldSelection(fieldId, !!checked)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div>
+              <div key={stepValue.id} className="space-y-2">
+                {/* Group header with shared document selection */}
+                <div className="p-3 rounded-lg border bg-gray-50 dark:bg-gray-800">
+                  <div className="font-medium text-sm mb-2">{stepValue.valueName}</div>
+                  
+                  {/* Single document selection for all fields in this value */}
+                  {needsDocumentSelection && (
+                    <div className="mt-3">
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">
+                        Document Source:
+                      </Label>
+                      <Select
+                        value={fieldInputs[stepValue.id]?.document || ''}
+                        onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
+                        disabled={!anyFieldSelected}
+                      >
+                        <SelectTrigger className="text-xs h-9 mt-1">
+                          <SelectValue placeholder="Choose a document..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sessionDocuments?.map((doc) => (
+                            <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                              {doc.fileName || doc.name || 'Untitled'}
+                              {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Individual field checkboxes */}
+                <div className="space-y-1 ml-4">
+                  {stepValue.fields.map((field: any, index: number) => {
+                    const fieldId = `${stepValue.id}:${index}`;
+                    return (
+                      <div key={fieldId} className="flex items-start space-x-3 p-2 rounded border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <Checkbox
+                          checked={selectedFields.has(fieldId)}
+                          onCheckedChange={(checked) => handleFieldSelection(fieldId, !!checked)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
                           <div className="font-medium text-sm">
-                            {stepValue.valueName} - {field.name}
+                            {field.name}
                           </div>
                           {field.description && (
                             <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -235,36 +272,10 @@ const FieldSelectionModalContent = ({
                             </div>
                           )}
                         </div>
-
-                        {/* Show document selection if needed */}
-                        {needsDocumentSelection && (
-                          <div className="mt-3">
-                            <Label className="text-xs text-gray-600 dark:text-gray-400">
-                              Document Source:
-                            </Label>
-                            <Select
-                              value={fieldInputs[fieldId]?.document || ''}
-                              onValueChange={(value) => handleInputChange(fieldId, 'document', value)}
-                              disabled={!selectedFields.has(fieldId)}
-                            >
-                              <SelectTrigger className="text-xs h-9 mt-1">
-                                <SelectValue placeholder="Choose a document..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {sessionDocuments?.map((doc) => (
-                                  <SelectItem key={doc.id} value={doc.id} className="text-xs">
-                                    {doc.fileName || doc.name || 'Untitled'}
-                                    {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             );
           } else {
