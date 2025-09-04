@@ -3732,17 +3732,38 @@ Thank you for your assistance.`;
       // Get the documents with content
       const documentsWithContent = [];
       
-      // Get document IDs from field inputs
+      // Get document IDs from field inputs  
       const documentIds = new Set<string>();
       console.log('🔍 Field inputs:', fieldInputs);
       console.log('🔍 Session documents available:', sessionDocuments?.length || 0);
       
-      Object.values(fieldInputs).forEach((input: any) => {
+      // Check all field inputs for document selections
+      Object.entries(fieldInputs).forEach(([fieldId, input]) => {
+        console.log(`🔍 Checking field ${fieldId}:`, input);
         if (input?.document) {
           console.log(`📌 Found document ID in field inputs: ${input.document}`);
           documentIds.add(input.document);
         }
       });
+      
+      // If no documents selected in field inputs, check if fields need documents
+      if (documentIds.size === 0) {
+        console.log('⚠️ No document IDs found in field inputs, checking if fields need documents...');
+        
+        // For each field being extracted, check if it needs a document
+        fieldsToExtract.forEach(field => {
+          if (field.inputValues) {
+            Object.values(field.inputValues).forEach((value: any) => {
+              if (Array.isArray(value) && value.includes('user_document')) {
+                console.log(`📌 Field ${field.valueName} needs a document, auto-selecting first document`);
+                if (sessionDocuments && sessionDocuments.length > 0) {
+                  documentIds.add(sessionDocuments[0].id);
+                }
+              }
+            });
+          }
+        });
+      }
       
       console.log(`📄 Document IDs to load: ${Array.from(documentIds).join(', ')}`);
       
@@ -3753,21 +3774,25 @@ Thank you for your assistance.`;
         
         if (doc) {
           // Log all properties to see what's available
+          console.log(`📋 Document object:`, doc);
           console.log(`📋 Document properties:`, Object.keys(doc));
           console.log(`📋 extractedContent:`, doc.extractedContent ? `${doc.extractedContent.length} chars` : 'undefined');
-          console.log(`📋 fileContent:`, doc.fileContent ? `${doc.fileContent.length} chars` : 'undefined');
-          console.log(`📋 content:`, doc.content ? `${doc.content.length} chars` : 'undefined');
           
-          // Use extractedContent which is where the document text is stored
-          const content = doc.extractedContent || doc.fileContent || doc.content || '';
-          console.log(`📄 Loading document ${doc.fileName}: ${content.length} chars`);
-          console.log(`📄 First 100 chars of content:`, content.substring(0, 100));
+          // The session document should have extractedContent from the backend
+          const content = doc.extractedContent || '';
+          console.log(`📄 Loading document ${doc.fileName || doc.documentName}: ${content.length} chars`);
+          
+          if (content.length > 0) {
+            console.log(`📄 First 200 chars of content:`, content.substring(0, 200));
+          } else {
+            console.log('⚠️ Document has no extracted content!');
+          }
           
           documentsWithContent.push({
-            file_name: doc.fileName || doc.name || 'document',
+            file_name: doc.fileName || doc.documentName || 'document',
             file_content: content,
-            file_type: doc.fileType || doc.mimeType || 'text/plain',
-            original_name: doc.fileName || doc.name
+            file_type: doc.fileType || doc.documentType || doc.mimeType || 'text/plain',
+            original_name: doc.fileName || doc.documentName || 'document'
           });
         }
       }
@@ -3775,18 +3800,20 @@ Thank you for your assistance.`;
       console.log(`📦 Documents with content prepared: ${documentsWithContent.length} documents`);
       console.log(`📦 Document content lengths:`, documentsWithContent.map(d => `${d.file_name}: ${d.file_content.length} chars`));
       
-      // If no documents were loaded, check if we need to select the document from the modal
+      // If still no documents loaded, use first available document as fallback
       if (documentsWithContent.length === 0 && sessionDocuments?.length > 0) {
-        console.log('⚠️ No documents selected via field inputs, using first document as fallback');
+        console.log('⚠️ No documents loaded yet, using first document as fallback');
         const firstDoc = sessionDocuments[0];
-        const content = firstDoc.extractedContent || firstDoc.fileContent || firstDoc.content || '';
-        console.log(`📄 Using fallback document ${firstDoc.fileName}: ${content.length} chars`);
+        console.log('📄 Fallback document:', firstDoc);
+        
+        const content = firstDoc.extractedContent || '';
+        console.log(`📄 Using fallback document ${firstDoc.fileName || firstDoc.documentName}: ${content.length} chars`);
         
         documentsWithContent.push({
-          file_name: firstDoc.fileName || firstDoc.name || 'document',
+          file_name: firstDoc.fileName || firstDoc.documentName || 'document',
           file_content: content,
-          file_type: firstDoc.fileType || firstDoc.mimeType || 'text/plain',  
-          original_name: firstDoc.fileName || firstDoc.name
+          file_type: firstDoc.fileType || firstDoc.documentType || firstDoc.mimeType || 'text/plain',  
+          original_name: firstDoc.fileName || firstDoc.documentName || 'document'
         });
       }
       
