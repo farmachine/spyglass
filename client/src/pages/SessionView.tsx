@@ -3754,8 +3754,8 @@ Thank you for your assistance.`;
       });
     });
     
-    // Close modal  
-    setShowFieldSelectionModal(false);
+    // Don't close modal yet - keep it open to show loading state
+    // setShowFieldSelectionModal(false); // REMOVED - close only after extraction completes
     setExtractingToolId(currentToolGroup.toolId);
     
     try {
@@ -3882,6 +3882,7 @@ Thank you for your assistance.`;
     } finally {
       setExtractingToolId(null);
       setCurrentToolGroup(null);
+      setShowFieldSelectionModal(false); // Close modal after extraction completes
     }
   };
 
