@@ -614,8 +614,8 @@ export class ToolEngine {
       // Log the response size and content
       console.log(`📏 AI Response Size: ${rawResponse.length} characters`);
       
-      // Always log the full response if it's under 1000 chars (to debug empty results)
-      if (rawResponse.length < 1000) {
+      // Always log the full response if it's under 2000 chars (to debug empty results)
+      if (rawResponse.length < 2000) {
         console.log('📝 Full AI Response:');
         console.log(rawResponse);
       }
@@ -635,9 +635,19 @@ export class ToolEngine {
       }
       
       const parsedResults = this.parseAIResponse(rawResponse);
+      console.log(`📦 Parsed ${parsedResults.length} results from AI response`);
+      if (parsedResults.length > 0 && parsedResults.length <= 5) {
+        console.log(`📋 Parsed results:`, JSON.stringify(parsedResults, null, 2));
+      }
       
       // 7. Map results based on operation type
       let results: ToolResult[];
+      
+      // Debug logging for multi-field detection
+      console.log(`🔍 Checking multi-field extraction conditions:`);
+      console.log(`   - Has __infoPageFields: ${!!inputs.__infoPageFields}`);
+      console.log(`   - inputArray.length: ${inputArray.length}`);
+      console.log(`   - isCreateOperation: ${isCreateOperation}`);
       
       // Check for multi-field extraction (Info Page fields)
       if (inputs.__infoPageFields && inputArray.length === 0) {
