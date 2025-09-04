@@ -111,8 +111,8 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
     { id: "data" as const, label: "Extraction Steps", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge Base", icon: GraduationCap, disabled: false },
-      { id: "rules" as const, label: "Rules", icon: Brain, disabled: false },
-      { id: "tools" as const, label: "Tools", icon: Wrench, disabled: false },
+      { id: "rules" as const, label: "Rulebook", icon: Brain, disabled: false },
+      { id: "tools" as const, label: "Toolbox", icon: Wrench, disabled: false },
     ] : []),
     ...(canAccessPublishing ? [
       { id: "publish" as const, label: "Publish", icon: ShipIcon, disabled: false },

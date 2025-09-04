@@ -238,7 +238,7 @@ export default function KnowledgeRules({ project, mode }: KnowledgeRulesProps) {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
-          Rules
+          Rulebook
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           Configure extraction rules and validation logic for your documents.

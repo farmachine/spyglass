@@ -337,20 +337,25 @@ export default function Tools({ projectId }: ExcelToolsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Tools</h2>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {tools?.length || 0} tools available
-          </div>
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <div className="w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full flex-shrink-0"></div>
+          Toolbox
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Manage AI-powered tools and functions for data extraction and processing.
+        </p>
+      </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">Available Tools ({tools?.length || 0})</div>
           <CreateToolDialog 
             projectId={projectId} 
             editingFunction={editingTool} 
             setEditingFunction={setEditingTool} 
           />
         </div>
-      </div>
 
       <div className="space-y-4">
         {tools?.map((tool) => (
@@ -870,6 +875,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }
