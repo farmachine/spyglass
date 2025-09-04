@@ -3118,137 +3118,26 @@ except Exception as e:
           }
         }
       } else if (isExcelColumnExtraction) {
-        console.log('USING EXCEL COLUMN EXTRACTION: Direct Excel parsing - no AI needed');
+        // Excel column extraction should use a tool
+        console.log('⚠️ EXCEL COLUMN EXTRACTION WITHOUT TOOL: Cannot extract without a tool');
         
-        // Fallback to simple extraction if not a workflow step
-        const python = spawn('python3', ['simple_column_extractor.py', (collectionRecordCounts["Column Name Mapping"] || 0).toString()]);
-        
-        // Pass session data to simple extractor
-        const sessionDataForExtraction = {
-          extractedTexts: (await storage.getExtractionSession(sessionId))?.extractedTexts || []
-        };
-        
-        python.stdin.write(JSON.stringify(sessionDataForExtraction));
-        python.stdin.end();
-        
-        let output = '';
-        let error = '';
-        
-        python.stdout.on('data', (data: any) => {
-          output += data.toString();
+        return res.status(400).json({ 
+          success: false,
+          error: 'No extraction tool configured for Excel columns',
+          message: 'Excel column extraction requires a configured tool. Please assign an appropriate tool to this value in the project settings.'
         });
-        
-        python.stderr.on('data', (data: any) => {
-          error += data.toString();
-        });
-        
-        python.on('close', async (code: any) => {
-          if (code !== 0) {
-            console.error('Simple extraction error:', error);
-            return res.status(500).json({ 
-              message: "Simple extraction failed", 
-              error: error 
-            });
-          }
-          
-          try {
-            const extractedData = JSON.parse(output);
-            console.log('SIMPLE EXTRACTION SUCCESS:', extractedData.message);
-            
-            // Store extracted data in session
-            await storage.updateExtractionSession(sessionId, {
-              status: "extracted",
-              extractedData: JSON.stringify(extractedData),
-              extractionPrompt: "Simple direct extraction - no AI prompt used",
-              aiResponse: `Simple extraction: Found ${extractedData.columns_found} columns`,
-              inputTokenCount: 0,
-              outputTokenCount: 0
-            });
-            
-            // Create field validation records from extracted data
-            await createFieldValidationRecords(sessionId, extractedData, project_data);
-            
-            // Ensure ALL expected fields have validation records
-            await ensureAllValidationRecordsExist(sessionId, projectId);
-            
-            res.json({ 
-              message: "SIMPLE EXTRACTION: Column mapping completed", 
-              extractedData,
-              sessionId,
-              extraction_method: "simple_direct",
-              processing_time_ms: extractedData.processing_time_ms
-            });
-            
-          } catch (error) {
-            console.error('Simple extraction parse error:', error);
-            res.status(500).json({ 
-              message: "Failed to parse simple extraction results", 
-              error: error.message 
-            });
-          }
-        });
-        
-        return;
       }
       
-      // Use extraction wizardry for complex AI extraction tasks
-      console.log('USING EXTRACTION WIZARDRY: Complex reasoning and analysis required');
+      // No tool assigned - extraction requires a tool
+      console.log('⚠️ NO TOOL ASSIGNED: Cannot extract without a tool');
+      console.log('  Workflow step:', is_workflow_step);
+      console.log('  Step ID:', step_id);
+      console.log('  Value ID:', value_id);
       
-      const python = spawn('python3', ['extraction_wizardry.py']);
-      
-      python.stdin.write(JSON.stringify(extractionData));
-      python.stdin.end();
-      
-      let output = '';
-      let error = '';
-      
-      python.stdout.on('data', (data: any) => {
-        output += data.toString();
-      });
-      
-      python.stderr.on('data', (data: any) => {
-        error += data.toString();
-      });
-      
-      python.on('close', async (code: any) => {
-        if (code !== 0) {
-          console.error('STEP 1 extraction error:', error);
-          return res.status(500).json({ 
-            message: "AI extraction failed", 
-            error: error 
-          });
-        }
-        
-        try {
-          const extractedData = JSON.parse(output);
-          console.log('STEP 1 extracted data:', JSON.stringify(extractedData, null, 2));
-          
-          // Store extracted data in session along with token usage and AI response
-          await storage.updateExtractionSession(sessionId, {
-            status: "extracted",
-            extractedData: JSON.stringify(extractedData.extracted_data || extractedData),
-            extractionPrompt: extractedData.extraction_prompt,
-            aiResponse: extractedData.ai_response,
-            inputTokenCount: extractedData.input_token_count,
-            outputTokenCount: extractedData.output_token_count
-          });
-          
-          // Create field validation records from extracted data
-          await createFieldValidationRecords(sessionId, extractedData, project_data);
-          
-          // Ensure ALL expected fields have validation records (including ignored/empty fields)
-          await ensureAllValidationRecordsExist(sessionId, projectId);
-          
-          res.json({ 
-            message: "STEP 1: Data extraction completed", 
-            extractedData,
-            sessionId 
-          });
-          
-        } catch (error) {
-          console.error('STEP 1 processing error:', error);
-          res.status(500).json({ message: "Failed to process extraction results" });
-        }
+      return res.status(400).json({ 
+        success: false,
+        error: 'No extraction tool configured',
+        message: 'This value does not have an extraction tool assigned. Please configure a tool in the project settings to enable extraction.'
       });
       
     } catch (error) {
@@ -3257,84 +3146,19 @@ except Exception as e:
     }
   });
   
-  // STEP 2: Validate field records using AI
+  // STEP 2: Validate field records using tools
   app.post("/api/sessions/:sessionId/validate", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
       const projectId = req.body.projectId;
       
-      console.log(`STEP 2 VALIDATE: Starting validation for session ${sessionId}`);
+      console.log(`STEP 2 VALIDATE: Validation requested for session ${sessionId}`);
       
-      // Get field validation records for this session
-      const fieldValidations = await storage.getFieldValidations(sessionId);
-      
-      // Get extraction rules and knowledge documents
-      const extractionRules = projectId ? await storage.getExtractionRules(projectId) : [];
-      const knowledgeDocuments = projectId ? await storage.getKnowledgeDocuments(projectId) : [];
-      
-      // Prepare data for Python validation script
-      const validationData = {
-        step: "validate",
-        field_validations: fieldValidations,
-        extraction_rules: extractionRules,
-        knowledge_documents: knowledgeDocuments
-      };
-      
-      console.log(`STEP 2: Validating ${fieldValidations.length} field records`);
-      
-      // Call Python validation script (using extraction wizardry)
-      const python = spawn('python3', ['extraction_wizardry.py']);
-      
-      python.stdin.write(JSON.stringify(validationData));
-      python.stdin.end();
-      
-      let output = '';
-      let error = '';
-      
-      python.stdout.on('data', (data: any) => {
-        output += data.toString();
-      });
-      
-      python.stderr.on('data', (data: any) => {
-        error += data.toString();
-      });
-      
-      python.on('close', async (code: any) => {
-        if (code !== 0) {
-          console.error('STEP 2 validation error:', error);
-          return res.status(500).json({ 
-            message: "AI validation failed", 
-            error: error 
-          });
-        }
-        
-        try {
-          const validationResult = JSON.parse(output);
-          console.log(`STEP 2: Updating ${validationResult.fieldValidations?.length || 0} validation records`);
-          
-          // Update field validation records with AI validation results
-          for (const fv of validationResult.fieldValidations || []) {
-            await storage.updateFieldValidation(fv.uuid, {
-              validationStatus: fv.validationStatus,
-              confidenceScore: fv.validationConfidence,
-              aiReasoning: fv.AIReasoning
-            });
-          }
-          
-          // Update session status
-          await storage.updateExtractionSession(sessionId, {
-            status: "validated"
-          });
-          
-          res.json({ 
-            message: "STEP 2: Validation completed", 
-            updatedCount: validationResult.fieldValidations?.length || 0
-          });
-          
-        } catch (error) {
-          console.error('STEP 2 processing error:', error);
-          res.status(500).json({ message: "Failed to process validation results" });
-        }
+      // Validation should be done through tools, not Python scripts
+      return res.status(400).json({ 
+        success: false,
+        error: 'Validation requires tool configuration',
+        message: 'Field validation should be performed through configured tools. Please use the appropriate validation tools in the project settings.'
       });
       
     } catch (error) {
@@ -3572,60 +3396,24 @@ except Exception as e:
     }
   });
 
-  // AI extraction for existing sessions (used by Add Documents)
+  // AI extraction for existing sessions - requires tools
   app.post("/api/sessions/:sessionId/ai-extraction", async (req, res) => {
     try {
       const sessionId = req.params.sessionId;
-      const { targetFields } = req.body;
-      console.log(`AI EXTRACTION: Starting AI analysis for session ${sessionId}`);
-      console.log(`AI EXTRACTION: Target fields:`, targetFields);
+      console.log(`AI EXTRACTION: Requested for session ${sessionId}`);
       
-      // Get session data
-      const session = await storage.getExtractionSession(sessionId);
-      if (!session) {
-        return res.status(404).json({ success: false, error: 'Session not found' });
-      }
+      // AI extraction should be done through tools, not Python scripts
+      return res.status(400).json({ 
+        success: false,
+        error: 'AI extraction requires tool configuration',
+        message: 'AI extraction should be performed through configured tools. Please use the appropriate extraction tools in the project settings.'
+      });
       
-      // Check if session has extracted data to work with
-      if (!session.extractedData || session.extractedData.trim() === '' || session.extractedData === '{}') {
-        return res.status(400).json({ success: false, error: 'Session must have documents uploaded and processed before AI analysis' });
-      }
-      
-      // Get extracted text data from session
-      let extractedData;
-      try {
-        extractedData = JSON.parse(session.extractedData || '{}');
-        
-        // Convert text extraction format to AI extraction format
-        if (extractedData.extracted_texts && !extractedData.documents) {
-          console.log(`CONVERSION: Converting ${extractedData.extracted_texts.length} extracted_texts to documents format`);
-          extractedData.documents = extractedData.extracted_texts.map(textDoc => ({
-            file_name: textDoc.file_name,
-            file_content: textDoc.text_content,
-            word_count: textDoc.word_count,
-            mime_type: textDoc.file_name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 
-                      textDoc.file_name.toLowerCase().endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
-                      textDoc.file_name.toLowerCase().endsWith('.doc') ? 'application/msword' :
-                      textDoc.file_name.toLowerCase().endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
-                      textDoc.file_name.toLowerCase().endsWith('.xls') ? 'application/vnd.ms-excel' :
-                      'application/octet-stream'
-          }));
-          console.log(`CONVERSION: Successfully created ${extractedData.documents.length} documents`);
-          
-          // Log document details for debugging
-          extractedData.documents.forEach((doc, index) => {
-            console.log(`DOCUMENT ${index}: ${doc.file_name} (${doc.file_content?.length || 0} chars)`);
-            if (doc.file_content && doc.file_content.length > 0) {
-              console.log(`PREVIEW: ${doc.file_content.substring(0, 200)}...`);
-            }
-          });
-        }
-      } catch (error) {
-        return res.status(400).json({ success: false, error: 'Invalid extracted data in session' });
-      }
-      
-      // Get project schema and other data
-      const projectId = session.projectId;
+    } catch (error) {
+      console.error("AI EXTRACTION error:", error);
+      res.status(500).json({ success: false, message: "Failed to run AI extraction", error: error.message });
+    }
+  });
       const [project, schemaFields, collections, knowledgeDocuments, extractionRules] = await Promise.all([
         storage.getProject(projectId),
         storage.getProjectSchemaFields(projectId),
