@@ -177,12 +177,28 @@ const FieldSelectionModalContent = ({
   };
 
   const handleExtract = () => {
+    console.log('🚀 EXTRACT BUTTON CLICKED');
+    console.log('📋 Selected fields:', Array.from(selectedFields));
+    console.log('📋 Field inputs (including document selections):', fieldInputs);
+    
     if (selectedFields.size > 0) {
       onExtract(Array.from(selectedFields), fieldInputs);
     }
   };
 
   const handleInputChange = (fieldId: string, inputKey: string, value: any) => {
+    console.log(`📝 User selected ${inputKey} for ${fieldId}:`, value);
+    
+    if (inputKey === 'document') {
+      const selectedDoc = sessionDocuments?.find(d => d.id === value);
+      console.log(`📄 Selected document details:`, {
+        id: value,
+        fileName: selectedDoc?.fileName,
+        hasContent: !!selectedDoc?.extractedContent,
+        contentLength: selectedDoc?.extractedContent?.length || 0
+      });
+    }
+    
     setFieldInputs(prev => ({
       ...prev,
       [fieldId]: {
