@@ -1170,12 +1170,20 @@ Each item in the list above has an "identifierId" field. You MUST:
       throw new Error(`Tool not found: ${toolId}`);
     }
     
-    console.log('📦 Tool found:', tool.name);
+    console.log('📦 Tool found:', tool.name, 'Type:', tool.toolType);
+    console.log('📊 Fields provided:', fields?.length || 0);
     
     // If fields are provided (Info Page multi-field extraction), modify inputs to include fields info
-    if (fields && fields.length > 0 && tool.toolType === 'AI_ONLY') {
+    // ALWAYS add fields for AI extraction tools regardless of exact type
+    if (fields && fields.length > 0 && (tool.toolType === 'AI_ONLY' || tool.toolType === 'AI' || tool.toolType?.includes('AI'))) {
       inputs.__infoPageFields = fields;
-      console.log('📋 Multi-field Info Page extraction:', fields.map(f => f.name).join(', '));
+      console.log('📋 Multi-field Info Page extraction with identifierIds:');
+      fields.forEach((f, idx) => {
+        console.log(`  Field ${idx + 1}: ${f.name} (ID: ${f.identifierId})`);
+      });
+    } else if (fields && fields.length > 0) {
+      // Log why fields weren't added
+      console.log(`⚠️ Fields not added - tool type '${tool.toolType}' doesn't match AI types`);
     }
     
     // Execute the tool

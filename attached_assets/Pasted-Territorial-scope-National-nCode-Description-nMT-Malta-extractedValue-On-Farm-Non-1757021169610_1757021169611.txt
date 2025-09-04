@@ -1,0 +1,51 @@
+Territorial scope: National\nCode Description\nMT Malta"
+  },
+  {
+    "extractedValue": "On-Farm Non
+Response start (first 500 chars):
+[
+  {
+    "extractedValue": "Malta",
+    "validationStatus": "valid",
+    "aiReasoning": "The document EN241 EN5.1 Direct Payments Interventions mentions Malta as the territorial scope for the BISS intervention.",
+    "confidenceScore": 100,
+    "documentSource": "EN241 EN5.1 Direct Payments Interventions\n1 Territorial scope and, if relevant, regional dimension\nTerritorial scope: National\nCode Description\nMT Malta"
+  },
+  {
+    "extractedValue": "Direct Payments (Basic Income Support for Sus
+Response end (last 500 chars):
+t, regional dimension\nTerritorial scope: National\nCode Description\nMT Malta"
+  },
+  {
+    "extractedValue": "Setting up of young farmers",
+    "validationStatus": "valid",
+    "aiReasoning": "The document EN472 ENINSTAL(75) - Setting up of young farmers and new farmers and rural business mentions Setting up of young farmers as the Intervention Name.",
+    "confidenceScore": 100,
+    "documentSource": "EN472 ENINSTAL(75) - Setting up of young farmers and new farmers and rural business \nstart-
+Initial JSON parse error: SyntaxError: Unterminated string in JSON at position 30554
+    at JSON.parse (<anonymous>)
+    at ToolEngine.parseAIResponse (/home/runner/workspace/server/toolEngine.ts:921:27)
+    at ToolEngine.testAITool (/home/runner/workspace/server/toolEngine.ts:628:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:2521:29)
+JSON parse failed at position: Unterminated string in JSON at position 30554
+Response length: 30554 characters
+Attempting to recover by truncating at error position 30554
+Truncated at last complete object at position 30136
+Successfully parsed after fixing escape sequences
+🔄 UPDATE operation processed 0 records
+✅ AI extraction complete: 0 results
+🎯 Tool execution complete. Results: 0 items
+📊 Tool results: []
+📝 Saving 0 field results for Info Page
+📊 Matching results to 2 target fields
+9:25:31 PM [express] POST /api/sessions/8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe/extract 200 in 33092ms :: {"success":true,"message":"Extracti…
+9:25:32 PM [express] GET /api/validations/project/255c77da-0117-4ac8-b04d-062a80971473 200 in 9ms
+9:25:32 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+9:25:32 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:25:32 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+9:25:32 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:25:37 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+9:25:37 PM [express] POST /api/dev/console 200 in 2ms :: {"success":true}
+9:25:37 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+9:25:37 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
