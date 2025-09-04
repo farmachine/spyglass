@@ -4896,8 +4896,8 @@ Thank you for your assistance.`;
                                               });
                                               
                                               return (
-                                                <div key={field.name} className="space-y-2">
-                              <div className="flex items-center gap-2">
+                                                <div key={field.name}>
+                              <div className="flex items-center gap-2 mb-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
