@@ -3599,15 +3599,8 @@ Thank you for your assistance.`;
   const handleExtractSelectedFields = async (selectedFieldIds: string[], fieldInputs: Record<string, any>) => {
     if (!currentToolGroup || extractingToolId) return;
     
-    // DEBUG MODE - Just log the data instead of extracting
-    console.log('=== EXTRACTION DEBUG ===');
-    console.log('Selected Field IDs:', selectedFieldIds);
-    console.log('Field Inputs from modal:', fieldInputs);
-    console.log('Current Tool Group:', currentToolGroup);
-    
     // Get step ID from any value in the group
     const stepId = currentToolGroup.stepValues[0]?.stepId;
-    console.log('Step ID:', stepId);
     
     // Process selected fields - handle both single and multi-field selections
     const fieldsToExtract: any[] = [];
@@ -3680,17 +3673,91 @@ Thank you for your assistance.`;
       });
     });
     
-    console.log('\n=== END DEBUG ===\n');
-    
-    // Close modal and reset state
+    // Close modal  
     setShowFieldSelectionModal(false);
-    setExtractingToolId(null);
-    setCurrentToolGroup(null);
+    setExtractingToolId(currentToolGroup.toolId);
     
-    toast({
-      title: "Debug Mode",
-      description: `Check console for ${fieldsToExtract.length} selected value objects`,
-    });
+    try {
+      // Get the documents with content
+      const documentsWithContent = [];
+      
+      // Get document IDs from field inputs
+      const documentIds = new Set<string>();
+      Object.values(fieldInputs).forEach((input: any) => {
+        if (input?.document) {
+          documentIds.add(input.document);
+        }
+      });
+      
+      // Load document content for selected documents
+      for (const docId of documentIds) {
+        const doc = sessionDocuments?.find(d => d.id === docId);
+        if (doc) {
+          const content = doc.fileContent || doc.content || '';
+          documentsWithContent.push({
+            file_name: doc.fileName || doc.name || 'document',
+            file_content: content,
+            file_type: doc.fileType || doc.mimeType || 'text/plain',
+            original_name: doc.fileName || doc.name
+          });
+        }
+      }
+      
+      // Group fields by valueId for multi-field extraction
+      const fieldsByValue = new Map<string, any[]>();
+      fieldsToExtract.forEach(field => {
+        if (!fieldsByValue.has(field.valueId)) {
+          fieldsByValue.set(field.valueId, []);
+        }
+        fieldsByValue.get(field.valueId)!.push(field);
+      });
+      
+      // Process each value group  
+      for (const [valueId, fields] of fieldsByValue) {
+        const requestData = {
+          files: documentsWithContent,
+          project_data: {
+            id: project?.id,
+            projectId: project?.id,
+            schemaFields: project?.schemaFields || [],
+            collections: collections || [],
+            workflowSteps: project?.workflowSteps || []
+          },
+          target_fields: fields.map(f => f.fieldToExtract),
+          is_workflow_step: true,
+          step_id: fields[0].stepId,
+          value_id: valueId
+        };
+        
+        await apiRequest(`/api/sessions/${sessionId}/extract`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+      }
+      
+      // Refresh validations
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
+      
+      toast({
+        title: "Extraction Complete",
+        description: `Successfully extracted ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''}`,
+      });
+      
+    } catch (error) {
+      console.error('Extraction error:', error);
+      toast({
+        title: "Extraction Failed",
+        description: "An error occurred during extraction. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setExtractingToolId(null);
+      setCurrentToolGroup(null);
+    }
   };
 
   const handleDateChange = async (fieldName: string, dateValue: string) => {
