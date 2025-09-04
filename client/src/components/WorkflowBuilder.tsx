@@ -135,6 +135,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               dataType: value.dataType,
               toolId: value.toolId || '',
               inputValues: value.inputValues || {},
+              fields: value.fields || null, // Include fields for multi-field Info Page values
               orderIndex: value.orderIndex || 0
             })),
             isExpanded: false,
