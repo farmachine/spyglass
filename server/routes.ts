@@ -7846,6 +7846,27 @@ def extract_function(Column_Name, Excel_File):
       }
       
       // Execute the tool using the tool engine
+      console.log(`\n🔧 EXECUTING TOOL: ${tool.name}`);
+      console.log(`   Tool ID: ${tool.id}`);
+      console.log(`   Tool Type: ${tool.toolType}`);
+      console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
+      console.log(`   Output Type: ${tool.outputType || 'single'}`);
+      console.log(`   Has AI Prompt: ${!!tool.aiPrompt}`);
+      console.log(`   Has Function Code: ${!!tool.functionCode}`);
+      console.log(`   LLM Model: ${tool.llmModel || 'default'}`);
+      
+      // Special handling for multi-field Info Page values
+      if (value.fields && value.fields.length > 0) {
+        console.log(`\n📋 MULTI-FIELD EXTRACTION DETECTED:`);
+        console.log(`   Value Name: ${value.valueName}`);
+        console.log(`   Number of Fields: ${value.fields.length}`);
+        console.log(`   Fields to Extract:`, value.fields.map((f: any) => `${f.name} (${f.dataType})`));
+        
+        // Add field definitions to tool inputs for AI extraction
+        toolInputs.__infoPageFields = value.fields;
+        console.log(`   Added __infoPageFields to toolInputs for AI processing`);
+      }
+      
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({
         id: tool.id,

@@ -472,14 +472,29 @@ export class ToolEngine {
     knowledgeDocuments?: any,
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
+    console.log(`\n🚀 TOOL ENGINE - testTool() called`);
+    console.log(`   Tool Name: ${tool.name}`);
+    console.log(`   Tool Type: ${tool.toolType}`);
+    console.log(`   Tool ID: ${tool.id}`);
+    console.log(`   Input Keys:`, Object.keys(inputs));
+    
+    // Check for multi-field extraction
+    if (inputs.__infoPageFields) {
+      console.log(`   📋 Multi-field extraction detected:`, inputs.__infoPageFields);
+    }
+    
     // Clean triage between AI and CODE tools
     const forAI = tool.toolType === "AI_ONLY";
+    console.log(`   For AI: ${forAI}`);
+    
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
     
     // Route to appropriate handler
     if (tool.toolType === "AI_ONLY") {
+      console.log(`   ✅ Routing to AI tool handler (testAITool)`);
       return this.testAITool(tool, preparedInputs, progressCallback);
     } else {
+      console.log(`   📦 Routing to CODE tool handler (testCodeTool)`);
       return this.testCodeTool(tool, preparedInputs);
     }
   }
@@ -492,9 +507,19 @@ export class ToolEngine {
     inputs: Record<string, any>,
     progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
+    console.log(`\n🤖 AI TOOL HANDLER - testAITool() called`);
+    console.log(`   Tool: ${tool.name}`);
+    console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
+    console.log(`   Has __infoPageFields: ${!!inputs.__infoPageFields}`);
+    
+    if (inputs.__infoPageFields) {
+      console.log(`   Multi-field extraction fields:`, inputs.__infoPageFields);
+    }
+    
     try {
       // Check if this is a CREATE operation
       const isCreateOperation = tool.operationType?.includes('create');
+      console.log(`   Is CREATE operation: ${isCreateOperation}`);
       
       // 1. Find data input array if exists (required for UPDATE, optional for CREATE)
       const dataInput = this.findDataInput(tool, inputs);
@@ -528,15 +553,19 @@ export class ToolEngine {
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // 4. Log the prompt for debugging (truncated for readability)
-      console.log('\n📝 AI EXTRACTION PROMPT:');
+      // 4. Log the prompt for debugging
+      console.log('\n📝 FULL AI EXTRACTION PROMPT (for debugging multi-field issue):');
       console.log('='.repeat(80));
-      // Truncate document content if present
-      const truncatedPrompt = prompt.length > 2000 
-        ? prompt.substring(0, 1000) + '\n\n[... DOCUMENT CONTENT TRUNCATED ...]\n\n' + prompt.substring(prompt.length - 500)
-        : prompt;
-      console.log(truncatedPrompt);
+      console.log('Tool:', tool.name);
+      console.log('Type:', tool.toolType);
+      console.log('Has __infoPageFields:', !!inputs.__infoPageFields);
+      if (inputs.__infoPageFields) {
+        console.log('Multi-field extraction fields:', inputs.__infoPageFields);
+      }
       console.log('='.repeat(80));
+      console.log(prompt);
+      console.log('='.repeat(80));
+      console.log('END OF PROMPT');
       
       // 5. Call Gemini API
       if (progressCallback) {
