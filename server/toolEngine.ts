@@ -393,6 +393,15 @@ export class ToolEngine {
       }
     }
     
+    // CRITICAL: Preserve special fields that start with __ (like __infoPageFields)
+    // These are metadata fields that need to flow through to the AI prompt
+    for (const [key, value] of Object.entries(rawInputs)) {
+      if (key.startsWith('__')) {
+        preparedInputs[key] = value;
+        console.log(`🔒 Preserved special field: ${key}`, Array.isArray(value) ? `(${value.length} items)` : '');
+      }
+    }
+    
     return preparedInputs;
   }
   
