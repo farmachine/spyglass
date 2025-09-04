@@ -1,0 +1,61 @@
+END OF PROMPT
+📊 Batch size: 1, Token limit: 8192
+📏 AI Response Size: 813 characters
+📝 Full AI Response:
+[
+  {
+    "identifierId": "4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_0",
+    "extractedValue": "Malta",
+    "validationStatus": "valid",
+    "aiReasoning": "The document refers to 'Maltese territory' and 'Malta's farmers' throughout, indicating that the interventions apply to Malta.",
+    "confidenceScore": 100,
+    "documentSource": "Throughout the document"
+  },
+  {
+    "identifierId": "4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_1",
+    "extractedValue": "EN 238 EN5 Direct payments, sectoral and rural development interventions specified in the strategy",
+    "validationStatus": "valid",
+    "aiReasoning": "The document name is found at the beginning of the document. I have extracted the first line of the document.",
+    "confidenceScore": 100,
+    "documentSource": "First line of the document"
+  }
+]
+📦 Parsed 2 results from AI response
+📋 Parsed results: [
+  {
+    "identifierId": "4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_0",
+    "extractedValue": "Malta",
+    "validationStatus": "valid",
+    "aiReasoning": "The document refers to 'Maltese territory' and 'Malta's farmers' throughout, indicating that the interventions apply to Malta.",
+    "confidenceScore": 100,
+    "documentSource": "Throughout the document"
+  },
+  {
+    "identifierId": "4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_1",
+    "extractedValue": "EN 238 EN5 Direct payments, sectoral and rural development interventions specified in the strategy",
+    "validationStatus": "valid",
+    "aiReasoning": "The document name is found at the beginning of the document. I have extracted the first line of the document.",
+    "confidenceScore": 100,
+    "documentSource": "First line of the document"
+  }
+]
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 0
+   - isCreateOperation: false
+🔄 UPDATE operation processed 0 records
+✅ AI extraction complete: 0 results
+🎯 Tool execution complete. Results: 0 items
+📊 Tool results: []
+📝 Saving 0 field results for Info Page
+📊 Matching results to 2 target fields
+9:55:37 PM [express] POST /api/sessions/8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe/extract 200 in 5777ms :: {"success":true,"message":"Extractio…
+9:55:37 PM [express] GET /api/validations/project/255c77da-0117-4ac8-b04d-062a80971473 200 in 12ms
+9:55:38 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+9:55:38 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:55:38 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+9:55:38 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:55:43 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+9:55:43 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:55:43 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+9:55:43 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}

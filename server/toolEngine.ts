@@ -748,7 +748,7 @@ export class ToolEngine {
     const infoPageFields = inputs.__infoPageFields;
     if (infoPageFields) {
       console.log('📋 Preserving multi-field definitions for prompt:', infoPageFields.length, 'fields');
-      delete inputs.__infoPageFields; // Remove from inputs after preserving
+      // DO NOT DELETE __infoPageFields - we need it later to detect multi-field extraction
     }
     
     // Extract value configuration - this tells us what field is being extracted
