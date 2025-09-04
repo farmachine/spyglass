@@ -3746,27 +3746,19 @@ Thank you for your assistance.`;
       // Get the documents with content
       const documentsWithContent = [];
       
-      // Get document IDs from field inputs  
+      // Get document IDs from field inputs - EXACTLY as selected by user in modal
       const documentIds = new Set<string>();
-      console.log('🔍 Field inputs:', fieldInputs);
+      console.log('🔍 Field inputs from modal:', fieldInputs);
       console.log('🔍 Session documents available:', sessionDocuments?.length || 0);
-      console.log('🔍 Session documents:', sessionDocuments);
       
-      // Check all field inputs for document selections
-      // For multi-field values, the document is selected at the value level
-      Object.entries(fieldInputs).forEach(([fieldId, input]) => {
-        console.log(`🔍 Checking field/value ${fieldId}:`, input);
-        if (input?.document) {
-          console.log(`📌 Found document ID in field inputs for ${fieldId}: ${input.document}`);
-          documentIds.add(input.document);
-        }
-      });
-      
-      // Also check the fieldsToExtract to see if any have parent value IDs with document selection
+      // For multi-field values like "Report Info", the document is selected at the VALUE level
+      // The value ID is the key in fieldInputs where the document selection is stored
       fieldsToExtract.forEach(field => {
-        const valueId = field.id; // The value ID
+        const valueId = field.id; // This is the value ID (e.g., for "Report Info")
+        console.log(`🔍 Checking value ${valueId} for document selection...`);
+        
         if (fieldInputs[valueId]?.document) {
-          console.log(`📌 Found document ID for value ${valueId}: ${fieldInputs[valueId].document}`);
+          console.log(`✅ User selected document ${fieldInputs[valueId].document} for value ${valueId}`);
           documentIds.add(fieldInputs[valueId].document);
         }
       });
@@ -3790,35 +3782,42 @@ Thank you for your assistance.`;
         });
       }
       
-      console.log(`📄 Document IDs to load: ${Array.from(documentIds).join(', ')}`);
+      console.log(`📄 Document IDs selected by user: ${Array.from(documentIds).join(', ')}`);
       
-      // Load document content for selected documents
+      // Look up the selected documents from sessionDocuments and retrieve their content
       for (const docId of documentIds) {
+        console.log(`\n🔍 Looking up document ID: ${docId}`);
         const doc = sessionDocuments?.find(d => d.id === docId);
-        console.log(`🔍 Looking for document ${docId}:`, doc ? 'FOUND' : 'NOT FOUND');
         
         if (doc) {
-          // Log all properties to see what's available
-          console.log(`📋 Document object:`, doc);
-          console.log(`📋 Document properties:`, Object.keys(doc));
-          console.log(`📋 extractedContent:`, doc.extractedContent ? `${doc.extractedContent.length} chars` : 'undefined');
-          
-          // The session document should have extractedContent from the backend
-          const content = doc.extractedContent || '';
-          console.log(`📄 Loading document ${doc.fileName || doc.documentName}: ${content.length} chars`);
-          
-          if (content.length > 0) {
-            console.log(`📄 First 200 chars of content:`, content.substring(0, 200));
-          } else {
-            console.log('⚠️ Document has no extracted content!');
-          }
-          
-          documentsWithContent.push({
-            file_name: doc.fileName || doc.documentName || 'document',
-            file_content: content,
-            file_type: doc.fileType || doc.documentType || doc.mimeType || 'text/plain',
-            original_name: doc.fileName || doc.documentName || 'document'
+          console.log(`✅ Found document:`, {
+            id: doc.id,
+            fileName: doc.fileName || doc.documentName,
+            hasExtractedContent: !!doc.extractedContent,
+            contentLength: doc.extractedContent?.length || 0
           });
+          
+          // Get the extracted content from the session document
+          const content = doc.extractedContent || '';
+          
+          if (content && content.length > 0) {
+            console.log(`📄 Successfully loaded ${content.length} chars of content`);
+            console.log(`📄 Preview:`, content.substring(0, 200));
+            
+            // Add document with content to the array
+            documentsWithContent.push({
+              file_name: doc.fileName || doc.documentName || 'document',
+              file_content: content,  // THIS is the extracted content that will be sent to AI
+              file_type: doc.fileType || doc.documentType || doc.mimeType || 'text/plain',
+              original_name: doc.fileName || doc.documentName || 'document'
+            });
+          } else {
+            console.log('❌ ERROR: Document has no extracted content!');
+            console.log('Document details:', doc);
+          }
+        } else {
+          console.log(`❌ ERROR: Could not find document with ID ${docId} in session documents!`);
+          console.log('Available document IDs:', sessionDocuments?.map(d => d.id));
         }
       }
       
