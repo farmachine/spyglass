@@ -108,7 +108,7 @@ export default function OrganizationConfig() {
   });
 
   const toggleUserActiveMutation = useMutation({
-    mutationFn: async ({ userId, isActive }: { userId: number; isActive: boolean }) => {
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
       return apiRequest(`/api/users/${userId}`, {
         method: "PUT",
         body: JSON.stringify({ isActive }),
@@ -122,7 +122,7 @@ export default function OrganizationConfig() {
   });
 
   const resetPasswordMutation = useMutation({
-    mutationFn: async ({ userId, tempPassword }: { userId: number; tempPassword: string }) => {
+    mutationFn: async ({ userId, tempPassword }: { userId: string; tempPassword: string }) => {
       return apiRequest("/api/auth/reset-password", {
         method: "POST",
         body: JSON.stringify({ userId, tempPassword }),
@@ -140,7 +140,7 @@ export default function OrganizationConfig() {
   });
 
   const editUserMutation = useMutation({
-    mutationFn: async ({ userId, name, role }: { userId: number; name: string; role: string }) => {
+    mutationFn: async ({ userId, name, role }: { userId: string; name: string; role: string }) => {
       return apiRequest(`/api/users/${userId}`, {
         method: "PUT",
         body: JSON.stringify({ name, role }),
@@ -592,7 +592,7 @@ export default function OrganizationConfig() {
               onSubmit={resetPasswordForm.handleSubmit((data) => {
                 if (selectedUserId) {
                   resetPasswordMutation.mutate({
-                    userId: parseInt(selectedUserId),
+                    userId: selectedUserId,
                     tempPassword: data.tempPassword,
                   });
                 }
