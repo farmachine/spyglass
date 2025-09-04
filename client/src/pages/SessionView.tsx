@@ -3704,17 +3704,17 @@ Thank you for your assistance.`;
       }
       
       // Group fields by value ID for multi-field extraction
-      const fieldsByValue = new Map<string, any[]>();
+      const fieldsByValue = new Map<string, any>();
       fieldsToExtract.forEach(field => {
         const valueId = field.id; // The stepValue's id is the value ID
+        // Only add each value once, not multiple times for multi-field values
         if (!fieldsByValue.has(valueId)) {
-          fieldsByValue.set(valueId, []);
+          fieldsByValue.set(valueId, field);
         }
-        fieldsByValue.get(valueId)!.push(field);
       });
       
-      // Process each value group  
-      for (const [valueId, fields] of fieldsByValue) {
+      // Process each value  
+      for (const [valueId, value] of fieldsByValue) {
         const requestData = {
           files: documentsWithContent,
           project_data: {
@@ -3724,39 +3724,39 @@ Thank you for your assistance.`;
             collections: collections || [],
             workflowSteps: project?.workflowSteps || []
           },
-          target_fields: fields.map(f => {
+          target_fields: (() => {
             // Check if this is a multi-field value
-            if (f.fields && Array.isArray(f.fields)) {
+            if (value.fields && Array.isArray(value.fields)) {
               // Multi-field value - map each field with its own identifierId
-              return f.fields.map((field: any, idx: number) => ({
+              return value.fields.map((field: any, idx: number) => ({
                 fieldName: field.name,
                 valueName: field.name, 
                 dataType: field.dataType || 'TEXT',
                 description: field.description || '',
-                identifierId: field.identifierId || `${valueId}_field_${idx}`, // Generate identifierId if missing
+                identifierId: field.identifierId || `${valueId}_field_${idx}`, // Use stored or generate identifierId
                 fieldId: field.id,
                 valueId: valueId
               }));
-            } else if (f.fieldToExtract) {
+            } else if (value.fieldToExtract) {
               // Single field with explicit extraction config
-              return {
-                ...f.fieldToExtract,
-                identifierId: f.fieldToExtract.identifierId || f.identifierId || `${valueId}_field_0`
-              };
+              return [{
+                ...value.fieldToExtract,
+                identifierId: value.fieldToExtract.identifierId || value.identifierId || `${valueId}_field_0`
+              }];
             } else {
               // Default single-field value
-              return {
-                fieldName: f.valueName,
-                valueName: f.valueName,
-                fieldType: f.dataType,
-                dataType: f.dataType,
-                description: f.description,
-                identifierId: f.identifierId || `${valueId}_field_0`,
-                fieldId: f.id,
+              return [{
+                fieldName: value.valueName,
+                valueName: value.valueName,
+                fieldType: value.dataType,
+                dataType: value.dataType,
+                description: value.description,
+                identifierId: value.identifierId || `${valueId}_field_0`,
+                fieldId: value.id,
                 valueId: valueId
-              };
+              }];
             }
-          }).flat(), // Flatten in case of multi-field arrays
+          })(),
           is_workflow_step: true,
           step_id: stepId, // Use the stepId we got at the beginning
           value_id: valueId

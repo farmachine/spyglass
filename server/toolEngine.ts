@@ -705,9 +705,12 @@ export class ToolEngine {
   private buildAIPrompt(tool: Tool, inputs: Record<string, any>, dataArray: any[] = []): string {
     const basePrompt = tool.aiPrompt || '';
     
-    // Check for multi-field Info Page extraction
+    // Check for multi-field Info Page extraction - preserve them before deleting
     const infoPageFields = inputs.__infoPageFields;
-    delete inputs.__infoPageFields; // Remove from inputs to avoid confusion
+    if (infoPageFields) {
+      console.log('📋 Preserving multi-field definitions for prompt:', infoPageFields.length, 'fields');
+      delete inputs.__infoPageFields; // Remove from inputs after preserving
+    }
     
     // Extract value configuration - this tells us what field is being extracted
     const valueConfig = inputs['valueConfiguration'];

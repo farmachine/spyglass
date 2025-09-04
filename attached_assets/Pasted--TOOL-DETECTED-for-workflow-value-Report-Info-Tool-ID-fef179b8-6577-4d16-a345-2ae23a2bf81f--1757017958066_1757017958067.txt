@@ -1,0 +1,143 @@
+🎯 TOOL DETECTED for workflow value: Report Info
+   Tool ID: fef179b8-6577-4d16-a345-2ae23a2bf81f
+   Step Type: page
+   Is Info Page: false
+WORKFLOW STEP EXTRACTION: Processing step 4c3c4da8-3151-4e78-bd7e-513cbfb7719f, value 4b04c529-e511-4df9-ad46-bf3d5348e6c0
+WORKFLOW STEP: Target fields: [ 'Country', 'Document Name', 'Country', 'Document Name' ]
+STEP 1: Extracting from 1 documents with 0 extraction rules
+TASK CLASSIFICATION:
+  Target fields: [ 'Country', 'Document Name', 'Country', 'Document Name' ]
+  Excel column tasks: []
+  Complex tasks: [ 'Country', 'Document Name', 'Country', 'Document Name' ]
+  Decision: Use CURRENT AI EXTRACTION
+TASK CLASSIFICATION: Collection record counts: { 'Section 5.1': 1 }
+TASK CLASSIFICATION: Target collections: []
+🚀 USING TOOL ENGINE FOR WORKFLOW VALUE WITH ASSIGNED TOOL
+🚀 Value: Report Info, Tool ID: fef179b8-6577-4d16-a345-2ae23a2bf81f
+🎯 Using tool: AI Extraction (type: AI_ONLY)
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+📋 Adding multi-field definitions for Info Page extraction
+📋 Multi-field definitions: [
+  {
+    name: 'Country',
+    dataType: 'TEXT',
+    description: 'The country for which the interventions apply.'
+  },
+  {
+    name: 'Document Name',
+    dataType: 'TEXT',
+    description: 'The name of the CSP document.'
+  },
+  {
+    name: 'Country',
+    dataType: 'TEXT',
+    description: 'The country for which the interventions apply.'
+  },
+  {
+    name: 'Document Name',
+    dataType: 'TEXT',
+    description: 'The name of the CSP document.'
+  }
+]
+📄 Tool requires document content
+📄 Added document content (0 chars)
+🎯 runToolForExtraction called {
+  toolId: 'fef179b8-6577-4d16-a345-2ae23a2bf81f',
+  sessionId: '8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe',
+  projectId: '255c77da-0117-4ac8-b04d-062a80971473',
+  fieldsCount: 4
+}
+📦 Tool found: AI Extraction
+📋 Multi-field Info Page extraction: Country, Document Name, Country, Document Name
+
+🚀 TOOL ENGINE - testTool() called
+   Tool Name: AI Extraction
+   Tool Type: AI_ONLY
+   Tool ID: fef179b8-6577-4d16-a345-2ae23a2bf81f
+   Input Keys: [ '__infoPageFields', 'document', 'Document', '0.fvjxd78oohl' ]
+   📋 Multi-field extraction detected: [
+  {
+    name: 'Country',
+    dataType: 'TEXT',
+    description: 'The country for which the interventions apply.',
+    identifierId: '4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_0'
+  },
+  {
+    name: 'Document Name',
+    dataType: 'TEXT',
+    description: 'The name of the CSP document.',
+    identifierId: '4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_1'
+  },
+  {
+    name: 'Country',
+    dataType: 'TEXT',
+    description: 'The country for which the interventions apply.',
+    identifierId: '4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_0'
+  },
+  {
+    name: 'Document Name',
+    dataType: 'TEXT',
+    description: 'The name of the CSP document.',
+    identifierId: '4b04c529-e511-4df9-ad46-bf3d5348e6c0_field_1'
+  }
+]
+   For AI: true
+📝 Set AI Instructions = Please extract the following fields: Country and Document Name
+   ✅ Routing to AI tool handler (testAITool)
+
+🤖 AI TOOL HANDLER - testAITool() called
+   Tool: AI Extraction
+   Operation Type: updateMultiple
+   Has __infoPageFields: false
+   Is CREATE operation: false
+⚠️ UPDATE operation without data input - treating as initial extraction
+📝 Found text input for AI Instructions: "Please extract the following fields: Country and Document Name"
+
+📝 FULL AI EXTRACTION PROMPT (for debugging multi-field issue):
+================================================================================
+Tool: AI Extraction
+Type: AI_ONLY
+Has __infoPageFields: false
+================================================================================
+📝 AI EXTRACTION PROMPT:
+================================================================================
+=== TOOL FUNCTION ===
+```text
+{
+  "prompt": "You are an AI assistant tasked with extracting information from documents. You will receive a `Document` and `AI Instructions`. Your task is to process the `Document` according to the `AI Instructions` and return a JSON ARRAY of objects. Each object in the array represents an extracted piece of information and MUST contain the following keys:\n\n*   `extractedValue`: The actual extracted data from the `Document` based on the `AI Instructions`. This should be a string.\n*   `validationStatus`: A string indicating whether the extracted value is considered \"valid\" or \"invalid\" based on your confidence level. If you are highly confident in the extracted value, set this to \"valid\". Otherwise, set it to \"invalid\".\n*   `aiReasoning`: A string explaining the logic and reasoning behind the extraction. Describe how you arrived at the `extractedValue` based on the `Document` and `AI Instructions`.\n*   `confidenceScore`: An integer between 0 and 100 representing your confidence level in the accuracy of the extracted value. A higher score indicates greater confidence.\n*   `documentSource`: A string indicating the source of the extracted information within the `Document`. This could be a page number, section heading, or other relevant identifier.\n\nIt is CRUCIAL that you return a JSON ARRAY of these objects. The order of the objects in the array MUST MATCH the order of the input records implied by the `Document` and `AI Instructions`. This is essential for maintaining proper record linkage, as this tool is configured to UPDATE existing records. Do not add any additional text or explanations outside of the JSON array. Maintain the same order as the input to ensure correct record updates."
+}
+```
+
+=== REQUIRED OUTPUT FORMAT ===
+CRITICAL: You MUST return ONLY a valid JSON array. Do NOT include any text, markdown, or explanations.
+Your entire response must be a properly formatted JSON array that can be parsed by JSON.parse().
+Example format:
+[
+  {
+    "extractedValue": "Example Value",
+    "validationStatus": "valid",
+    "aiReasoning": "Found this value in the document",
+    "confidenceScore": 95,
+    "documentSource": "Section 1, Page 1"
+  }
+]
+
+=== INPUT VALUES ===
+
+**AI Instructions**: Please extract the following fields: Country and Document Name
+
+
+================================================================================
+END OF PROMPT
+📊 Batch size: 1, Token limit: 8192
+📏 AI Response Size: 207 characters
+🔄 UPDATE operation processed 0 records
+✅ AI extraction complete: 0 results
+🎯 Tool execution complete. Results: 0 items
+📝 Saving 0 field results for Info Page
+8:31:42 PM [express] POST /api/sessions/8f1cf550-61af-4a8e-9cbe-b57f7f1e1ffe/extract 200 in 1239ms :: {"success":true,"message":"Extractio…
+8:31:42 PM [express] GET /api/validations/project/255c77da-0117-4ac8-b04d-062a80971473 200 in 6ms
+8:31:43 PM [browser] 📝 Field 1 (Document Name): {"field":{"name":"Document Name","dataType":"TEXT","description":"The name of the CSP document."},"displayValue":null,"tot...
+8:31:43 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+8:31:43 PM [browser] 📝 Field 0 (Country): {"field":{"name":"Country","dataType":"TEXT","description":"The country for which the interventions apply."},"displayValue":null...
+8:31:43 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
