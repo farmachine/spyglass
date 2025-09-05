@@ -629,12 +629,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
+      console.log(`Attempting to delete project ${id} for organization ${req.user!.organizationId}`);
       const deleted = await storage.deleteProject(id, req.user!.organizationId);
       if (!deleted) {
+        console.log(`Project ${id} not found or access denied`);
         return res.status(404).json({ message: "Project not found" });
       }
+      console.log(`Successfully deleted project ${id}`);
       res.status(204).send();
     } catch (error) {
+      console.error("Delete project error:", error);
       res.status(500).json({ message: "Failed to delete project" });
     }
   });
