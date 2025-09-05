@@ -55,7 +55,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface WorkflowStep {
   id: string;
-  type: 'list' | 'page';
+  type: 'dataTable' | 'infoPage';
   name: string;
   description: string;
   values: WorkflowValue[];
@@ -125,7 +125,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           // Convert server data to WorkflowStep format
           const loadedSteps: WorkflowStep[] = data.steps.map((step: any) => ({
             id: step.id,
-            type: step.stepType === 'list' ? 'list' : 'page',
+            type: step.stepType === 'dataTable' ? 'dataTable' : 'infoPage',
             name: step.stepName,
             description: step.description || '',
             values: (step.values || []).map((value: any) => ({
@@ -148,7 +148,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           }));
           
           // Check if we need to add schema fields as an Info Page step
-          const hasInfoPage = loadedSteps.some(step => step.type === 'page');
+          const hasInfoPage = loadedSteps.some(step => step.type === 'infoPage');
           
           if (!hasInfoPage && schemaFields.length > 0) {
             console.log('Adding missing Info Page for schema fields');
@@ -166,7 +166,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
             const infoPageStep: WorkflowStep = {
               id: uuidv4(), // Generate proper UUID
-              type: 'page',
+              type: 'infoPage',
               name: 'Info Page',
               description: 'Main data extraction fields',
               values: values.sort((a, b) => a.orderIndex - b.orderIndex),
@@ -221,7 +221,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
           workflowSteps.push({
             id: collection.id,
-            type: 'list',
+            type: 'dataTable',
             name: collection.collectionName,
             description: collection.description || '',
             values: values.sort((a, b) => a.orderIndex - b.orderIndex),
@@ -249,7 +249,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
           workflowSteps.push({
             id: uuidv4(), // Generate proper UUID
-            type: 'page',
+            type: 'infoPage',
             name: 'Data Fields',
             description: 'Main data extraction fields',
             values: values.sort((a, b) => a.orderIndex - b.orderIndex),
@@ -365,7 +365,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         description: step.description,
         orderIndex: step.orderIndex,
         valueCount: step.values.length, // Number of values in the step
-        identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null, // UUID of first value for list steps
+        identifierId: step.type === 'dataTable' && step.values[0] ? step.values[0].id : null, // UUID of first value for list steps
         values: step.values.map(value => ({
           id: value.id,
           name: value.name,
@@ -462,7 +462,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         description: step.description,
         orderIndex: step.orderIndex,
         valueCount: step.values.length,
-        identifierId: step.type === 'list' && step.values[0] ? step.values[0].id : null,
+        identifierId: step.type === 'dataTable' && step.values[0] ? step.values[0].id : null,
         values: step.values.map(value => ({
           id: value.id,
           name: value.name,
@@ -676,7 +676,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <div className="absolute top-4 right-4 flex items-center gap-2">
                   {/* Step type icon */}
                   <div className="p-1">
-                    {step.type === 'list' ? (
+                    {step.type === 'dataTable' ? (
                       <List className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     ) : (
                       <Layers className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -745,16 +745,16 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       <Label>Type</Label>
                       <Select
                         value={step.type}
-                        onValueChange={(value) => updateStep(step.id, { type: value as 'list' | 'page' })}
+                        onValueChange={(value) => updateStep(step.id, { type: value as 'dataTable' | 'infoPage' })}
                       >
                         <SelectTrigger className="w-[130px] mt-2">
                           <SelectValue>
-                            {step.type === 'list' ? 'Data Table' : 'Info Page'}
+                            {step.type === 'dataTable' ? 'Data Table' : 'Info Page'}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="list">Data Table</SelectItem>
-                          <SelectItem value="page">Info Page</SelectItem>
+                          <SelectItem value="dataTable">Data Table</SelectItem>
+                          <SelectItem value="infoPage">Info Page</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -930,7 +930,7 @@ function ValueEditor({
   
   // Initialize fields for Info Page values
   const [fields, setFields] = useState<Array<{name: string; dataType: string; description: string}>>(
-    value.fields || (step.type === 'page' ? [] : null)
+    value.fields || (step.type === 'infoPage' ? [] : null)
   );
   
   // Get available values for referencing
@@ -1083,7 +1083,7 @@ function ValueEditor({
           </div>
           
           {/* For Data Table values, show single dataType field */}
-          {step.type === 'list' && (
+          {step.type === 'dataTable' && (
             <div>
               <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Data Type</Label>
               <Select
@@ -1130,7 +1130,7 @@ function ValueEditor({
           )}
           
           {/* For Info Page values, show fields editor */}
-          {step.type === 'page' && (
+          {step.type === 'infoPage' && (
             <div>
               <Label className="text-xs text-[#071e54]/70 dark:text-[#5A70B5]/70 mb-1">Fields</Label>
               <div className="space-y-2 mt-2">
@@ -1282,7 +1282,7 @@ function ValueEditor({
                       {(() => {
                         // For Data Table steps, the first value is the identifier
                         let identifierValueId = null;
-                        if (step.type === 'list' && step.values[0]) {
+                        if (step.type === 'dataTable' && step.values[0]) {
                           identifierValueId = step.values[0].id;
                         }
                         
@@ -1361,7 +1361,7 @@ function ValueEditor({
                           {(() => {
                             // Filter out the identifier value if this is a Data Table step
                             let identifierValueId = null;
-                            if (step.type === 'list' && step.values[0]) {
+                            if (step.type === 'dataTable' && step.values[0]) {
                               identifierValueId = step.values[0].id;
                             }
                             

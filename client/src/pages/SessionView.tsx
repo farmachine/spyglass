@@ -1681,10 +1681,10 @@ export default function SessionView() {
         collectionName: s.collectionName 
       })));
       
-      // Find the workflow step for this collection - check both list and data_table types
+      // Find the workflow step for this collection - check dataTable type
       const workflowStep = project?.workflowSteps?.find(step => 
-        ((step.stepType === 'data_table' || step.stepType === 'list') && step.collectionName === collectionName) ||
-        ((step.stepType === 'data_table' || step.stepType === 'list') && step.stepName === collectionName)
+        (step.stepType === 'dataTable' && step.collectionName === collectionName) ||
+        (step.stepType === 'dataTable' && step.stepName === collectionName)
       );
       console.log('Found workflow step:', workflowStep);
       
@@ -4615,7 +4615,7 @@ Thank you for your assistance.`;
                 
                 {/* Workflow Steps - Both Info Pages and Data Tables */}
                 {(() => {
-                  // Get all workflow steps (info_page, data_table, list types)
+                  // Get all workflow steps (infoPage and dataTable types)
                   const allSteps: Array<{ id: string; name: string; stepType: string }> = [];
                   
                   // Add ALL workflow steps - not just list types
@@ -4922,10 +4922,10 @@ Thank you for your assistance.`;
 
             {/* Session Data Content - Now controlled by sidebar navigation */}
             <div className="w-full flex-1 overflow-hidden">
-              {/* Info Page Content - For page type workflow steps */}
+              {/* Info Page Content - For infoPage type workflow steps */}
               {(() => {
                 const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
-                if (currentStep?.stepType !== 'page') return null;
+                if (currentStep?.stepType !== 'infoPage') return null;
                 return (
                   <div className="h-full overflow-auto">
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
@@ -5304,10 +5304,10 @@ Thank you for your assistance.`;
                 </>
               )}
 
-              {/* Data Table Content - For list/data_table type workflow steps */}
+              {/* Data Table Content - For dataTable type workflow steps */}
               {(() => {
                 const dataTableStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
-                if (!dataTableStep || (dataTableStep.stepType !== 'list' && dataTableStep.stepType !== 'data_table')) return null;
+                if (!dataTableStep || dataTableStep.stepType !== 'dataTable') return null;
 
                 // Get validations for this data table
                 const tableValidations = validations.filter(v => v.collectionName === activeTab);
