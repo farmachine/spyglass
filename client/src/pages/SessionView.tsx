@@ -3962,12 +3962,32 @@ Thank you for your assistance.`;
     // Find the step value for this field to get the proper fieldId
     // Look through all workflow steps to find the field
     let stepValue = null;
+    let fieldInfo = null; // For multi-field values
+    
     for (const step of project?.workflowSteps || []) {
+      // Check for exact match first (single-field values)
       const found = step.values?.find(v => v.valueName === fieldName);
       if (found) {
         stepValue = found;
         break;
       }
+      
+      // Check for multi-field values (format: valueName.fieldName)
+      for (const value of step.values || []) {
+        if (value.fields && Array.isArray(value.fields) && fieldName.startsWith(value.valueName + '.')) {
+          const fieldNamePart = fieldName.substring(value.valueName.length + 1);
+          const fieldIndex = value.fields.findIndex((f: any) => f.name === fieldNamePart);
+          if (fieldIndex !== -1) {
+            stepValue = value;
+            fieldInfo = {
+              field: value.fields[fieldIndex],
+              index: fieldIndex
+            };
+            break;
+          }
+        }
+      }
+      if (stepValue) break;
     }
     
     if (!stepValue) {
@@ -3984,7 +4004,16 @@ Thank you for your assistance.`;
       queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
     });
     
-    const validation = freshValidations.find(v => v.fieldId === stepValue.id);
+    // Find the correct validation based on whether it's a multi-field or single-field value
+    let validation;
+    if (fieldInfo) {
+      // Multi-field value - find validation by valueId and field index
+      const fieldValidations = freshValidations.filter(v => v.valueId === stepValue.id);
+      validation = fieldValidations[fieldInfo.index];
+    } else {
+      // Single-field value
+      validation = freshValidations.find(v => v.fieldId === stepValue.id);
+    }
     
     // Use provided value or current edit value
     const valueToUse = newValue !== undefined ? newValue : editValue;
@@ -4183,6 +4212,31 @@ Thank you for your assistance.`;
         const property = collection.properties.find(p => p.propertyName === propertyName);
         if (property) {
           return property.propertyType;
+        }
+      }
+    }
+    
+    // Check InfoPage multi-field values
+    if (project?.workflowSteps) {
+      for (const step of project.workflowSteps) {
+        if (step.stepType === 'page' || step.stepType === 'info') {
+          for (const value of step.values || []) {
+            // Check if this is a multi-field value
+            if (value.fields && Array.isArray(value.fields)) {
+              // Check if fieldName matches pattern: valueName.fieldName
+              if (fieldName.startsWith(value.valueName + '.')) {
+                const fieldNamePart = fieldName.substring(value.valueName.length + 1);
+                const field = value.fields.find((f: any) => f.name === fieldNamePart);
+                if (field) {
+                  return field.dataType || 'TEXT';
+                }
+              }
+            }
+            // Check single-field values
+            else if (value.valueName === fieldName) {
+              return value.dataType || 'TEXT';
+            }
+          }
         }
       }
     }
@@ -5172,7 +5226,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldFullName)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -5199,7 +5253,7 @@ Thank you for your assistance.`;
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(fieldName, displayValue)}
+                                          onClick={() => handleEdit(fieldFullName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
