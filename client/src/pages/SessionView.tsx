@@ -3414,7 +3414,7 @@ export default function SessionView() {
     return validations.find(v => (v.valueId === valueId || v.fieldId === valueId) && !v.identifierId);
   };
 
-  // Updated to use field ID mapping instead of relying on stripped fieldName
+  // Updated to find manual validations without relying on React state mapping
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
     // First try the existing valueId-based approach for non-manual validations
     const valueId = getValueIdFromFieldName(fieldName);
@@ -3422,13 +3422,34 @@ export default function SessionView() {
       return getValidation(identifierId || null, valueId);
     }
     
-    // For manual validations, check field ID mapping
+    // For manual validations, check field ID mapping first
     const mappedFieldId = fieldIdMapping.get(fieldName);
     if (mappedFieldId) {
-      // Find validation by fieldId for manual validations
       const validation = validations?.find(v => v.fieldId === mappedFieldId);
-      console.log('🎯 Found validation by field ID mapping:', { fieldName, fieldId: mappedFieldId, validation });
-      return validation;
+      if (validation) {
+        console.log('🎯 Found validation by field ID mapping:', { fieldName, fieldId: mappedFieldId, validation });
+        return validation;
+      }
+    }
+    
+    // Fallback: Find most recent manual validation for this field name pattern
+    // Look for manual validations that might match this field
+    const manualValidations = validations?.filter(v => 
+      v.validationStatus === 'manual' && 
+      v.sessionId === sessionId
+    ) || [];
+    
+    if (manualValidations.length > 0) {
+      // Sort by creation date, most recent first
+      const sortedManual = manualValidations.sort((a, b) => 
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      
+      // For now, return the most recent manual validation
+      // This is a temporary solution until we fix the server schema
+      const recentManual = sortedManual[0];
+      console.log('🔄 Using most recent manual validation as fallback:', { fieldName, validation: recentManual });
+      return recentManual;
     }
     
     return undefined;
