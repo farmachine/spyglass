@@ -1545,9 +1545,6 @@ export default function SessionView() {
     confidenceScore: number;
   } | null>(null);
   
-  // Field ID mapping for manual validations
-  const [fieldIdMapping, setFieldIdMapping] = useState<Map<string, string>>(new Map());
-  
   // Edit field dialog state - removed in favor of inline editing
 
   // Add documents modal state
@@ -3393,11 +3390,34 @@ export default function SessionView() {
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
       return stepValue?.id;
-    } else {
-      // This is a schema field - find by fieldName
-      const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
-      return schemaField?.id;
     }
+    
+    // Check if this is an info page field (has format "Info Page Name.Field Name")
+    if (fieldName.includes('.')) {
+      const [stepName, fieldName] = fieldName.split('.');
+      
+      // Find the info page step and field
+      const workflowStep = project?.workflowSteps?.find(step => 
+        step.stepName === stepName && step.stepType === 'infoPage'
+      );
+      
+      if (workflowStep && workflowStep.values?.length > 0) {
+        // Info pages have values with fields array
+        for (const value of workflowStep.values) {
+          if (value.fields && Array.isArray(value.fields)) {
+            const field = value.fields.find((f: any) => f.name === fieldName);
+            if (field) {
+              // Return the field's ID
+              return field.id;
+            }
+          }
+        }
+      }
+    }
+    
+    // This is a schema field - find by fieldName
+    const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
+    return schemaField?.id;
   };
 
   // Get validation for a specific field using pure ID-based matching
@@ -3414,45 +3434,11 @@ export default function SessionView() {
     return validations.find(v => (v.valueId === valueId || v.fieldId === valueId) && !v.identifierId);
   };
 
-  // Updated to find manual validations without relying on React state mapping
+  // Simple lookup using proper field IDs
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
-    // First try the existing valueId-based approach for non-manual validations
     const valueId = getValueIdFromFieldName(fieldName);
-    if (valueId) {
-      return getValidation(identifierId || null, valueId);
-    }
-    
-    // For manual validations, check field ID mapping first
-    const mappedFieldId = fieldIdMapping.get(fieldName);
-    if (mappedFieldId) {
-      const validation = validations?.find(v => v.fieldId === mappedFieldId);
-      if (validation) {
-        console.log('🎯 Found validation by field ID mapping:', { fieldName, fieldId: mappedFieldId, validation });
-        return validation;
-      }
-    }
-    
-    // Fallback: Find most recent manual validation for this field name pattern
-    // Look for manual validations that might match this field
-    const manualValidations = validations?.filter(v => 
-      v.validationStatus === 'manual' && 
-      v.sessionId === sessionId
-    ) || [];
-    
-    if (manualValidations.length > 0) {
-      // Sort by creation date, most recent first
-      const sortedManual = manualValidations.sort((a, b) => 
-        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-      
-      // For now, return the most recent manual validation
-      // This is a temporary solution until we fix the server schema
-      const recentManual = sortedManual[0];
-      console.log('🔄 Using most recent manual validation as fallback:', { fieldName, validation: recentManual });
-      return recentManual;
-    }
-    
-    return undefined;
+    if (!valueId) return undefined;
+    return getValidation(identifierId || null, valueId);
   };
 
   // Get session status based on field verification
@@ -3711,7 +3697,6 @@ Thank you for your assistance.`;
   };
 
   const handleEdit = (fieldName: string, currentValue: any) => {
-    console.log('🖊️ EDIT FUNCTION CALLED:', fieldName, 'currentValue:', currentValue);
     setEditingField(fieldName);
     
     // Handle date field formatting
@@ -3992,43 +3977,35 @@ Thank you for your assistance.`;
     }
   };
 
-  const handleSave = async (fieldName: string, newValue?: string) => {
-    console.log('🔄 SAVE FUNCTION CALLED:', fieldName);
-    
+  const handleSave = async (fieldName: string, newValue?: string, providedFieldId?: string) => {
     try {
       if (!sessionId) {
-        console.error('❌ No sessionId available');
+        console.error('No sessionId available');
         return;
       }
       
-      // Simple test - just log what we're trying to save
+      // Use provided field ID directly (this is the proper way - ID mapping)
+      const fieldId = providedFieldId || getValueIdFromFieldName(fieldName);
+      if (!fieldId) {
+        console.error('No field ID available for:', fieldName);
+        return;
+      }
+      
       const valueToStore = newValue !== undefined ? newValue : editValue;
-      console.log('💾 Attempting to save:', { fieldName, valueToStore });
       
-      // Create proper validation record with field ID mapping
-      const fieldId = crypto.randomUUID(); // Generate unique field ID
-      
+      // Create validation record with the proper field ID
       const createData = {
         sessionId: sessionId,
-        validationType: 'workflow_field', // Required field
-        dataType: 'TEXT', // Required field - default to TEXT
-        fieldId: fieldId, // Use unique field ID
-        fieldName: fieldName, // This might get stripped by server validation
+        validationType: 'workflow_field',
+        dataType: getFieldType(fieldName) || 'TEXT',
+        fieldId: fieldId,  // Use the actual field's ID
+        valueId: fieldId,  // Also set valueId for compatibility
         extractedValue: valueToStore,
         validationStatus: 'manual',
         manuallyVerified: true,
         manuallyUpdated: true,
         confidenceScore: 100
       };
-      
-      // Store the field ID mapping for lookup
-      setFieldIdMapping(prev => {
-        const newMapping = new Map(prev);
-        newMapping.set(fieldName, fieldId);
-        return newMapping;
-      });
-      
-      console.log('📤 Sending data to server:', createData);
       
       const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
         method: 'POST',
@@ -4041,12 +4018,8 @@ Thank you for your assistance.`;
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       
-      console.log('✅ Save completed successfully with field ID mapping:', { fieldName, fieldId });
-      
     } catch (error) {
-      console.error('❌ Save error details:', error);
-      console.error('❌ Error message:', error?.message);
-      console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.error('Failed to save field:', error);
     }
     
     setEditingField(null);
@@ -5028,13 +5001,6 @@ Thank you for your assistance.`;
                                                 displayValue = null;
                                               }
                                               
-                                              // Debug log to see what we're working with
-                                              console.log(`Field ${fieldIndex} (${field.name}):`, {
-                                                field,
-                                                fieldValidation,
-                                                displayValue,
-                                                totalValidations: fieldValidations.length
-                                              });
                                               
                                               return (
                                                 <div key={field.name}>
@@ -5090,7 +5056,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(fieldFullName)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldFullName, undefined, field.id)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
