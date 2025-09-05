@@ -674,9 +674,61 @@ export class ToolEngine {
         }));
         console.log(`🆕 CREATE operation generated ${results.length} new records`);
       } else {
-        // UPDATE operations: Map to existing records
-        results = this.mapResultsToInputs(parsedResults, inputArray);
-        console.log(`🔄 UPDATE operation processed ${results.length} records`);
+        // UPDATE operations: Map to existing records OR create new records using reference identifierIds
+        if (inputArray.length === 0) {
+          // Check if we have reference data with identifierIds (e.g., from "Benefit Identifier" column)
+          const dataInput = this.findDataInput(tool, inputs);
+          if (dataInput && Array.isArray(dataInput.value) && dataInput.value.length > 0 && dataInput.value[0].identifierId) {
+            // We have reference data with identifierIds - use these to create new records
+            console.log(`🔄 UPDATE operation with reference data: creating ${dataInput.value.length} new records using reference identifierIds`);
+            
+            // If AI returned values, distribute them across the reference identifierIds
+            if (parsedResults.length > 0) {
+              results = dataInput.value.map((refItem: any, index: number) => {
+                // Use extracted values if available, cycling through them if needed
+                const resultIndex = index % parsedResults.length;
+                const aiResult = parsedResults[resultIndex];
+                
+                return {
+                  identifierId: refItem.identifierId,
+                  extractedValue: aiResult?.extractedValue || aiResult?.value || null,
+                  validationStatus: aiResult?.validationStatus || "valid",
+                  aiReasoning: aiResult?.aiReasoning || `Extracted value: ${aiResult?.extractedValue || 'none'}`,
+                  confidenceScore: aiResult?.confidenceScore || 85,
+                  documentSource: aiResult?.documentSource || ""
+                };
+              });
+              console.log(`✅ Created ${results.length} records using reference identifierIds and ${parsedResults.length} extracted values`);
+            } else {
+              // No AI results - create placeholder records
+              results = dataInput.value.map((refItem: any) => ({
+                identifierId: refItem.identifierId,
+                extractedValue: null,
+                validationStatus: "pending",
+                aiReasoning: "No value extracted",
+                confidenceScore: 0,
+                documentSource: ""
+              }));
+              console.log(`⚠️ Created ${results.length} placeholder records (no AI results)`);
+            }
+          } else {
+            // No reference data available - this is truly an initial extraction without any context
+            console.log(`⚠️ UPDATE operation with no existing records and no reference data`);
+            results = parsedResults.map((item: any) => ({
+              identifierId: null, // No identifierIds available
+              extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
+              validationStatus: item.validationStatus || "pending",
+              aiReasoning: item.aiReasoning || "",
+              confidenceScore: item.confidenceScore || 85,
+              documentSource: item.documentSource || ""
+            }));
+            console.log(`🔄 UPDATE operation created ${results.length} records without identifierIds`);
+          }
+        } else {
+          // We have existing records to update - use normal mapping
+          results = this.mapResultsToInputs(parsedResults, inputArray);
+          console.log(`🔄 UPDATE operation processed ${results.length} records`);
+        }
       }
       
       if (progressCallback) {

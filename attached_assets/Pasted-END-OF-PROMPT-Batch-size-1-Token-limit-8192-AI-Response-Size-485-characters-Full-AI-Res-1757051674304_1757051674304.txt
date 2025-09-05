@@ -1,0 +1,52 @@
+END OF PROMPT
+📊 Batch size: 1, Token limit: 8192
+📏 AI Response Size: 485 characters
+📝 Full AI Response:
+[
+  {
+    "extractedValue": "Revaluation",
+    "validationStatus": "valid",
+    "aiReasoning": "Section 2.2 discusses revaluation of GMP and excess over GMP.",
+    "confidenceScore": 100,
+    "documentSource": "Section 2.2"
+  },
+  {
+    "extractedValue": "Escalation",
+    "validationStatus": "valid",
+    "aiReasoning": "Section 2.3 discusses increase rates, which applies once the pension has come into payment.",
+    "confidenceScore": 100,
+    "documentSource": "Section 2.3"
+  }
+]
+📦 Parsed 2 results from AI response
+📋 Parsed results: [
+  {
+    "extractedValue": "Revaluation",
+    "validationStatus": "valid",
+    "aiReasoning": "Section 2.2 discusses revaluation of GMP and excess over GMP.",
+    "confidenceScore": 100,
+    "documentSource": "Section 2.2"
+  },
+  {
+    "extractedValue": "Escalation",
+    "validationStatus": "valid",
+    "aiReasoning": "Section 2.3 discusses increase rates, which applies once the pension has come into payment.",
+    "confidenceScore": 100,
+    "documentSource": "Section 2.3"
+  }
+]
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 0
+   - isCreateOperation: false
+🔄 UPDATE operation processed 0 records
+✅ AI extraction complete: 0 results
+✅ Tool execution completed. Results count: 0
+5:54:03 AM [express] POST /api/sessions/07e15f0b-2567-47e8-9db5-2f8ee8744805/extract-column 200 in 1813ms :: {"success":true,"message":"Ex…
+5:54:03 AM [browser] 📝 🔄 Invalidating validation queries...
+5:54:03 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+5:54:03 AM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 0 values for Revaluation or Escalation","resultsCount":0}
+5:54:03 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+5:54:04 AM [express] GET /api/validations/project/ff368604-296c-4382-a89a-1d5149b802e2 200 in 6ms
+5:54:04 AM [browser] 📝 ✅ Validation queries refreshed
+5:54:04 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
