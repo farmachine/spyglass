@@ -5136,7 +5136,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, false)}
+                                              onClick={() => handleVerificationToggle(fieldFullName, false, fieldValidation?.identifierId || null)}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -5173,7 +5173,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, true)}
+                                              onClick={() => handleVerificationToggle(fieldFullName, true, fieldValidation?.identifierId || null)}
                                               className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                               aria-label="Click to validate"
                                             />
@@ -5332,7 +5332,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleVerificationToggle(fieldName, false)}
+                                                            onClick={() => handleVerificationToggle(fieldName, false, validation?.identifierId || null)}
                                                             className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                                             aria-label="Click to unverify"
                                                           >
@@ -5368,7 +5368,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleVerificationToggle(fieldName, true)}
+                                                            onClick={() => handleVerificationToggle(fieldName, true, validation?.identifierId || null)}
                                                             className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                                             aria-label="Click to validate"
                                                           />
