@@ -5043,81 +5043,6 @@ Thank you for your assistance.`;
                                               return (
                                                 <div key={field.name}>
                               <div className="flex items-center gap-2 mb-2">
-                                {(() => {
-                                  const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
-                                  const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
-                                  const isVerified = fieldValidation?.validationStatus === 'valid' || fieldValidation?.validationStatus === 'manual';
-                                  const score = Math.round(fieldValidation?.confidenceScore || 0);
-
-
-
-                                  // Render confidence indicator/verification status to the left of field name
-                                  if (wasManuallyUpdated) {
-                                    // Show blue user icon for manually updated fields - highest priority
-                                    
-                                    return (
-                                      <div className="w-3 h-3 flex items-center justify-center">
-                                        <User className="h-3 w-3 text-gray-600 dark:text-blue-200" />
-                                      </div>
-                                    );
-                                  } else if (isVerified) {
-                                    // Show green tick when verified - clicking unverifies
-                                    return (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, false)}
-                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
-                                              aria-label="Click to unverify"
-                                            >
-                                              <span className="text-xs font-bold">✓</span>
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    );
-                                  } else if (hasValue && fieldValidation) {
-                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
-                                    const colorClass = score >= 80 ? 'bg-green-500' : 
-                                                     score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                    
-                                    return (
-                                      <button
-                                        onClick={() => {
-                                          if (fieldValidation.aiReasoning) {
-                                            setSelectedReasoning({
-                                              reasoning: fieldValidation.aiReasoning,
-                                              fieldName: getFieldDisplayName(fieldFullName),
-                                              confidenceScore: fieldValidation.confidenceScore || 0,
-                                              getFieldDisplayName,
-                                              validation: fieldValidation,
-                                              onVerificationChange: (isVerified) => handleVerificationToggle(fieldFullName, isVerified),
-                                              isVerified: fieldValidation.validationStatus === 'valid' || fieldValidation.validationStatus === 'manual'
-                                            });
-                                          } else {
-                                            // If no reasoning available, just toggle verification
-                                            handleVerificationToggle(fieldFullName, true);
-                                          }
-                                        }}
-                                        className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                        title={`${score}% confidence - Click for AI analysis`}
-                                      />
-                                    );
-                                  } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields
-                                    return (
-                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
-                                        !
-                                      </div>
-                                    );
-                                  }
-                                  // Return empty div to maintain consistent spacing
-                                  return <div className="w-3 h-3 flex-shrink-0"></div>;
-                                })()}
                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   {field.name}
                                 </Label>
@@ -5143,6 +5068,76 @@ Thank you for your assistance.`;
                                             value={editValue}
                                             onChange={(e) => setEditValue(e.target.value)}
                                             className="flex-1"
+                                          />
+                                        ) : fieldType === 'BOOLEAN' ? (
+                                          <Select value={editValue} onValueChange={setEditValue}>
+                                            <SelectTrigger className="flex-1">
+                                              <SelectValue placeholder="Select value" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="true">True</SelectItem>
+                                              <SelectItem value="false">False</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : fieldType === 'TEXTAREA' ? (
+                                          <textarea
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows={4}
+                                          />
+                                        ) : (
+                                          <Input
+                                            type="text"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="flex-1"
+                                          />
+                                        )}
+                                        <Button size="sm" onClick={() => handleSave(fieldFullName)}>
+                                          Save
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                          {fieldType === 'TEXTAREA' ? (
+                                            <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
+                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
+                                                {formatValueForDisplay(displayValue, fieldType)}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                              {formatValueForDisplay(displayValue, fieldType)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleEdit(fieldFullName, displayValue)}
+                                          className="h-6 px-2"
+                                        >
+                                          <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                        </Button>
+                                      </div>
+                                    );
+                                  }
+                                })()}
+                              </div>
+                                          <TooltipContent>
+                                            Verified with {score}% confidence
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  } else if (hasValue && fieldValidation) {
                                           />
                                         ) : fieldType === 'BOOLEAN' ? (
                                           <Select value={editValue} onValueChange={setEditValue}>
