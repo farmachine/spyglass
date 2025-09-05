@@ -3995,6 +3995,19 @@ Thank you for your assistance.`;
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       
       console.log('✅ Save completed successfully');
+      
+      // Debug: Check if validation is now found
+      setTimeout(async () => {
+        const freshValidations = await queryClient.fetchQuery({
+          queryKey: ['/api/sessions', sessionId, 'validations'],
+          queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
+        });
+        console.log('🔍 All validations after save:', freshValidations);
+        console.log('🔍 Looking for validation with fieldName:', fieldName);
+        const foundValidation = freshValidations.find(v => v.fieldName === fieldName);
+        console.log('🔍 Found validation:', foundValidation);
+      }, 1000);
+      
     } catch (error) {
       console.error('❌ Save error details:', error);
       console.error('❌ Error message:', error?.message);
