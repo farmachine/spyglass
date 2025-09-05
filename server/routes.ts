@@ -7522,22 +7522,8 @@ def extract_function(Column_Name, Excel_File):
               v.valueId === valueId
             );
             
-            // If not found with correct valueId, check if there's one with wrong valueId
-            if (!existingValidation) {
-              const wrongValueIdValidation = existingValidations.find(v => 
-                v.identifierId === identifierId &&
-                v.collectionName === step.stepName  // Same collection/step
-              );
-              
-              if (wrongValueIdValidation) {
-                console.log(`⚠️ Found validation with WRONG valueId for row ${identifierId}:`);
-                console.log(`   Current valueId: ${wrongValueIdValidation.valueId}`);
-                console.log(`   Correct valueId: ${valueId} (${value.valueName})`);
-                console.log(`   Will update to correct valueId`);
-                // Treat it as existing validation that needs updating
-                existingValidation = wrongValueIdValidation;
-              }
-            }
+            // Don't look for wrong valueId validations - they likely belong to other columns
+            // Only create new validations if none exist for this specific row+column combo
           } else {
             // Fallback for first column or when no identifierId
             existingValidation = existingValidations.find(v => 
@@ -7547,22 +7533,10 @@ def extract_function(Column_Name, Excel_File):
           }
           
           if (existingValidation) {
-            // CRITICAL: Check if valueId needs correction
-            if (existingValidation.valueId !== valueId) {
-              // Always update the valueId if it's wrong, even for validated fields
-              console.log(`🔧 Correcting valueId for ${fieldName} from ${existingValidation.valueId} to ${valueId}`);
-              await storage.updateFieldValidation(existingValidation.id, {
-                valueId: valueId,
-                fieldId: valueId, // Also update fieldId to match
-              });
-              console.log(`✅ Updated valueId for ${fieldName}`);
-              continue; // Skip to next result after fixing valueId
-            }
-            
-            // Check if the field is already validated (and has correct valueId)
+            // Check if the field is already validated
             if (existingValidation.validationStatus === 'valid') {
               // DO NOT overwrite validated fields
-              console.log(`✅ Skipping ${fieldName} - already validated with correct valueId`);
+              console.log(`✅ Skipping ${fieldName} - already validated`);
               continue; // Skip to next result
             }
             
