@@ -5120,6 +5120,16 @@ Thank you for your assistance.`;
                                               );
                                               const fieldFullName = `${fieldName}.${field.name}`;
                                               
+                                              // Debug logging for InfoPage field clicks
+                                              if (fieldIndex === 0) {
+                                                console.log('🎯 InfoPage field debug:', {
+                                                  fieldFullName,
+                                                  fieldIdentifierId,
+                                                  fieldValidation,
+                                                  allValidations: fieldValidations.map(v => ({ fieldId: v.fieldId, identifierId: v.identifierId }))
+                                                });
+                                              }
+                                              
                                               let displayValue = fieldValidation?.extractedValue ?? null;
                                               if (displayValue === "null" || displayValue === "undefined") {
                                                 displayValue = null;
@@ -5161,7 +5171,10 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, false, fieldIdentifierId)}
+                                              onClick={() => {
+                                                console.log('🔴 InfoPage green tick clicked:', { fieldFullName, fieldIdentifierId });
+                                                handleVerificationToggle(fieldFullName, false, fieldIdentifierId);
+                                              }}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -5198,7 +5211,10 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, true, fieldIdentifierId)}
+                                              onClick={() => {
+                                                console.log('🟡 InfoPage confidence dot clicked:', { fieldFullName, fieldIdentifierId });
+                                                handleVerificationToggle(fieldFullName, true, fieldIdentifierId);
+                                              }}
                                               className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                               aria-label="Click to validate"
                                             />
