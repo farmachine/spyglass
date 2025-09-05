@@ -5099,19 +5099,19 @@ Thank you for your assistance.`;
                                               
                                               return (
                                                 <div key={field.name}>
-                              <div className="flex items-center gap-2 mb-2">
+                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                                {field.name}
+                              </Label>
+                              <div className="flex items-center gap-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
                                   const isVerified = fieldValidation?.validationStatus === 'valid' || fieldValidation?.validationStatus === 'manual';
                                   const score = Math.round(fieldValidation?.confidenceScore || 0);
 
-
-
-                                  // Render confidence indicator/verification status to the left of field name
+                                  // Render confidence indicator/verification status to the left of field value
                                   if (wasManuallyUpdated) {
                                     // Show blue user icon for manually updated fields - highest priority
-                                    
                                     return (
                                       <div className="w-3 h-3 flex items-center justify-center">
                                         <User className="h-3 w-3 text-gray-600 dark:text-blue-200" />
@@ -5175,18 +5175,13 @@ Thank you for your assistance.`;
                                   // Return empty div to maintain consistent spacing
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
-                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  {field.name}
-                                </Label>
-                              </div>
-                              <div>
                                 {(() => {
                                   const isEditing = editingField === fieldFullName;
                                   const fieldType = field.dataType || stepValue.dataType;
                                   
                                   if (isEditing) {
                                     return (
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-1">
                                         {fieldType === 'DATE' ? (
                                           <Input
                                             type="date"
