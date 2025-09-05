@@ -1545,6 +1545,9 @@ export default function SessionView() {
     confidenceScore: number;
   } | null>(null);
   
+  // Field ID mapping for manual validations
+  const [fieldIdMapping, setFieldIdMapping] = useState<Map<string, string>>(new Map());
+  
   // Edit field dialog state - removed in favor of inline editing
 
   // Add documents modal state
@@ -3411,11 +3414,24 @@ export default function SessionView() {
     return validations.find(v => (v.valueId === valueId || v.fieldId === valueId) && !v.identifierId);
   };
 
-  // Legacy helper for backward compatibility during transition
+  // Updated to use field ID mapping instead of relying on stripped fieldName
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
+    // First try the existing valueId-based approach for non-manual validations
     const valueId = getValueIdFromFieldName(fieldName);
-    if (!valueId) return undefined;
-    return getValidation(identifierId || null, valueId);
+    if (valueId) {
+      return getValidation(identifierId || null, valueId);
+    }
+    
+    // For manual validations, check field ID mapping
+    const mappedFieldId = fieldIdMapping.get(fieldName);
+    if (mappedFieldId) {
+      // Find validation by fieldId for manual validations
+      const validation = validations?.find(v => v.fieldId === mappedFieldId);
+      console.log('🎯 Found validation by field ID mapping:', { fieldName, fieldId: mappedFieldId, validation });
+      return validation;
+    }
+    
+    return undefined;
   };
 
   // Get session status based on field verification
@@ -3967,19 +3983,28 @@ Thank you for your assistance.`;
       const valueToStore = newValue !== undefined ? newValue : editValue;
       console.log('💾 Attempting to save:', { fieldName, valueToStore });
       
-      // Create proper validation record with required fields
+      // Create proper validation record with field ID mapping
+      const fieldId = crypto.randomUUID(); // Generate unique field ID
+      
       const createData = {
         sessionId: sessionId,
         validationType: 'workflow_field', // Required field
         dataType: 'TEXT', // Required field - default to TEXT
-        fieldId: crypto.randomUUID(), // Required field - generate a UUID for now
-        fieldName: fieldName,
+        fieldId: fieldId, // Use unique field ID
+        fieldName: fieldName, // This might get stripped by server validation
         extractedValue: valueToStore,
         validationStatus: 'manual',
         manuallyVerified: true,
         manuallyUpdated: true,
         confidenceScore: 100
       };
+      
+      // Store the field ID mapping for lookup
+      setFieldIdMapping(prev => {
+        const newMapping = new Map(prev);
+        newMapping.set(fieldName, fieldId);
+        return newMapping;
+      });
       
       console.log('📤 Sending data to server:', createData);
       
@@ -3994,29 +4019,7 @@ Thank you for your assistance.`;
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       
-      console.log('✅ Save completed successfully');
-      
-      // Debug: Check if validation is now found
-      setTimeout(async () => {
-        const freshValidations = await queryClient.fetchQuery({
-          queryKey: ['/api/sessions', sessionId, 'validations'],
-          queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
-        });
-        console.log('🔍 All validations after save:', freshValidations);
-        console.log('🔍 Looking for validation with fieldName:', fieldName);
-        
-        // Check what fieldName values exist
-        freshValidations.forEach((v, i) => {
-          console.log(`🔍 Validation ${i}: fieldName="${v.fieldName}", extractedValue="${v.extractedValue}"`);
-        });
-        
-        const foundValidation = freshValidations.find(v => v.fieldName === fieldName);
-        console.log('🔍 Found validation:', foundValidation);
-        
-        // Also try finding by extractedValue to see if the record exists at all
-        const foundByValue = freshValidations.find(v => v.extractedValue === 'test');
-        console.log('🔍 Found by extractedValue "test":', foundByValue);
-      }, 1000);
+      console.log('✅ Save completed successfully with field ID mapping:', { fieldName, fieldId });
       
     } catch (error) {
       console.error('❌ Save error details:', error);
