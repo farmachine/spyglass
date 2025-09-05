@@ -3150,50 +3150,83 @@ export default function SessionView() {
   const handleDeleteCollectionItem = async (collectionName: string, recordIndex: number) => {
     console.log(`Deleting collection item: ${collectionName}[${recordIndex}]`);
     
-    // Find all validations for this collection item using improved filtering
-    const itemValidations = validations.filter(v => {
-      // Primary approach: match by collectionName and recordIndex
+    // First, find the identifier validation for this row to get the identifierId
+    const identifierValidation = validations.find(v => {
+      // Match by collectionName and recordIndex for the identifier column
       if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
-        return true;
+        // Check if this is the identifier column (first column)
+        const collection = collections?.find(c => c.collectionName === collectionName);
+        const identifierProperty = collection?.properties?.find(p => p.isIdentifier);
+        if (identifierProperty && v.fieldId === identifierProperty.id) {
+          return true;
+        }
       }
       
-      // Fallback approach: match by fieldName pattern for records with null collectionName
-      if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
-        // Check if fieldName starts with the collection name
-        return v.fieldName.startsWith(`${collectionName}.`);
+      // Fallback: check if fieldName indicates it's an identifier
+      if (v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
+        const parts = v.fieldName.split('.');
+        if (parts.length >= 2) {
+          const fieldCollectionName = parts[0];
+          const fieldNamePart = parts[1].split('[')[0];
+          if (fieldCollectionName === collectionName) {
+            const collection = collections?.find(c => c.collectionName === collectionName);
+            const identifierProperty = collection?.properties?.find(p => p.isIdentifier);
+            if (identifierProperty && identifierProperty.propertyName === fieldNamePart) {
+              return true;
+            }
+          }
+        }
       }
       
       return false;
     });
 
-    console.log(`Found ${itemValidations.length} validations to delete for ${collectionName}[${recordIndex}]`);
-
-    if (itemValidations.length === 0) {
-      console.warn(`No validations found for ${collectionName}[${recordIndex}] - nothing to delete`);
+    if (!identifierValidation || !identifierValidation.identifierId) {
+      console.warn(`No identifier validation found for ${collectionName}[${recordIndex}] - falling back to old method`);
+      
+      // Fallback to old method if no identifierId found
+      const itemValidations = validations.filter(v => {
+        if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
+          return true;
+        }
+        if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
+          return v.fieldName.startsWith(`${collectionName}.`);
+        }
+        return false;
+      });
+      
+      if (itemValidations.length > 0) {
+        const deletePromises = itemValidations.map(validation => {
+          console.log(`Deleting validation record: ${validation.id} (${validation.fieldName})`);
+          return apiRequest(`/api/validations/${validation.id}`, {
+            method: 'DELETE'
+          });
+        });
+        await Promise.all(deletePromises);
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       return;
     }
 
-    // Optimistic update: Remove items from cache using the same filtering logic
+    // Find ALL validations with the same identifierId (across all columns)
+    const itemValidations = validations.filter(v => v.identifierId === identifierValidation.identifierId);
+
+    console.log(`Found ${itemValidations.length} validations to delete for identifierId: ${identifierValidation.identifierId}`);
+
+    if (itemValidations.length === 0) {
+      console.warn(`No validations found for identifierId ${identifierValidation.identifierId} - nothing to delete`);
+      return;
+    }
+
+    // Optimistic update: Remove items from cache by identifierId
     queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
       if (!old) return old;
-      return old.filter((v: any) => {
-        // Keep items that don't match our delete criteria
-        if (v.collectionName === collectionName && v.recordIndex === recordIndex) {
-          return false; // Remove this item
-        }
-        
-        if (v.collectionName === null && v.fieldName && v.fieldName.includes(`[${recordIndex}]`)) {
-          if (v.fieldName.startsWith(`${collectionName}.`)) {
-            return false; // Remove this item
-          }
-        }
-        
-        return true; // Keep this item
-      });
+      return old.filter((v: any) => v.identifierId !== identifierValidation.identifierId);
     });
     
     try {
-      // Delete all validation records for this item
+      // Delete all validation records for this identifierId
       const deletePromises = itemValidations.map(validation => {
         console.log(`Deleting validation record: ${validation.id} (${validation.fieldName})`);
         return apiRequest(`/api/validations/${validation.id}`, {
@@ -3203,7 +3236,7 @@ export default function SessionView() {
       
       await Promise.all(deletePromises);
       
-      console.log(`Successfully deleted ${itemValidations.length} validation records for ${collectionName}[${recordIndex}]`);
+      console.log(`Successfully deleted ${itemValidations.length} validation records for identifierId: ${identifierValidation.identifierId}`);
       
       // Invalidate queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
