@@ -5341,28 +5341,8 @@ Thank you for your assistance.`;
               )}
             </div>
           </div>
-        );
-      } else {
-        return (
-          <div className="col-span-full text-center text-gray-500 py-8">
-            <p>No session data available.</p>
-          </div>
-        );
-      }
-    } catch (error) {
-      console.error('Error in SessionView:', error);
-      return (
-        <div className="col-span-full text-center text-red-500 py-8">
-          <p>Error loading session data. Please try refreshing the page.</p>
         </div>
-      );
-    }
-  };
-
-  return (
-    <div className="max-w-7xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Session View</h1>
-      {renderSessionContent()}
+      </div>
     </div>
   );
 }
