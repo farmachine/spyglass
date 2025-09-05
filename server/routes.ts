@@ -7525,6 +7525,23 @@ def extract_function(Column_Name, Excel_File):
                 v.fieldName === fieldName
               );
           
+          // Debug: Check if there's a validation with wrong valueId
+          if (!existingValidation && identifierId) {
+            const wrongValueIdValidation = existingValidations.find(v => 
+              v.identifierId === identifierId &&
+              v.fieldName === fieldName &&
+              v.valueId !== valueId
+            );
+            if (wrongValueIdValidation) {
+              console.log(`⚠️ Found validation with WRONG valueId for ${fieldName}:`);
+              console.log(`   Current valueId: ${wrongValueIdValidation.valueId}`);
+              console.log(`   Correct valueId: ${valueId}`);
+              console.log(`   Will update to correct valueId`);
+              // Treat it as existing validation that needs updating
+              existingValidation = wrongValueIdValidation;
+            }
+          }
+          
           if (existingValidation) {
             // CRITICAL: Check if the field is already validated
             if (existingValidation.validationStatus === 'valid') {
@@ -7561,6 +7578,8 @@ def extract_function(Column_Name, Excel_File):
                     : result.confidenceScore || 0,
                   documentSource: result.documentSource,
                   identifierId: identifierId,
+                  valueId: valueId, // CRITICAL: Update valueId to ensure it's correct for this column
+                  fieldId: valueId, // Also update fieldId to match
                   extractedAt: new Date()
                 });
                 console.log(`📝 Updated validation for ${fieldName} with value: "${result.extractedValue}" (was ${existingValidation.validationStatus})`);
