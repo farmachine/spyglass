@@ -4991,18 +4991,6 @@ Thank you for your assistance.`;
 
                         return Object.entries(groupedValues).map(([toolId, stepValues]) => (
                           <div key={toolId} className="space-y-6">
-                            {/* Tool Group Header */}
-                            {toolId !== 'manual' && (
-                              <div className="flex justify-end mb-4">
-                                <button 
-                                  className="p-2 text-gray-400 hover:text-[#4F63A4] transition-colors bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-                                  title="Extract fields using AI"
-                                  onClick={() => handleOpenFieldSelection(toolId, stepValues)}
-                                >
-                                  <Wand2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )}
                             
                             {/* Values - Each value gets its own container */}
                             <div className="space-y-6">
@@ -5018,10 +5006,19 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
-                                        <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">
+                                        <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg flex items-center justify-between">
                                           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             {fieldName}
                                           </h3>
+                                          {toolId !== 'manual' && (
+                                            <button 
+                                              className="p-1.5 text-gray-400 hover:text-[#4F63A4] transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                              title="Extract fields using AI"
+                                              onClick={() => handleOpenFieldSelection(toolId, [stepValue])}
+                                            >
+                                              <Wand2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
                                         </div>
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                           {stepValue.fields.map((field: any, fieldIndex: number) => {
@@ -5227,10 +5224,19 @@ Thank you for your assistance.`;
                                         
                                         return (
                                           <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
-                                            <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">
+                                            <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg flex items-center justify-between">
                                               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 {fieldName}
                                               </h3>
+                                              {toolId !== 'manual' && (
+                                                <button 
+                                                  className="p-1.5 text-gray-400 hover:text-[#4F63A4] transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                  title="Extract fields using AI"
+                                                  onClick={() => handleOpenFieldSelection(toolId, [stepValue])}
+                                                >
+                                                  <Wand2 className="w-3.5 h-3.5" />
+                                                </button>
+                                              )}
                                             </div>
                                             <div className="space-y-3">
                                             <div className="flex items-center gap-2">
