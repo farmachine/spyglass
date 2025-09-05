@@ -3955,7 +3955,10 @@ Thank you for your assistance.`;
   };
 
   const handleSave = async (fieldName: string, newValue?: string) => {
+    console.log('🔄 handleSave called with:', { fieldName, newValue, editValue });
+    
     if (!sessionId) {
+      console.error('❌ No sessionId available');
       return;
     }
     
@@ -3963,28 +3966,35 @@ Thank you for your assistance.`;
     let stepValue = null;
     let fieldIndex = null;
     
+    console.log('🔍 Parsing fieldName:', fieldName);
+    
     if (fieldName.includes('.')) {
       // This is an Info Page field with format "ValueName.FieldName"
       const [valueName, individualFieldName] = fieldName.split('.');
+      console.log('🔍 Multi-field detected:', { valueName, individualFieldName });
       
       // Find the step value by the value name
       for (const step of project?.workflowSteps || []) {
         const found = step.values?.find(v => v.valueName === valueName);
         if (found) {
           stepValue = found;
+          console.log('✅ Found step value:', stepValue);
           // Find the field index in the fields array
           if (stepValue.fields && Array.isArray(stepValue.fields)) {
             fieldIndex = stepValue.fields.findIndex(f => f.name === individualFieldName);
+            console.log('🔍 Field index found:', fieldIndex, 'for field:', individualFieldName);
           }
           break;
         }
       }
     } else {
       // This is a single-field value, use existing logic
+      console.log('🔍 Single-field detected');
       for (const step of project?.workflowSteps || []) {
         const found = step.values?.find(v => v.valueName === fieldName);
         if (found) {
           stepValue = found;
+          console.log('✅ Found single step value:', stepValue);
           break;
         }
       }
@@ -3992,6 +4002,10 @@ Thank you for your assistance.`;
     
     if (!stepValue) {
       console.error('❌ No step value found for:', fieldName);
+      console.log('Available steps and values:', project?.workflowSteps?.map(s => ({
+        stepName: s.stepName,
+        values: s.values?.map(v => v.valueName)
+      })));
       return;
     }
     
