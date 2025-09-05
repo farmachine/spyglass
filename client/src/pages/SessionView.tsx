@@ -5131,13 +5131,13 @@ Thank you for your assistance.`;
                                   }
                                 })()}
                               </div>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
+                                                </div>
+                                                  );
+                                                })}
+                                        </div>
+                                      </div>
                                     );
-                                  } else if (hasValue && fieldValidation) {
+                                  } else {
                                           />
                                         ) : fieldType === 'BOOLEAN' ? (
                                           <Select value={editValue} onValueChange={setEditValue}>
