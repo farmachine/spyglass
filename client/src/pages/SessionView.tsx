@@ -5149,6 +5149,9 @@ Thank you for your assistance.`;
                                               <span className="text-sm font-semibold">Analysis</span>
                                             </div>
                                             <div className="whitespace-pre-line leading-relaxed">
+                                              {fieldValidation?.aiReasoning && (
+                                                <div className="mb-2">{fieldValidation.aiReasoning}</div>
+                                              )}
                                               <div className="mb-2">Verified with {score}% confidence</div>
                                               <div className="text-xs text-blue-700">Click to unverify</div>
                                             </div>
@@ -5332,6 +5335,9 @@ Thank you for your assistance.`;
                                                             <span className="text-sm font-semibold">Analysis</span>
                                                           </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
+                                                            {validation?.aiReasoning && (
+                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                            )}
                                                             <div className="mb-2">Verified with {score}% confidence</div>
                                                             <div className="text-xs text-blue-700">Click to unverify</div>
                                                           </div>
