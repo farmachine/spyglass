@@ -3383,6 +3383,8 @@ export default function SessionView() {
 
   // Helper to get valueId from field name
   const getValueIdFromFieldName = (fieldName: string) => {
+    console.log('🔍 getValueIdFromFieldName called for:', fieldName);
+    
     // Check if this is a collection field (has format "Collection.Property[index]")
     const collectionMatch = fieldName.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
     
@@ -3393,12 +3395,32 @@ export default function SessionView() {
       // Find the step value for this field to get the valueId
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
+      console.log('🔍 Collection field found, valueId:', stepValue?.id);
       return stepValue?.id;
-    } else {
-      // This is a schema field - find by fieldName
-      const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
-      return schemaField?.id;
     }
+    
+    // Check if this is an InfoPage multi-field (has format "ValueName.FieldName")
+    const infoPageMatch = fieldName.match(/^([^.]+)\.([^.]+)$/);
+    if (infoPageMatch) {
+      const valueName = infoPageMatch[1];
+      console.log('🔍 InfoPage multi-field detected, valueName:', valueName);
+      
+      // Find the InfoPage step value with this valueName
+      for (const step of project?.workflowSteps || []) {
+        if (step.stepType === 'infoPage') {
+          const stepValue = step.values?.find(v => v.valueName === valueName);
+          if (stepValue) {
+            console.log('🔍 Found InfoPage stepValue:', stepValue.id);
+            return stepValue.id;
+          }
+        }
+      }
+    }
+    
+    // This is a schema field - find by fieldName
+    const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
+    console.log('🔍 Schema field lookup, result:', schemaField?.id);
+    return schemaField?.id;
   };
 
   // Get validation for a specific field using pure ID-based matching
@@ -4149,7 +4171,9 @@ Thank you for your assistance.`;
 
   // Simple toggle handler - toggles between pending and valid
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
+    console.log('🔧 handleVerificationToggle called:', { fieldName, isVerified, identifierId });
     const validation = getValidationByFieldName(fieldName, identifierId);
+    console.log('🔧 Found validation:', validation);
     if (validation) {
       // Simple toggle: if valid -> pending, if pending -> valid
       const newStatus: ValidationStatus = validation.validationStatus === 'valid' ? 'pending' : 'valid';
@@ -5136,7 +5160,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, false, fieldValidation?.identifierId || null)}
+                                              onClick={() => handleVerificationToggle(fieldFullName, false, fieldIdentifierId)}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -5173,7 +5197,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => handleVerificationToggle(fieldFullName, true, fieldValidation?.identifierId || null)}
+                                              onClick={() => handleVerificationToggle(fieldFullName, true, fieldIdentifierId)}
                                               className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                               aria-label="Click to validate"
                                             />
@@ -5332,7 +5356,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleVerificationToggle(fieldName, false, validation?.identifierId || null)}
+                                                            onClick={() => handleVerificationToggle(fieldName, false, null)}
                                                             className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                                             aria-label="Click to unverify"
                                                           >
@@ -5368,7 +5392,7 @@ Thank you for your assistance.`;
                                                       <Tooltip>
                                                         <TooltipTrigger asChild>
                                                           <button
-                                                            onClick={() => handleVerificationToggle(fieldName, true, validation?.identifierId || null)}
+                                                            onClick={() => handleVerificationToggle(fieldName, true, null)}
                                                             className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                                             aria-label="Click to validate"
                                                           />
