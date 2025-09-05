@@ -3959,14 +3959,34 @@ Thank you for your assistance.`;
       return;
     }
     
-    // Find the step value for this field to get the proper fieldId
-    // Look through all workflow steps to find the field
+    // Parse fieldName for Info Page fields (format: "ValueName.FieldName")
     let stepValue = null;
-    for (const step of project?.workflowSteps || []) {
-      const found = step.values?.find(v => v.valueName === fieldName);
-      if (found) {
-        stepValue = found;
-        break;
+    let fieldIndex = null;
+    
+    if (fieldName.includes('.')) {
+      // This is an Info Page field with format "ValueName.FieldName"
+      const [valueName, individualFieldName] = fieldName.split('.');
+      
+      // Find the step value by the value name
+      for (const step of project?.workflowSteps || []) {
+        const found = step.values?.find(v => v.valueName === valueName);
+        if (found) {
+          stepValue = found;
+          // Find the field index in the fields array
+          if (stepValue.fields && Array.isArray(stepValue.fields)) {
+            fieldIndex = stepValue.fields.findIndex(f => f.name === individualFieldName);
+          }
+          break;
+        }
+      }
+    } else {
+      // This is a single-field value, use existing logic
+      for (const step of project?.workflowSteps || []) {
+        const found = step.values?.find(v => v.valueName === fieldName);
+        if (found) {
+          stepValue = found;
+          break;
+        }
       }
     }
     
@@ -3984,7 +4004,19 @@ Thank you for your assistance.`;
       queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
     });
     
-    const validation = freshValidations.find(v => v.fieldId === stepValue.id);
+    // Find validation record based on field type
+    let validation = null;
+    if (fieldIndex !== null) {
+      // This is a multi-field Info Page value - find validation by valueId and field index
+      // For Info Page fields, validations are stored with the field's identifierId
+      const valueValidations = freshValidations.filter(v => v.valueId === stepValue.id);
+      if (valueValidations.length > fieldIndex) {
+        validation = valueValidations[fieldIndex];
+      }
+    } else {
+      // This is a single-field value - use existing logic
+      validation = freshValidations.find(v => v.fieldId === stepValue.id);
+    }
     
     // Use provided value or current edit value
     const valueToUse = newValue !== undefined ? newValue : editValue;
@@ -4020,19 +4052,39 @@ Thank you for your assistance.`;
         });
       } else {
         // Create new validation record
+        let createData;
         
-        const createData = {
-          sessionId: sessionId,
-          validationType: 'schema_field',
-          fieldId: stepValue.id, // Use step value ID directly
-          fieldName: fieldName,
-          extractedValue: valueToStore,
-          validationStatus: 'manual',
-          manuallyVerified: true,
-          manuallyUpdated: true,
-          confidenceScore: 100,
-          dataType: stepValue.dataType || 'text'
-        };
+        if (fieldIndex !== null) {
+          // Multi-field Info Page value - create with valueId and identifierId
+          const field = stepValue.fields[fieldIndex];
+          createData = {
+            sessionId: sessionId,
+            validationType: 'workflow_field',
+            valueId: stepValue.id, // Use step value ID as valueId
+            identifierId: field.identifierId || crypto.randomUUID(),
+            fieldName: fieldName,
+            extractedValue: valueToStore,
+            validationStatus: 'manual',
+            manuallyVerified: true,
+            manuallyUpdated: true,
+            confidenceScore: 100,
+            dataType: field.dataType || 'text'
+          };
+        } else {
+          // Single-field value - use existing logic
+          createData = {
+            sessionId: sessionId,
+            validationType: 'schema_field',
+            fieldId: stepValue.id, // Use step value ID directly
+            fieldName: fieldName,
+            extractedValue: valueToStore,
+            validationStatus: 'manual',
+            manuallyVerified: true,
+            manuallyUpdated: true,
+            confidenceScore: 100,
+            dataType: stepValue.dataType || 'text'
+          };
+        }
         
         console.log('🔍 Creating validation with data:', createData);
         
