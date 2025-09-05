@@ -3435,9 +3435,12 @@ export default function SessionView() {
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
     // Special handling for InfoPage multi-field values
     if (fieldName.includes('.') && identifierId) {
-      // For InfoPage multi-fields, the identifierId IS the fieldId in the validation
-      // We need to find the validation where fieldId matches the identifierId
-      const validation = validations.find(v => v.fieldId === identifierId);
+      // For InfoPage multi-fields, we need to find validation by both fieldId and identifierId
+      // The fieldId is the field's UUID, and identifierId is also the field's UUID for InfoPage fields
+      const validation = validations.find(v => 
+        v.fieldId === identifierId || 
+        v.identifierId === identifierId
+      );
       return validation;
     }
     
@@ -5120,28 +5123,12 @@ Thank you for your assistance.`;
                                               );
                                               const fieldFullName = `${fieldName}.${field.name}`;
                                               
-                                              // Debug logging for InfoPage field clicks
-                                              if (fieldIndex === 0) {
-                                                console.log('🎯 InfoPage field debug:', {
-                                                  fieldFullName,
-                                                  fieldIdentifierId,
-                                                  fieldValidation,
-                                                  allValidations: fieldValidations.map(v => ({ fieldId: v.fieldId, identifierId: v.identifierId }))
-                                                });
-                                              }
                                               
                                               let displayValue = fieldValidation?.extractedValue ?? null;
                                               if (displayValue === "null" || displayValue === "undefined") {
                                                 displayValue = null;
                                               }
                                               
-                                              // Debug log to see what we're working with
-                                              console.log(`Field ${fieldIndex} (${field.name}):`, {
-                                                field,
-                                                fieldValidation,
-                                                displayValue,
-                                                totalValidations: fieldValidations.length
-                                              });
                                               
                                               return (
                                                 <div key={field.name} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
@@ -5171,10 +5158,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => {
-                                                console.log('🔴 InfoPage green tick clicked:', { fieldFullName, fieldIdentifierId });
-                                                handleVerificationToggle(fieldFullName, false, fieldIdentifierId);
-                                              }}
+                                              onClick={() => handleVerificationToggle(fieldFullName, false, fieldIdentifierId)}
                                               className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
@@ -5211,10 +5195,7 @@ Thank you for your assistance.`;
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <button
-                                              onClick={() => {
-                                                console.log('🟡 InfoPage confidence dot clicked:', { fieldFullName, fieldIdentifierId });
-                                                handleVerificationToggle(fieldFullName, true, fieldIdentifierId);
-                                              }}
+                                              onClick={() => handleVerificationToggle(fieldFullName, true, fieldIdentifierId)}
                                               className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
                                               aria-label="Click to validate"
                                             />
