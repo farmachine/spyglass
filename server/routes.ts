@@ -6867,11 +6867,13 @@ def extract_function(Column_Name, Excel_File):
         console.log(`⚠️ No inputValues defined for this value`);
       }
       
-      // Special handling for AI tools that expect List Item but have null input
+      // Special handling for AI tools that expect List Item or Input Data but have null input
       // This is for cases like Standard Equivalent where previousData contains the merged column data
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
-        if (listItemParam && previousData && previousData.length > 0) {
+        const inputDataParam = tool.inputParameters?.find(p => p.name === 'Input Data' && p.type === 'data');
+        console.log(`🤖 AI tool detected. Has List Item param? ${!!listItemParam}, Has Input Data param? ${!!inputDataParam}, previousData records: ${previousData?.length || 0}`);
+        if ((listItemParam || inputDataParam) && previousData && previousData.length > 0) {
           
           // CRITICAL: Ensure all referenced columns are available in previousData
           // Check if the value has array references that should be included
@@ -7103,7 +7105,9 @@ def extract_function(Column_Name, Excel_File):
           }
           
           // Format previousData for the AI tool - it should contain merged column information
-          toolInputs['List Item'] = limitedPreviousData.map(record => {
+          // Use the correct parameter name based on what the tool expects
+          const dataParamName = inputDataParam ? 'Input Data' : 'List Item';
+          toolInputs[dataParamName] = limitedPreviousData.map(record => {
             // Include identifierId and all column values from the record
             const formattedRecord: any = {};
             
@@ -7127,8 +7131,8 @@ def extract_function(Column_Name, Excel_File):
             return formattedRecord;
           });
           
-          console.log(`✅ Populated List Item with ${toolInputs['List Item'].length} records from previousData`);
-          console.log(`  Sample records:`, toolInputs['List Item'].slice(0, 3));
+          console.log(`✅ Populated ${dataParamName} with ${toolInputs[dataParamName].length} records from previousData`);
+          console.log(`  Sample records:`, toolInputs[dataParamName].slice(0, 3));
         }
       }
       

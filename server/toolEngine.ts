@@ -674,27 +674,22 @@ export class ToolEngine {
         }));
         console.log(`🆕 CREATE operation generated ${results.length} new records`);
       } else {
-        // UPDATE operations: Map to existing records OR create new records using reference identifierIds
+        // UPDATE operations: Map to existing records OR handle Input Data
         if (inputArray.length === 0) {
-          // Check if we have reference data with identifierIds (e.g., from "Benefit Identifier" column)
-          // Also check for 'List Item' which is used for AI tools
-          const dataInput = this.findDataInput(tool, inputs) || 
-                          (inputs['List Item'] && Array.isArray(inputs['List Item']) ? { key: 'List Item', value: inputs['List Item'] } : null);
-          
-          if (dataInput && Array.isArray(dataInput.value) && dataInput.value.length > 0 && dataInput.value[0].identifierId) {
-            // We have reference data with identifierIds - use these to create new records
-            console.log(`🔄 UPDATE operation with reference data: creating records using ${dataInput.value.length} reference identifierIds`);
+          // Check if we have Input Data parameter with identifierIds
+          const inputDataParam = inputs['Input Data'];
+          if (inputDataParam && Array.isArray(inputDataParam) && inputDataParam.length > 0 && inputDataParam[0].identifierId) {
+            console.log(`🔄 UPDATE operation with Input Data: ${inputDataParam.length} records with identifierIds`);
             console.log(`🔄 AI returned ${parsedResults.length} values to distribute`);
             
-            // If AI returned values, distribute them across the reference identifierIds
+            // Distribute AI results across the Input Data records
             if (parsedResults.length > 0) {
-              results = dataInput.value.map((refItem: any, index: number) => {
-                // Use extracted values if available, cycling through them if needed
+              results = inputDataParam.map((record: any, index: number) => {
                 const resultIndex = index % parsedResults.length;
                 const aiResult = parsedResults[resultIndex];
                 
                 return {
-                  identifierId: refItem.identifierId,
+                  identifierId: record.identifierId,
                   extractedValue: aiResult?.extractedValue || aiResult?.value || null,
                   validationStatus: aiResult?.validationStatus || "valid",
                   aiReasoning: aiResult?.aiReasoning || `Extracted value: ${aiResult?.extractedValue || 'none'}`,
@@ -702,11 +697,11 @@ export class ToolEngine {
                   documentSource: aiResult?.documentSource || ""
                 };
               });
-              console.log(`✅ Created ${results.length} records using reference identifierIds and ${parsedResults.length} extracted values`);
+              console.log(`✅ Created ${results.length} records using Input Data identifierIds`);
             } else {
               // No AI results - create placeholder records
-              results = dataInput.value.map((refItem: any) => ({
-                identifierId: refItem.identifierId,
+              results = inputDataParam.map((record: any) => ({
+                identifierId: record.identifierId,
                 extractedValue: null,
                 validationStatus: "pending",
                 aiReasoning: "No value extracted",
@@ -716,18 +711,9 @@ export class ToolEngine {
               console.log(`⚠️ Created ${results.length} placeholder records (no AI results)`);
             }
           } else {
-            // No reference data available - this is truly an initial extraction without any context
-            console.log(`⚠️ UPDATE operation with no existing records and no reference data`);
-            console.log(`   Available inputs keys: ${Object.keys(inputs).join(', ')}`);
-            results = parsedResults.map((item: any) => ({
-              identifierId: null, // No identifierIds available
-              extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
-              validationStatus: item.validationStatus || "pending",
-              aiReasoning: item.aiReasoning || "",
-              confidenceScore: item.confidenceScore || 85,
-              documentSource: item.documentSource || ""
-            }));
-            console.log(`🔄 UPDATE operation created ${results.length} records without identifierIds`);
+            // No Input Data with identifierIds - map what we have
+            results = this.mapResultsToInputs(parsedResults, inputArray);
+            console.log(`🔄 UPDATE operation processed ${results.length} records`);
           }
         } else {
           // We have existing records to update - use normal mapping
@@ -778,12 +764,13 @@ export class ToolEngine {
     for (const [key, value] of Object.entries(inputs)) {
       const param = tool.inputParameters.find(p => p.id === key || p.name === key);
       if (param?.type === 'data' && Array.isArray(value)) {
+        console.log(`📊 Found data parameter "${key}" with ${value.length} items`);
         return { key, value };
       }
     }
     
     // Fallback: Look for common data keys used by extraction endpoints
-    const dataKeys = ['List Item', 'data', 'records', 'items', 'rows'];
+    const dataKeys = ['Input Data', 'List Item', 'data', 'records', 'items', 'rows'];
     for (const key of dataKeys) {
       if (inputs[key] && Array.isArray(inputs[key])) {
         console.log(`📊 Found data in fallback key: "${key}" with ${inputs[key].length} items`);
@@ -791,6 +778,7 @@ export class ToolEngine {
       }
     }
     
+    console.log(`⚠️ No data input found. Available keys: ${Object.keys(inputs).join(', ')}`);
     return null;
   }
   
