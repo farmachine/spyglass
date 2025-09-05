@@ -5098,11 +5098,12 @@ Thank you for your assistance.`;
                                               });
                                               
                                               return (
-                                                <div key={field.name}>
-                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                                {field.name}
-                              </Label>
-                              <div className="flex items-center gap-2">
+                                                <div key={field.name} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                              <div className="flex-1">
+                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                  {field.name}
+                                </Label>
+                                <div className="flex items-center gap-2 mt-1">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
@@ -5257,8 +5258,9 @@ Thank you for your assistance.`;
                                     );
                                   }
                                 })()}
+                                </div>
                               </div>
-                                                    </div>
+                            </div>
                                                   );
                                                 })}
                                         </div>
@@ -5275,8 +5277,12 @@ Thank you for your assistance.`;
                                         }
                                         
                                         return (
-                                          <div key={stepValue.id} className="space-y-2">
-                                            <div className="flex items-center gap-2">
+                                          <div key={stepValue.id} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                                            <div className="flex-1">
+                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                                {fieldName}
+                                              </Label>
+                                              <div className="flex items-center gap-2 mt-1">
                                               {(() => {
                                                 const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                                 const wasManuallyUpdated = validation && validation.manuallyUpdated;
@@ -5429,12 +5435,8 @@ Thank you for your assistance.`;
                                                   );
                                                 }
                                               })()}
+                                              </div>
                                             </div>
-                                            {stepValue.description && (
-                                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                {stepValue.description}
-                                              </p>
-                                            )}
                                           </div>
                                         );
                                       }
