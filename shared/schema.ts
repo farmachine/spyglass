@@ -99,7 +99,7 @@ export const stepValues = pgTable("step_values", {
   isIdentifier: boolean("is_identifier").default(false).notNull(), // True for the first value in list steps
   orderIndex: integer("order_index").default(0),
   // Tool/function configuration
-  toolId: uuid("tool_id").references(() => excelWizardryFunctions.id),
+  toolId: uuid("tool_id").references(() => excelWizardryFunctions.id, { onDelete: "cascade" }),
   inputValues: jsonb("input_values"), // Stores the input mappings including @references
   // Multi-field support for Info Page values
   fields: jsonb("fields"), // Array of field definitions for Info Pages: [{name, dataType, description}]
