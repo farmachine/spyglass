@@ -5159,7 +5159,7 @@ Thank you for your assistance.`;
                                           <TooltipTrigger asChild>
                                             <button
                                               onClick={() => handleVerificationToggle(fieldFullName, false, fieldIdentifierId)}
-                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                              className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded transition-colors flex-shrink-0"
                                               aria-label="Click to unverify"
                                             >
                                               <span className="text-xs font-bold">✓</span>
@@ -5187,8 +5187,8 @@ Thank you for your assistance.`;
                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
                                     const borderClass = score >= 80 ? 'border-green-500' : 
                                                       score >= 50 ? 'border-yellow-500' : 'border-red-500';
-                                    const hoverClass = score >= 80 ? 'hover:bg-green-400' : 
-                                                     score >= 50 ? 'hover:bg-yellow-400' : 'hover:bg-red-400';
+                                    const hoverClass = score >= 80 ? 'hover:bg-green-400 dark:hover:bg-green-800/50' : 
+                                                     score >= 50 ? 'hover:bg-yellow-400 dark:hover:bg-yellow-800/50' : 'hover:bg-red-400 dark:hover:bg-red-800/50';
                                     
                                     return (
                                       <TooltipProvider>
@@ -5355,7 +5355,7 @@ Thank you for your assistance.`;
                                                         <TooltipTrigger asChild>
                                                           <button
                                                             onClick={() => handleVerificationToggle(fieldName, false, null)}
-                                                            className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+                                                            className="w-3 h-3 flex items-center justify-center text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded transition-colors flex-shrink-0"
                                                             aria-label="Click to unverify"
                                                           >
                                                             <span className="text-xs font-bold">✓</span>
@@ -5815,7 +5815,7 @@ Thank you for your assistance.`;
                                 <div className="flex items-center justify-center gap-1 px-2">
                                   <button
                                     onClick={() => handleAddCollectionItem(collection.collectionName)}
-                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 rounded flex items-center justify-center transition-colors"
+                                    className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 rounded flex items-center justify-center transition-colors"
                                     title="Add new item"
                                     type="button"
                                   >
