@@ -4004,8 +4004,18 @@ Thank you for your assistance.`;
         });
         console.log('🔍 All validations after save:', freshValidations);
         console.log('🔍 Looking for validation with fieldName:', fieldName);
+        
+        // Check what fieldName values exist
+        freshValidations.forEach((v, i) => {
+          console.log(`🔍 Validation ${i}: fieldName="${v.fieldName}", extractedValue="${v.extractedValue}"`);
+        });
+        
         const foundValidation = freshValidations.find(v => v.fieldName === fieldName);
         console.log('🔍 Found validation:', foundValidation);
+        
+        // Also try finding by extractedValue to see if the record exists at all
+        const foundByValue = freshValidations.find(v => v.extractedValue === 'test');
+        console.log('🔍 Found by extractedValue "test":', foundByValue);
       }, 1000);
       
     } catch (error) {
