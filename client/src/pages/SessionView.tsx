@@ -3977,29 +3977,31 @@ Thank you for your assistance.`;
     }
   };
 
-  const handleSave = async (fieldName: string, newValue?: string, providedFieldId?: string) => {
+  const handleSave = async (fieldName: string, newValue?: string, providedFieldId?: string, providedValueId?: string) => {
     try {
       if (!sessionId) {
         console.error('No sessionId available');
         return;
       }
       
-      // Use provided field ID directly (this is the proper way - ID mapping)
+      // For info page fields, we need both the field ID and parent value ID
       const fieldId = providedFieldId || getValueIdFromFieldName(fieldName);
-      if (!fieldId) {
-        console.error('No field ID available for:', fieldName);
+      const valueId = providedValueId || fieldId; // Use provided value ID or fallback to field ID
+      
+      if (!fieldId || !valueId) {
+        console.error('Missing required IDs:', { fieldId, valueId });
         return;
       }
       
       const valueToStore = newValue !== undefined ? newValue : editValue;
       
-      // Create validation record with the proper field ID
+      // Create validation record with proper IDs
       const createData = {
         sessionId: sessionId,
         validationType: 'workflow_field',
         dataType: getFieldType(fieldName) || 'TEXT',
-        fieldId: fieldId,  // Use the actual field's ID
-        valueId: fieldId,  // Also set valueId for compatibility
+        fieldId: fieldId,     // Individual field's ID
+        valueId: valueId,     // Parent step_value's ID (for foreign key)
         extractedValue: valueToStore,
         validationStatus: 'manual',
         manuallyVerified: true,
@@ -5056,7 +5058,7 @@ Thank you for your assistance.`;
                                             className="flex-1"
                                           />
                                         )}
-                                        <Button size="sm" onClick={() => handleSave(fieldFullName, undefined, field.id)}>
+                                        <Button size="sm" onClick={() => handleSave(fieldFullName, undefined, field.id, stepValue.id)}>
                                           Save
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
