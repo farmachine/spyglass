@@ -3690,6 +3690,7 @@ Thank you for your assistance.`;
   };
 
   const handleEdit = (fieldName: string, currentValue: any) => {
+    console.log('🖊️ EDIT FUNCTION CALLED:', fieldName, 'currentValue:', currentValue);
     setEditingField(fieldName);
     
     // Handle date field formatting
