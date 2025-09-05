@@ -5303,6 +5303,67 @@ Thank you for your assistance.`;
                   </Card>
                 </>
               )}
+
+              {/* Data Table Content - For list/data_table type workflow steps */}
+              {(() => {
+                const dataTableStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
+                if (!dataTableStep || (dataTableStep.stepType !== 'list' && dataTableStep.stepType !== 'data_table')) return null;
+
+                // Get validations for this data table
+                const tableValidations = validations.filter(v => v.collectionName === activeTab);
+                const recordIndices = [...new Set(tableValidations.map(v => v.recordIndex).filter(idx => idx !== null))].sort((a, b) => a - b);
+                
+                return (
+                  <div className="h-full overflow-auto">
+                    <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                      <CardContent className="pt-6">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                {dataTableStep.values?.map((column: any) => (
+                                  <th key={column.id} className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    {column.valueName}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {recordIndices.length > 0 ? (
+                                recordIndices.map((recordIndex) => (
+                                  <tr key={recordIndex} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    {dataTableStep.values?.map((column: any) => {
+                                      const fieldName = `${activeTab}.${column.valueName}[${recordIndex}]`;
+                                      const validation = validations.find(v => 
+                                        v.collectionName === activeTab &&
+                                        v.recordIndex === recordIndex &&
+                                        v.fieldName === `${column.valueName}[${recordIndex}]`
+                                      );
+                                      const value = validation?.extractedValue || '';
+                                      
+                                      return (
+                                        <td key={column.id} className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100">
+                                          {value || <span className="text-gray-400 italic">Empty</span>}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={dataTableStep.values?.length || 1} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                                    No data extracted yet for this table
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
