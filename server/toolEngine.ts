@@ -677,10 +677,14 @@ export class ToolEngine {
         // UPDATE operations: Map to existing records OR create new records using reference identifierIds
         if (inputArray.length === 0) {
           // Check if we have reference data with identifierIds (e.g., from "Benefit Identifier" column)
-          const dataInput = this.findDataInput(tool, inputs);
+          // Also check for 'List Item' which is used for AI tools
+          const dataInput = this.findDataInput(tool, inputs) || 
+                          (inputs['List Item'] && Array.isArray(inputs['List Item']) ? { key: 'List Item', value: inputs['List Item'] } : null);
+          
           if (dataInput && Array.isArray(dataInput.value) && dataInput.value.length > 0 && dataInput.value[0].identifierId) {
             // We have reference data with identifierIds - use these to create new records
-            console.log(`🔄 UPDATE operation with reference data: creating ${dataInput.value.length} new records using reference identifierIds`);
+            console.log(`🔄 UPDATE operation with reference data: creating records using ${dataInput.value.length} reference identifierIds`);
+            console.log(`🔄 AI returned ${parsedResults.length} values to distribute`);
             
             // If AI returned values, distribute them across the reference identifierIds
             if (parsedResults.length > 0) {
@@ -714,6 +718,7 @@ export class ToolEngine {
           } else {
             // No reference data available - this is truly an initial extraction without any context
             console.log(`⚠️ UPDATE operation with no existing records and no reference data`);
+            console.log(`   Available inputs keys: ${Object.keys(inputs).join(', ')}`);
             results = parsedResults.map((item: any) => ({
               identifierId: null, // No identifierIds available
               extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
