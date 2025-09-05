@@ -2709,7 +2709,10 @@ class PostgreSQLStorage implements IStorage {
     // Duplicate Publishing Settings (project_published_orgs)
     const originalPublishingSettings = await this.getProjectPublishedOrganizations(id);
     for (const publishedOrg of originalPublishingSettings) {
-      await this.addProjectPublishedOrganization(newProjectId, publishedOrg.organizationId);
+      await this.publishProjectToOrganization({
+        projectId: newProjectId,
+        organizationId: publishedOrg.id,
+      });
     }
 
     // Note: We don't duplicate sessions or validations as these are instance-specific data
