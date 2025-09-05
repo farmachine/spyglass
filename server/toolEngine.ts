@@ -877,6 +877,20 @@ Example format:
 
 `;
     
+    // CRITICAL: Add which specific column/field is being extracted
+    if (valueName && !infoPageFields) {
+      // This is a single column extraction (not multi-field Info Page)
+      prompt += `**COLUMN TO EXTRACT**: ${valueName}
+${valueDescription ? `**COLUMN DESCRIPTION**: ${valueDescription}` : ''}
+${stepName ? `**FROM STEP**: ${stepName}` : ''}
+
+IMPORTANT: You are extracting ONLY the "${valueName}" column. 
+Each record in your response should contain the value for this specific column only.
+Do not extract other columns or fields.
+
+`;
+    }
+    
     // Add all processed inputs in a consistent order
     // Sort by parameter order for consistency
     const sortedParams = [...(tool.inputParameters || [])].sort((a, b) => {
@@ -934,6 +948,16 @@ Example response format:
     
     // Add List Items (the data to process) - only if data is provided
     if (dataArray && dataArray.length > 0) {
+      // Check if this is a column extraction with existing data
+      const hasMultipleColumns = dataArray.length > 0 && dataArray[0] && Object.keys(dataArray[0]).length > 2; // More than just identifierId
+      
+      if (hasMultipleColumns && valueName && !infoPageFields) {
+        prompt += `**CONTEXT**: The following data shows existing records with other columns already extracted.
+You need to extract the "${valueName}" value for each record based on the document content and any existing column values.
+
+`;
+      }
+      
       prompt += `**List Items** (${dataArray.length} items to process):
 \`\`\`json
 ${JSON.stringify(dataArray, null, 2)}
