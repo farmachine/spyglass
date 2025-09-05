@@ -5132,51 +5132,159 @@ Thank you for your assistance.`;
                                 })()}
                               </div>
                                                 </div>
-                                                  );
-                                                })}
+                                              );
+                                            })}
                                         </div>
                                       </div>
                                     );
                                   } else {
-                                          />
-                                        ) : fieldType === 'BOOLEAN' ? (
-                                          <Select value={editValue} onValueChange={setEditValue}>
-                                            <SelectTrigger className="flex-1">
-                                              <SelectValue placeholder="Select value" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="true">True</SelectItem>
-                                              <SelectItem value="false">False</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        ) : fieldType === 'TEXTAREA' ? (
-                                          <textarea
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            rows={4}
-                                          />
-                                        ) : (
-                                          <Input
-                                            type="text"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        )}
-                                        <Button size="sm" onClick={() => handleSave(fieldName)}>
-                                          Save
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-1">
-                                          {fieldType === 'TEXTAREA' ? (
+                                        // Single-field Info Page value (original logic)
+                                        const validation = validations.find(v => v.fieldId === stepValue.id);
+                                        const originalValue = extractedData[fieldName];
+                                        
+                                        let displayValue = validation?.extractedValue ?? originalValue ?? null;
+                                        if (displayValue === "null" || displayValue === "undefined") {
+                                          displayValue = null;
+                                        }
+                                        
+                                        return (
+                                          <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
+                                            <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg flex items-center justify-between">
+                                              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                {fieldName}
+                                              </h3>
+                                              {toolId !== 'manual' && (
+                                                <button 
+                                                  className="p-1.5 text-gray-400 hover:text-[#4F63A4] transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                  title="Extract fields using AI"
+                                                  onClick={() => handleOpenFieldSelection(toolId, [stepValue])}
+                                                >
+                                                  <Wand2 className="w-3.5 h-3.5" />
+                                                </button>
+                                              )}
+                                            </div>
+                                            <div className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {fieldName}
+                                              </Label>
+                                            </div>
+                                            <div>
+                                              {(() => {
+                                                const isEditing = editingField === fieldName;
+                                                const fieldType = stepValue.dataType;
+                                                
+                                                if (isEditing) {
+                                                  return (
+                                                    <div className="flex items-center gap-2">
+                                                      {fieldType === 'DATE' ? (
+                                                        <Input
+                                                          type="date"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      ) : fieldType === 'NUMBER' ? (
+                                                        <Input
+                                                          type="number"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      ) : fieldType === 'BOOLEAN' ? (
+                                                        <Select value={editValue} onValueChange={setEditValue}>
+                                                          <SelectTrigger className="flex-1">
+                                                            <SelectValue placeholder="Select value" />
+                                                          </SelectTrigger>
+                                                          <SelectContent>
+                                                            <SelectItem value="true">True</SelectItem>
+                                                            <SelectItem value="false">False</SelectItem>
+                                                          </SelectContent>
+                                                        </Select>
+                                                      ) : fieldType === 'TEXTAREA' ? (
+                                                        <textarea
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                          rows={4}
+                                                        />
+                                                      ) : (
+                                                        <Input
+                                                          type="text"
+                                                          value={editValue}
+                                                          onChange={(e) => setEditValue(e.target.value)}
+                                                          className="flex-1"
+                                                        />
+                                                      )}
+                                                      <Button size="sm" onClick={() => handleSave(fieldName)}>
+                                                        Save
+                                                      </Button>
+                                                      <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                                                        Cancel
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                } else {
+                                                  return (
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="flex-1">
+                                                        {fieldType === 'TEXTAREA' ? (
+                                                          <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
+                                                            <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
+                                                              {formatValueForDisplay(displayValue, fieldType)}
+                                                            </span>
+                                                          </div>
+                                                        ) : (
+                                                          <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                                            {formatValueForDisplay(displayValue, fieldType)}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleEdit(fieldName, displayValue)}
+                                                        className="h-6 px-2"
+                                                      >
+                                                        <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                }
+                                              })()}
+                                            </div>
+                                            {stepValue.description && (
+                                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                {stepValue.description}
+                                              </p>
+                                            )}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                })}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+                </div>
+                );
+              })()}
+              
+              {/* Documents Tab Content */}
+              {activeTab === 'documents' && (
+                <>
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Documents uploaded and processed for this session.
+                    </p>
+                  </div>
+                  <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                    <CardContent className="pt-6">
+                      {sessionDocuments && sessionDocuments.length > 0 ? (
                                             <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
                                               <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
                                                 {formatValueForDisplay(displayValue, fieldType)}
