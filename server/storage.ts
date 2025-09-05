@@ -1119,8 +1119,134 @@ export class MemStorage implements IStorage {
       this.extractionRules.set(duplicatedRule.id, duplicatedRule);
     }
     
-    // Note: We don't duplicate sessions, knowledge documents, or validations
-    // as these are typically instance-specific data
+    // Duplicate knowledge documents
+    const originalKnowledgeDocs = Array.from(this.knowledgeDocuments.values())
+      .filter(doc => doc.projectId === originalProject.id.toString());
+    
+    for (const doc of originalKnowledgeDocs) {
+      const duplicatedDoc: KnowledgeDocument = {
+        id: this.generateUUID(),
+        projectId: duplicatedProject.id.toString(),
+        fileName: doc.fileName,
+        displayName: doc.displayName,
+        fileType: doc.fileType,
+        fileSize: doc.fileSize,
+        content: doc.content,
+        description: doc.description,
+        targetField: doc.targetField,
+        uploadedAt: new Date(),
+      };
+      this.knowledgeDocuments.set(duplicatedDoc.id, duplicatedDoc);
+    }
+    
+    // Duplicate Excel Wizardry Functions (AI Tools)
+    const originalTools = Array.from(this.excelWizardryFunctions.values())
+      .filter(tool => tool.projectId === originalProject.id.toString());
+    const toolMapping = new Map<string, string>(); // Map old tool IDs to new tool IDs
+    
+    for (const tool of originalTools) {
+      const newToolId = this.generateUUID();
+      toolMapping.set(tool.id, newToolId);
+      
+      const duplicatedTool: ExcelWizardryFunction = {
+        id: newToolId,
+        projectId: duplicatedProject.id.toString(),
+        name: tool.name,
+        description: tool.description,
+        functionCode: tool.functionCode,
+        aiPrompt: tool.aiPrompt,
+        toolType: tool.toolType,
+        outputType: tool.outputType,
+        operationType: tool.operationType,
+        inputParameters: tool.inputParameters,
+        aiAssistanceRequired: tool.aiAssistanceRequired,
+        aiAssistancePrompt: tool.aiAssistancePrompt,
+        llmModel: tool.llmModel,
+        metadata: tool.metadata,
+        inputSchema: tool.inputSchema,
+        outputSchema: tool.outputSchema,
+        tags: tool.tags,
+        usageCount: 0, // Reset usage count for new project
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.excelWizardryFunctions.set(duplicatedTool.id, duplicatedTool);
+    }
+    
+    // Duplicate Workflow Steps and Values
+    const originalSteps = Array.from(this.workflowSteps.values())
+      .filter(step => step.projectId === originalProject.id.toString());
+    
+    for (const step of originalSteps) {
+      const newStepId = this.generateUUID();
+      
+      // Get original step values for this step
+      const originalValues = Array.from(this.stepValues.values())
+        .filter(value => value.stepId === step.id)
+        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      
+      // For list steps, handle the identifier value
+      let newIdentifierId: string | undefined;
+      if (step.stepType === 'list' && originalValues.length > 0) {
+        const identifierValue = originalValues.find(v => v.isIdentifier);
+        if (identifierValue) {
+          newIdentifierId = this.generateUUID();
+        }
+      }
+      
+      // Create the duplicated step
+      const duplicatedStep: WorkflowStep = {
+        id: newStepId,
+        projectId: duplicatedProject.id.toString(),
+        stepName: step.stepName,
+        stepType: step.stepType,
+        description: step.description,
+        orderIndex: step.orderIndex,
+        valueCount: step.valueCount,
+        identifierId: newIdentifierId,
+        createdAt: new Date(),
+      };
+      this.workflowSteps.set(duplicatedStep.id, duplicatedStep);
+      
+      // Duplicate step values
+      for (const value of originalValues) {
+        const newValueId = value.isIdentifier && newIdentifierId ? newIdentifierId : this.generateUUID();
+        
+        const duplicatedValue: StepValue = {
+          id: newValueId,
+          stepId: newStepId,
+          valueName: value.valueName,
+          dataType: value.dataType,
+          description: value.description,
+          isIdentifier: value.isIdentifier,
+          orderIndex: value.orderIndex,
+          // Map the tool ID to the new tool if it exists
+          toolId: value.toolId && toolMapping.has(value.toolId) ? toolMapping.get(value.toolId) : value.toolId,
+          inputValues: value.inputValues,
+          fields: value.fields,
+          autoVerificationConfidence: value.autoVerificationConfidence,
+          choiceOptions: value.choiceOptions,
+          createdAt: new Date(),
+        };
+        this.stepValues.set(duplicatedValue.id, duplicatedValue);
+      }
+    }
+    
+    // Duplicate Publishing Settings (project_published_orgs)
+    const originalPublishingSettings = Array.from(this.projectPublishedOrgs.values())
+      .filter(pub => pub.projectId === originalProject.id.toString());
+    
+    for (const pub of originalPublishingSettings) {
+      const duplicatedPublishing = {
+        projectId: duplicatedProject.id.toString(),
+        organizationId: pub.organizationId,
+        createdAt: new Date(),
+      };
+      const key = `${duplicatedPublishing.projectId}-${duplicatedPublishing.organizationId}`;
+      this.projectPublishedOrgs.set(key, duplicatedPublishing);
+    }
+    
+    // Note: We don't duplicate sessions or validations as these are instance-specific data
     
     return duplicatedProject;
   }
@@ -2490,9 +2616,100 @@ class PostgreSQLStorage implements IStorage {
         displayName: doc.displayName,
         fileType: doc.fileType,
         fileSize: doc.fileSize,
+        content: doc.content,  // Include content for conflict detection
         description: doc.description,
+        targetField: doc.targetField,  // Include target field
       };
       await this.createKnowledgeDocument(duplicatedDoc);
+    }
+
+    // Duplicate Excel Wizardry Functions (AI Tools)
+    const originalTools = await this.getExcelWizardryFunctions(id);
+    const toolMapping = new Map<string, string>(); // Map old tool IDs to new tool IDs
+    for (const tool of originalTools) {
+      const newToolId = uuidv4();
+      toolMapping.set(tool.id, newToolId); // Store mapping for step values
+      
+      const duplicatedTool: InsertExcelWizardryFunction = {
+        id: newToolId,
+        projectId: newProjectId,
+        name: tool.name,
+        description: tool.description,
+        functionCode: tool.functionCode,
+        aiPrompt: tool.aiPrompt,
+        toolType: tool.toolType,
+        outputType: tool.outputType,
+        operationType: tool.operationType,
+        inputParameters: tool.inputParameters,
+        aiAssistanceRequired: tool.aiAssistanceRequired,
+        aiAssistancePrompt: tool.aiAssistancePrompt,
+        llmModel: tool.llmModel,
+        metadata: tool.metadata,
+        inputSchema: tool.inputSchema,
+        outputSchema: tool.outputSchema,
+        tags: tool.tags,
+      };
+      await this.createExcelWizardryFunction(duplicatedTool);
+    }
+
+    // Duplicate Workflow Steps and Values
+    const originalSteps = await this.getWorkflowSteps(id);
+    for (const step of originalSteps) {
+      const newStepId = uuidv4();
+      
+      // Get original step values for this step
+      const originalValues = await this.getStepValues(step.id);
+      
+      // For list steps, we need to handle the identifier value
+      let newIdentifierId: string | undefined;
+      if (step.stepType === 'list' && originalValues.length > 0) {
+        // Find the identifier value in the original
+        const identifierValue = originalValues.find(v => v.isIdentifier);
+        if (identifierValue) {
+          newIdentifierId = uuidv4(); // We'll assign this when creating the value
+        }
+      }
+      
+      // Create the duplicated step
+      const duplicatedStep: InsertWorkflowStep = {
+        id: newStepId,
+        projectId: newProjectId,
+        stepName: step.stepName,
+        stepType: step.stepType,
+        description: step.description,
+        orderIndex: step.orderIndex,
+        valueCount: step.valueCount,
+        identifierId: newIdentifierId, // Will be set if this is a list step
+      };
+      await this.createWorkflowStep(duplicatedStep);
+      
+      // Duplicate step values
+      for (const value of originalValues) {
+        const newValueId = value.isIdentifier && newIdentifierId ? newIdentifierId : uuidv4();
+        
+        const duplicatedValue: InsertStepValue = {
+          id: newValueId,
+          stepId: newStepId,
+          valueName: value.valueName,
+          dataType: value.dataType,
+          description: value.description,
+          isIdentifier: value.isIdentifier,
+          orderIndex: value.orderIndex,
+          // Map the tool ID to the new tool if it exists
+          toolId: value.toolId && toolMapping.has(value.toolId) ? toolMapping.get(value.toolId) : value.toolId,
+          inputValues: value.inputValues, // Preserve input configurations
+          fields: value.fields, // Preserve multi-field configuration for Info Pages
+          autoVerificationConfidence: value.autoVerificationConfidence,
+          choiceOptions: value.choiceOptions,
+        };
+        await this.createStepValue(duplicatedValue);
+      }
+    }
+
+    // Duplicate Publishing Settings (project_published_orgs)
+    const originalPublishingSettings = await this.getProjectPublishedOrganizations(id);
+    for (const publishedOrg of originalPublishingSettings) {
+      await this.addProjectPublishedOrganization(newProjectId, publishedOrg.organizationId);
     }
 
     // Note: We don't duplicate sessions or validations as these are instance-specific data
