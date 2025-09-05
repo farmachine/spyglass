@@ -548,7 +548,11 @@ const ValidationIndicator = ({
       </button>
       {/* Show reasoning on hover */}
       {(reasoning || validation?.confidenceScore) && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 max-w-[400px] shadow-lg">
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-white border-2 border-[#4F63A4] text-blue-900 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 max-w-[400px] shadow-lg">
+          <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+            <div className={`w-2 h-2 rounded-full ${validation?.confidenceScore >= 80 ? 'bg-green-500' : validation?.confidenceScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+            <span className="text-sm font-semibold">Analysis</span>
+          </div>
           <div className="whitespace-pre-line leading-relaxed">
             {reasoning && (
               <div className="mb-2">{reasoning}</div>
@@ -5098,15 +5102,11 @@ Thank you for your assistance.`;
                                               });
                                               
                                               return (
-                                                <div key={field.name} className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 rounded-lg shadow-lg">
-                                  <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
-                                    <div className={`w-2 h-2 rounded-full ${fieldValidation?.confidenceScore >= 80 ? 'bg-green-500' : fieldValidation?.confidenceScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-                                    <span className="text-sm font-semibold">Analysis</span>
-                                  </div>
-                                  <div>
-                                    <Label className="text-sm font-medium text-blue-900 mb-1 block">
-                                      {field.name}
-                                    </Label>
+                                                <div key={field.name} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                              <div className="flex-1">
+                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                                  {field.name}
+                                </Label>
                                 <div className="flex items-center gap-2 mt-1">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
@@ -5281,13 +5281,9 @@ Thank you for your assistance.`;
                                         }
                                         
                                         return (
-                                          <div key={stepValue.id} className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 rounded-lg shadow-lg">
-                                            <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
-                                              <div className={`w-2 h-2 rounded-full ${validation?.confidenceScore >= 80 ? 'bg-green-500' : validation?.confidenceScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-                                              <span className="text-sm font-semibold">Analysis</span>
-                                            </div>
-                                            <div>
-                                              <Label className="text-sm font-medium text-blue-900 mb-1 block">
+                                          <div key={stepValue.id} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                                            <div className="flex-1">
+                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                                                 {fieldName}
                                               </Label>
                                               <div className="flex items-center gap-2 mt-1">
