@@ -5018,9 +5018,8 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
-                                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
-                                          <div className="w-2 h-6 bg-[#4F63A4] rounded-full"></div>
-                                          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                                        <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">
+                                          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             {fieldName}
                                           </h3>
                                         </div>
@@ -5228,9 +5227,8 @@ Thank you for your assistance.`;
                                         
                                         return (
                                           <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
-                                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
-                                              <div className="w-2 h-6 bg-[#4F63A4] rounded-full"></div>
-                                              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                                            <div className="-m-5 mb-4 px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg">
+                                              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                 {fieldName}
                                               </h3>
                                             </div>
