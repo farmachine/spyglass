@@ -5160,31 +5160,41 @@ Thank you for your assistance.`;
                                       </TooltipProvider>
                                     );
                                   } else if (hasValue && fieldValidation) {
-                                    // Show colored confidence dot when not verified - clicking opens AI analysis modal
+                                    // Show colored confidence dot when not verified - clicking toggles validation status
                                     const colorClass = score >= 80 ? 'bg-green-500' : 
                                                      score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                    const borderClass = score >= 80 ? 'border-green-500' : 
+                                                      score >= 50 ? 'border-yellow-500' : 'border-red-500';
+                                    const hoverClass = score >= 80 ? 'hover:bg-green-400' : 
+                                                     score >= 50 ? 'hover:bg-yellow-400' : 'hover:bg-red-400';
                                     
                                     return (
-                                      <button
-                                        onClick={() => {
-                                          if (fieldValidation.aiReasoning) {
-                                            setSelectedReasoning({
-                                              reasoning: fieldValidation.aiReasoning,
-                                              fieldName: getFieldDisplayName(fieldFullName),
-                                              confidenceScore: fieldValidation.confidenceScore || 0,
-                                              getFieldDisplayName,
-                                              validation: fieldValidation,
-                                              onVerificationChange: (isVerified) => handleVerificationToggle(fieldFullName, isVerified),
-                                              isVerified: fieldValidation.validationStatus === 'valid' || fieldValidation.validationStatus === 'manual'
-                                            });
-                                          } else {
-                                            // If no reasoning available, just toggle verification
-                                            handleVerificationToggle(fieldFullName, true);
-                                          }
-                                        }}
-                                        className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                        title={`${score}% confidence - Click for AI analysis`}
-                                      />
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={() => handleVerificationToggle(fieldFullName, true)}
+                                              className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
+                                              aria-label="Click to validate"
+                                            />
+                                          </TooltipTrigger>
+                                          <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                            <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                              <div className={`w-2 h-2 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                              <span className="text-sm font-semibold">Analysis</span>
+                                            </div>
+                                            <div className="whitespace-pre-line leading-relaxed">
+                                              {fieldValidation.aiReasoning && (
+                                                <div className="mb-2">{fieldValidation.aiReasoning}</div>
+                                              )}
+                                              {fieldValidation.confidenceScore && (
+                                                <div className="mb-2 font-medium">Confidence: {Math.round(fieldValidation.confidenceScore)}%</div>
+                                              )}
+                                              <div className="text-xs text-blue-700">Click to validate</div>
+                                            </div>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     );
                                   } else if (!hasValue) {
                                     // Show red exclamation mark for missing fields
@@ -5348,27 +5358,38 @@ Thank you for your assistance.`;
                                                 } else if (hasValue && validation) {
                                                   const colorClass = score >= 80 ? 'bg-green-500' : 
                                                                    score >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                                  const borderClass = score >= 80 ? 'border-green-500' : 
+                                                                    score >= 50 ? 'border-yellow-500' : 'border-red-500';
+                                                  const hoverClass = score >= 80 ? 'hover:bg-green-400' : 
+                                                                   score >= 50 ? 'hover:bg-yellow-400' : 'hover:bg-red-400';
                                                   
                                                   return (
-                                                    <button
-                                                      onClick={() => {
-                                                        if (validation.aiReasoning) {
-                                                          setSelectedReasoning({
-                                                            reasoning: validation.aiReasoning,
-                                                            fieldName: getFieldDisplayName(fieldName),
-                                                            confidenceScore: validation.confidenceScore || 0,
-                                                            getFieldDisplayName,
-                                                            validation,
-                                                            onVerificationChange: (isVerified) => handleVerificationToggle(fieldName, isVerified),
-                                                            isVerified: validation.validationStatus === 'valid' || validation.validationStatus === 'manual'
-                                                          });
-                                                        } else {
-                                                          handleVerificationToggle(fieldName, true);
-                                                        }
-                                                      }}
-                                                      className={`w-2 h-2 ${colorClass} rounded-full cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0`}
-                                                      title={`${score}% confidence - Click for AI analysis`}
-                                                    />
+                                                    <TooltipProvider>
+                                                      <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                          <button
+                                                            onClick={() => handleVerificationToggle(fieldName, true)}
+                                                            className={`w-2 h-2 ${colorClass} rounded-full border-2 ${borderClass} cursor-pointer ${hoverClass} transition-colors flex-shrink-0`}
+                                                            aria-label="Click to validate"
+                                                          />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                          <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                                            <div className={`w-2 h-2 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                                            <span className="text-sm font-semibold">Analysis</span>
+                                                          </div>
+                                                          <div className="whitespace-pre-line leading-relaxed">
+                                                            {validation.aiReasoning && (
+                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                            )}
+                                                            {validation.confidenceScore && (
+                                                              <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
+                                                            )}
+                                                            <div className="text-xs text-blue-700">Click to validate</div>
+                                                          </div>
+                                                        </TooltipContent>
+                                                      </Tooltip>
+                                                    </TooltipProvider>
                                                   );
                                                 } else if (!hasValue) {
                                                   return (
