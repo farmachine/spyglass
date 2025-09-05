@@ -5090,6 +5090,33 @@ Thank you for your assistance.`;
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                         </Button>
+                                        
+                                        {/* Validation indicators */}
+                                        {fieldValidation && (
+                                          <div className="flex items-center gap-1">
+                                            <ValidationToggle 
+                                              fieldName={fieldFullName}
+                                              validation={fieldValidation}
+                                              onToggle={(isVerified) => handleVerificationToggle(fieldFullName, isVerified)}
+                                            />
+                                            {fieldValidation.manuallyUpdated && (
+                                              <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center" title="Manually updated">
+                                                <Edit3 className="w-2.5 h-2.5 text-white" />
+                                              </div>
+                                            )}
+                                            {fieldValidation.originalExtractedValue !== undefined && 
+                                             fieldValidation.originalExtractedValue !== null && 
+                                             fieldValidation.manuallyUpdated && (
+                                              <button
+                                                onClick={() => handleRevertToAI(fieldFullName)}
+                                                className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                                                title="Revert to original AI extracted value"
+                                              >
+                                                <RotateCcw className="h-3 w-3 text-black dark:text-white" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   }
@@ -5212,6 +5239,33 @@ Thank you for your assistance.`;
                                                       >
                                                         <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                                       </Button>
+                                                      
+                                                      {/* Validation indicators */}
+                                                      {validation && (
+                                                        <div className="flex items-center gap-1">
+                                                          <ValidationToggle 
+                                                            fieldName={fieldName}
+                                                            validation={validation}
+                                                            onToggle={(isVerified) => handleVerificationToggle(fieldName, isVerified)}
+                                                          />
+                                                          {validation.manuallyUpdated && (
+                                                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center" title="Manually updated">
+                                                              <Edit3 className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                          )}
+                                                          {validation.originalExtractedValue !== undefined && 
+                                                           validation.originalExtractedValue !== null && 
+                                                           validation.manuallyUpdated && (
+                                                            <button
+                                                              onClick={() => handleRevertToAI(fieldName)}
+                                                              className="inline-flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                                                              title="Revert to original AI extracted value"
+                                                            >
+                                                              <RotateCcw className="h-3 w-3 text-black dark:text-white" />
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                      )}
                                                     </div>
                                                   );
                                                 }
