@@ -5105,7 +5105,10 @@ Thank you for your assistance.`;
                                   
                                   if (hasMultipleFields) {
                                     // Multi-field Info Page value - get all validations for this value
-                                    const fieldValidations = validations.filter(v => v.valueId === stepValue.id);
+                                    // InfoPage validations may have NULL valueId but have fieldId set
+                                    const fieldValidations = validations.filter(v => 
+                                      v.valueId === stepValue.id || v.fieldId === stepValue.id
+                                    );
                                     
                                     return (
                                       <div key={stepValue.id}>

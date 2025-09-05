@@ -7512,34 +7512,38 @@ def extract_function(Column_Name, Excel_File):
           const fieldName = `${step.stepName}.${value.valueName}[${recordIndex}]`;
           
           // Check if validation already exists for this identifier/record index
-          // If we have an identifierId, use it to find the exact validation
-          const existingValidation = identifierId 
-            ? existingValidations.find(v => 
-                v.valueId === valueId && 
-                v.identifierId === identifierId &&
-                v.fieldName === fieldName
-              )
-            : existingValidations.find(v => 
-                v.valueId === valueId && 
-                v.recordIndex === i &&
-                v.fieldName === fieldName
-              );
+          // CRITICAL: Match by identifierId (row ID), not fieldName
+          let existingValidation = null;
           
-          // Debug: Check if there's a validation with wrong valueId
-          if (!existingValidation && identifierId) {
-            const wrongValueIdValidation = existingValidations.find(v => 
-              v.identifierId === identifierId &&
-              v.fieldName === fieldName &&
-              v.valueId !== valueId
+          if (identifierId) {
+            // For subsequent columns: match by identifierId AND correct valueId
+            existingValidation = existingValidations.find(v => 
+              v.identifierId === identifierId && 
+              v.valueId === valueId
             );
-            if (wrongValueIdValidation) {
-              console.log(`⚠️ Found validation with WRONG valueId for ${fieldName}:`);
-              console.log(`   Current valueId: ${wrongValueIdValidation.valueId}`);
-              console.log(`   Correct valueId: ${valueId}`);
-              console.log(`   Will update to correct valueId`);
-              // Treat it as existing validation that needs updating
-              existingValidation = wrongValueIdValidation;
+            
+            // If not found with correct valueId, check if there's one with wrong valueId
+            if (!existingValidation) {
+              const wrongValueIdValidation = existingValidations.find(v => 
+                v.identifierId === identifierId &&
+                v.collectionName === step.stepName  // Same collection/step
+              );
+              
+              if (wrongValueIdValidation) {
+                console.log(`⚠️ Found validation with WRONG valueId for row ${identifierId}:`);
+                console.log(`   Current valueId: ${wrongValueIdValidation.valueId}`);
+                console.log(`   Correct valueId: ${valueId} (${value.valueName})`);
+                console.log(`   Will update to correct valueId`);
+                // Treat it as existing validation that needs updating
+                existingValidation = wrongValueIdValidation;
+              }
             }
+          } else {
+            // Fallback for first column or when no identifierId
+            existingValidation = existingValidations.find(v => 
+              v.valueId === valueId && 
+              v.recordIndex === i
+            );
           }
           
           if (existingValidation) {
