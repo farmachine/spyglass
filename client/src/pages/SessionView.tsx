@@ -5136,8 +5136,15 @@ Thank you for your assistance.`;
                                               <span className="text-xs font-bold">✓</span>
                                             </button>
                                           </TooltipTrigger>
-                                          <TooltipContent>
-                                            Verified with {score}% confidence
+                                          <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                            <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                              <div className={`w-2 h-2 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                              <span className="text-sm font-semibold">Analysis</span>
+                                            </div>
+                                            <div className="whitespace-pre-line leading-relaxed">
+                                              <div className="mb-2">Verified with {score}% confidence</div>
+                                              <div className="text-xs text-blue-700">Click to unverify</div>
+                                            </div>
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
@@ -5312,8 +5319,15 @@ Thank you for your assistance.`;
                                                             <span className="text-xs font-bold">✓</span>
                                                           </button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent>
-                                                          Verified with {score}% confidence
+                                                        <TooltipContent className="bg-white border-2 border-[#4F63A4] text-blue-900 p-3 max-w-[400px] shadow-lg">
+                                                          <div className="flex items-center gap-1 mb-2 pb-2 border-b border-[#4F63A4]/20">
+                                                            <div className={`w-2 h-2 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                                            <span className="text-sm font-semibold">Analysis</span>
+                                                          </div>
+                                                          <div className="whitespace-pre-line leading-relaxed">
+                                                            <div className="mb-2">Verified with {score}% confidence</div>
+                                                            <div className="text-xs text-blue-700">Click to unverify</div>
+                                                          </div>
                                                         </TooltipContent>
                                                       </Tooltip>
                                                     </TooltipProvider>
