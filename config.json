@@ -1,0 +1,65 @@
+{
+  "ai": {
+    "models": {
+      "default": "gemini-2.5-pro",
+      "extraction": "gemini-2.5-pro",
+      "flash": "gemini-2.5-flash",
+      "imageGeneration": "gemini-2.0-flash-preview-image-generation"
+    },
+    "temperature": 0.7,
+    "maxRetries": 3,
+    "timeout": 30000
+  },
+  "extraction": {
+    "maxContentLength": 2000,
+    "batchSize": 10,
+    "tokenLimit": 8192,
+    "maxBatchSizeForColumnName": 10,
+    "minConfidenceScore": 70
+  },
+  "document": {
+    "maxFileSize": 10485760,
+    "allowedMimeTypes": [
+      "application/pdf",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/csv",
+      "text/plain",
+      "image/png",
+      "image/jpeg"
+    ],
+    "extractionTimeout": 120000
+  },
+  "database": {
+    "connectionTimeout": 5000,
+    "maxConnections": 20,
+    "idleTimeout": 10000
+  },
+  "server": {
+    "port": 5000,
+    "corsOrigins": ["http://localhost:5000", "http://localhost:3000"],
+    "sessionTimeout": 86400000,
+    "requestSizeLimit": "50mb"
+  },
+  "logging": {
+    "level": "info",
+    "enableFileLogging": true,
+    "logFilePath": "logs/app.log",
+    "maxLogSize": "10M",
+    "maxLogFiles": 5
+  },
+  "validation": {
+    "emailRegex": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+    "phoneRegex": "^[+]?[(]?[0-9]{3}[)]?[-\\s.]?[0-9]{3}[-\\s.]?[0-9]{4,6}$",
+    "dateFormats": ["YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"]
+  },
+  "limits": {
+    "maxProjectsPerUser": 100,
+    "maxSessionsPerProject": 500,
+    "maxDocumentsPerSession": 50,
+    "maxCollectionsPerProject": 20,
+    "maxPropertiesPerCollection": 50
+  }
+}

@@ -767,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Generating AI schema for project ${projectId} with query: "${query}"`);
       
       // Call Python AI schema generator
-      const python = spawn('python3', ['ai_schema_generator.py', query, projectId]);
+      const python = spawn('python3', ['services/ai_schema_generator.py', query, projectId]);
       
       let output = '';
       let errorOutput = '';
@@ -3266,7 +3266,7 @@ except Exception as e:
         documents: convertedFiles
       };
       
-      const python = spawn('python3', ['extraction_wizardry.py']);
+      const python = spawn('python3', ['services/extraction_wizardry.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -3545,7 +3545,7 @@ except Exception as e:
       let output = '';
       let error = '';
       
-      const python = spawn('python3', ['extraction_wizardry.py'], {
+      const python = spawn('python3', ['services/extraction_wizardry.py'], {
         cwd: process.cwd()
       });
 
@@ -4147,7 +4147,7 @@ except Exception as e:
       };
       
       // Call Python single-step extraction script
-      const python = spawn('python3', ['ai_extraction_single_step.py']);
+      const python = spawn('python3', ['services/ai_extraction_single_step.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -4699,7 +4699,7 @@ except Exception as e:
         documents: convertedFiles
       };
       
-      const python = spawn('python3', ['document_extractor.py']);
+      const python = spawn('python3', ['services/document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -5396,7 +5396,7 @@ print(json.dumps(results))
             };
             
             const { spawn } = (await import('child_process')).default || await import('child_process');
-            const python = spawn('python3', ['document_extractor.py']);
+            const python = spawn('python3', ['services/document_extractor.py']);
             
             python.stdin.write(JSON.stringify(extractionData));
             python.stdin.end();
@@ -5591,7 +5591,7 @@ print(json.dumps(results))
               };
               
               const { spawn } = require('child_process');
-              const python = spawn('python3', ['document_extractor.py']);
+              const python = spawn('python3', ['services/document_extractor.py']);
               
               python.stdin.write(JSON.stringify(extractionData));
               python.stdin.end();
@@ -7697,7 +7697,7 @@ def extract_function(Column_Name, Excel_File):
       };
 
       const { spawn } = await import('child_process');
-      const python = spawn('python3', ['document_extractor.py']);
+      const python = spawn('python3', ['services/document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
@@ -8759,7 +8759,7 @@ def extract_function(Column_Name, Excel_File):
       };
 
       const { spawn } = await import('child_process');
-      const python = spawn('python3', ['document_extractor.py']);
+      const python = spawn('python3', ['services/document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();

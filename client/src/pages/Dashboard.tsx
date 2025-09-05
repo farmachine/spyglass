@@ -81,14 +81,14 @@ export default function Dashboard() {
 
 
 
-  const isAdmin = user?.role === "admin";
+  // Direct role checks for security - never use local const for admin checks
   const isPrimaryOrgAdmin = user?.role === "admin" && user?.organization?.type === "primary";
 
   // Filter projects based on search query and showDeactivated checkbox
   const baseFilteredProjects = projects?.filter(project => {
     // For non-admin users, always hide deactivated projects
     // For admin users, respect the showDeactivated checkbox
-    const statusFilter = isAdmin 
+    const statusFilter = user?.role === "admin" 
       ? (showDeactivated ? true : project.status !== "inactive")
       : project.status !== "inactive";
     
@@ -241,12 +241,12 @@ export default function Dashboard() {
           No projects yet
         </h3>
         <p className="text-gray-600 mb-6">
-          {isAdmin 
+          {user?.role === "admin" 
             ? "Get started by creating your first data extraction project"
             : "Contact your administrator to create projects"
           }
         </p>
-        {isAdmin && (
+        {user?.role === "admin" && (
           <Button
             onClick={() => setCreateDialogOpen(true)}
           >
@@ -382,7 +382,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               {/* Filter Controls - Only show to admin users */}
-              {isAdmin && (
+              {user?.role === "admin" && (
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="show-deactivated"
@@ -397,7 +397,7 @@ export default function Dashboard() {
                   </Label>
                 </div>
               )}
-              {isAdmin && (
+              {user?.role === "admin" && (
                 <Button
                   onClick={() => setCreateDialogOpen(true)}
                   size="sm"
