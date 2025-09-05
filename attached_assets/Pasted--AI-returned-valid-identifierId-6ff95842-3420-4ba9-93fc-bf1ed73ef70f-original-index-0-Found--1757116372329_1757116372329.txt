@@ -1,0 +1,46 @@
+✅ AI returned valid identifierId: 6ff95842-3420-4ba9-93fc-bf1ed73ef70f (original index: 0)
+⚠️ Found validation with WRONG valueId for row 6ff95842-3420-4ba9-93fc-bf1ed73ef70f:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[0] - already validated
+✅ AI returned valid identifierId: 70f2fe42-ba07-4477-a31f-53c8308ff917 (original index: 1)
+⚠️ Found validation with WRONG valueId for row 70f2fe42-ba07-4477-a31f-53c8308ff917:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[1] - already validated
+✅ AI returned valid identifierId: 738698a4-7a9a-470a-9659-886119175b83 (original index: 2)
+⚠️ Found validation with WRONG valueId for row 738698a4-7a9a-470a-9659-886119175b83:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[2] - already validated
+✅ AI returned valid identifierId: f45d58ff-ade5-436d-8aab-46699895918e (original index: 3)
+⚠️ Found validation with WRONG valueId for row f45d58ff-ade5-436d-8aab-46699895918e:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[3] - already validated
+✅ AI returned valid identifierId: ee74dcd9-9c64-45a1-826d-6b66a1551ab3 (original index: 4)
+⚠️ Found validation with WRONG valueId for row ee74dcd9-9c64-45a1-826d-6b66a1551ab3:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[4] - already validated
+✅ AI returned valid identifierId: b560317c-5362-4477-9cba-a9c388b5157d (original index: 5)
+⚠️ Found validation with WRONG valueId for row b560317c-5362-4477-9cba-a9c388b5157d:
+   Current valueId: b1b7d301-f5ee-4090-81eb-748e4f2fa71d
+   Correct valueId: 1e1e3091-2226-42b4-9c4a-68ec44a98b9c (Finding)
+   Will update to correct valueId
+✅ Skipping Red Flags.Finding[5] - already validated
+💾 Saved 6 validation records
+11:52:30 PM [express] POST /api/sessions/d06b825a-29ed-4453-bb3e-bb096b4832ec/extract-column 200 in 5387ms :: {"success":true,"message":"Ex…
+11:52:31 PM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 6 values for Finding","resultsCount":6}
+11:52:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+11:52:31 PM [browser] 📝 🔄 Invalidating validation queries...
+11:52:31 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+11:52:31 PM [express] GET /api/sessions/d06b825a-29ed-4453-bb3e-bb096b4832ec/validations 200 in 77ms
+11:52:32 PM [express] GET /api/validations/project/da11eeb4-b999-41f1-b45c-fe19344d887d 200 in 15ms
+11:52:32 PM [browser] 📝 ✅ Validation queries refreshed
+11:52:32 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}

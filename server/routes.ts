@@ -7547,10 +7547,22 @@ def extract_function(Column_Name, Excel_File):
           }
           
           if (existingValidation) {
-            // CRITICAL: Check if the field is already validated
+            // CRITICAL: Check if valueId needs correction
+            if (existingValidation.valueId !== valueId) {
+              // Always update the valueId if it's wrong, even for validated fields
+              console.log(`🔧 Correcting valueId for ${fieldName} from ${existingValidation.valueId} to ${valueId}`);
+              await storage.updateFieldValidation(existingValidation.id, {
+                valueId: valueId,
+                fieldId: valueId, // Also update fieldId to match
+              });
+              console.log(`✅ Updated valueId for ${fieldName}`);
+              continue; // Skip to next result after fixing valueId
+            }
+            
+            // Check if the field is already validated (and has correct valueId)
             if (existingValidation.validationStatus === 'valid') {
               // DO NOT overwrite validated fields
-              console.log(`✅ Skipping ${fieldName} - already validated`);
+              console.log(`✅ Skipping ${fieldName} - already validated with correct valueId`);
               continue; // Skip to next result
             }
             
