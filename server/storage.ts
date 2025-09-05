@@ -1017,25 +1017,39 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteProject(id: number, organizationId?: number): Promise<boolean> {
-    const project = this.projects.get(id);
+  async deleteProject(id: string, organizationId?: string): Promise<boolean> {
+    // Convert string ID to number for MemStorage
+    const projectId = parseInt(id, 10);
+    if (isNaN(projectId)) return false;
+    
+    const project = this.projects.get(projectId);
     if (!project) return false;
     
     // Check organization access if organizationId is provided
-    if (organizationId && project.organizationId !== organizationId) {
-      return false;
+    if (organizationId) {
+      const orgId = parseInt(organizationId, 10);
+      if (isNaN(orgId) || project.organizationId !== orgId) {
+        return false;
+      }
     }
     
-    return this.projects.delete(id);
+    return this.projects.delete(projectId);
   }
 
   async duplicateProject(id: string, newName: string, userId: string, organizationId?: string): Promise<Project | undefined> {
-    const originalProject = this.projects.get(id);
+    // Convert string ID to number for MemStorage
+    const projectId = parseInt(id, 10);
+    if (isNaN(projectId)) return undefined;
+    
+    const originalProject = this.projects.get(projectId);
     if (!originalProject) return undefined;
     
     // Check organization access if organizationId is provided
-    if (organizationId && originalProject.organizationId !== organizationId) {
-      return undefined;
+    if (organizationId) {
+      const orgId = parseInt(organizationId, 10);
+      if (isNaN(orgId) || originalProject.organizationId !== orgId) {
+        return undefined;
+      }
     }
     
     // Create new project with the same data but different name and ID
