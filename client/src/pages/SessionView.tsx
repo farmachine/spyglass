@@ -3433,10 +3433,26 @@ export default function SessionView() {
 
   // Legacy helper for backward compatibility during transition
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
-    // Special handling for InfoPage multi-field values
-    if (fieldName.includes('.') && identifierId) {
-      // For InfoPage multi-fields, we need to find validation by both fieldId and identifierId
-      // The fieldId is the field's UUID, and identifierId is also the field's UUID for InfoPage fields
+    // For data table cells: "CollectionName.ColumnName[index]" format with identifierId
+    // We need to match by BOTH identifierId (row) AND valueId (column)
+    if (fieldName.includes('[') && fieldName.includes(']')) {
+      const valueId = getValueIdFromFieldName(fieldName);
+      if (!valueId) return undefined;
+      
+      // For data tables, match by both row ID and column ID
+      if (identifierId) {
+        return validations.find(v => 
+          v.identifierId === identifierId && 
+          (v.valueId === valueId || v.fieldId === valueId)
+        );
+      }
+      // Fallback to valueId only if no identifierId
+      return validations.find(v => (v.valueId === valueId || v.fieldId === valueId));
+    }
+    
+    // Special handling for InfoPage multi-field values (format: "ValueName.FieldName")
+    if (fieldName.includes('.') && identifierId && !fieldName.includes('[')) {
+      // For InfoPage multi-fields, the identifierId is the field's UUID
       const validation = validations.find(v => 
         v.fieldId === identifierId || 
         v.identifierId === identifierId

@@ -7638,6 +7638,7 @@ def extract_function(Column_Name, Excel_File):
               extractedAt: new Date()
             });
             console.log(`✨ Created validation for ${fieldName} with value: "${result.extractedValue}"`);
+            console.log(`   🔑 Using valueId: ${valueId} (${value.valueName})`);
           }
         }
         
