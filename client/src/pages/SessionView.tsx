@@ -3383,8 +3383,6 @@ export default function SessionView() {
 
   // Helper to get valueId from field name
   const getValueIdFromFieldName = (fieldName: string) => {
-    console.log('🔍 getValueIdFromFieldName called for:', fieldName);
-    
     // Check if this is a collection field (has format "Collection.Property[index]")
     const collectionMatch = fieldName.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
     
@@ -3395,7 +3393,6 @@ export default function SessionView() {
       // Find the step value for this field to get the valueId
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
-      console.log('🔍 Collection field found, valueId:', stepValue?.id);
       return stepValue?.id;
     }
     
@@ -3403,14 +3400,12 @@ export default function SessionView() {
     const infoPageMatch = fieldName.match(/^([^.]+)\.([^.]+)$/);
     if (infoPageMatch) {
       const valueName = infoPageMatch[1];
-      console.log('🔍 InfoPage multi-field detected, valueName:', valueName);
       
       // Find the InfoPage step value with this valueName
       for (const step of project?.workflowSteps || []) {
         if (step.stepType === 'infoPage') {
           const stepValue = step.values?.find(v => v.valueName === valueName);
           if (stepValue) {
-            console.log('🔍 Found InfoPage stepValue:', stepValue.id);
             return stepValue.id;
           }
         }
@@ -3419,7 +3414,6 @@ export default function SessionView() {
     
     // This is a schema field - find by fieldName
     const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
-    console.log('🔍 Schema field lookup, result:', schemaField?.id);
     return schemaField?.id;
   };
 
@@ -3439,6 +3433,15 @@ export default function SessionView() {
 
   // Legacy helper for backward compatibility during transition
   const getValidationByFieldName = (fieldName: string, identifierId?: string | null) => {
+    // Special handling for InfoPage multi-field values
+    if (fieldName.includes('.') && identifierId) {
+      // For InfoPage multi-fields, the identifierId IS the fieldId in the validation
+      // We need to find the validation where fieldId matches the identifierId
+      const validation = validations.find(v => v.fieldId === identifierId);
+      return validation;
+    }
+    
+    // Standard handling for other fields
     const valueId = getValueIdFromFieldName(fieldName);
     if (!valueId) return undefined;
     return getValidation(identifierId || null, valueId);
@@ -4171,9 +4174,7 @@ Thank you for your assistance.`;
 
   // Simple toggle handler - toggles between pending and valid
   const handleVerificationToggle = async (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
-    console.log('🔧 handleVerificationToggle called:', { fieldName, isVerified, identifierId });
     const validation = getValidationByFieldName(fieldName, identifierId);
-    console.log('🔧 Found validation:', validation);
     if (validation) {
       // Simple toggle: if valid -> pending, if pending -> valid
       const newStatus: ValidationStatus = validation.validationStatus === 'valid' ? 'pending' : 'valid';
