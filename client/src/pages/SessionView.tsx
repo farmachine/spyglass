@@ -3967,10 +3967,12 @@ Thank you for your assistance.`;
       const valueToStore = newValue !== undefined ? newValue : editValue;
       console.log('💾 Attempting to save:', { fieldName, valueToStore });
       
-      // For now, let's just try to save it as a simple validation record
-      // and see what happens
+      // Create proper validation record with required fields
       const createData = {
         sessionId: sessionId,
+        validationType: 'workflow_field', // Required field
+        dataType: 'TEXT', // Required field - default to TEXT
+        fieldId: crypto.randomUUID(), // Required field - generate a UUID for now
         fieldName: fieldName,
         extractedValue: valueToStore,
         validationStatus: 'manual',
