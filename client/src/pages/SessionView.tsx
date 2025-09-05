@@ -4011,9 +4011,12 @@ Thank you for your assistance.`;
     // Find the correct validation based on whether it's a multi-field or single-field value
     let validation;
     if (fieldInfo) {
-      // Multi-field value - find validation by valueId and field index
-      const fieldValidations = freshValidations.filter(v => v.valueId === stepValue.id);
-      validation = fieldValidations[fieldInfo.index];
+      // Multi-field value - find validation by field identifierId
+      const fieldIdentifierId = fieldInfo.field.identifierId || fieldInfo.field.id || `${stepValue.id}_field_${fieldInfo.index}`;
+      validation = freshValidations.find(v => 
+        v.fieldId === fieldIdentifierId || 
+        v.identifierId === fieldIdentifierId
+      );
     } else {
       // Single-field value
       validation = freshValidations.find(v => v.fieldId === stepValue.id);
@@ -5083,9 +5086,13 @@ Thank you for your assistance.`;
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           {stepValue.fields.map((field: any, fieldIndex: number) => {
-                                              // Validations are saved in the same order as fields
-                                              // So we can match by index
-                                              const fieldValidation = fieldValidations[fieldIndex];
+                                              // Map validations by field identifierId, NOT by index
+                                              // Each field has a unique identifierId that should match the validation's fieldId
+                                              const fieldIdentifierId = field.identifierId || field.id || `${stepValue.id}_field_${fieldIndex}`;
+                                              const fieldValidation = fieldValidations.find(v => 
+                                                v.fieldId === fieldIdentifierId || 
+                                                v.identifierId === fieldIdentifierId
+                                              );
                                               const fieldFullName = `${fieldName}.${field.name}`;
                                               
                                               let displayValue = fieldValidation?.extractedValue ?? null;
