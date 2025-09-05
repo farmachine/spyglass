@@ -636,8 +636,29 @@ export class ToolEngine {
       
       const parsedResults = this.parseAIResponse(rawResponse);
       console.log(`📦 Parsed ${parsedResults.length} results from AI response`);
-      if (parsedResults.length > 0 && parsedResults.length <= 5) {
-        console.log(`📋 Parsed results:`, JSON.stringify(parsedResults, null, 2));
+      
+      // Enhanced logging for column extraction debugging
+      const valueConfig = inputs['valueConfiguration'];
+      const columnName = valueConfig?.valueName || 'Unknown';
+      console.log(`🎯 COLUMN EXTRACTION DEBUG for "${columnName}":`);
+      console.log(`   Step: ${valueConfig?.stepName || 'Unknown'}`);
+      console.log(`   Results count: ${parsedResults.length}`);
+      
+      if (parsedResults.length > 0) {
+        // Log first few results with extracted values
+        console.log(`   First 3 results for column "${columnName}":`);
+        parsedResults.slice(0, 3).forEach((result, idx) => {
+          console.log(`   [${idx}] identifierId: ${result.identifierId || 'none'}, value: "${result.extractedValue}"`);
+        });
+        
+        // Check if all values are the same (potential bug indicator)
+        const uniqueValues = new Set(parsedResults.map(r => r.extractedValue));
+        if (uniqueValues.size === 1 && parsedResults.length > 1) {
+          console.log(`⚠️ WARNING: All ${parsedResults.length} records have the SAME value for column "${columnName}": "${parsedResults[0].extractedValue}"`);
+          console.log(`⚠️ This might indicate the AI is not extracting column-specific data!`);
+        } else {
+          console.log(`✅ Found ${uniqueValues.size} unique values for column "${columnName}"`);
+        }
       }
       
       // 7. Map results based on operation type
@@ -880,13 +901,24 @@ Example format:
     // CRITICAL: Add which specific column/field is being extracted
     if (valueName && !infoPageFields) {
       // This is a single column extraction (not multi-field Info Page)
-      prompt += `**COLUMN TO EXTRACT**: ${valueName}
+      prompt += `**🚨 CRITICAL EXTRACTION INSTRUCTION 🚨**
+================================================================================
+**COLUMN TO EXTRACT**: ${valueName}
 ${valueDescription ? `**COLUMN DESCRIPTION**: ${valueDescription}` : ''}
 ${stepName ? `**FROM STEP**: ${stepName}` : ''}
 
-IMPORTANT: You are extracting ONLY the "${valueName}" column. 
-Each record in your response should contain the value for this specific column only.
-Do not extract other columns or fields.
+⚠️ MANDATORY RULES:
+1. You MUST extract ONLY the "${valueName}" column - nothing else
+2. IGNORE all other columns even if they appear in the context
+3. Each record in your response MUST contain ONLY the value for "${valueName}"
+4. If you see data for other columns, DO NOT EXTRACT THEM
+5. Focus exclusively on finding values for "${valueName}"
+
+❌ WRONG: Extracting values from other columns
+✅ RIGHT: Extracting ONLY values that belong to "${valueName}"
+
+This is a SINGLE COLUMN extraction for: ${valueName}
+================================================================================
 
 `;
     }
@@ -953,7 +985,16 @@ Example response format:
       
       if (hasMultipleColumns && valueName && !infoPageFields) {
         prompt += `**CONTEXT**: The following data shows existing records with other columns already extracted.
-You need to extract the "${valueName}" value for each record based on the document content and any existing column values.
+
+🎯 YOUR SPECIFIC TASK: Extract ONLY the "${valueName}" value for each record.
+
+Example: If the data has columns like "Red Flag Name", "Finding", "Risk Level" and you're extracting "Risk Level":
+- ❌ DO NOT extract "Red Flag Name" values
+- ❌ DO NOT extract "Finding" values  
+- ✅ ONLY extract "Risk Level" values
+
+The "${valueName}" column you're extracting is DIFFERENT from the other columns shown.
+Look for information that specifically relates to "${valueName}" based on the document content.
 
 `;
       }
