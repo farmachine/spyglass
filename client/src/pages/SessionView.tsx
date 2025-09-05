@@ -3955,170 +3955,50 @@ Thank you for your assistance.`;
   };
 
   const handleSave = async (fieldName: string, newValue?: string) => {
-    console.log('🔄 handleSave called with:', { fieldName, newValue, editValue });
-    
-    if (!sessionId) {
-      console.error('❌ No sessionId available');
-      return;
-    }
-    
-    // Parse fieldName for Info Page fields (format: "ValueName.FieldName")
-    let stepValue = null;
-    let fieldIndex = null;
-    
-    console.log('🔍 Parsing fieldName:', fieldName);
-    
-    if (fieldName.includes('.')) {
-      // This is an Info Page field with format "ValueName.FieldName"
-      const [valueName, individualFieldName] = fieldName.split('.');
-      console.log('🔍 Multi-field detected:', { valueName, individualFieldName });
-      
-      // Find the step value by the value name
-      for (const step of project?.workflowSteps || []) {
-        const found = step.values?.find(v => v.valueName === valueName);
-        if (found) {
-          stepValue = found;
-          console.log('✅ Found step value:', stepValue);
-          // Find the field index in the fields array
-          if (stepValue.fields && Array.isArray(stepValue.fields)) {
-            fieldIndex = stepValue.fields.findIndex(f => f.name === individualFieldName);
-            console.log('🔍 Field index found:', fieldIndex, 'for field:', individualFieldName);
-          }
-          break;
-        }
-      }
-    } else {
-      // This is a single-field value, use existing logic
-      console.log('🔍 Single-field detected');
-      for (const step of project?.workflowSteps || []) {
-        const found = step.values?.find(v => v.valueName === fieldName);
-        if (found) {
-          stepValue = found;
-          console.log('✅ Found single step value:', stepValue);
-          break;
-        }
-      }
-    }
-    
-    if (!stepValue) {
-      console.error('❌ No step value found for:', fieldName);
-      console.log('Available steps and values:', project?.workflowSteps?.map(s => ({
-        stepName: s.stepName,
-        values: s.values?.map(v => v.valueName)
-      })));
-      return;
-    }
-    
-    // Refresh validations to get current state and avoid stale data
-    await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-    
-    // Get fresh validation data after cache invalidation
-    const freshValidations = await queryClient.fetchQuery({
-      queryKey: ['/api/sessions', sessionId, 'validations'],
-      queryFn: () => apiRequest(`/api/sessions/${sessionId}/validations`)
-    });
-    
-    // Find validation record based on field type
-    let validation = null;
-    if (fieldIndex !== null) {
-      // This is a multi-field Info Page value - find validation by valueId and field index
-      // For Info Page fields, validations are stored with the field's identifierId
-      const valueValidations = freshValidations.filter(v => v.valueId === stepValue.id);
-      if (valueValidations.length > fieldIndex) {
-        validation = valueValidations[fieldIndex];
-      }
-    } else {
-      // This is a single-field value - use existing logic
-      validation = freshValidations.find(v => v.fieldId === stepValue.id);
-    }
-    
-    // Use provided value or current edit value
-    const valueToUse = newValue !== undefined ? newValue : editValue;
-    let valueToStore = valueToUse;
-    const fieldType = getFieldType(fieldName);
-    
-    if (fieldType === 'DATE') {
-      if (!valueToUse || valueToUse.trim() === '') {
-        valueToStore = null;
-      } else {
-        // Validate the date format
-        const dateObj = new Date(valueToUse);
-        if (!isNaN(dateObj.getTime())) {
-          // Store as ISO date string for consistency
-          valueToStore = dateObj.toISOString().split('T')[0];
-        } else {
-          valueToStore = null;
-        }
-      }
-    }
+    console.log('🔄 SAVE FUNCTION CALLED:', fieldName);
     
     try {
-      if (validation) {
-        // Update existing validation
-        await updateValidationMutation.mutateAsync({
-          id: validation.id,
-          data: {
-            extractedValue: valueToStore,
-            validationStatus: "manual",
-            manuallyVerified: true,
-            manuallyUpdated: true
-          }
-        });
-      } else {
-        // Create new validation record
-        let createData;
-        
-        if (fieldIndex !== null) {
-          // Multi-field Info Page value - create with valueId and identifierId
-          const field = stepValue.fields[fieldIndex];
-          createData = {
-            sessionId: sessionId,
-            validationType: 'workflow_field',
-            valueId: stepValue.id, // Use step value ID as valueId
-            identifierId: field.identifierId || crypto.randomUUID(),
-            fieldName: fieldName,
-            extractedValue: valueToStore,
-            validationStatus: 'manual',
-            manuallyVerified: true,
-            manuallyUpdated: true,
-            confidenceScore: 100,
-            dataType: field.dataType || 'text'
-          };
-        } else {
-          // Single-field value - use existing logic
-          createData = {
-            sessionId: sessionId,
-            validationType: 'schema_field',
-            fieldId: stepValue.id, // Use step value ID directly
-            fieldName: fieldName,
-            extractedValue: valueToStore,
-            validationStatus: 'manual',
-            manuallyVerified: true,
-            manuallyUpdated: true,
-            confidenceScore: 100,
-            dataType: stepValue.dataType || 'text'
-          };
-        }
-        
-        console.log('🔍 Creating validation with data:', createData);
-        
-        await apiRequest(`/api/sessions/${sessionId}/validations`, {
-          method: 'POST',
-          body: JSON.stringify(createData)
-        });
+      if (!sessionId) {
+        console.error('❌ No sessionId available');
+        return;
       }
+      
+      // Simple test - just log what we're trying to save
+      const valueToStore = newValue !== undefined ? newValue : editValue;
+      console.log('💾 Attempting to save:', { fieldName, valueToStore });
+      
+      // For now, let's just try to save it as a simple validation record
+      // and see what happens
+      const createData = {
+        sessionId: sessionId,
+        fieldName: fieldName,
+        extractedValue: valueToStore,
+        validationStatus: 'manual',
+        manuallyVerified: true,
+        manuallyUpdated: true,
+        confidenceScore: 100
+      };
+      
+      console.log('📤 Sending data to server:', createData);
+      
+      const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
+        method: 'POST',
+        body: JSON.stringify(createData)
+      });
+      
+      console.log('✅ Server response:', response);
       
       // Force immediate UI update by invalidating all related queries
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
       
-      // Force a refetch to update UI immediately
-      await queryClient.refetchQueries({ queryKey: ['/api/validations/project'] });
+      console.log('✅ Save completed successfully');
     } catch (error) {
-      console.error('Failed to save field:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Save error details:', error);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
+    
     setEditingField(null);
     setEditValue("");
   };
