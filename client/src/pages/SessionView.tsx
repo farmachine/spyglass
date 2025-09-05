@@ -4962,7 +4962,7 @@ Thank you for your assistance.`;
                     </p>
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                     <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-6">
                         {(() => {
                           // Display the configured values for the current info page step
                           const currentInfoStep = currentStep;
@@ -4990,25 +4990,23 @@ Thank you for your assistance.`;
                           }, {} as Record<string, typeof currentInfoStep.values>);
 
                         return Object.entries(groupedValues).map(([toolId, stepValues]) => (
-                          <div key={toolId} className="col-span-full space-y-4">
-                            {/* Tool Group Container */}
-                            <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/30 dark:bg-gray-800/30">
-                              {/* Magic Wand Icon for extraction groups */}
-                              {toolId !== 'manual' && (
-                                <div className="absolute top-3 right-3">
-                                  <button 
-                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors"
-                                    title="Select fields to extract"
-                                    onClick={() => handleOpenFieldSelection(toolId, stepValues)}
-                                  >
-                                    <Wand2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                              
-                              {/* Fields Grid */}
-                              <div className="space-y-4">
-                                {stepValues.map((stepValue) => {
+                          <div key={toolId} className="space-y-6">
+                            {/* Tool Group Header */}
+                            {toolId !== 'manual' && (
+                              <div className="flex justify-end mb-4">
+                                <button 
+                                  className="p-2 text-gray-400 hover:text-[#4F63A4] transition-colors bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                                  title="Extract fields using AI"
+                                  onClick={() => handleOpenFieldSelection(toolId, stepValues)}
+                                >
+                                  <Wand2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Values - Each value gets its own container */}
+                            <div className="space-y-6">
+                              {stepValues.map((stepValue) => {
                                   const fieldName = stepValue.valueName;
                                   
                                   // Check if this value has multiple fields defined
@@ -5019,11 +5017,14 @@ Thank you for your assistance.`;
                                     const fieldValidations = validations.filter(v => v.valueId === stepValue.id);
                                     
                                     return (
-                                      <div key={stepValue.id}>
-                                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                                          {fieldName}
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
+                                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                                          <div className="w-2 h-6 bg-[#4F63A4] rounded-full"></div>
+                                          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                                            {fieldName}
+                                          </h3>
+                                        </div>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                           {stepValue.fields.map((field: any, fieldIndex: number) => {
                                               // Validations are saved in the same order as fields
                                               // So we can match by index
@@ -5226,7 +5227,14 @@ Thank you for your assistance.`;
                                         }
                                         
                                         return (
-                                          <div key={stepValue.id} className="space-y-2">
+                                          <div key={stepValue.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm">
+                                            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                                              <div className="w-2 h-6 bg-[#4F63A4] rounded-full"></div>
+                                              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                                                {fieldName}
+                                              </h3>
+                                            </div>
+                                            <div className="space-y-3">
                                             <div className="flex items-center gap-2">
                                               {(() => {
                                                 const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
@@ -5386,11 +5394,11 @@ Thank you for your assistance.`;
                                                 {stepValue.description}
                                               </p>
                                             )}
+                                            </div>
                                           </div>
                                         );
                                       }
-                                    })}
-                              </div>
+                                })}
                             </div>
                           </div>
                         ));
