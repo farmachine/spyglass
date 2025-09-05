@@ -5304,10 +5304,10 @@ Thank you for your assistance.`;
                 </>
               )}
 
-              {/* Data Table Content - For dataTable type workflow steps */}
+              {/* Data Table Content - For dataTable/list/data_table type workflow steps */}
               {(() => {
                 const dataTableStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
-                if (!dataTableStep || dataTableStep.stepType !== 'dataTable') return null;
+                if (!dataTableStep || (dataTableStep.stepType !== 'dataTable' && dataTableStep.stepType !== 'list' && dataTableStep.stepType !== 'data_table')) return null;
 
                 // Get validations for this data table
                 const tableValidations = validations.filter(v => v.collectionName === activeTab);
@@ -5368,6 +5368,13 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
+      
+      {/* Session Chat Assistant - Fixed position */}
+      <SessionChat 
+        sessionId={sessionId}
+        sessionName={session?.sessionName || ''}
+        projectId={projectId}
+      />
     </div>
   );
 }
