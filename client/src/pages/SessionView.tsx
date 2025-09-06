@@ -5127,8 +5127,8 @@ Thank you for your assistance.`;
                                     );
                                     
                                     return (
-                                      <div key={stepValue.id}>
-                                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                      <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
+                                        <h4 className="text-base font-bold text-[#3A4A7C] dark:text-[#4F63A4] mb-4">
                                           {fieldName}
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
