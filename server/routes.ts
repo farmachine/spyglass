@@ -2806,49 +2806,111 @@ except Exception as e:
               
               // Handle @-references to previous step values
               if (typeof value === 'string' && value.startsWith('@')) {
-                console.log(`📌 Processing reference: ${value}`);
+                console.log(`📌 Processing cross-step reference: ${value}`);
                 
-                // Parse the reference (e.g., "@ID" or "@Column Name Mapping.ID")
-                const refParts = value.substring(1).split('.');
-                let referencedValueName = refParts[refParts.length - 1];
+                // Parse the reference (e.g., "@Service Dates × Start Date")
+                // Format is: @StepName × ValueName
+                const refString = value.substring(1); // Remove @
+                const parts = refString.split(' × ');
                 
-                console.log(`📌 Looking for value named: "${referencedValueName}"`);
-                
-                // Find the step that contains the current value to get other values in the same step
-                const currentStepId = workflowValue.stepId;
-                if (currentStepId) {
-                  const stepValues = await storage.getStepValues(currentStepId);
-                  console.log(`📌 Found ${stepValues.length} values in current step`);
+                if (parts.length === 2) {
+                  const [referencedStepName, referencedValueName] = parts;
+                  console.log(`📌 Looking for step "${referencedStepName}" and value "${referencedValueName}"`);
                   
-                  // Find the referenced value by name
-                  const referencedValue = stepValues.find(v => v.valueName === referencedValueName);
-                  if (referencedValue) {
-                    console.log(`📌 Found referenced value: ${referencedValue.valueName} (ID: ${referencedValue.id})`);
+                  // Find the referenced step
+                  const allSteps = await storage.getWorkflowSteps(projectId);
+                  const referencedStep = allSteps.find(s => s.stepName === referencedStepName);
+                  
+                  if (referencedStep) {
+                    console.log(`📌 Found referenced step: ${referencedStep.stepName} (ID: ${referencedStep.id})`);
                     
-                    // Get validations for this value
-                    const referencedValidations = existingValidations.filter((v: any) => 
-                      v.valueId === referencedValue.id
-                    );
+                    // Get values for the referenced step
+                    const stepValues = await storage.getStepValues(referencedStep.id);
+                    console.log(`📌 Found ${stepValues.length} values in referenced step`);
                     
-                    if (referencedValidations.length > 0) {
-                      const referencedData = referencedValidations.map((v: any) => ({
-                        identifierId: v.identifierId || `record-${v.recordIndex}`,
-                        extractedValue: v.extractedValue || '',
-                        recordIndex: v.recordIndex
-                      }));
-                      toolInputs[key] = referencedData;
-                      console.log(`📌 Resolved @${referencedValueName} reference to ${referencedData.length} items`);
+                    // Find the specific value being referenced
+                    const referencedValue = stepValues.find(v => v.valueName === referencedValueName);
+                    if (referencedValue) {
+                      console.log(`📌 Found referenced value: ${referencedValue.valueName} (ID: ${referencedValue.id})`);
+                      
+                      // Get validations for this value
+                      const referencedValidations = existingValidations.filter((v: any) => 
+                        v.valueId === referencedValue.id
+                      );
+                      
+                      if (referencedValidations.length > 0) {
+                        const referencedData = referencedValidations.map((v: any) => ({
+                          identifierId: v.identifierId || `record-${v.recordIndex}`,
+                          extractedValue: v.extractedValue || '',
+                          recordIndex: v.recordIndex
+                        }));
+                        toolInputs[key] = referencedData;
+                        console.log(`📌 ✅ Resolved cross-step reference to ${referencedData.length} items from ${referencedStepName}.${referencedValueName}`);
+                      } else {
+                        console.log(`⚠️ No validations found for referenced value: ${referencedStepName}.${referencedValueName}`);
+                        toolInputs[key] = [];
+                      }
                     } else {
-                      console.log(`⚠️ No validations found for referenced value: ${referencedValueName}`);
+                      console.log(`⚠️ Referenced value "${referencedValueName}" not found in step "${referencedStepName}"`);
                       toolInputs[key] = [];
                     }
                   } else {
-                    console.log(`⚠️ Referenced value "${referencedValueName}" not found in current step`);
-                    toolInputs[key] = [];
+                    console.log(`⚠️ Referenced step "${referencedStepName}" not found`);
+                    // Fall back to looking in current step (backward compatibility)
+                    const currentStepId = workflowValue.stepId;
+                    if (currentStepId) {
+                      const stepValues = await storage.getStepValues(currentStepId);
+                      const referencedValue = stepValues.find(v => v.valueName === refString);
+                      if (referencedValue) {
+                        const referencedValidations = existingValidations.filter((v: any) => 
+                          v.valueId === referencedValue.id
+                        );
+                        if (referencedValidations.length > 0) {
+                          const referencedData = referencedValidations.map((v: any) => ({
+                            identifierId: v.identifierId || `record-${v.recordIndex}`,
+                            extractedValue: v.extractedValue || '',
+                            recordIndex: v.recordIndex
+                          }));
+                          toolInputs[key] = referencedData;
+                          console.log(`📌 Resolved reference using fallback to current step`);
+                        } else {
+                          toolInputs[key] = [];
+                        }
+                      } else {
+                        toolInputs[key] = [];
+                      }
+                    } else {
+                      toolInputs[key] = [];
+                    }
                   }
                 } else {
-                  console.log(`⚠️ No stepId found for current value`);
-                  toolInputs[key] = [];
+                  // Handle simple references without step name (backward compatibility)
+                  console.log(`📌 Simple reference format detected: ${refString}`);
+                  const currentStepId = workflowValue.stepId;
+                  if (currentStepId) {
+                    const stepValues = await storage.getStepValues(currentStepId);
+                    const referencedValue = stepValues.find(v => v.valueName === refString);
+                    if (referencedValue) {
+                      const referencedValidations = existingValidations.filter((v: any) => 
+                        v.valueId === referencedValue.id
+                      );
+                      if (referencedValidations.length > 0) {
+                        const referencedData = referencedValidations.map((v: any) => ({
+                          identifierId: v.identifierId || `record-${v.recordIndex}`,
+                          extractedValue: v.extractedValue || '',
+                          recordIndex: v.recordIndex
+                        }));
+                        toolInputs[key] = referencedData;
+                        console.log(`📌 Resolved simple reference to ${referencedData.length} items`);
+                      } else {
+                        toolInputs[key] = [];
+                      }
+                    } else {
+                      toolInputs[key] = [];
+                    }
+                  } else {
+                    toolInputs[key] = [];
+                  }
                 }
               }
               // Handle Reference Document - fetch when value is @reference_document or value is an array (document IDs)
