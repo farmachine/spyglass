@@ -5156,12 +5156,11 @@ Thank you for your assistance.`;
                                             onClick={() => {
                                               // Set up extraction for this specific value
                                               const toolGroup = {
-                                                stepId: currentInfoStep.id,
-                                                stepName: currentInfoStep.stepName,
+                                                toolId: stepValue.toolId || 'manual',
                                                 stepValues: [stepValue]
                                               };
                                               setCurrentToolGroup(toolGroup);
-                                              setIsFieldSelectionModalOpen(true);
+                                              setShowFieldSelectionModal(true);
                                             }}
                                             className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                             title={`Extract data for ${fieldName}`}
