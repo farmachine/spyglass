@@ -290,7 +290,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     setSteps(steps.filter(step => step.id !== stepId));
   };
 
-  const addValue = (stepId: string) => {
+  const addValue = (stepId: string, insertPosition?: number) => {
     const step = steps.find(s => s.id === stepId);
     if (!step) return;
 
@@ -301,12 +301,38 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       dataType: 'TEXT',
       toolId: '',
       inputValues: {},
-      orderIndex: step.values.length
+      orderIndex: insertPosition !== undefined ? insertPosition : step.values.length
     };
 
-    updateStep(stepId, {
-      values: [...step.values, newValue]
-    });
+    if (insertPosition !== undefined) {
+      // Insert at specific position and update orderIndex for all values
+      const updatedValues = [...step.values];
+      
+      // Update orderIndex for values that come after the insertion point
+      updatedValues.forEach(v => {
+        if (v.orderIndex >= insertPosition) {
+          v.orderIndex = v.orderIndex + 1;
+        }
+      });
+      
+      // Insert the new value
+      updatedValues.splice(insertPosition, 0, newValue);
+      
+      // Re-index all values to ensure correct order
+      const reindexedValues = updatedValues.map((v, index) => ({
+        ...v,
+        orderIndex: index
+      }));
+      
+      updateStep(stepId, {
+        values: reindexedValues
+      });
+    } else {
+      // Add at the end
+      updateStep(stepId, {
+        values: [...step.values, newValue]
+      });
+    }
   };
 
   const updateValue = (stepId: string, valueId: string, updates: Partial<WorkflowValue>) => {
@@ -769,6 +795,23 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   <h4 className="font-medium text-sm text-[#071e54] dark:text-[#5A70B5]">Values</h4>
                 </div>
 
+                {/* Add button before first value */}
+                {step.values.length > 0 && (
+                  <div className="flex items-center justify-center py-1 group">
+                    <div className="flex items-center">
+                      <div className="w-0.5 h-2 bg-gray-300 dark:bg-gray-400"></div>
+                      <button
+                        onClick={() => addValue(step.id, 0)}
+                        className="workflow-add-value-btn mx-1 p-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-[#4F63A4] dark:hover:bg-[#5A70B5] hover:border-[#4F63A4] dark:hover:border-[#5A70B5] opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        title="Add value at the beginning"
+                      >
+                        <Plus className="h-3 w-3 text-gray-500 dark:text-gray-400 hover:text-white" />
+                      </button>
+                      <div className="w-0.5 h-2 bg-gray-300 dark:bg-gray-400"></div>
+                    </div>
+                  </div>
+                )}
+
                 {step.values.map((value, valueIndex) => (
                   <div key={value.id}>
                     <ValueEditor
@@ -781,10 +824,20 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       onUpdate={(updates) => updateValue(step.id, value.id, updates)}
                       onDelete={() => deleteValue(step.id, value.id)}
                     />
-                    {/* Grey line between values */}
+                    {/* Add button between values */}
                     {valueIndex < step.values.length - 1 && (
-                      <div className="flex justify-center py-1">
-                        <div className="w-0.5 h-4 bg-gray-300 dark:bg-gray-400"></div>
+                      <div className="flex items-center justify-center py-1 group">
+                        <div className="flex items-center">
+                          <div className="w-0.5 h-2 bg-gray-300 dark:bg-gray-400"></div>
+                          <button
+                            onClick={() => addValue(step.id, valueIndex + 1)}
+                            className="workflow-add-value-btn mx-1 p-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-[#4F63A4] dark:hover:bg-[#5A70B5] hover:border-[#4F63A4] dark:hover:border-[#5A70B5] opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            title="Add value here"
+                          >
+                            <Plus className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                          </button>
+                          <div className="w-0.5 h-2 bg-gray-300 dark:bg-gray-400"></div>
+                        </div>
                       </div>
                     )}
                   </div>

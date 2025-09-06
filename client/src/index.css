@@ -45,6 +45,11 @@
   display: none;
 }
 
+/* Add value button hover state */
+.workflow-add-value-btn:hover > svg {
+  color: white !important;
+}
+
 /* Workflow Builder specific styling */
 .workflow-builder button[role="combobox"],
 .workflow-builder input,
