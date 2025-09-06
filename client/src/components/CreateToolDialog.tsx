@@ -953,9 +953,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="create-tool-dialog-description">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border dark:border-gray-700" aria-describedby="create-tool-dialog-description">
         <DialogHeader>
-          <DialogTitle className="text-gray-800 flex items-center">
+          <DialogTitle className="text-gray-800 dark:text-gray-100 flex items-center">
             {editingFunction ? 'Edit' : 'Create new'} extrapl
             <span className="w-2 h-2 rounded-full mx-2" style={{ backgroundColor: '#4F63A4' }}></span>
             Tool
@@ -967,13 +967,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
         <div className="space-y-6">
           {/* Basic Information */}
-          <Card className="border-gray-200">
+          <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Basic Information</CardTitle>
+              <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Tool Name *
                 </Label>
                 <Input
@@ -981,11 +981,11 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Extract Financial Data"
-                  className="mt-1"
+                  className="mt-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
               <div>
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Description *
                 </Label>
                 <Textarea
@@ -994,7 +994,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe how this tool works."
                   rows={3}
-                  className="mt-1"
+                  className="mt-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
 
@@ -1002,21 +1002,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           </Card>
 
           {/* Tool Type - Show in both create and edit mode */}
-          <Card className="border-gray-200">
+          <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-gray-800">Tool Type</CardTitle>
+              <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AI_ONLY">AI</SelectItem>
-                  <SelectItem value="CODE">Code</SelectItem>
+                <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                  <SelectItem value="AI_ONLY" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">AI</SelectItem>
+                  <SelectItem value="CODE" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Code</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {toolType === "CODE"
                   ? "Data is processed using a coded function"
                   : "Data is processed using AI"
@@ -1028,9 +1028,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
           {/* LLM Model Selector - Only for AI tools */}
           {toolType === "AI_ONLY" && (
-            <Card className="border-gray-200">
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">AI Model</CardTitle>
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">AI Model</CardTitle>
               </CardHeader>
               <CardContent>
                 <Select value={formData.llmModel} onValueChange={(value) => setFormData({ ...formData, llmModel: value })}>
@@ -1053,7 +1053,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
           {/* Inputs - Only show when tool type is selected */}
           {(toolType || isEditMode) && (
-            <Card className="border-gray-200">
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg text-gray-800">
@@ -1439,9 +1439,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
           {/* AI Assistance (only for SCRIPT functions) */}
           {toolType === "CODE" && (
-            <Card className="border-gray-200">
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800">AI Assistance</CardTitle>
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">AI Assistance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
@@ -1474,7 +1474,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
           {/* Code/Prompt Section - Always visible when tool type is selected */}
           {toolType && (
-            <Card className="border-gray-200">
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-gray-800">
@@ -1536,19 +1536,19 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button 
               variant="outline" 
               onClick={() => setOpen(false)}
               disabled={createTool.isPending || updateTool.isPending}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={createTool.isPending || updateTool.isPending}
-              className="bg-gray-700 hover:bg-gray-800 text-white"
+              className="bg-gray-700 dark:bg-gray-600 hover:bg-gray-800 dark:hover:bg-gray-700 text-white"
             >
               {createTool.isPending || updateTool.isPending ? (
                 <div className="flex items-center gap-2">
