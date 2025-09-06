@@ -5123,7 +5123,7 @@ Thank you for your assistance.`;
                                     return (
                                       <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
                                         <div className="flex items-center justify-between mb-4">
-                                          <h4 className="text-base font-bold text-[#3A4A7C] dark:text-[#4F63A4] flex items-center gap-2">
+                                          <h4 className="text-base font-bold text-[#3A4A7C] dark:text-white flex items-center gap-2">
                                             <div 
                                               className="w-2 h-2 rounded-full" 
                                               style={{ 
