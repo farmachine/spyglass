@@ -5138,7 +5138,33 @@ Thank you for your assistance.`;
                                     
                                     return (
                                       <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
-                                        <h4 className="text-base font-bold text-[#3A4A7C] dark:text-[#4F63A4] mb-4">
+                                        <h4 className="text-base font-bold text-[#3A4A7C] dark:text-[#4F63A4] mb-4 flex items-center gap-2">
+                                          <div 
+                                            className="w-2 h-2 rounded-full" 
+                                            style={{ 
+                                              backgroundColor: (() => {
+                                                // Check if all fields in this value are validated
+                                                const valueValidations = fieldValidations.filter(v => 
+                                                  (v.valueId === stepValue.id || v.fieldId === stepValue.id) &&
+                                                  v.extractedValue !== null && 
+                                                  v.extractedValue !== undefined && 
+                                                  v.extractedValue !== "" && 
+                                                  v.extractedValue !== "null" && 
+                                                  v.extractedValue !== "undefined"
+                                                );
+                                                
+                                                // Check if all fields have values and are valid
+                                                const hasAllFields = stepValue.fields && 
+                                                  stepValue.fields.length > 0 && 
+                                                  stepValue.fields.length === valueValidations.length;
+                                                
+                                                const allFieldsValid = hasAllFields && 
+                                                  valueValidations.every(v => v.validationStatus === 'valid');
+                                                
+                                                return allFieldsValid ? '#10b981' : '#4F63A4';
+                                              })() 
+                                            }}
+                                          />
                                           {fieldName}
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
