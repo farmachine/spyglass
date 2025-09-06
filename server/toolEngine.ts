@@ -424,13 +424,21 @@ export class ToolEngine {
     console.log('-'.repeat(80));
     console.log('');
     
+    // Only use JSON response format for AI prompts, not for CODE generation
+    const config = tool.toolType === 'AI_ONLY' 
+      ? {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 8192
+        }
+      : {
+          temperature: 0.1,
+          maxOutputTokens: 8192
+        };
+    
     const response = await genAI.models.generateContent({
       model: "gemini-2.0-flash",
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-        maxOutputTokens: 8192
-      },
+      config,
       contents: [
         {
           role: "user",
@@ -1465,22 +1473,42 @@ Description: ${tool.description}
 Input Parameters:
 ${paramList}
 ${excelTraining}
-Requirements:
-- Use only standard Python libraries (no pandas)
-- Handle Excel files with openpyxl if needed
-- Return a JSON array of field validation objects
-- Each object must have these exact fields:
-  * extractedValue: The extracted data value
-  * validationStatus: "valid" or "invalid" 
-  * aiReasoning: Brief explanation of the extraction
-  * confidenceScore: Number between 0-100
-  * documentSource: Source document/location reference
-- CRITICAL: When processing data arrays, maintain the SAME ORDER as input for proper record linkage
-- Include proper error handling
-- Function should be self-contained
-- Example return format: [{"extractedValue": "Column1", "validationStatus": "valid", "aiReasoning": "Extracted from first row", "confidenceScore": 100, "documentSource": "Row 1, Column A"}]
 
-Return only the Python function code, no explanations.`;
+CRITICAL INSTRUCTIONS:
+You MUST return actual Python code - a complete function definition, NOT JSON data.
+
+The function should:
+- Be named 'extract_data'
+- Accept parameters matching the input parameters above
+- Use standard Python libraries plus openpyxl for Excel files
+- Process the input data according to the task description
+- Return a JSON array of field validation objects
+
+Example function structure:
+\`\`\`python
+def extract_data(excel_file):
+    import openpyxl
+    import json
+    
+    # Load and process the Excel file
+    workbook = openpyxl.load_workbook(excel_file, data_only=True)
+    sheet = workbook.active
+    
+    results = []
+    # Your extraction logic here
+    # Process data and build results
+    
+    return json.dumps(results)
+\`\`\`
+
+Each result object in the array must have:
+- extractedValue: The extracted data value
+- validationStatus: "valid" or "invalid" 
+- aiReasoning: Brief explanation of the extraction
+- confidenceScore: Number between 0-100
+- documentSource: Source document/location reference
+
+IMPORTANT: Return ONLY the Python function code, starting with 'def extract_data' and ending with the return statement. Do not include any markdown formatting, explanations, or example output - just the pure Python code.`;
     }
   }
   
