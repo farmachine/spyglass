@@ -4932,7 +4932,20 @@ Thank you for your assistance.`;
 
             {/* Step Description - positioned below step header */}
             {(() => {
-              // Get the active collection's description
+              // Get the current step to check its type
+              const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
+              const isInfoPage = currentStep?.stepType === 'page';
+              
+              // Show description directly below header for InfoPages
+              if (isInfoPage) {
+                return (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                    Key information and fields extracted from this {(activeTab || "section").toLowerCase()}.
+                  </p>
+                );
+              }
+              
+              // Get the active collection's description for data tables
               const collectionsList = collections || [];
               const activeCollection = collectionsList.find(c => {
                 const stepName = c.collectionName;
@@ -4943,7 +4956,7 @@ Thank you for your assistance.`;
                 );
               });
               
-              if (activeCollection && activeTab !== 'info' && activeTab !== 'documents') {
+              if (activeCollection && activeTab !== 'info' && activeTab !== 'documents' && !isInfoPage) {
                 // Calculate record counts for the counter - use same logic as table
                 const getRecordCounts = () => {
                   // Find the collection that matches the current activeTab (same as table logic)
@@ -5062,9 +5075,6 @@ Thank you for your assistance.`;
                 if (currentStep?.stepType !== 'page') return null;
                 return (
                   <div className="h-full overflow-auto">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                      Key information and fields extracted from this {(activeTab || "section").toLowerCase()}.
-                    </p>
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                     <CardContent className="pt-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
