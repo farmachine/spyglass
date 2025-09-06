@@ -5106,24 +5106,8 @@ Thank you for your assistance.`;
 
                         return Object.entries(groupedValues).map(([toolId, stepValues]) => (
                           <div key={toolId} className="col-span-full space-y-4">
-                            {/* Tool Group Container */}
-                            <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/30 dark:bg-gray-800/30">
-                              {/* Magic Wand Icon for extraction groups */}
-                              {toolId !== 'manual' && (
-                                <div className="absolute top-3 right-3">
-                                  <button 
-                                    className="p-1 text-gray-400 hover:text-[#4F63A4] transition-colors"
-                                    title="Select fields to extract"
-                                    onClick={() => handleOpenFieldSelection(toolId, stepValues)}
-                                  >
-                                    <Wand2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-                              
-                              {/* Fields Grid */}
-                              <div className="space-y-4">
-                                {stepValues.map((stepValue) => {
+                            {/* Render fields directly without extra container */}
+                            {stepValues.map((stepValue) => {
                                   const fieldName = stepValue.valueName;
                                   
                                   // Check if this value has multiple fields defined
@@ -5570,8 +5554,6 @@ Thank you for your assistance.`;
                                         );
                                       }
                                     })}
-                              </div>
-                            </div>
                           </div>
                         ));
                       })()}
