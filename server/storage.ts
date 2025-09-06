@@ -3826,7 +3826,8 @@ class PostgreSQLStorage implements IStorage {
         const [newStep] = await this.db.insert(workflowSteps).values(stepData).returning();
 
         // Create the values for this step
-        for (const value of step.values || []) {
+        for (let i = 0; i < (step.values || []).length; i++) {
+          const value = step.values[i];
           // Ensure fields have identifierIds if this is a multi-field value
           let processedFields = value.fields;
           if (processedFields && Array.isArray(processedFields)) {
@@ -3844,7 +3845,7 @@ class PostgreSQLStorage implements IStorage {
             dataType: value.dataType,
             description: value.description,
             isIdentifier: step.type === 'list' && step.values[0]?.id === value.id,
-            orderIndex: value.orderIndex || 0,
+            orderIndex: i, // Always use array index for consistent ordering
             toolId: (value.toolId === '' || value.toolId === 'manual') ? null : value.toolId,
             inputValues: value.inputValues,
             fields: processedFields || null, // Add fields for multi-field Info Page values with identifierIds

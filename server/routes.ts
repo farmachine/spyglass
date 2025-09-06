@@ -5163,6 +5163,10 @@ print(json.dumps(results))
     for (let i = 0; i < (stepData.values || []).length; i++) {
       const value = stepData.values[i];
       
+      // ALWAYS use the position in the array as the orderIndex for consistency
+      // This ensures values maintain their order based on their position in the UI
+      const consistentOrderIndex = i;
+      
       // Build value data for creation
       const createValueData = {
         id: value.id,
@@ -5171,7 +5175,7 @@ print(json.dumps(results))
         dataType: value.dataType,
         description: value.description,
         isIdentifier: stepData.type === 'list' && stepData.values[0]?.id === value.id,
-        orderIndex: value.orderIndex !== undefined ? value.orderIndex : i + 1, // Use provided or default to position
+        orderIndex: consistentOrderIndex, // Always use array position for consistent ordering
         toolId: value.toolId || null,  // Convert empty string to null
         inputValues: value.inputValues,
         fields: value.fields || null, // Add fields for multi-field Info Page values
@@ -5180,7 +5184,7 @@ print(json.dumps(results))
       };
       
       if (existingValueIds.has(value.id)) {
-        // For updates, only include fields that should be updated (exclude orderIndex unless explicitly provided)
+        // For updates, ALWAYS update the orderIndex to match the current position
         const updateValueData: any = {
           valueName: value.name,
           dataType: value.dataType,
@@ -5190,19 +5194,15 @@ print(json.dumps(results))
           inputValues: value.inputValues,
           fields: value.fields || null, // Add fields for multi-field Info Page values
           autoVerificationConfidence: value.autoVerificationConfidence,
-          choiceOptions: value.choiceOptions
+          choiceOptions: value.choiceOptions,
+          orderIndex: consistentOrderIndex // ALWAYS update orderIndex to maintain correct order
         };
         
-        // Only update orderIndex if explicitly provided in the request
-        if (value.orderIndex !== undefined) {
-          updateValueData.orderIndex = value.orderIndex;
-        }
-        
-        console.log(`  📝 Updating existing value: ${value.id} (preserving order_index unless explicitly changed)`);
+        console.log(`  📝 Updating existing value: ${value.id} with orderIndex: ${consistentOrderIndex}`);
         await storage.updateStepValue(value.id, updateValueData);
       } else {
         // Create new value with proper orderIndex
-        console.log(`  ➕ Creating new value: ${value.id} with orderIndex: ${createValueData.orderIndex}`);
+        console.log(`  ➕ Creating new value: ${value.id} with orderIndex: ${consistentOrderIndex}`);
         await storage.createStepValue(createValueData);
       }
     }
