@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench, Plus, GraduationCap } from "lucide-react";
+import { ArrowLeft, Settings, Database, Brain, Upload, User, List, Wrench, Plus, GraduationCap, Link2 } from "lucide-react";
 import { TideIcon, StreamIcon, ShipIcon } from "@/components/SeaIcons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +20,7 @@ interface ProjectAdminProps {
   projectId: string;
 }
 
-type AdminTab = "data" | "knowledge" | "rules" | "tools" | "publish";
+type AdminTab = "data" | "knowledge" | "rules" | "tools" | "publish" | "connect";
 
 export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const [, setLocation] = useLocation();
@@ -117,6 +117,9 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
     ...(canAccessPublishing ? [
       { id: "publish" as const, label: "Publish", icon: ShipIcon, disabled: false },
     ] : []),
+    ...(canAccessConfigTabs ? [
+      { id: "connect" as const, label: "Connect", icon: Link2, disabled: false },
+    ] : []),
   ];
 
   const renderActiveContent = () => {
@@ -131,6 +134,47 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         return <Tools projectId={projectId} />;
       case "publish":
         return <Publishing project={project} />;
+      case "connect":
+        return (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Connect Your Data</h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Connect your project data to other business applications
+              </p>
+            </div>
+            <Card className="bg-white dark:bg-gray-800">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Link2 className="h-8 w-8 text-[#4F63A4]" />
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Integration Hub
+                      </h2>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Seamlessly integrate your extracted data with your existing business systems
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t pt-4 dark:border-gray-700">
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Connect your extracted document data to popular business applications like CRM systems, 
+                      databases, analytics platforms, and workflow automation tools. Enable real-time data 
+                      synchronization and automate your document processing workflows.
+                    </p>
+                    <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <strong>Coming Soon:</strong> API integrations, webhook configurations, and pre-built 
+                        connectors for popular business applications.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
       default:
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
     }
