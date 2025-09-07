@@ -1006,16 +1006,22 @@ function ValueEditor({
       });
     }
     
-    // Add previous values from current step
-    for (let i = 0; i < currentValueIndex; i++) {
-      const prevValue = step.values[i];
-      availableValues.push({
-        id: prevValue.id, // Store the actual value ID
-        valueId: prevValue.id, // Explicit value ID for clarity
-        name: prevValue.name,
-        stepName: step.name
-      });
-    }
+    // Add previous values from current step based on orderIndex, not array position
+    // Get the current value's orderIndex
+    const currentOrderIndex = value.orderIndex !== undefined ? value.orderIndex : currentValueIndex;
+    
+    // Add all values from current step that have a lower orderIndex
+    step.values.forEach(v => {
+      const vOrderIndex = v.orderIndex !== undefined ? v.orderIndex : step.values.indexOf(v);
+      if (vOrderIndex < currentOrderIndex && v.id !== value.id) {
+        availableValues.push({
+          id: v.id, // Store the actual value ID
+          valueId: v.id, // Explicit value ID for clarity
+          name: v.name,
+          stepName: step.name
+        });
+      }
+    });
     
     return availableValues;
   };
