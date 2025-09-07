@@ -6557,6 +6557,63 @@ def extract_function(Column_Name, Excel_File):
       if (value.inputValues && Object.keys(value.inputValues).length > 0) {
         console.log(`🎯 Processing inputValues for ${value.valueName}:`, value.inputValues);
         console.log(`🎯 Previous data received: ${previousData ? previousData.length : 0} records`);
+        
+        // Check if we have cross-step references (UUIDs) and no previousData
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const referencedValueIds = new Set<string>();
+        
+        // Collect all referenced value IDs
+        for (const [paramName, paramValue] of Object.entries(value.inputValues)) {
+          if (Array.isArray(paramValue)) {
+            paramValue.forEach(item => {
+              if (typeof item === 'string' && uuidRegex.test(item)) {
+                referencedValueIds.add(item);
+              }
+            });
+          }
+        }
+        
+        // If we have cross-step references and no previousData, fetch the data
+        if (referencedValueIds.size > 0 && (!previousData || previousData.length === 0)) {
+          console.log(`📊 Fetching data from ${referencedValueIds.size} cross-step referenced values`);
+          
+          // Get all validations for the session
+          const allValidations = await storage.getFieldValidations(sessionId);
+          
+          // Group validations by valueId to build the data arrays
+          const dataByValueId = new Map<string, any[]>();
+          
+          for (const refValueId of referencedValueIds) {
+            // Get the value info to know the column name
+            const valueInfo = await storage.getStepValueById(refValueId);
+            if (!valueInfo) continue;
+            
+            console.log(`  📋 Fetching data for value: ${valueInfo.valueName} (${refValueId})`);
+            
+            // Get all validations for this specific valueId
+            const valueValidations = allValidations.filter(v => 
+              v.valueId === refValueId || v.fieldId === refValueId
+            );
+            
+            console.log(`    Found ${valueValidations.length} validations`);
+            
+            // Build array of values for this column
+            const columnData = valueValidations
+              .filter(v => v.extractedValue !== null && v.extractedValue !== undefined)
+              .map(v => v.extractedValue);
+            
+            dataByValueId.set(refValueId, columnData);
+            console.log(`    Extracted ${columnData.length} values: ${columnData.slice(0, 3).join(', ')}${columnData.length > 3 ? '...' : ''}`);
+          }
+          
+          // Now prepare the data for tool inputs
+          // This will be handled by the existing code below that processes inputValues
+          console.log(`✅ Fetched cross-step reference data for ${dataByValueId.size} values`);
+          
+          // Store the fetched data in a format that can be used below
+          toolInputs.__crossStepData = dataByValueId;
+        }
+        
         if (previousData && previousData.length > 0) {
           console.log(`🎯 First previousData record structure:`, Object.keys(previousData[0]));
           console.log(`🎯 First previousData record sample:`, previousData[0]);
@@ -6621,7 +6678,7 @@ def extract_function(Column_Name, Excel_File):
         console.log(`🎯 Previous data available after filtering:`, previousData ? `${previousData.length} records` : 'None');
         
         // First, collect all UUID references and resolve them
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        // uuidRegex already declared above
         const uuidToValueName = new Map();
         
         // Collect all unique UUIDs from input values
@@ -6664,11 +6721,37 @@ def extract_function(Column_Name, Excel_File):
               typeof item === 'string' && (item.startsWith('@') || uuidRegex.test(item))
             );
             
-            if (hasReferences && previousData && previousData.length > 0) {
+            // Check if we should use cross-step data instead of previousData
+            const hasCrossStepData = toolInputs.__crossStepData && toolInputs.__crossStepData.size > 0;
+            
+            if (hasReferences && (previousData && previousData.length > 0 || hasCrossStepData)) {
               // This is an array of column references - combine data from multiple columns
               const combinedData: any[] = [];
               
-              console.log(`📊 Building combined data from ${previousData.length} records`);
+              // Handle cross-step references (data from other steps)
+              if (hasCrossStepData && (!previousData || previousData.length === 0)) {
+                console.log(`📊 Building data from cross-step references`);
+                
+                // For each reference in paramValue, get the data
+                const dataArrays: any[] = [];
+                for (const ref of paramValue) {
+                  if (typeof ref === 'string' && uuidRegex.test(ref)) {
+                    const refData = toolInputs.__crossStepData.get(ref);
+                    if (refData) {
+                      dataArrays.push(refData);
+                      console.log(`  Added data for ${ref}: ${refData.length} values`);
+                    }
+                  }
+                }
+                
+                // Simply pass the arrays as the parameter value
+                // The tool will receive arrays of values from each referenced column
+                toolInputs[paramName] = dataArrays.flat();
+                console.log(`✅ Set ${paramName} to ${toolInputs[paramName].length} values from cross-step references`);
+                continue; // Skip to next parameter
+              }
+              
+              console.log(`📊 Building combined data from ${previousData ? previousData.length : 0} records`);
               
               // Check if previousData is already in the proper format (with columns as properties)
               if (previousData[0].identifierId && !previousData[0].fieldName) {
@@ -7450,6 +7533,10 @@ def extract_function(Column_Name, Excel_File):
         console.log(`   Added __infoPageFields to toolInputs for AI processing`);
       }
       
+      // Clean up internal data before passing to tool
+      const cleanedToolInputs = { ...toolInputs };
+      delete cleanedToolInputs.__crossStepData; // Remove internal cross-step data
+      
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({
         id: tool.id,
@@ -7463,7 +7550,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, toolInputs);
+      }, cleanedToolInputs);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       
