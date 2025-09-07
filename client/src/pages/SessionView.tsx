@@ -2533,20 +2533,37 @@ export default function SessionView() {
     console.log('   - valueId:', valueId);
     console.log('   - valueName:', valueName);
     
-    // Get the workflow step
-    const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+    // Force refresh project data to get latest value IDs
+    await queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+    await queryClient.refetchQueries({ queryKey: ['/api/projects', projectId] });
+    
+    // Get the workflow step with fresh data
+    const freshProject = queryClient.getQueryData(['/api/projects', projectId]) as ProjectWithDetails;
+    const workflowStep = freshProject?.workflowSteps?.find(step => step.stepName === stepName);
     if (!workflowStep) {
       console.error('Workflow step not found:', stepName);
       return;
     }
     console.log('   - Found workflow step:', workflowStep.id, workflowStep.stepName);
     
-    // Get the specific value to run
+    // Get the specific value to run - try by ID first, then by name
     console.log('   - Workflow step values:', workflowStep.values?.map(v => ({ id: v.id, name: v.valueName })));
-    const valueToRun = workflowStep.values?.find(v => v.id === valueId);
+    let valueToRun = workflowStep.values?.find(v => v.id === valueId);
+    
+    // If not found by ID (stale ID), find by name instead
     if (!valueToRun) {
-      console.error('Value not found:', valueId);
-      console.error('Available values:', workflowStep.values?.map(v => v.id));
+      console.log(`   ⚠️ Value not found by ID: ${valueId}, trying by name: ${valueName}`);
+      valueToRun = workflowStep.values?.find(v => v.valueName === valueName);
+      if (valueToRun) {
+        console.log(`   ✅ Found value by name, actual ID is: ${valueToRun.id}`);
+        // Use the correct ID from the fresh data
+        valueId = valueToRun.id;
+      }
+    }
+    
+    if (!valueToRun) {
+      console.error('Value not found by ID or name:', valueId, valueName);
+      console.error('Available values:', workflowStep.values?.map(v => ({ id: v.id, name: v.valueName })));
       return;
     }
     console.log('   - Found value to run:', valueToRun.id, valueToRun.valueName);
@@ -6595,7 +6612,6 @@ Thank you for your assistance.`;
               const requestPayload = {
                 stepId: workflowStep.id,
                 valueId: valueId,
-                valueName: valueName, // Include value name as fallback for ID mismatch
                 previousData: fullPreviousData, // Send FULL data, not filtered/display data
                 documentId: documentId
               };

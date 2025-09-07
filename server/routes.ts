@@ -6473,33 +6473,16 @@ def extract_function(Column_Name, Excel_File):
       });
       
       console.log(`   📝 Looking for value with ID: ${valueId}`);
-      let value = await storage.getStepValue(valueId);
-      
-      // If value not found by ID, try to find by name as a fallback
-      if (!value && allStepValues.length > 0) {
-        console.log(`   ⚠️ Value not found with ID: ${valueId}, trying to match by position or name...`);
-        
-        // Try to find the first value (identifier) if this is requesting index 0
-        // This handles the case where frontend IDs are out of sync
-        const requestBody = req.body;
-        const valueName = requestBody.valueName || '';
-        
-        if (valueName) {
-          value = allStepValues.find(v => v.valueName === valueName);
-          if (value) {
-            console.log(`   ✅ Found value by name match: "${value.valueName}" (actual ID: ${value.id})`);
-            // Update the valueId to the correct one for downstream processing
-            valueId = value.id;
-          }
-        }
-      }
-      
+      const value = await storage.getStepValue(valueId);
       if (!value) {
         console.log(`   ❌ Value not found with ID: ${valueId}`);
-        console.log(`   💡 Available values: ${allStepValues.map(v => `${v.id}: "${v.valueName}"`).join(', ')}`);
+        console.log(`   💡 Available values in this step:`);
+        allStepValues.forEach(v => {
+          console.log(`      - ${v.id}: "${v.valueName}"`);
+        });
         return res.status(404).json({ message: "Step value not found" });
       }
-      console.log(`   ✅ Found value: "${value.valueName}" (ID: ${value.id})`)
+      console.log(`   ✅ Found value: "${value.valueName}"`)
       
       console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
       console.log(`   🚫 NOT extracting other values in step "${step.stepName}"`)
