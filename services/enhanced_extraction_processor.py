@@ -479,7 +479,9 @@ Your response must maintain the identifierId mapping for all processed items.
                         value_config += "\n  If Input Data is provided, use that data to extract the corresponding values."
                     else:
                         value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
-                        value_config += "\n  If Input Data columns are referenced, extract values from those columns for each record."
+                        value_config += "\n  IMPORTANT: If Input Data is provided, USE IT AS A REFERENCE to find corresponding information."
+                        value_config += "\n  For each row in the Input Data, find the matching content in the document and extract the requested value."
+                        value_config += "\n  Do NOT just repeat the instruction text - extract actual values from the document based on the Input Data references."
                     has_instructions = True
             elif isinstance(param_value, list):
                 # Handle array-based instructions
@@ -537,6 +539,25 @@ Your response must maintain the identifierId mapping for all processed items.
     actual_input_data = ""
     if input_data:
         actual_input_data = "\nACTUAL INPUT DATA TO PROCESS:\n"
+        
+        # Check if we have Input Data that contains column data for cross-referencing
+        has_input_data_columns = False
+        for param_name, param_value in input_data.items():
+            if param_name == 'Input Data' and isinstance(param_value, list) and param_value:
+                if isinstance(param_value[0], dict):
+                    has_input_data_columns = True
+                    break
+        
+        if has_input_data_columns:
+            actual_input_data += "\nCROSS-REFERENCING INSTRUCTIONS:\n"
+            actual_input_data += "The Input Data below contains reference values from previous columns.\n"
+            actual_input_data += "USE THESE VALUES AS LOOKUP KEYS to find corresponding information in the document.\n"
+            actual_input_data += "For each row in the Input Data:\n"
+            actual_input_data += "1. Use the provided values as references/identifiers\n"
+            actual_input_data += "2. Find the matching section/content in the document\n"
+            actual_input_data += "3. Extract the requested information for that specific item\n"
+            actual_input_data += "DO NOT just repeat the instruction examples - extract actual values from the document!\n\n"
+        
         for param_name, param_value in input_data.items():
             if param_name == 'previous_data' and isinstance(param_value, dict):
                 # For previous_data, include the actual JSON data
