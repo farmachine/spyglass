@@ -1013,7 +1013,9 @@ function ValueEditor({
     // Add all values from current step that have a lower orderIndex
     step.values.forEach(v => {
       const vOrderIndex = v.orderIndex !== undefined ? v.orderIndex : step.values.indexOf(v);
+      console.log(`Checking value "${v.name}" with orderIndex ${vOrderIndex} against current ${currentOrderIndex}`);
       if (vOrderIndex < currentOrderIndex && v.id !== value.id) {
+        console.log(`  -> Adding "${v.name}" to available values`);
         availableValues.push({
           id: v.id, // Store the actual value ID
           valueId: v.id, // Explicit value ID for clarity
@@ -1409,16 +1411,10 @@ function ValueEditor({
                         </SelectTrigger>
                         <SelectContent>
                           {(() => {
-                            // Filter out the identifier value if this is a Data Table step
-                            let identifierValueId = null;
-                            if (step.type === 'list' && step.values[0]) {
-                              identifierValueId = step.values[0].id;
-                            }
-                            
+                            // Don't filter out any values - all columns should be referenceable
                             const currentValues = value.inputValues[param.id] || [];
                             const availableValues = getAvailableValues().filter(av => 
-                              av.id !== identifierValueId && // Exclude identifier (it's always included)
-                              !currentValues.includes(av.id) // Exclude already selected values
+                              !currentValues.includes(av.id) // Only exclude already selected values
                             );
                             
                             if (availableValues.length === 0) {
