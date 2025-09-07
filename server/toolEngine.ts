@@ -367,14 +367,27 @@ export class ToolEngine {
           // If the value is empty/null/undefined, check if it's being passed with a different key
           // This helps with value configurations that might not match tool parameter names exactly
           const possibleKeys = [
+            param.name,  // Try exact name first
             param.name.toLowerCase(),
             param.name.replace(/\s+/g, '_').toLowerCase(),
             param.name.replace(/\s+/g, ''),
+            param.name.replace(/\s+/g, '_'),  // Snake_Case
             'column',
             'Column',
             'column_name',
             'Column Name'
           ];
+          
+          // Also check for snake_case to Title Case conversion
+          if (param.name === 'member_info') {
+            possibleKeys.push('Member Info', 'member info', 'MemberInfo');
+          }
+          if (param.name === 'benefit_info') {
+            possibleKeys.push('Benefit Info', 'benefit info', 'BenefitInfo');
+          }
+          
+          console.log(`🔍 Looking for parameter ${param.name} with keys:`, possibleKeys);
+          console.log(`   Available keys in rawInputs:`, Object.keys(rawInputs).filter(k => !k.startsWith('__')));
           
           for (const key of possibleKeys) {
             if (rawInputs[key] !== undefined && rawInputs[key] !== null && rawInputs[key] !== '') {
@@ -388,6 +401,7 @@ export class ToolEngine {
           if (preparedInputs[param.name] === undefined) {
             preparedInputs[param.name] = '';
             console.log(`⚠️ No value found for parameter ${param.name}, setting to empty string`);
+            console.log(`   Debug: rawInputs keys:`, Object.keys(rawInputs));
           }
         }
       }
