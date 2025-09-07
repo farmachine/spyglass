@@ -506,6 +506,33 @@ export class ToolEngine {
     
     const preparedInputs = await this.prepareInputs(tool, inputs, forAI);
     
+    // Log detailed input data for debugging
+    console.log(`📊 DETAILED RAW INPUTS being sent to tool:`);
+    console.log('='.repeat(80));
+    Object.entries(preparedInputs).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        console.log(`📋 ${key}: Array with ${value.length} items`);
+        value.slice(0, 3).forEach((item, index) => {
+          if (typeof item === 'object') {
+            console.log(`   [${index}]: ${JSON.stringify(item)}`);
+          } else {
+            console.log(`   [${index}]: ${item}`);
+          }
+        });
+        if (value.length > 3) {
+          console.log(`   ... and ${value.length - 3} more items`);
+        }
+      } else if (typeof value === 'string' && value.length > 200) {
+        console.log(`📄 ${key}: String (${value.length} chars)`);
+        console.log(`   Preview: "${value.substring(0, 200)}..."`);
+      } else if (typeof value === 'object' && value !== null) {
+        console.log(`📝 ${key}: ${JSON.stringify(value)}`);
+      } else {
+        console.log(`📝 ${key}: ${value}`);
+      }
+    });
+    console.log('='.repeat(80));
+    
     // Route to appropriate handler
     if (tool.toolType === "AI_ONLY") {
       console.log(`   ✅ Routing to AI tool handler (testAITool)`);
