@@ -7466,8 +7466,28 @@ def extract_function(Column_Name, Excel_File):
                 }
               } else {
                 // Direct value (not UUIDs)
-                toolInputs[param.name] = configuredValue;
-                console.log(`✅ Mapped direct value to ${param.name}`);
+                // Check if this is an array with 'user_document' placeholder
+                if (Array.isArray(configuredValue) && configuredValue.includes('user_document')) {
+                  // Replace 'user_document' with actual document content
+                  const replacedValue = configuredValue.map(item => 
+                    item === 'user_document' && sessionDocumentContent 
+                      ? sessionDocumentContent 
+                      : item
+                  );
+                  
+                  // For Excel/file parameters with single item, extract the string
+                  if (replacedValue.length === 1 && typeof replacedValue[0] === 'string' && 
+                      (param.name.toLowerCase().includes('excel') || param.name.toLowerCase().includes('file'))) {
+                    toolInputs[param.name] = replacedValue[0];
+                    console.log(`✅ Mapped Excel file content to ${param.name} (${replacedValue[0].length} chars)`);
+                  } else {
+                    toolInputs[param.name] = replacedValue;
+                    console.log(`✅ Mapped replaced array to ${param.name}`);
+                  }
+                } else {
+                  toolInputs[param.name] = configuredValue;
+                  console.log(`✅ Mapped direct value to ${param.name}`);
+                }
               }
             } else {
               // Single value
@@ -7810,8 +7830,28 @@ def extract_function(Column_Name, Excel_File):
                 }
               } else {
                 // Direct value (not UUIDs)
-                toolInputs[param.name] = configuredValue;
-                console.log(`✅ Mapped direct value to ${param.name}`);
+                // Check if this is an array with 'user_document' placeholder
+                if (Array.isArray(configuredValue) && configuredValue.includes('user_document')) {
+                  // Replace 'user_document' with actual document content
+                  const replacedValue = configuredValue.map(item => 
+                    item === 'user_document' && sessionDocumentContent 
+                      ? sessionDocumentContent 
+                      : item
+                  );
+                  
+                  // For Excel/file parameters with single item, extract the string
+                  if (replacedValue.length === 1 && typeof replacedValue[0] === 'string' && 
+                      (param.name.toLowerCase().includes('excel') || param.name.toLowerCase().includes('file'))) {
+                    toolInputs[param.name] = replacedValue[0];
+                    console.log(`✅ Mapped Excel file content to ${param.name} (${replacedValue[0].length} chars)`);
+                  } else {
+                    toolInputs[param.name] = replacedValue;
+                    console.log(`✅ Mapped replaced array to ${param.name}`);
+                  }
+                } else {
+                  toolInputs[param.name] = configuredValue;
+                  console.log(`✅ Mapped direct value to ${param.name}`);
+                }
               }
             } else {
               // Single value
