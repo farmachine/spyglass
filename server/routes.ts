@@ -3332,7 +3332,7 @@ except Exception as e:
         documents: convertedFiles
       };
       
-      const python = spawn('python3', ['services/extraction_wizardry.py']);
+      const python = spawn('python3', ['services/document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
       python.stdin.end();
