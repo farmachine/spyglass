@@ -6595,6 +6595,7 @@ Thank you for your assistance.`;
               const requestPayload = {
                 stepId: workflowStep.id,
                 valueId: valueId,
+                valueName: valueName, // Include value name as fallback for ID mismatch
                 previousData: fullPreviousData, // Send FULL data, not filtered/display data
                 documentId: documentId
               };
