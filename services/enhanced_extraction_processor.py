@@ -469,7 +469,15 @@ Your response must maintain the identifierId mapping for all processed items.
                     continue
                 else:
                     # This is an instruction text, include it
-                    value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
+                    # Check if the instruction contains examples and clarify they are ONLY examples
+                    if 'e.g.' in param_value or 'for example' in param_value.lower():
+                        # Add clarification that examples are for format only
+                        value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
+                        value_config += "\n  IMPORTANT: The 'e.g.' items above are ONLY FORMAT EXAMPLES to show the desired output structure."
+                        value_config += "\n  You must extract ALL matching items from the document, not just these examples."
+                        value_config += "\n  Search the ENTIRE document and return EVERY item that matches the criteria."
+                    else:
+                        value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
                     has_instructions = True
             elif isinstance(param_value, list):
                 # Handle array-based instructions
