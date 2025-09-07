@@ -1,0 +1,1714 @@
+from typing import Optional, List, Dict, Any
+import pandas as pd
+from fastapi import HTTPException
+import numpy as np
+from typing import Any, Dict, List, Optional, Iterable
+
+
+
+def _to_safe_list(x, limit=200):
+    lst = list(x)
+    return lst[:limit] + (["...(+truncated)"] if len(lst) > limit else [])
+
+
+def _to_text(v) -> str:
+    # Normalize to a user-friendly text value
+    import numpy as np
+    import pandas as pd
+    if v is None:
+        return ""
+    try:
+        if isinstance(v, (np.integer, np.floating)):
+            return str(v.item())
+    except Exception:
+        pass
+    try:
+        if isinstance(v, (pd.Timestamp, np.datetime64)):
+            return pd.to_datetime(v).isoformat()
+    except Exception:
+        pass
+    # Treat NaN as empty
+    try:
+        if pd.isna(v):  # works for pandas/NumPy NaN
+            return ""
+    except Exception:
+        pass
+    return str(v)
+
+
+def tool_date_is_before(book: Dict[str, pd.DataFrame],
+                        sheet: Optional[str],
+                        first_column: str,
+                        second_column: str,
+                        allow_equal: bool = False,
+                        dayfirst: bool = False,
+                        yearfirst: bool = False,
+                        rows_limit: int = 200) -> Dict[str, Any]:
+    """
+    Compare two date columns row-by-row and check if the date in the first column
+    is strictly before (or before-or-equal if allow_equal=True) the date in the second column.
+
+    Returns a summary similar to tool_add_and_compare:
+      - total_rows, matching_rows, mismatching_rows
+      - sample_mismatches: list of row dicts (truncated)
+      - plus parsing diagnostics
+    """
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+
+    df = book[sheet].copy()
+
+    missing = [c for c in [first_column, second_column] if c not in df.columns]
+    if missing:
+        raise HTTPException(status_code=422, detail=f"Columns not found: {missing}")
+
+    # Parse to datetime
+    c1 = pd.to_datetime(df[first_column], errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+    c2 = pd.to_datetime(df[second_column], errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+
+    # Build mask for rows where both dates are valid
+    valid_mask = c1.notna() & c2.notna()
+
+    # Comparison (strict or inclusive)
+    if allow_equal:
+        cmp_mask = c1 <= c2
+    else:
+        cmp_mask = c1 < c2
+
+    # For rows with invalid dates, treat as mismatch (conservative)
+    match_mask = valid_mask & cmp_mask
+
+    total = len(df)
+    matches = int(match_mask.sum())
+    mismatches_mask = ~match_mask
+
+    # Prepare a compact sample of mismatches
+    sample_cols = [first_column, second_column]
+    sample = df.loc[mismatches_mask, sample_cols].copy()
+    # Add helper columns for clarity
+    sample["_parsed_first"] = c1[mismatches_mask]
+    sample["_parsed_second"] = c2[mismatches_mask]
+    sample["_reason"] = ""
+    sample.loc[mismatches_mask & ~valid_mask, "_reason"] = "unparsed_date"
+    sample.loc[mismatches_mask & valid_mask & ~cmp_mask, "_reason"] = (
+        "not_before_or_equal" if allow_equal else "not_before"
+    )
+
+    def _to_iso(val):
+        try:
+            # pandas Timestamp or datetime
+            return val.isoformat() if pd.notna(val) else None
+        except Exception:
+            return str(val) if pd.notna(val) else None
+
+    for col in [first_column, second_column, "_parsed_first", "_parsed_second"]:
+        if col in sample.columns:
+            sample[col] = sample[col].apply(_to_iso)
+            
+    return {
+        "sheet": sheet,
+        "first_column": first_column,
+        "second_column": second_column,
+        "allow_equal": bool(allow_equal),
+        "total_rows": int(total),
+        "matching_rows": matches,
+        "mismatching_rows": int(total - matches),
+        "unparsed_in_first": int(c1.isna().sum()),
+        "unparsed_in_second": int(c2.isna().sum()),
+        "sample_mismatches": _to_safe_list(sample.to_dict("records"), limit=rows_limit)
+    }
+
+def tool_missing_fields_in_table(
+    book: Dict[str, pd.DataFrame],
+    sheet: Optional[str],
+    reference_column: str,
+    data_start_row: int,
+    data_start_col: int,
+    data_rows: int,
+    data_cols: int,
+    treat_empty_as_missing: bool = True,
+    rows_limit: int = 200,
+    header_mode: str = "auto" 
+) -> Dict[str, Any]:
+    """
+    Scan a rectangular table region within a worksheet and report, for each data row,
+    which header fields are missing along with the row's reference value.
+
+    - The first row of the region is treated as the header row.
+    - All subsequent rows are treated as data rows.
+    - 'reference_column' is read from the full sheet at the same absolute row index.
+
+    Returns:
+      {
+        sheet, reference_column, region: {...},
+        total_data_rows, rows_with_missing, rows_complete,
+        sample_missing_rows: [
+          {
+            "row_index": <absolute row index in sheet>,
+            "reference_value": <value from reference_column>,
+            "missing_fields": [<header names with missing>]
+          }, ...
+        ],
+        missing_count_by_field: { header -> count }
+      }
+    """
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+
+    if data_rows <= 0 or data_cols <= 0:
+        raise HTTPException(status_code=422, detail="data_rows and data_cols must be positive integers.")
+
+    df = book[sheet]
+
+    # Validate bounds
+    max_rows, max_cols = len(df), len(df.columns)
+    if not (0 <= data_start_row < max_rows):
+        raise HTTPException(status_code=422, detail=f"data_start_row out of bounds: {data_start_row}")
+    if not (0 <= data_start_col < max_cols):
+        raise HTTPException(status_code=422, detail=f"data_start_col out of bounds: {data_start_col}")
+    if data_start_row + data_rows > max_rows:
+        raise HTTPException(status_code=422, detail="Table region exceeds worksheet row count.")
+    if data_start_col + data_cols > max_cols:
+        raise HTTPException(status_code=422, detail="Table region exceeds worksheet column count.")
+
+    if reference_column not in df.columns:
+        raise HTTPException(status_code=422, detail=f"Reference column not found: {reference_column}")
+
+    # Slice the region; keep original index so we can look up reference values
+    region = df.iloc[
+        data_start_row : data_start_row + data_rows,
+        data_start_col : data_start_col + data_cols
+    ].copy()
+
+    if region.empty:
+        return {
+            "sheet": sheet,
+            "reference_column": reference_column,
+            "region": {
+                "data_start_row": data_start_row,
+                "data_start_col": data_start_col,
+                "data_rows": data_rows,
+                "data_cols": data_cols
+            },
+            "total_data_rows": 0,
+            "rows_with_missing": 0,
+            "rows_complete": 0,
+            "sample_missing_rows": [],
+            "missing_count_by_field": {}
+        }
+
+    # First, build a Series for df.columns covering the region (if possible)
+    try:
+        cols_in_region = list(df.columns[data_start_col : data_start_col + data_cols])
+    except Exception:
+        cols_in_region = None
+
+    # Decide header source
+    use_columns_header = False
+    if header_mode == "columns":
+        use_columns_header = True
+    elif header_mode == "first_row":
+        use_columns_header = False
+    else:
+        # auto: if df.columns look like real headers (not 0..N) OR they
+        # match region's first row poorly, prefer columns; otherwise first_row
+        if cols_in_region is not None:
+            # Heuristic: if at least half the items in cols_in_region are non-empty strings
+            # and differ from the first data row values, treat them as real headers
+            first_row_vals = region.iloc[0].astype(str).str.strip().tolist()
+            cols_clean = [str(c).strip() for c in cols_in_region]
+            # measure overlap
+            overlap = len(set(cols_clean) & set(first_row_vals))
+            non_empty_cols = sum(1 for c in cols_clean if c not in ("", "nan", "None"))
+            use_columns_header = (non_empty_cols >= max(2, data_cols // 2)) and (overlap < data_cols * 0.4)
+        else:
+            use_columns_header = False
+
+    if use_columns_header and cols_in_region is not None:
+        # Header comes from dataframe columns
+        headers = [str(h).strip() if h is not None else "" for h in cols_in_region]
+        data_region = region.copy()  # all rows are data rows
+    else:
+        # Header is the first row inside the region
+        header_series = region.iloc[0]
+        headers = [str(h).strip() if pd.notna(h) else "" for h in header_series.tolist()]
+        data_region = region.iloc[1:].copy()
+
+    # Deduplicate empty/duplicate headers to avoid collisions
+    seen = {}
+    canon_headers = []
+    for h in headers:
+        base = h or "Unnamed"
+        count = seen.get(base, 0)
+        canon = base if count == 0 else f"{base}.{count}"
+        seen[base] = count + 1
+        canon_headers.append(canon)
+
+    # Data rows are after header
+    data_region = region.iloc[1:].copy()
+    data_region.columns = canon_headers  # set column names to header
+
+    # Build mask of missing values per cell
+    data_check = data_region.copy()
+    if treat_empty_as_missing:
+        # Normalize empty strings to NaN before checking
+        for col in data_check.columns:
+            data_check[col] = data_check[col].replace("", pd.NA)
+
+    is_missing = data_check.isna()
+
+    results = []
+    missing_count_by_field = {h: 0 for h in canon_headers}
+
+    for abs_idx, row in data_region.iterrows():
+        # fields missing on this row
+        missing_fields = [col for col in canon_headers if pd.isna(data_check.at[abs_idx, col])]
+        if missing_fields:
+            # tally per field
+            for f in missing_fields:
+                missing_count_by_field[f] += 1
+            ref_val = df.at[abs_idx, reference_column] if abs_idx in df.index else None
+            results.append({
+                "row_index": int(abs_idx),
+                "reference_value": None if pd.isna(ref_val) else _to_text(ref_val),
+                "missing_fields": missing_fields
+            })
+
+    total_data_rows = len(data_region)
+    rows_with_missing = len(results)
+    rows_complete = total_data_rows - rows_with_missing
+
+    return {
+        "sheet": sheet,
+        "reference_column": reference_column,
+        "region": {
+            "data_start_row": data_start_row,
+            "data_start_col": data_start_col,
+            "data_rows": data_rows,
+            "data_cols": data_cols
+        },
+        "total_data_rows": int(total_data_rows),
+        "rows_with_missing": int(rows_with_missing),
+        "rows_complete": int(rows_complete),
+        "sample_missing_rows": _to_safe_list(results, limit=rows_limit),
+        "missing_count_by_field": {k: int(v) for k, v in missing_count_by_field.items()}
+    }
+
+def tool_missing_fields_in_columns(
+    book: Dict[str, pd.DataFrame],
+    sheet: Optional[str],
+    search_columns: List[str],
+    reference_column: str,
+    treat_empty_as_missing: bool = True,
+    rows_limit: int = 200
+) -> Dict[str, Any]:
+    """
+    For the given sheet, check only the columns listed in `search_columns`.
+    Return rows where one or more of those columns are missing, along with the row's
+    reference value (from `reference_column`) as text.
+
+    Output:
+      {
+        sheet, reference_column, searched_columns: [...],
+        total_rows, rows_with_missing, rows_complete,
+        sample_missing_rows: [
+          { "row_index": <abs row idx>, "reference_value": "<text>", "missing_fields": [ ... ] },
+          ...
+        ],
+        missing_count_by_field: { column_name -> count }
+      }
+    """
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+    df = book[sheet]
+
+    # Basic validation
+    if not search_columns or not isinstance(search_columns, list):
+        raise HTTPException(status_code=422, detail="search_columns must be a non-empty array of column names.")
+    if reference_column not in df.columns:
+        # try case-insensitive exact match for ref col
+        cand = [c for c in df.columns if c.lower() == reference_column.lower()]
+        if cand:
+            reference_column = cand[0]
+        else:
+            raise HTTPException(status_code=422, detail=f"Reference column not found: {reference_column}")
+
+    # Resolve search columns with case-insensitive exact match fallback
+    resolved = []
+    missing = []
+    for col in search_columns:
+        if col in df.columns:
+            resolved.append(col)
+            continue
+        cands = [c for c in df.columns if c.lower() == str(col).lower()]
+        if cands:
+            resolved.append(cands[0])
+        else:
+            missing.append(col)
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Columns not found: {missing}. Available columns: {list(df.columns)}"
+        )
+
+    # Work copy for missing detection
+    data_check = df[resolved].copy()
+
+    # Treat empty/whitespace strings as missing if requested
+    if treat_empty_as_missing:
+        for col in resolved:
+            data_check[col] = data_check[col].replace(r"^\s*$", pd.NA, regex=True)
+
+    # Helper: convert any scalar to friendly text
+    def _to_text(v) -> str:
+        try:
+            import numpy as np
+            import pandas as pd
+            if v is None:
+                return ""
+            if isinstance(v, (np.integer, np.floating)):
+                return str(v.item())
+            if isinstance(v, (pd.Timestamp, np.datetime64)):
+                return pd.to_datetime(v).isoformat()
+            if pd.isna(v):
+                return ""
+        except Exception:
+            pass
+        return str(v)
+
+    # Find rows where any of the searched columns are missing
+    is_missing = data_check.isna()
+    any_missing_mask = is_missing.any(axis=1)
+
+    results = []
+    missing_count_by_field: Dict[str, int] = {c: 0 for c in resolved}
+
+    for abs_idx in data_check.index[any_missing_mask]:
+        row_missing_cols = [c for c in resolved if pd.isna(data_check.at[abs_idx, c])]
+        for c in row_missing_cols:
+            missing_count_by_field[c] += 1
+        ref_val = df.at[abs_idx, reference_column] if abs_idx in df.index else None
+        results.append({
+            "row_index": int(abs_idx),
+            "reference_value": _to_text(ref_val),
+            "missing_fields": row_missing_cols
+        })
+
+    total_rows = len(df)
+    rows_with_missing = len(results)
+    rows_complete = total_rows - rows_with_missing
+
+    return {
+        "sheet": sheet,
+        "reference_column": reference_column,
+        "searched_columns": resolved,
+        "total_rows": int(total_rows),
+        "rows_with_missing": int(rows_with_missing),
+        "rows_complete": int(rows_complete),
+        "sample_missing_rows": _to_safe_list(results, limit=rows_limit),
+        "missing_count_by_field": {k: int(v) for k, v in missing_count_by_field.items()}
+    }
+
+# ------------------- LLM-exposed Spreadsheet Tools -------------------
+def tool_get_worksheet_names(book: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+    return {"worksheets": list(book.keys())}
+
+def tool_get_headers(book: Dict[str, pd.DataFrame], sheet: Optional[str] = None) -> Dict[str, Any]:
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+    return {"sheet": sheet, "headers": list(book[sheet].columns)}
+
+def tool_unique_values(book: Dict[str, pd.DataFrame], sheet: Optional[str], column: Optional[str], limit: int = 50) -> Dict[str, Any]:
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+    df = book[sheet]
+    if column is None:
+        raise HTTPException(status_code=422, detail="Column is required for unique_values.")
+    
+    # If column not found, try to find a similar column or use first column
+    if column not in df.columns:
+        # Try case-insensitive match
+        matching_cols = [col for col in df.columns if col.lower() == column.lower()]
+        if matching_cols:
+            column = matching_cols[0]
+        else:
+            # Try partial match
+            matching_cols = [col for col in df.columns if column.lower() in col.lower()]
+            if matching_cols:
+                column = matching_cols[0]
+            else:
+                # If still no match and it's a generic request, use first column
+                if column in ["first_column", "any_column"]:
+                    column = str(df.columns[0])
+                else:
+                    available_cols = list(df.columns)
+                    raise HTTPException(status_code=422, detail=f"Column not found: {column}. Available columns: {available_cols}")
+    
+    uniques = df[column].dropna().astype(str).unique().tolist()
+    return {"sheet": sheet, "column": column, "unique_values": _to_safe_list(uniques, limit=limit), "total_unique": len(uniques)}
+
+def tool_add_and_compare(book: Dict[str, pd.DataFrame],
+                         sheet: Optional[str],
+                         add_columns: List[str],
+                         compare_to: str,
+                         tolerance: float = 0.0,
+                         rows_limit: int = 200) -> Dict[str, Any]:
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+    df = book[sheet].copy()
+    missing = [c for c in add_columns + [compare_to] if c not in df.columns]
+    if missing:
+        raise HTTPException(status_code=422, detail=f"Columns not found: {missing}")
+    for c in add_columns + [compare_to]:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    df["_sum"] = df[add_columns].sum(axis=1, skipna=False)
+    df["_diff"] = df["_sum"] - df[compare_to]
+    df["_abs_diff"] = df["_diff"].abs()
+    df["_match"] = df["_abs_diff"] <= tolerance
+    matches = df["_match"].sum()
+    total = len(df)
+    mismatches = df[~df["_match"]]
+    return {
+        "sheet": sheet,
+        "add_columns": add_columns,
+        "compare_to": compare_to,
+        "tolerance": tolerance,
+        "total_rows": total,
+        "matching_rows": int(matches),
+        "mismatching_rows": int(total - matches),
+        "sample_mismatches": _to_safe_list(mismatches.to_dict("records"), limit=rows_limit)  # type: ignore
+    }
+
+def tool_find_threshold_failures_conditional(
+    book: Dict[str, pd.DataFrame],
+    sheet: Optional[str],
+    target_column: str,
+    reference_column: str,
+    type_of_threshold: str,
+    threshold_values: Any,
+    conditional_fields: Optional[List[Dict[str, Any]]] = None,
+    treat_empty_as_missing: bool = True,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
+    case_insensitive_set: bool = True,
+    rows_limit: int = 200
+) -> Dict[str, Any]:
+    """
+    Return rows that FAIL a threshold test on `target_column`, but ONLY among rows that
+    SATISFY *all* optional conditional predicates provided in `conditional_fields`.
+
+    Threshold types supported (for target and each condition):
+      - "exceeds a value"       -> value > threshold (number or date)
+      - "is less than a value"  -> value < threshold (number or date)
+      - "is not in the range"   -> value not in [min, max] (numbers or dates, inclusive)
+      - "has the wrong data type" -> value NOT of the declared type (number|integer|date|string|boolean)
+      - "is not in the closed set" -> value NOT in a provided set (strings and/or numbers)
+
+    Parameters
+      - conditional_fields: optional list of {"column", "type_of_threshold", "threshold_values"}
+
+    Returns
+      {
+        sheet, target_column, reference_column, type_of_threshold, threshold_values,
+        total_rows_checked, conditional_filters_applied: <n>,
+        failures_count,
+        sample_failures: [
+          { row_index, reference_value, target_value, reason }
+        ],
+        failure_breakdown: { reason -> count },
+        applied_conditions: [
+          { column, type_of_threshold, threshold_values, matched_rows }
+        ]
+      }
+    """
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+
+    df = book[sheet]
+
+    # ---- helpers ---------------------------------------------------------
+    def _to_text(v) -> str:
+        """Convert any scalar to clean text for JSON/display."""
+        try:
+            import numpy as np
+            if v is None:
+                return ""
+            if isinstance(v, (np.integer, np.floating)):
+                return str(v.item())
+        except Exception:
+            pass
+        try:
+            if isinstance(v, (pd.Timestamp, np.datetime64)):
+                return pd.to_datetime(v).isoformat()
+        except Exception:
+            pass
+        try:
+            if pd.isna(v):
+                return ""
+        except Exception:
+            pass
+        return str(v)
+
+    def _as_numeric_series(s: pd.Series) -> pd.Series:
+        return pd.to_numeric(s, errors="coerce")
+
+    def _as_datetime_series(s: pd.Series) -> pd.Series:
+        return pd.to_datetime(s, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+
+    def _is_date_like_threshold(v: Any) -> bool:
+        try:
+            pv = pd.to_datetime([v], errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)[0]
+            return not pd.isna(pv)
+        except Exception:
+            return False
+
+    def _normalize_closed_set(values: Iterable[Any]) -> set:
+        out = set()
+        for x in values:
+            sx = _to_text(x)
+            out.add(sx.lower() if case_insensitive_set else sx)
+        return out
+
+    def _series_predicate(
+        series: pd.Series, ttype: str, thr: Any
+    ) -> pd.Series:
+        """
+        Return a boolean Series that is True when the predicate is SATISFIED.
+        (Used for *conditions* filtering.)
+        """
+        t = (ttype or "").strip().lower()
+
+        # Treat blanks if requested
+        s = series.copy()
+        if treat_empty_as_missing:
+            s = s.replace(r"^\s*$", pd.NA, regex=True)
+
+        if t in ("exceeds a value", "is less than a value", "is not in the range"):
+            # auto: numeric if possible, else date if threshold/date parse succeeds
+            use_date = _is_date_like_threshold(thr)
+            if t == "is not in the range":
+                try:
+                    lo, hi = thr
+                except Exception:
+                    raise HTTPException(status_code=422, detail="Range condition requires [min, max].")
+                use_date = use_date or (_is_date_like_threshold(lo) and _is_date_like_threshold(hi))
+                if use_date:
+                    sdt = _as_datetime_series(s)
+                    lo = pd.to_datetime(lo, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                    hi = pd.to_datetime(hi, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                    ok = sdt.notna() & (sdt >= lo) & (sdt <= hi)
+                else:
+                    snum = _as_numeric_series(s)
+                    lo = float(lo); hi = float(hi)
+                    if lo > hi: lo, hi = hi, lo
+                    ok = snum.notna() & (snum >= lo) & (snum <= hi)
+                return ok
+
+            # single value comparisons
+            if use_date:
+                sdt = _as_datetime_series(s)
+                thr_dt = pd.to_datetime(thr, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                if t == "exceeds a value":
+                    return sdt.notna() & (sdt > thr_dt)
+                else:
+                    return sdt.notna() & (sdt < thr_dt)
+            else:
+                snum = _as_numeric_series(s)
+                thr_num = float(thr)
+                if t == "exceeds a value":
+                    return snum.notna() & (snum > thr_num)
+                else:
+                    return snum.notna() & (snum < thr_num)
+
+        elif t == "has the wrong data type":
+            kind = str(thr).strip().lower()
+            valid = {"number", "integer", "date", "string", "boolean"}
+            if kind not in valid:
+                raise HTTPException(status_code=422, detail=f"Type must be one of {sorted(valid)}.")
+            pred = pd.Series(False, index=series.index)
+            if kind == "number":
+                pred = _as_numeric_series(series).notna()
+            elif kind == "integer":
+                v = _as_numeric_series(series)
+                pred = v.notna() & v.apply(lambda x: float(x).is_integer())
+            elif kind == "date":
+                pred = _as_datetime_series(series).notna()
+            elif kind == "boolean":
+                lowered = series.astype(str).str.strip().str.lower()
+                pred = lowered.isin(["true","false","yes","no","y","n","1","0"])
+            else:  # "string"
+                pred = series.astype(object).apply(lambda x: isinstance(x, str) or (isinstance(x, (pd.Timestamp, np.datetime64)) or not pd.isna(x)))
+            # For "has the wrong data type", "satisfies" means: value HAS the wrong type.
+            # So invert the 'ok' type mask.
+            return ~pred
+
+        elif t == "is not in the closed set":
+            try:
+                allowed = list(thr)
+            except Exception:
+                raise HTTPException(status_code=422, detail="Closed set requires a list of allowed values.")
+            allowed_norm = _normalize_closed_set(allowed)
+            vals = series.astype(object).apply(_to_text)
+            keys = vals.str.lower() if case_insensitive_set else vals
+            # "satisfies" means: IS NOT in the set
+            return ~keys.isin(allowed_norm)
+
+        else:
+            raise HTTPException(status_code=422, detail=f"Unknown threshold type: {ttype}")
+
+    def _series_failure_mask(series: pd.Series, ttype: str, thr: Any) -> pd.Series:
+        """
+        For the TARGET column, return True where the value FAILS the rule (i.e., is an error).
+        This mirrors your original tool semantics.
+        """
+        t = (ttype or "").strip().lower()
+
+        s = series.copy()
+        if treat_empty_as_missing:
+            s = s.replace(r"^\s*$", pd.NA, regex=True)
+
+        if t in ("exceeds a value", "is less than a value", "is not in the range"):
+            use_date = _is_date_like_threshold(thr)
+            if t == "is not in the range":
+                try:
+                    lo, hi = thr
+                except Exception:
+                    raise HTTPException(status_code=422, detail="Range requires [min, max].")
+                use_date = use_date or (_is_date_like_threshold(lo) and _is_date_like_threshold(hi))
+                if use_date:
+                    sdt = _as_datetime_series(s)
+                    lo = pd.to_datetime(lo, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                    hi = pd.to_datetime(hi, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                    return sdt.isna() | ~((sdt >= lo) & (sdt <= hi))
+                else:
+                    snum = _as_numeric_series(s)
+                    lo = float(lo); hi = float(hi)
+                    if lo > hi: lo, hi = hi, lo
+                    return snum.isna() | ~((snum >= lo) & (snum <= hi))
+
+            if use_date:
+                sdt = _as_datetime_series(s)
+                thr_dt = pd.to_datetime(thr, errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+                if t == "exceeds a value":
+                    return sdt.isna() | (sdt > thr_dt)
+                else:  # less than
+                    return sdt.isna() | (sdt < thr_dt)
+            else:
+                snum = _as_numeric_series(s)
+                thr_num = float(thr)
+                if t == "exceeds a value":
+                    return snum.isna() | (snum > thr_num)
+                else:
+                    return snum.isna() | (snum < thr_num)
+
+        elif t == "has the wrong data type":
+            # Failure = WRONG type
+            return _series_predicate(series, ttype, thr)
+
+        elif t == "is not in the closed set":
+            # Failure = NOT in allowed set
+            return _series_predicate(series, ttype, thr)
+
+        else:
+            raise HTTPException(status_code=422, detail=f"Unknown threshold type: {ttype}")
+
+    # ---- validate columns & build data -----------------------------------
+    for col in [target_column, reference_column]:
+        if col not in df.columns:
+            # case-insensitive exact fallback
+            cands = [c for c in df.columns if c.lower() == str(col).lower()]
+            if cands:
+                if col == target_column:
+                    target_column = cands[0]
+                else:
+                    reference_column = cands[0]
+            else:
+                raise HTTPException(status_code=422, detail=f"Column not found: {col}")
+
+    # Optional: validate condition columns
+    conds = conditional_fields or []
+    for cond in conds:
+        if "column" not in cond or "type_of_threshold" not in cond or "threshold_values" not in cond:
+            raise HTTPException(status_code=422, detail="Each conditional field must have 'column', 'type_of_threshold', and 'threshold_values'.")
+        c = cond["column"]
+        if c not in df.columns:
+            cands = [x for x in df.columns if x.lower() == str(c).lower()]
+            if cands:
+                cond["column"] = cands[0]
+            else:
+                raise HTTPException(status_code=422, detail=f"Conditional column not found: {c}")
+
+    # ---- build condition mask (rows that SATISFY ALL conditions) ----------
+    if len(conds) == 0:
+        cond_mask = pd.Series(True, index=df.index)
+        applied_conditions = []
+    else:
+        cond_mask = pd.Series(True, index=df.index)
+        applied_conditions = []
+        for cond in conds:
+            col = cond["column"]
+            ttype = cond["type_of_threshold"]
+            thr = cond["threshold_values"]
+            sat = _series_predicate(df[col], ttype, thr)   # True where condition holds
+            cond_mask = cond_mask & sat
+            applied_conditions.append({
+                "column": col,
+                "type_of_threshold": ttype,
+                "threshold_values": thr,
+                "matched_rows": int(sat.sum())
+            })
+
+    # ---- compute failures only within condition mask ----------------------
+    fail_mask = _series_failure_mask(df[target_column], type_of_threshold, threshold_values)
+    scoped_fail = cond_mask & fail_mask
+
+    failures = []
+    breakdown: Dict[str, int] = {}
+
+    # Reason strings (lightweight)
+    reason_label = (type_of_threshold or "").strip().lower()
+    label_map = {
+        "exceeds a value": "value_exceeds_threshold",
+        "is less than a value": "value_below_threshold",
+        "is not in the range": "not_in_range",
+        "has the wrong data type": "wrong_type",
+        "is not in the closed set": "not_in_closed_set",
+    }
+    base_reason = label_map.get(reason_label, reason_label)
+
+    for idx in df.index[scoped_fail]:
+        ref_val = df.at[idx, reference_column] if idx in df.index else None
+        failures.append({
+            "row_index": int(idx),
+            "reference_value": _to_text(ref_val),
+            "target_value": _to_text(df.at[idx, target_column]),
+            "reason": base_reason
+        })
+        breakdown[base_reason] = breakdown.get(base_reason, 0) + 1
+
+    total_rows = len(df)
+
+    return {
+        "sheet": sheet,
+        "target_column": target_column,
+        "reference_column": reference_column,
+        "type_of_threshold": type_of_threshold,
+        "threshold_values": threshold_values,
+        "total_rows_checked": int(total_rows),
+        "conditional_filters_applied": int(len(conds)),
+        "failures_count": int(len(failures)),
+        "sample_failures": _to_safe_list(failures, limit=rows_limit),
+        "failure_breakdown": {k: int(v) for k, v in breakdown.items()},
+        "applied_conditions": applied_conditions
+    }
+
+
+def tool_find_main_data_set(
+    book: Dict[str, pd.DataFrame],
+    sheet: Optional[str] = None,
+    # --- Tunables for the LLM (all optional) ---
+    max_scan_rows: int = 500,            # cap rows scanned for speed
+    min_header_nonnull: int = 3,         # header row must have at least this many non-nulls
+    lookahead_rows_for_header: int = 5,  # how many rows below header to test coherence
+    min_overlap_next_rows: float = 0.6,  # share of header-marked cols that remain present in lookahead
+    min_col_completeness: float = 0.6,   # per-column completeness across lookahead rows
+    min_row_completeness: float = 0.6,   # per-row completeness across chosen columns when growing downward
+    allow_row_gaps: int = 2,             # permitted consecutive “bad” rows before stopping
+    min_active_nonnull_row: int = 2,     # used when trimming: row must have at least this many non-nulls
+    min_active_nonnull_col: int = 2,     # used when trimming: column must have at least this many non-nulls
+    prefer_header_span: bool = True,
+    max_sparse_header_cols: int = 5
+) -> Dict[str, Any]:
+    """Find the main data area in a worksheet by detecting the most coherent, dense rectangular table region."""
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+
+    df = book[sheet]
+    if df.empty or len(df.columns) == 0:
+        return {
+            "sheet": sheet, "data_start_row": 0, "data_start_col": 0,
+            "data_rows": 0, "data_cols": 0, "message": "No data found in worksheet"
+        }
+
+    # Limits — scan more rows than before, but cap for speed
+    max_rows = min(int(max_scan_rows), len(df))
+    max_cols = len(df.columns)
+    work = df.iloc[:max_rows, :].copy()
+    # Treat empty/whitespace strings as NA for blank detection
+    work_norm = work.replace(r"^\s*$", pd.NA, regex=True)
+
+    # Remove fully blank rows/columns (preserve maps to original positions)
+    row_all_na = work_norm.isna().all(axis=1)
+    col_all_na = work_norm.isna().all(axis=0)
+
+    r_keep_mask = ~row_all_na
+    c_keep_mask = ~col_all_na
+
+    if not r_keep_mask.any() or not c_keep_mask.any():
+        return {
+            "sheet": sheet, "data_start_row": 0, "data_start_col": 0,
+            "data_rows": 0, "data_cols": 0, "message": "Only blank rows/columns found"
+        }
+
+    # Maps from filtered space -> original sheet coordinates
+    r_map = work.index[r_keep_mask].to_list()
+    c_map = [i for i, keep in enumerate(c_keep_mask.tolist()) if keep]
+
+    work = work.iloc[r_keep_mask.values, c_keep_mask.values].copy()
+    work_norm = work_norm.iloc[r_keep_mask.values, c_keep_mask.values].copy()
+
+    # First pass: trim outer sparse bands to reduce noise
+    row_nonnull = work_norm.notna().sum(axis=1)
+    col_nonnull = work_norm.notna().sum(axis=0)
+
+    def first_idx_where(s, cond):
+        idx = s.index[cond].tolist()
+        return (idx[0] if idx else None)
+
+    def last_idx_where(s, cond):
+        idx = s.index[cond].tolist()
+        return (idx[-1] if idx else None)
+
+    r_start = first_idx_where(row_nonnull, row_nonnull >= int(min_active_nonnull_row)) or 0
+    r_end   = last_idx_where(row_nonnull, row_nonnull >= int(min_active_nonnull_row)) or (len(work) - 1)
+    active_col_pos = np.where(col_nonnull.values >= int(min_active_nonnull_col))[0]
+    if active_col_pos.size == 0:
+        return {
+            "sheet": sheet, "data_start_row": 0, "data_start_col": 0,
+            "data_rows": 0, "data_cols": 0, "message": "No substantial columns detected"
+        }
+    c_start = int(active_col_pos[0])
+    c_end   = int(active_col_pos[-1])
+
+    window = work.iloc[r_start:r_end+1, c_start:c_end+1].copy()
+    if window.empty:
+        return {
+            "sheet": sheet, "data_start_row": 0, "data_start_col": 0,
+            "data_rows": 0, "data_cols": 0, "message": "No data found in trimmed window"
+        }
+
+    nn = window.notna()
+    row_counts = nn.sum(axis=1)
+
+    # Identify a header candidate: overlap with next rows beats raw density
+    header_row_rel = None
+    best_score = -1.0
+    for r_rel, cnt in row_counts.items():
+        if cnt < int(min_header_nonnull):
+            continue
+        header_cols_mask = nn.iloc[r_rel]
+        lookahead_end = min(window.shape[0], r_rel + 1 + int(lookahead_rows_for_header))
+        la = nn.iloc[r_rel+1:lookahead_end]
+        if la.empty or not header_cols_mask.any():
+            continue
+
+        col_completeness = la.loc[:, header_cols_mask].mean(axis=0)
+        if col_completeness.empty:
+            continue
+
+        # Row-offset penalty: prefer earlier rows when scores are similar
+        row_offset = r_rel  # 0-based within the trimmed window
+        score = (
+            float(col_completeness.mean()) * (1.0 + 0.05 * int(header_cols_mask.sum()))
+            - 0.002 * float(row_offset)  # small penalty per row down
+        )
+
+        if score > best_score and (col_completeness >= float(min_col_completeness)).mean() >= float(min_overlap_next_rows):
+            header_row_rel = int(r_rel)
+            best_score = score
+    
+    # Nudge: if row 0 is nearly as good as the chosen header, pick row 0
+    if header_row_rel is not None and header_row_rel != 0:
+        r0 = 0
+        header_mask_r0 = nn.iloc[r0]
+        la_end_r0 = min(window.shape[0], r0 + 1 + int(lookahead_rows_for_header))
+        la_r0 = nn.iloc[r0+1:la_end_r0]
+        if header_mask_r0.any() and not la_r0.empty:
+            cc_r0 = la_r0.loc[:, header_mask_r0].mean(axis=0)
+            score_r0 = (
+                float(cc_r0.mean()) * (1.0 + 0.05 * int(header_mask_r0.sum()))
+                - 0.002 * 0.0  # no row penalty for top row
+            )
+            # If top-row score is close (within ~5%) of the best, prefer top
+            if score_r0 >= 0.95 * best_score:
+                header_row_rel = 0
+                best_score = score_r0
+
+
+    if header_row_rel is None:
+        header_row_rel = int(row_counts.idxmax())
+
+    # Choose longest contiguous block of mostly-complete columns
+    la2_end = min(window.shape[0], header_row_rel + 1 + int(lookahead_rows_for_header))
+    la2 = nn.iloc[header_row_rel+1:la2_end]
+    header_mask = nn.iloc[header_row_rel].copy()   # True where header cell is non-null
+
+    if not la2.empty:
+        # Columns “strong in data”: appear in >= min_col_completeness of lookahead rows
+        strong_cols = (la2.mean(axis=0) >= float(min_col_completeness)).to_numpy()
+    else:
+        strong_cols = np.zeros(window.shape[1], dtype=bool)
+
+    header_cols = header_mask.to_numpy()
+
+    # A column is "sparse header" if header has a value but lookahead data is weak
+    sparse_header = header_cols & ~strong_cols
+
+    # Build an eligible mask:
+    # - If prefer_header_span: keep only columns where header exists; within that,
+    #   allow up to `max_sparse_header_cols` consecutive sparse columns while forming the block.
+    # - Else (strict data persistence): keep columns that are both header & strong.
+    if prefer_header_span:
+        eligible = header_cols.copy()
+
+        # Find the best contiguous run in `eligible`, but allow up to K consecutive sparse_header
+        K = int(max_sparse_header_cols)
+
+        best_len = 0
+        best_start = None
+        curr_start = None
+        curr_len = 0
+        consec_sparse = 0
+
+        for j in range(len(eligible)):
+            if not eligible[j]:
+                # break the run entirely
+                if curr_len > best_len:
+                    best_len, best_start = curr_len, curr_start
+                curr_start = None
+                curr_len = 0
+                consec_sparse = 0
+                continue
+
+            # eligible[j] == True
+            if curr_start is None:
+                curr_start = j
+                curr_len = 1
+                consec_sparse = 1 if sparse_header[j] else 0
+            else:
+                # extend, but enforce at most K consecutive sparse columns
+                if sparse_header[j]:
+                    consec_sparse += 1
+                    if consec_sparse > K:
+                        # finish prior run before this j, and start new run at j
+                        if curr_len > best_len:
+                            best_len, best_start = curr_len, curr_start
+                        curr_start = j
+                        curr_len = 1
+                        consec_sparse = 1
+                    else:
+                        curr_len += 1
+                else:
+                    # strong column resets sparse streak
+                    consec_sparse = 0
+                    curr_len += 1
+
+        # finalize last run
+        if curr_len > best_len:
+            best_len, best_start = curr_len, curr_start
+
+        if best_start is None:
+            # fallback: pick the first header column if anything goes wrong
+            c0_rel = int(np.argmax(header_cols)) if header_cols.any() else 0
+            c1_rel = c0_rel
+        else:
+            c0_rel = int(best_start)
+            c1_rel = int(best_start + best_len - 1)
+
+    else:
+        # strict: keep columns that are both header and strong in data
+        col_mask = header_mask & (la2.mean(axis=0) >= float(min_col_completeness))
+        true_indices = [i for i, v in enumerate(col_mask.values) if bool(v)]
+        if not true_indices:
+            # fallback to the first non-null header cell
+            first_nonnull = int(nn.iloc[header_row_rel].idxmax()) if nn.iloc[header_row_rel].any() else 0
+            c0_rel = first_nonnull
+            c1_rel = first_nonnull
+        else:
+            # longest contiguous run of True
+            runs = []
+            run_start = true_indices[0]
+            prev = true_indices[0]
+            for idx in true_indices[1:]:
+                if idx == prev + 1:
+                    prev = idx
+                else:
+                    runs.append((run_start, prev))
+                    run_start = idx
+                    prev = idx
+            runs.append((run_start, prev))
+            c0_rel, c1_rel = max(runs, key=lambda p: p[1]-p[0])
+
+    # Grow downward with tolerance for a few "bad" rows
+    cols_slice = slice(c0_rel, c1_rel + 1)
+    good_rows = 0
+    gaps = 0
+    r_cur = header_row_rel + 1
+    while r_cur < window.shape[0]:
+        row_complete = nn.iloc[r_cur, cols_slice].mean()
+        if row_complete >= float(min_row_completeness):
+            good_rows += 1
+            gaps = 0
+        else:
+            gaps += 1
+            if gaps > int(allow_row_gaps):
+                break
+        r_cur += 1
+    # Map from filtered coordinates back to original sheet positions
+    abs_r_in_filtered = r_start + header_row_rel
+    abs_c_in_filtered = c_start + c0_rel
+
+    data_start_row = int(r_map[abs_r_in_filtered])
+    data_start_col = int(c_map[abs_c_in_filtered])
+
+
+    #data_start_row = int(r_start + header_row_rel)          # header row position
+    #data_start_col = int(c_start + c0_rel)
+    data_rows = int(1 + good_rows)                          # include header row
+    data_cols = int(c1_rel - c0_rel + 1)
+
+    if data_rows < 1 or data_cols < 1:
+        return {
+            "sheet": sheet, "data_start_row": 0, "data_start_col": 0,
+            "data_rows": 0, "data_cols": 0, "message": "Failed to detect a coherent table region"
+        }
+
+    max_row_density = int(row_counts.max()) if len(row_counts) else 0
+    max_col_density = int(nn.sum(axis=0).max()) if window.shape[1] else 0
+
+    return {
+        "sheet": sheet,
+        "data_start_row": data_start_row,
+        "data_start_col": data_start_col,
+        "data_rows": data_rows,
+        "data_cols": data_cols,
+        "max_row_density": max_row_density,
+        "max_col_density": max_col_density,
+        "message": f"Main data area starts at row {data_start_row}, column {data_start_col} with {data_rows} rows and {data_cols} columns"
+    }
+
+# ------------------- Service vs Benefit Accrual Consistency -------------------
+
+def tool_validate_service_benefit_periods(
+    book: Dict[str, pd.DataFrame],
+    sheet: Optional[str],
+    service_start_column: str,
+    service_end_column: str,
+    reference_column: str,
+    validations: List[Dict[str, Any]],
+    treat_empty_as_zero: bool = True,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
+    rows_limit: int = 200
+) -> Dict[str, Any]:
+    """
+    Identify data inconsistencies between member service dates and benefit accrual amounts.
+
+    Inputs
+      - service_start_column, service_end_column: per-row service period
+      - reference_column: value to return for failing rows (e.g., Member ID)
+      - validations: array of objects, each:
+            {
+              "benefits_column": "<col with amounts>",
+              "period_start": "<date string>",
+              "period_end": "<date string>"
+            }
+
+    Rules (checked per validation object, per row):
+      a) If benefits amount != 0, the row's service period must OVERLAP the validation period.
+      b) If the row's service period OVERLAPS the validation period, the benefits amount must be != 0.
+
+    Returns:
+      {
+        sheet, service_start_column, service_end_column, reference_column,
+        validations_applied,
+        total_rows_checked, failures_count,
+        sample_failures: [
+          {
+            row_index, reference_value, validation_index,
+            benefits_column, benefit_value,
+            service_start, service_end,
+            accrual_start, accrual_end,
+            reason
+          }, ...
+        ],
+        failure_breakdown: { reason -> count }
+      }
+    """
+    if sheet is None:
+        sheet = next(iter(book))
+    if sheet not in book:
+        raise HTTPException(status_code=422, detail=f"Sheet not found: {sheet}")
+
+    df = book[sheet]
+
+    # ---- helpers (reuse style used in existing tools) ----------------------
+    def _ci_resolve(col: str) -> str:
+        if col in df.columns:
+            return col
+        cands = [c for c in df.columns if str(c).lower() == str(col).lower()]
+        if cands:
+            return cands[0]
+        raise HTTPException(status_code=422, detail=f"Column not found: {col}")
+
+    def _to_iso(val):
+        try:
+            return val.isoformat() if pd.notna(val) else None
+        except Exception:
+            return str(val) if pd.notna(val) else None
+
+    # Normalize columns
+    service_start_column = _ci_resolve(service_start_column)
+    service_end_column = _ci_resolve(service_end_column)
+    reference_column = _ci_resolve(reference_column)
+
+    # Parse service dates
+    s_start = pd.to_datetime(df[service_start_column], errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+    s_end = pd.to_datetime(df[service_end_column],   errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+
+    # Ensure start <= end if both present (swap if needed)
+    mask_swap = (s_start.notna() & s_end.notna()) & (s_start > s_end)
+    if mask_swap.any():
+        s_start, s_end = s_start.copy(), s_end.copy()  # avoid SettingWithCopy
+        tmp = s_start[mask_swap]
+        s_start.loc[mask_swap] = s_end[mask_swap]
+        s_end.loc[mask_swap] = tmp
+
+    # Validate validations array and resolve benefits columns; parse periods
+    if not isinstance(validations, list) or len(validations) == 0:
+        raise HTTPException(status_code=422, detail="validations must be a non-empty array.")
+
+    parsed_validations: List[Dict[str, Any]] = []
+    for i, v in enumerate(validations):
+        if not isinstance(v, dict):
+            raise HTTPException(status_code=422, detail=f"Validation #{i} must be an object.")
+        for key in ("benefits_column", "period_start", "period_end"):
+            if key not in v:
+                raise HTTPException(status_code=422, detail=f"Validation #{i} missing '{key}'.")
+        bcol = _ci_resolve(v["benefits_column"])
+        p_start = pd.to_datetime(v["period_start"], errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+        p_end = pd.to_datetime(v["period_end"],   errors="coerce", dayfirst=dayfirst, yearfirst=yearfirst)
+        if pd.isna(p_start) or pd.isna(p_end):
+            raise HTTPException(status_code=422, detail=f"Validation #{i} has unparsable period_start/period_end.")
+        if p_start > p_end:
+            p_start, p_end = p_end, p_start
+        parsed_validations.append({
+            "benefits_column": bcol,
+            "period_start": p_start,
+            "period_end": p_end
+        })
+
+    # Prepare benefits numeric series per validation
+    benefit_series: List[pd.Series] = []
+    for pv in parsed_validations:
+        s = pd.to_numeric(df[pv["benefits_column"]], errors="coerce")
+        if treat_empty_as_zero:
+            s = s.fillna(0)
+        benefit_series.append(s)
+
+    # Overlap helper
+    def overlaps(a_start: pd.Series, a_end: pd.Series, b_start: pd.Timestamp, b_end: pd.Timestamp) -> pd.Series:
+        # overlap if max(start) <= min(end)
+        return (a_start.notna() & a_end.notna()) & (a_start.clip(upper=a_end) <= b_end) & (a_end.clip(lower=a_start) >= b_start)
+
+    failures = []
+    breakdown: Dict[str, int] = {}
+
+    total_rows = len(df)
+
+    # Build failures per validation
+    for vidx, pv in enumerate(parsed_validations):
+        bcol = pv["benefits_column"]
+        bser = benefit_series[vidx]
+        p_start = pv["period_start"]
+        p_end   = pv["period_end"]
+
+        # mask: service dates parsed
+        svc_valid = s_start.notna() & s_end.notna()
+        svc_overlap = overlaps(s_start, s_end, p_start, p_end)
+
+        # Rule (a): benefit != 0 requires overlap
+        rule_a_mask = (bser.fillna(0) != 0)
+        a_bad = rule_a_mask & (~svc_valid)  # non-zero benefit but service dates invalid
+        reason_a1 = "benefit_nonzero_unparsed_service_dates"
+        if a_bad.any():
+            for idx in df.index[a_bad]:
+                failures.append({
+                    "row_index": int(idx),
+                    "reference_value": _to_text(df.at[idx, reference_column]),
+                    "validation_index": int(vidx),
+                    "benefits_column": bcol,
+                    "benefit_value": _to_text(bser.at[idx]),
+                    "service_start": _to_iso(s_start.at[idx]),
+                    "service_end": _to_iso(s_end.at[idx]),
+                    "accrual_start": _to_iso(p_start),
+                    "accrual_end": _to_iso(p_end),
+                    "reason": reason_a1
+                })
+                breakdown[reason_a1] = breakdown.get(reason_a1, 0) + 1
+
+        a_bad2 = rule_a_mask & svc_valid & (~svc_overlap)  # non-zero benefit but NO overlap
+        reason_a2 = "benefit_nonzero_without_service_overlap"
+        if a_bad2.any():
+            for idx in df.index[a_bad2]:
+                failures.append({
+                    "row_index": int(idx),
+                    "reference_value": _to_text(df.at[idx, reference_column]),
+                    "validation_index": int(vidx),
+                    "benefits_column": bcol,
+                    "benefit_value": _to_text(bser.at[idx]),
+                    "service_start": _to_iso(s_start.at[idx]),
+                    "service_end": _to_iso(s_end.at[idx]),
+                    "accrual_start": _to_iso(p_start),
+                    "accrual_end": _to_iso(p_end),
+                    "reason": reason_a2
+                })
+                breakdown[reason_a2] = breakdown.get(reason_a2, 0) + 1
+
+        # Rule (b): if service overlaps accrual period, benefit must be non-zero
+        b_bad = svc_overlap & ((bser.fillna(0) == 0))
+        reason_b = "service_overlaps_but_benefit_zero"
+        if b_bad.any():
+            for idx in df.index[b_bad]:
+                failures.append({
+                    "row_index": int(idx),
+                    "reference_value": _to_text(df.at[idx, reference_column]),
+                    "validation_index": int(vidx),
+                    "benefits_column": bcol,
+                    "benefit_value": _to_text(bser.at[idx]),
+                    "service_start": _to_iso(s_start.at[idx]),
+                    "service_end": _to_iso(s_end.at[idx]),
+                    "accrual_start": _to_iso(p_start),
+                    "accrual_end": _to_iso(p_end),
+                    "reason": reason_b
+                })
+                breakdown[reason_b] = breakdown.get(reason_b, 0) + 1
+
+    return {
+        "sheet": sheet,
+        "service_start_column": service_start_column,
+        "service_end_column": service_end_column,
+        "reference_column": reference_column,
+        "validations_applied": int(len(parsed_validations)),
+        "total_rows_checked": int(total_rows),
+        "failures_count": int(len(failures)),
+        "sample_failures": _to_safe_list(failures, limit=int(rows_limit)),
+        "failure_breakdown": {k: int(v) for k, v in breakdown.items()}
+    }
+
+
+# ------------------- Tool schema advertised to the LLM -------------------
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_worksheet_names",
+            "description": "Get a list of all worksheet names/tabs in the uploaded file.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_headers",
+            "description": "Get column names/headers from a specific worksheet.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Name of the worksheet. If null, uses the first sheet."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "unique_values",
+            "description": "Get unique values from a specific column in a worksheet.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Name of the worksheet. If null, uses the first sheet."
+                    },
+                    "column": {
+                        "type": "string",
+                        "description": "Name of the column to get unique values from."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of unique values to return.",
+                        "default": 50
+                    }
+                },
+                "required": ["column"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_and_compare",
+            "description": "Sum specified columns and compare the result to another column with optional tolerance.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Name of the worksheet. If null, uses the first sheet."
+                    },
+                    "add_columns": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of column names to sum together."
+                    },
+                    "compare_to": {
+                        "type": "string",
+                        "description": "Column name to compare the sum against."
+                    },
+                    "tolerance": {
+                        "type": "number",
+                        "description": "Acceptable difference between sum and comparison column.",
+                        "default": 0.0
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Maximum number of mismatching rows to return in sample.",
+                        "default": 200
+                    }
+                },
+                "required": ["add_columns", "compare_to"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_main_data_set",
+            "description": "Find the main table region when data is not at the top-left. Returns header row/col and region size.",
+            "parameters": {
+            "type": "object",
+            "properties": {
+                "sheet": {"type": "string", "description": "Worksheet name. If null, uses the first sheet."},
+                "max_scan_rows": {"type": "integer", "default": 500, "description": "Max rows to scan for detection."},
+                "min_header_nonnull": {"type": "integer", "default": 3, "description": "Minimum non-null cells for header candidate."},
+                "lookahead_rows_for_header": {"type": "integer", "default": 5, "description": "Rows below header to test column persistence."},
+                "min_overlap_next_rows": {"type": "number", "default": 0.6, "description": "Share of header columns that remain present in lookahead rows."},
+                "min_col_completeness": {"type": "number", "default": 0.6, "description": "Per-column completeness across lookahead rows to keep column."},
+                "min_row_completeness": {"type": "number", "default": 0.6, "description": "Per-row completeness threshold when growing downward."},
+                "allow_row_gaps": {"type": "integer", "default": 2, "description": "Allowed consecutive low-quality rows before stopping growth."},
+                "min_active_nonnull_row": {"type": "integer", "default": 2, "description": "Trim rows with fewer non-nulls than this."},
+                "min_active_nonnull_col": {"type": "integer", "default": 2, "description": "Trim columns with fewer non-nulls than this."},
+                "prefer_header_span": {"type": "boolean", "default": True, "description": "Prefer selecting the contiguous span of headered columns, even if some have little/no data."},
+                "max_sparse_header_cols": {"type": "integer", "default": 5, "description": "Max number of consecutive headered-but-empty columns allowed within the selected block."},
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "date_is_before",
+            "description": "Check whether dates in first_column are before (or before-or-equal) dates in second_column, row by row.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Worksheet name. If null, uses the first sheet."
+                    },
+                    "first_column": {
+                        "type": "string",
+                        "description": "Name of the first date column (left-hand side)."
+                    },
+                    "second_column": {
+                        "type": "string",
+                        "description": "Name of the second date column (right-hand side)."
+                    },
+                    "allow_equal": {
+                        "type": "boolean",
+                        "description": "If true, treats equal dates as passing (<=). Default false.",
+                        "default": False
+                    },
+                    "dayfirst": {
+                        "type": "boolean",
+                        "description": "Interpret the day as the first value in ambiguous dates (e.g., 31/12/2024).",
+                        "default": False
+                    },
+                    "yearfirst": {
+                        "type": "boolean",
+                        "description": "Interpret the year as the first value in ambiguous dates.",
+                        "default": False
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Maximum number of mismatching rows to return in sample.",
+                        "default": 200
+                    }
+                },
+                "required": ["first_column", "second_column"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "missing_fields_in_table",
+            "description": "Scan a table region: for each data row, list header fields that are missing plus a reference value from another column.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Worksheet name. If null, uses the first sheet."
+                    },
+                    "reference_column": {
+                        "type": "string",
+                        "description": "Column in the worksheet whose value will be returned per row (e.g., Member ID)."
+                    },
+                    "data_start_row": {
+                        "type": "integer",
+                        "description": "Row index (0-based) where the table region starts; this row is the header."
+                    },
+                    "data_start_col": {
+                        "type": "integer",
+                        "description": "Column index (0-based) where the table region starts."
+                    },
+                    "data_rows": {
+                        "type": "integer",
+                        "description": "Number of rows in the table region (including the header row)."
+                    },
+                    "data_cols": {
+                        "type": "integer",
+                        "description": "Number of columns in the table region."
+                    },
+                    "treat_empty_as_missing": {
+                        "type": "boolean",
+                        "description": "Treat empty strings as missing values.",
+                        "default": True
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Maximum number of rows to include in sample_missing_rows.",
+                        "default": 200
+                    }
+                },
+                "required": ["reference_column", "data_start_row", "data_start_col", "data_rows", "data_cols"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "missing_fields_in_columns",
+            "description": "Return rows where one or more of the specified columns are missing. Only checks those columns and returns the reference value for each offending row.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Worksheet name. If null, uses the first sheet."
+                    },
+                    "search_columns": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Array of column names to check for missing values. Only these columns are considered."
+                    },
+                    "reference_column": {
+                        "type": "string",
+                        "description": "Column whose value is returned per offending row (e.g., Member ID)."
+                    },
+                    "treat_empty_as_missing": {
+                        "type": "boolean",
+                        "description": "Treat empty or whitespace-only strings as missing.",
+                        "default": True
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Max number of rows to include in sample_missing_rows.",
+                        "default": 200
+                    }
+                },
+                "required": ["search_columns", "reference_column"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_threshold_failures_conditional",
+            "description": "Return rows that fail a threshold on a target column, restricted to rows that satisfy all optional conditional predicates.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Worksheet name. If null, uses the first sheet."
+                        },
+                    "target_column": {
+                        "type": "string",
+                        "description": "Column to validate against the threshold rule."
+                    },
+                    "reference_column": {
+                        "type": "string",
+                        "description": "Column whose value is returned for each failing row (e.g., Member ID)."
+                    },
+                    "type_of_threshold": {
+                        "type": "string",
+                        "enum": [
+                            "exceeds a value",
+                            "is less than a value",
+                            "is not in the range",
+                            "has the wrong data type",
+                            "is not in the closed set"
+                        ],
+                        "description": "Threshold rule to apply to the target column."
+                    },
+                    "threshold_values": {
+                        "description": "For value tests: a number or date string. For range: [min, max] numbers or date strings. For type: number|integer|date|string|boolean. For closed set: list of allowed values."
+                    },
+                    "conditional_fields": {
+                        "type": "array",
+                        "description": "Optional filters: each object applies the same threshold types to another column, and all must be satisfied for a row to be checked.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "column": {"type": "string"},
+                                "type_of_threshold": {
+                                    "type": "string",
+                                    "enum": [
+                                        "exceeds a value",
+                                        "is less than a value",
+                                        "is not in the range",
+                                        "has the wrong data type",
+                                        "is not in the closed set"
+                                        ]
+                                    },
+                                "threshold_values": {"description": "Value/range/type/set per the chosen threshold type."}
+                            },
+                            "required": ["column", "type_of_threshold", "threshold_values"]
+                        }
+                    },
+                    "treat_empty_as_missing": {
+                        "type": "boolean",
+                        "description": "Treat empty/whitespace strings as missing.",
+                        "default": True
+                    },
+                    "dayfirst": {
+                        "type": "boolean",
+                        "description": "Interpret day-first dates for date parsing.",
+                        "default": False
+                    },
+                    "yearfirst": {
+                        "type": "boolean",
+                        "description": "Interpret year-first dates for date parsing.",
+                        "default": False
+                    },
+                    "case_insensitive_set": {
+                        "type": "boolean",
+                        "description": "Case-insensitive comparison for closed-set membership.",
+                        "default": True
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Maximum number of failing rows to include in sample_failures.",
+                        "default": 200
+                    }
+                },
+                "required": ["target_column", "reference_column", "type_of_threshold", "threshold_values"]
+                }
+            }
+        },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_service_benefit_periods",
+            "description": "Check consistency between member service dates and benefit accrual amounts across one or more accrual periods.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sheet": {
+                        "type": "string",
+                        "description": "Worksheet name. If null, uses the first sheet."
+                    },
+                    "service_start_column": {
+                        "type": "string",
+                        "description": "Column with service start dates."
+                    },
+                    "service_end_column": {
+                        "type": "string",
+                        "description": "Column with service end dates."
+                    },
+                    "reference_column": {
+                        "type": "string",
+                        "description": "Column whose value is returned for each failing row (e.g., Member ID)."
+                    },
+                    "validations": {
+                        "type": "array",
+                        "description": "Array of validation objects describing benefits column and the accrual period to validate against.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "benefits_column": {"type": "string"},
+                                "period_start":   {"type": "string", "description": "Accrual start date (any parseable format)."},
+                                "period_end":     {"type": "string", "description": "Accrual end date (any parseable format)."}
+                            },
+                            "required": ["benefits_column", "period_start", "period_end"]
+                        }
+                    },
+                    "treat_empty_as_zero": {
+                        "type": "boolean",
+                        "description": "Treat blank/NaN benefit amounts as zero.",
+                        "default": True
+                    },
+                    "dayfirst": {
+                        "type": "boolean",
+                        "description": "Interpret day-first dates (e.g., 31/12/2024).",
+                        "default": False
+                    },
+                    "yearfirst": {
+                        "type": "boolean",
+                        "description": "Interpret year-first dates.",
+                        "default": False
+                    },
+                    "rows_limit": {
+                        "type": "integer",
+                        "description": "Max number of failures to include in sample_failures.",
+                        "default": 200
+                    }
+                },
+                "required": ["service_start_column", "service_end_column", "reference_column", "validations"]
+            }
+        }
+    }
+
+
+
+
+
+]
