@@ -1443,13 +1443,18 @@ Row 3: Value1  | Value2  | Value3  | Value4 ...
 """
 
 WORKING WITH EXCEL FILES:
-When processing Excel files with openpyxl:
-1. Use openpyxl.load_workbook(filename, data_only=True) to get calculated values
-2. Access the active sheet with workbook.active or iterate through workbook.worksheets
-3. Get headers from the first row: sheet[1] or sheet.iter_rows(min_row=1, max_row=1)
-4. Iterate data rows starting from row 2: sheet.iter_rows(min_row=2)
-5. Access cells by: cell.value (for the data), cell.row, cell.column, cell.column_letter
-6. Handle None/empty cells gracefully - they are common
+Excel files are already extracted as text content in this format:
+=== Sheet: SheetName ===
+Column1\tColumn2\tColumn3...
+Value1\tValue2\tValue3...
+
+To process Excel content:
+1. The excel_file parameter contains the extracted text, NOT a file path
+2. Split by lines and parse tab-separated values
+3. First line after "=== Sheet:" contains headers
+4. Subsequent lines contain data rows
+5. DO NOT use openpyxl - the content is already extracted
+6. Parse the text directly using string methods
 
 FINDING SPECIFIC DATA:
 - To find a column: iterate headers and match by name (exact or normalized)
@@ -1487,23 +1492,36 @@ You MUST return actual Python code - a complete function definition, NOT JSON da
 The function should:
 - Be named 'extract_data'
 - Accept parameters matching the input parameters above
-- Use standard Python libraries plus openpyxl for Excel files
+- Use standard Python libraries (NO openpyxl - Excel content is already extracted as text)
 - Process the input data according to the task description
 - Return a JSON array of field validation objects
 
 Example function structure:
 \`\`\`python
 def extract_data(excel_file):
-    import openpyxl
     import json
     
-    # Load and process the Excel file
-    workbook = openpyxl.load_workbook(excel_file, data_only=True)
-    sheet = workbook.active
+    # Parse the extracted Excel content (already in text format)
+    lines = excel_file.strip().split('\n')
+    
+    # Find the sheet data
+    data_rows = []
+    headers = []
+    for i, line in enumerate(lines):
+        if line.startswith('=== Sheet:'):
+            # Headers are on the next line
+            if i + 1 < len(lines):
+                headers = lines[i + 1].split('\t')
+                # Data rows follow
+                for j in range(i + 2, len(lines)):
+                    if lines[j].strip() and not lines[j].startswith('==='):
+                        data_rows.append(lines[j].split('\t'))
+                    elif lines[j].startswith('==='):
+                        break
     
     results = []
     # Your extraction logic here
-    # Process data and build results
+    # Process headers and data_rows
     
     return json.dumps(results)
 \`\`\`
