@@ -54,89 +54,78 @@ def extract_docx_text(file_content: bytes) -> str:
         raise Exception(f"DOCX extraction failed: {str(e)}")
 
 def extract_excel_text(file_content: bytes, file_name: str) -> str:
-    """Extract text from Excel file with enhanced preprocessing (both .xls and .xlsx)."""
+    """Extract text from Excel file (both .xls and .xlsx) - extracts ALL rows."""
+    text_parts = []
+    
+    # Try modern Excel format first (.xlsx)
     try:
-        # Import the enhanced extractor
-        from enhanced_excel_extractor import ExcelPreprocessor
-        
-        # Use enhanced extraction with preprocessing
-        preprocessor = ExcelPreprocessor()
-        return preprocessor.extract_excel_text_enhanced(file_content, file_name)
-        
-    except ImportError:
-        # Fallback to original method if enhanced extractor not available
-        text_parts = []
-        
-        # Try modern Excel format first (.xlsx)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+            tmp_file.write(file_content)
+            tmp_file.flush()
+            
+            workbook = load_workbook(tmp_file.name, data_only=True)
+            
+            for sheet_name in workbook.sheetnames:
+                worksheet = workbook[sheet_name]
+                text_parts.append(f"=== Sheet: {sheet_name} ===")
+                
+                # Extract ALL rows, not just a sample
+                for row in worksheet.iter_rows(values_only=True):
+                    row_text = []
+                    for cell in row:
+                        if cell is not None:
+                            row_text.append(str(cell))
+                    if row_text:  # Only add non-empty rows
+                        text_parts.append("\t".join(row_text))
+            
+            os.unlink(tmp_file.name)
+            return "\n".join(text_parts)
+            
+    except Exception:
+        # Fall back to older Excel format (.xls)
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xls') as tmp_file:
                 tmp_file.write(file_content)
                 tmp_file.flush()
                 
-                workbook = load_workbook(tmp_file.name, data_only=True)
+                workbook = xlrd.open_workbook(tmp_file.name)
                 
-                for sheet_name in workbook.sheetnames:
-                    worksheet = workbook[sheet_name]
-                    text_parts.append(f"=== Sheet: {sheet_name} ===")
+                for sheet_index in range(workbook.nsheets):
+                    sheet = workbook.sheet_by_index(sheet_index)
+                    text_parts.append(f"=== Sheet: {sheet.name} ===")
                     
-                    for row in worksheet.iter_rows(values_only=True):
-                        row_text = []
-                        for cell in row:
-                            if cell is not None:
-                                row_text.append(str(cell))
-                        if row_text:  # Only add non-empty rows
+                    # Extract ALL rows, not just a sample
+                    for row_index in range(sheet.nrows):
+                        row_values = sheet.row_values(row_index)
+                        row_text = [str(val) for val in row_values if val]
+                        if row_text:
                             text_parts.append("\t".join(row_text))
                 
                 os.unlink(tmp_file.name)
                 return "\n".join(text_parts)
                 
-        except Exception:
-            # Fall back to older Excel format (.xls)
+        except Exception as xls_error:
+            # Final fallback using pandas
             try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.xls') as tmp_file:
-                    tmp_file.write(file_content)
-                    tmp_file.flush()
+                excel_data = pd.read_excel(io.BytesIO(file_content), sheet_name=None)
+                
+                for sheet_name, df in excel_data.items():
+                    text_parts.append(f"=== Sheet: {sheet_name} ===")
                     
-                    workbook = xlrd.open_workbook(tmp_file.name)
+                    # Include headers
+                    headers = df.columns.tolist()
+                    text_parts.append("\t".join(str(h) for h in headers))
                     
-                    for sheet_index in range(workbook.nsheets):
-                        sheet = workbook.sheet_by_index(sheet_index)
-                        text_parts.append(f"=== Sheet: {sheet.name} ===")
-                        
-                        for row_index in range(sheet.nrows):
-                            row_values = sheet.row_values(row_index)
-                            row_text = [str(val) for val in row_values if val]
-                            if row_text:
-                                text_parts.append("\t".join(row_text))
-                    
-                    os.unlink(tmp_file.name)
-                    return "\n".join(text_parts)
-                    
-            except Exception as xls_error:
-                # Final fallback using pandas
-                try:
-                    excel_data = pd.read_excel(io.BytesIO(file_content), sheet_name=None)
-                    
-                    for sheet_name, df in excel_data.items():
-                        text_parts.append(f"=== Sheet: {sheet_name} ===")
-                        
-                        # Include headers
-                        headers = df.columns.tolist()
-                        text_parts.append("\t".join(str(h) for h in headers))
-                        
-                        # Include data rows
-                        for _, row in df.iterrows():
-                            row_text = [str(val) for val in row.values if pd.notna(val)]
-                            if row_text:
-                                text_parts.append("\t".join(row_text))
-                    
-                    return "\n".join(text_parts)
-                    
-                except Exception as pandas_error:
-                    raise Exception(f"Excel extraction failed with all methods. XLSX error: {str(xls_error)}, Pandas error: {str(pandas_error)}")
-                    
-    except Exception as e:
-        raise Exception(f"Excel extraction failed: {str(e)}")
+                    # Include ALL data rows, not just a sample
+                    for _, row in df.iterrows():
+                        row_text = [str(val) for val in row.values if pd.notna(val)]
+                        if row_text:
+                            text_parts.append("\t".join(row_text))
+                
+                return "\n".join(text_parts)
+                
+            except Exception as pandas_error:
+                raise Exception(f"Excel extraction failed with all methods. XLS error: {str(xls_error)}, Pandas error: {str(pandas_error)}")
 
 def extract_text_from_document(file_data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract text from a single document."""
