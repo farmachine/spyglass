@@ -6580,35 +6580,68 @@ def extract_function(Column_Name, Excel_File):
           // Get all validations for the session
           const allValidations = await storage.getFieldValidations(sessionId);
           
-          // Group validations by valueId to build the data arrays
-          const dataByValueId = new Map<string, any[]>();
+          // We need to fetch complete row data, not just single columns
+          // First, group referenced valueIds by their step
+          const valueIdToStep = new Map<string, string>();
+          const stepIds = new Set<string>();
           
           for (const refValueId of referencedValueIds) {
-            // Get the value info to know the column name
             const valueInfo = await storage.getStepValueById(refValueId);
-            if (!valueInfo) continue;
-            
-            console.log(`  📋 Fetching data for value: ${valueInfo.valueName} (${refValueId})`);
-            
-            // Get all validations for this specific valueId
-            const valueValidations = allValidations.filter(v => 
-              v.valueId === refValueId || v.fieldId === refValueId
-            );
-            
-            console.log(`    Found ${valueValidations.length} validations`);
-            
-            // Build array of values for this column
-            const columnData = valueValidations
-              .filter(v => v.extractedValue !== null && v.extractedValue !== undefined)
-              .map(v => v.extractedValue);
-            
-            dataByValueId.set(refValueId, columnData);
-            console.log(`    Extracted ${columnData.length} values: ${columnData.slice(0, 3).join(', ')}${columnData.length > 3 ? '...' : ''}`);
+            if (valueInfo && valueInfo.stepId) {
+              valueIdToStep.set(refValueId, valueInfo.stepId);
+              stepIds.add(valueInfo.stepId);
+            }
           }
           
-          // Now prepare the data for tool inputs
-          // This will be handled by the existing code below that processes inputValues
-          console.log(`✅ Fetched cross-step reference data for ${dataByValueId.size} values`);
+          // For each step, fetch ALL values and build complete row objects
+          const dataByValueId = new Map<string, any[]>();
+          
+          for (const stepId of stepIds) {
+            // Get all values for this step
+            const stepValues = await storage.getStepValues(stepId);
+            console.log(`  📋 Processing step with ${stepValues.length} columns`);
+            
+            // Get all validations for this step
+            const stepValidations = allValidations.filter(v => v.stepId === stepId);
+            
+            // Group validations by identifierId to build complete row objects
+            const rowsByIdentifier = new Map<string, any>();
+            
+            for (const validation of stepValidations) {
+              if (!validation.identifierId) continue;
+              
+              // Initialize row object if not exists
+              if (!rowsByIdentifier.has(validation.identifierId)) {
+                rowsByIdentifier.set(validation.identifierId, {});
+              }
+              
+              // Find the column name for this validation
+              const stepValue = stepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
+              if (stepValue) {
+                // Add this column's value to the row object
+                rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+              }
+            }
+            
+            // Convert to array of row objects
+            const rowData = Array.from(rowsByIdentifier.values());
+            console.log(`    Built ${rowData.length} complete row objects`);
+            if (rowData.length > 0) {
+              console.log(`    Sample row:`, rowData[0]);
+            }
+            
+            // Now store this data for each referenced valueId from this step
+            for (const refValueId of referencedValueIds) {
+              if (valueIdToStep.get(refValueId) === stepId) {
+                // Store the complete row data for this valueId
+                dataByValueId.set(refValueId, rowData);
+                const valueInfo = await storage.getStepValueById(refValueId);
+                console.log(`    Stored ${rowData.length} complete rows for value: ${valueInfo?.valueName || refValueId}`);
+              }
+            }
+          }
+          
+          console.log(`✅ Fetched cross-step reference data with complete row objects`);
           
           // Store the fetched data in a format that can be used below
           toolInputs.__crossStepData = dataByValueId;
@@ -6732,22 +6765,29 @@ def extract_function(Column_Name, Excel_File):
               if (hasCrossStepData && (!previousData || previousData.length === 0)) {
                 console.log(`📊 Building data from cross-step references`);
                 
-                // For each reference in paramValue, get the data
-                const dataArrays: any[] = [];
+                // Since all valueIds from the same step have the same row data,
+                // we just need to get the data once (they all point to the same rows)
+                let crossStepData = null;
                 for (const ref of paramValue) {
                   if (typeof ref === 'string' && uuidRegex.test(ref)) {
                     const refData = toolInputs.__crossStepData.get(ref);
                     if (refData) {
-                      dataArrays.push(refData);
-                      console.log(`  Added data for ${ref}: ${refData.length} values`);
+                      crossStepData = refData;
+                      console.log(`  Using ${refData.length} complete row objects from cross-step reference`);
+                      break; // All valueIds from same step have same row data
                     }
                   }
                 }
                 
-                // Simply pass the arrays as the parameter value
-                // The tool will receive arrays of values from each referenced column
-                toolInputs[paramName] = dataArrays.flat();
-                console.log(`✅ Set ${paramName} to ${toolInputs[paramName].length} values from cross-step references`);
+                if (crossStepData) {
+                  // Pass the complete row objects as the parameter value
+                  toolInputs[paramName] = crossStepData;
+                  console.log(`✅ Set ${paramName} to ${crossStepData.length} complete row objects`);
+                  if (crossStepData.length > 0) {
+                    console.log(`  Sample row structure:`, Object.keys(crossStepData[0]));
+                    console.log(`  First row:`, crossStepData[0]);
+                  }
+                }
                 continue; // Skip to next parameter
               }
               
