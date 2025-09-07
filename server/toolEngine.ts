@@ -364,45 +364,11 @@ export class ToolEngine {
           preparedInputs[param.name] = inputValue;
           console.log(`📝 Set ${param.name} = ${typeof inputValue === 'string' ? inputValue.substring(0, 100) : JSON.stringify(inputValue).substring(0, 100)}`);
         } else {
-          // If the value is empty/null/undefined, check if it's being passed with a different key
-          // This helps with value configurations that might not match tool parameter names exactly
-          const possibleKeys = [
-            param.name,  // Try exact name first
-            param.name.toLowerCase(),
-            param.name.replace(/\s+/g, '_').toLowerCase(),
-            param.name.replace(/\s+/g, ''),
-            param.name.replace(/\s+/g, '_'),  // Snake_Case
-            'column',
-            'Column',
-            'column_name',
-            'Column Name'
-          ];
-          
-          // Also check for snake_case to Title Case conversion
-          if (param.name === 'member_info') {
-            possibleKeys.push('Member Info', 'member info', 'MemberInfo');
-          }
-          if (param.name === 'benefit_info') {
-            possibleKeys.push('Benefit Info', 'benefit info', 'BenefitInfo');
-          }
-          
-          console.log(`🔍 Looking for parameter ${param.name} with keys:`, possibleKeys);
-          console.log(`   Available keys in rawInputs:`, Object.keys(rawInputs).filter(k => !k.startsWith('__')));
-          
-          for (const key of possibleKeys) {
-            if (rawInputs[key] !== undefined && rawInputs[key] !== null && rawInputs[key] !== '') {
-              preparedInputs[param.name] = rawInputs[key];
-              console.log(`📝 Found ${param.name} value using key "${key}": ${JSON.stringify(rawInputs[key]).substring(0, 100)}`);
-              break;
-            }
-          }
-          
-          // If still no value found, set empty string to avoid undefined
-          if (preparedInputs[param.name] === undefined) {
-            preparedInputs[param.name] = '';
-            console.log(`⚠️ No value found for parameter ${param.name}, setting to empty string`);
-            console.log(`   Debug: rawInputs keys:`, Object.keys(rawInputs));
-          }
+          // If no value provided, set empty string to avoid undefined
+          // The data should already be in rawInputs with the correct parameter name
+          // from the ID-based mapping in the calling code
+          preparedInputs[param.name] = '';
+          console.log(`⚠️ No value provided for parameter ${param.name}, setting to empty string`);
         }
       }
     }
