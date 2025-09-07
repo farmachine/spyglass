@@ -6599,10 +6599,12 @@ def extract_function(Column_Name, Excel_File):
           for (const stepId of stepIds) {
             // Get all values for this step
             const stepValues = await storage.getStepValues(stepId);
-            console.log(`  📋 Processing step with ${stepValues.length} columns`);
+            console.log(`  📋 Processing step ${stepId} with ${stepValues.length} columns`);
+            console.log(`    Column names:`, stepValues.map(v => v.valueName));
             
             // Get all validations for this step
             const stepValidations = allValidations.filter(v => v.stepId === stepId);
+            console.log(`    Found ${stepValidations.length} validations for this step`);
             
             // Group validations by identifierId to build complete row objects
             const rowsByIdentifier = new Map<string, any>();
@@ -6625,9 +6627,11 @@ def extract_function(Column_Name, Excel_File):
             
             // Convert to array of row objects
             const rowData = Array.from(rowsByIdentifier.values());
-            console.log(`    Built ${rowData.length} complete row objects`);
+            console.log(`    Built ${rowData.length} complete row objects from ${rowsByIdentifier.size} unique identifiers`);
             if (rowData.length > 0) {
-              console.log(`    Sample row:`, rowData[0]);
+              console.log(`    Sample row:`, JSON.stringify(rowData[0], null, 2));
+            } else {
+              console.log(`    ⚠️ No row data built for this step!`);
             }
             
             // Now store this data for each referenced valueId from this step
@@ -6636,7 +6640,7 @@ def extract_function(Column_Name, Excel_File):
                 // Store the complete row data for this valueId
                 dataByValueId.set(refValueId, rowData);
                 const valueInfo = await storage.getStepValueById(refValueId);
-                console.log(`    Stored ${rowData.length} complete rows for value: ${valueInfo?.valueName || refValueId}`);
+                console.log(`    ✅ Stored ${rowData.length} complete rows for value: ${valueInfo?.valueName || 'Unknown'} (${refValueId})`);
               }
             }
           }
@@ -7368,7 +7372,9 @@ def extract_function(Column_Name, Excel_File):
               
               if (hasUUIDs && toolInputs.__crossStepData && toolInputs.__crossStepData.size > 0) {
                 // Get the cross-step data for these UUIDs
-                console.log(`📊 Mapping cross-step data for parameter ${param.name}`);
+                console.log(`📊 Mapping cross-step data for parameter ${param.name} (${param.id})`);
+                console.log(`  Referenced UUIDs:`, configuredValue);
+                console.log(`  Available cross-step data keys:`, Array.from(toolInputs.__crossStepData.keys()));
                 
                 // Get data from the first UUID (all UUIDs from same step have same data)
                 for (const refId of configuredValue) {
@@ -7381,8 +7387,14 @@ def extract_function(Column_Name, Excel_File):
                         console.log(`  Sample row:`, crossStepData[0]);
                       }
                       break;
+                    } else {
+                      console.log(`  ⚠️ No data found for UUID ${refId}`);
                     }
                   }
+                }
+                
+                if (!toolInputs[param.name]) {
+                  console.log(`  ❌ Failed to map cross-step data for ${param.name}`);
                 }
               } else if (!hasUUIDs) {
                 // Direct value (not a UUID reference)
