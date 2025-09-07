@@ -2528,19 +2528,28 @@ export default function SessionView() {
 
   // Handler for preparing column extraction and opening modal
   const handleRunColumnExtraction = async (stepName: string, valueId: string, valueName: string) => {
+    console.log('🎯🎯🎯 handleRunColumnExtraction called with:');
+    console.log('   - stepName:', stepName);
+    console.log('   - valueId:', valueId);
+    console.log('   - valueName:', valueName);
+    
     // Get the workflow step
     const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
     if (!workflowStep) {
       console.error('Workflow step not found:', stepName);
       return;
     }
+    console.log('   - Found workflow step:', workflowStep.id, workflowStep.stepName);
     
     // Get the specific value to run
+    console.log('   - Workflow step values:', workflowStep.values?.map(v => ({ id: v.id, name: v.valueName })));
     const valueToRun = workflowStep.values?.find(v => v.id === valueId);
     if (!valueToRun) {
       console.error('Value not found:', valueId);
+      console.error('Available values:', workflowStep.values?.map(v => v.id));
       return;
     }
+    console.log('   - Found value to run:', valueToRun.id, valueToRun.valueName);
     
     // Get the value index to determine if this is the first column
     const valueIndex = workflowStep.values?.findIndex(v => v.id === valueId) || 0;

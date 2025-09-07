@@ -6457,15 +6457,29 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   Custom inputs:`, customInputs ? JSON.stringify(customInputs, null, 2) : 'None');
       
       // Get the step and value details
+      console.log(`   📝 Looking for step with ID: ${stepId}`);
       const step = await storage.getWorkflowStep(stepId);
       if (!step) {
+        console.log(`   ❌ Step not found with ID: ${stepId}`);
         return res.status(404).json({ message: "Workflow step not found" });
       }
+      console.log(`   ✅ Found step: "${step.stepName}"`);
       
+      // Get all values for this step to debug
+      const allStepValues = await storage.getStepValues(stepId);
+      console.log(`   📋 All values in this step (${allStepValues.length} total):`);
+      allStepValues.forEach(v => {
+        console.log(`      - ${v.id}: "${v.valueName}" (isIdentifier: ${v.isIdentifier})`);
+      });
+      
+      console.log(`   📝 Looking for value with ID: ${valueId}`);
       const value = await storage.getStepValue(valueId);
       if (!value) {
+        console.log(`   ❌ Value not found with ID: ${valueId}`);
+        console.log(`   💡 Did you mean one of the values listed above?`);
         return res.status(404).json({ message: "Step value not found" });
       }
+      console.log(`   ✅ Found value: "${value.valueName}"`)
       
       console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
       console.log(`   🚫 NOT extracting other values in step "${step.stepName}"`)
