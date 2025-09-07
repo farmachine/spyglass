@@ -447,6 +447,11 @@ Your response must maintain the identifierId mapping for all processed items.
     if value_description:
         value_config += f"\nDescription: {value_description}"
     
+    # Add explicit instruction to extract ALL occurrences
+    if is_create_operation:
+        value_config += "\n\nIMPORTANT: Extract ALL occurrences/instances found in the document(s), not just examples or a subset."
+        value_config += "\nReturn a complete, comprehensive list of every item that matches the extraction criteria."
+    
     # 4. INPUT VALUES / AI INSTRUCTIONS - Extract from value_data
     input_values = value_data.get('inputValues', {})
     if input_values:
@@ -537,8 +542,23 @@ Your response must maintain the identifierId mapping for all processed items.
     # For CREATE operations, let the tool prompt handle output requirements
     # For UPDATE operations, add system requirements for preserving identifierIds
     if is_create_operation:
-        # Don't add system output requirements - let the tool prompt handle it
-        output_requirements = ""
+        # Add system output requirements for CREATE operations to ensure ALL items are extracted
+        output_requirements = f"""
+SYSTEM OUTPUT REQUIREMENTS FOR CREATE OPERATIONS:
+Return a JSON array containing ALL items found that match the extraction criteria.
+Each object in the array MUST include:
+- extractedValue: The extracted value for "{value_name}"
+- validationStatus: Either "valid", "invalid", or "pending" based on confidence
+- aiReasoning: Detailed explanation of the extraction
+- confidenceScore: Number between 0-100 representing confidence
+- documentSource: Specific source reference (page, section, or location)
+
+CRITICAL FOR COMPREHENSIVE EXTRACTION:
+- Extract and return EVERY SINGLE matching item found in the document(s)
+- Do NOT limit the results to just a few examples
+- If there are 10 items, return all 10. If there are 50, return all 50
+- Each unique occurrence should be a separate object in the array
+- Scan the ENTIRE document thoroughly - do not stop after finding a few matches"""
     else:
         # For UPDATE operations - mapping to existing items
         output_requirements = f"""
