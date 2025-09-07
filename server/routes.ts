@@ -7375,6 +7375,7 @@ def extract_function(Column_Name, Excel_File):
                 
                 // Get all validations for the session
                 const allValidations = await storage.getFieldValidations(sessionId);
+                console.log(`  📊 Total validations in session: ${allValidations.length}`);
                 
                 // Collect data for each referenced value ID
                 const parameterData: any[] = [];
@@ -7389,13 +7390,31 @@ def extract_function(Column_Name, Excel_File):
                       continue;
                     }
                     
+                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${valueInfo.stepId}`);
+                    
                     // If we haven't processed this step yet, get all its data
                     if (!processedSteps.has(valueInfo.stepId)) {
                       processedSteps.add(valueInfo.stepId);
                       
                       // Get all values for this step to build complete rows
                       const stepValues = await storage.getStepValues(valueInfo.stepId);
-                      const stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      
+                      // Debug: Check what's in allValidations
+                      console.log(`  🔍 Checking validations for step ${valueInfo.stepId}`);
+                      let stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      
+                      // Alternative: Try filtering by valueId if stepId doesn't work
+                      if (stepValidations.length === 0) {
+                        console.log(`  🔍 No validations found by stepId, trying by valueId...`);
+                        const valueIdValidations = allValidations.filter(v => 
+                          stepValues.some(sv => sv.id === v.valueId || sv.id === v.fieldId)
+                        );
+                        console.log(`    Found ${valueIdValidations.length} validations by valueId match`);
+                        
+                        if (valueIdValidations.length > 0) {
+                          stepValidations = valueIdValidations;
+                        }
+                      }
                       
                       console.log(`  📋 Processing step ${valueInfo.stepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
@@ -7691,6 +7710,7 @@ def extract_function(Column_Name, Excel_File):
                 
                 // Get all validations for the session
                 const allValidations = await storage.getFieldValidations(sessionId);
+                console.log(`  📊 Total validations in session: ${allValidations.length}`);
                 
                 // Collect data for each referenced value ID
                 const parameterData: any[] = [];
@@ -7705,13 +7725,31 @@ def extract_function(Column_Name, Excel_File):
                       continue;
                     }
                     
+                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${valueInfo.stepId}`);
+                    
                     // If we haven't processed this step yet, get all its data
                     if (!processedSteps.has(valueInfo.stepId)) {
                       processedSteps.add(valueInfo.stepId);
                       
                       // Get all values for this step to build complete rows
                       const stepValues = await storage.getStepValues(valueInfo.stepId);
-                      const stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      
+                      // Debug: Check what's in allValidations
+                      console.log(`  🔍 Checking validations for step ${valueInfo.stepId}`);
+                      let stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      
+                      // Alternative: Try filtering by valueId if stepId doesn't work
+                      if (stepValidations.length === 0) {
+                        console.log(`  🔍 No validations found by stepId, trying by valueId...`);
+                        const valueIdValidations = allValidations.filter(v => 
+                          stepValues.some(sv => sv.id === v.valueId || sv.id === v.fieldId)
+                        );
+                        console.log(`    Found ${valueIdValidations.length} validations by valueId match`);
+                        
+                        if (valueIdValidations.length > 0) {
+                          stepValidations = valueIdValidations;
+                        }
+                      }
                       
                       console.log(`  📋 Processing step ${valueInfo.stepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
