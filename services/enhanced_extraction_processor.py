@@ -562,12 +562,19 @@ Your response must maintain the identifierId mapping for all processed items.
             if param_name == 'previous_data' and isinstance(param_value, dict):
                 # For previous_data, include the actual JSON data
                 actual_input_data += f"\n{param_name}:\n{json.dumps(param_value, indent=2)}\n"
+            elif param_name == 'Input Data' and isinstance(param_value, list):
+                # For Input Data array, include the full JSON data with identifierIds
+                actual_input_data += f"\n{param_name} (MUST preserve identifierId for each item):\n{json.dumps(param_value, indent=2)}\n"
+                actual_input_data += "\nCRITICAL: Each item above has an 'identifierId' field. You MUST include this exact identifierId in your response for each corresponding item.\n"
             elif param_name == 'document' and isinstance(param_value, str) and len(param_value) > 0:
                 # For document content, include a truncated version if too long
                 if len(param_value) > 5000:
                     actual_input_data += f"\n{param_name} (truncated to 5000 chars):\n{param_value[:5000]}...\n"
                 else:
                     actual_input_data += f"\n{param_name}:\n{param_value}\n"
+            elif isinstance(param_value, (list, dict)):
+                # For other structured data, include as JSON
+                actual_input_data += f"\n{param_name}:\n{json.dumps(param_value, indent=2)}\n"
     
     # 7. COMPILE FULL PROMPT
     # For CREATE operations, let the tool prompt handle output requirements

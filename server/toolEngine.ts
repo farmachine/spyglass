@@ -716,24 +716,48 @@ export class ToolEngine {
           const inputDataParam = inputs['Input Data'];
           if (inputDataParam && Array.isArray(inputDataParam) && inputDataParam.length > 0 && inputDataParam[0].identifierId) {
             console.log(`🔄 UPDATE operation with Input Data: ${inputDataParam.length} records with identifierIds`);
-            console.log(`🔄 AI returned ${parsedResults.length} values to distribute`);
+            console.log(`🔄 AI returned ${parsedResults.length} values`);
             
-            // Distribute AI results across the Input Data records
+            // Map AI results by identifierId (AI should return matching identifierIds)
             if (parsedResults.length > 0) {
-              results = inputDataParam.map((record: any, index: number) => {
-                const resultIndex = index % parsedResults.length;
-                const aiResult = parsedResults[resultIndex];
-                
-                return {
-                  identifierId: record.identifierId,
-                  extractedValue: aiResult?.extractedValue || aiResult?.value || null,
-                  validationStatus: aiResult?.validationStatus || "valid",
-                  aiReasoning: aiResult?.aiReasoning || `Extracted value: ${aiResult?.extractedValue || 'none'}`,
-                  confidenceScore: aiResult?.confidenceScore || 85,
-                  documentSource: aiResult?.documentSource || ""
-                };
+              // Create a map of AI results by identifierId
+              const resultMap = new Map<string, any>();
+              parsedResults.forEach((result: any) => {
+                if (result.identifierId) {
+                  resultMap.set(result.identifierId, result);
+                }
               });
-              console.log(`✅ Created ${results.length} records using Input Data identifierIds`);
+              
+              // Map Input Data records to results using identifierId
+              results = inputDataParam.map((record: any) => {
+                const aiResult = resultMap.get(record.identifierId);
+                
+                if (aiResult) {
+                  // Found matching AI result by identifierId
+                  return {
+                    identifierId: record.identifierId,
+                    extractedValue: aiResult.extractedValue || aiResult.value || null,
+                    validationStatus: aiResult.validationStatus || "valid",
+                    aiReasoning: aiResult.aiReasoning || `Extracted value: ${aiResult.extractedValue || 'none'}`,
+                    confidenceScore: aiResult.confidenceScore || 85,
+                    documentSource: aiResult.documentSource || ""
+                  };
+                } else {
+                  // No AI result for this identifierId - use fallback by index
+                  const index = inputDataParam.indexOf(record);
+                  const fallbackResult = parsedResults[index % parsedResults.length];
+                  
+                  return {
+                    identifierId: record.identifierId,
+                    extractedValue: fallbackResult?.extractedValue || fallbackResult?.value || null,
+                    validationStatus: fallbackResult?.validationStatus || "pending",
+                    aiReasoning: fallbackResult?.aiReasoning || "No matching result found",
+                    confidenceScore: fallbackResult?.confidenceScore || 50,
+                    documentSource: fallbackResult?.documentSource || ""
+                  };
+                }
+              });
+              console.log(`✅ Mapped ${results.length} records using identifierIds (${resultMap.size} direct matches)`);
             } else {
               // No AI results - create placeholder records
               results = inputDataParam.map((record: any) => ({

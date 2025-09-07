@@ -6484,6 +6484,47 @@ def extract_function(Column_Name, Excel_File):
       }
       console.log(`   ✅ Found value: "${value.valueName}"`)
       
+      // CRITICAL: Check if this is a subsequent column and build previousData if needed
+      // For subsequent columns, we MUST have previousData with identifierIds
+      const firstColumn = allStepValues.find(v => v.isIdentifier) || allStepValues[0];
+      const isFirstColumn = value.id === firstColumn?.id;
+      
+      if (!isFirstColumn && (!previousData || previousData.length === 0)) {
+        console.log(`📊 CRITICAL: This is a subsequent column (not first) - building previousData with identifierIds`);
+        console.log(`   First column: ${firstColumn?.valueName} (${firstColumn?.id})`);
+        console.log(`   Current column: ${value.valueName} (${value.id})`);
+        
+        // Get all validations for this step to build previousData
+        const existingValidations = await storage.getFieldValidations(sessionId);
+        const stepValidations = existingValidations.filter(v => v.stepId === stepId);
+        
+        // Build rows by grouping validations by identifierId
+        const rowsByIdentifier = new Map<string, any>();
+        
+        for (const validation of stepValidations) {
+          if (!validation.identifierId) continue;
+          
+          if (!rowsByIdentifier.has(validation.identifierId)) {
+            rowsByIdentifier.set(validation.identifierId, {
+              identifierId: validation.identifierId
+            });
+          }
+          
+          // Find the column name for this validation
+          const stepValue = allStepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
+          if (stepValue) {
+            rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+          }
+        }
+        
+        // Convert to array and use as previousData
+        previousData = Array.from(rowsByIdentifier.values());
+        console.log(`✅ Built previousData with ${previousData.length} rows containing identifierIds`);
+        if (previousData.length > 0) {
+          console.log(`   Sample row:`, previousData[0]);
+        }
+      }
+      
       console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
       console.log(`   🚫 NOT extracting other values in step "${step.stepName}"`)
       console.log(`   📦 RAW VALUE from DB:`, JSON.stringify(value, null, 2));
