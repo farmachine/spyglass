@@ -7348,6 +7348,56 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
+      // Map inputValues (with random IDs) to actual tool parameter names
+      // First, check if we have inputValues with random IDs that need mapping
+      if (value.inputValues && Object.keys(value.inputValues).length > 0) {
+        console.log(`📐 Mapping inputValues to tool parameters...`);
+        
+        // For each tool parameter, check if there's a corresponding inputValue
+        for (const param of tool.inputParameters || []) {
+          // Check if param.id matches any inputValue key (the random IDs)
+          if (param.id && value.inputValues[param.id] !== undefined) {
+            const configuredValue = value.inputValues[param.id];
+            console.log(`🔗 Found inputValue config for parameter ${param.name} (${param.id}):`, configuredValue);
+            
+            // Check if this is a cross-step reference (array of UUIDs)
+            if (Array.isArray(configuredValue)) {
+              const hasUUIDs = configuredValue.some(item => 
+                typeof item === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item)
+              );
+              
+              if (hasUUIDs && toolInputs.__crossStepData && toolInputs.__crossStepData.size > 0) {
+                // Get the cross-step data for these UUIDs
+                console.log(`📊 Mapping cross-step data for parameter ${param.name}`);
+                
+                // Get data from the first UUID (all UUIDs from same step have same data)
+                for (const refId of configuredValue) {
+                  if (typeof refId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId)) {
+                    const crossStepData = toolInputs.__crossStepData.get(refId);
+                    if (crossStepData) {
+                      toolInputs[param.name] = crossStepData;
+                      console.log(`✅ Mapped cross-step data to ${param.name}: ${crossStepData.length} rows`);
+                      if (crossStepData.length > 0) {
+                        console.log(`  Sample row:`, crossStepData[0]);
+                      }
+                      break;
+                    }
+                  }
+                }
+              } else if (!hasUUIDs) {
+                // Direct value (not a UUID reference)
+                toolInputs[param.name] = configuredValue;
+                console.log(`✅ Mapped direct value to ${param.name}`);
+              }
+            } else {
+              // Single value
+              toolInputs[param.name] = configuredValue;
+              console.log(`✅ Mapped single value to ${param.name}`);
+            }
+          }
+        }
+      }
+      
       // Ensure all configured inputs are passed for both CODE and AI tools
       for (const param of tool.inputParameters || []) {
         // Check if we already have a value for this parameter
@@ -7576,6 +7626,13 @@ def extract_function(Column_Name, Excel_File):
       // Clean up internal data before passing to tool
       const cleanedToolInputs = { ...toolInputs };
       delete cleanedToolInputs.__crossStepData; // Remove internal cross-step data
+      
+      // Also remove the raw parameter IDs (like 0.880fzw5k308) from the inputs
+      if (value.inputValues) {
+        for (const paramId of Object.keys(value.inputValues)) {
+          delete cleanedToolInputs[paramId];
+        }
+      }
       
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({
