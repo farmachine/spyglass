@@ -1339,12 +1339,11 @@ function ValueEditor({
                           identifierValueId = step.values[0].id;
                         }
                         
-                        // Ensure identifier ref is always included if it exists
+                        // Don't auto-add identifier if this value IS the identifier
                         const rawValues = value.inputValues[param.id];
                         const currentValues = Array.isArray(rawValues) ? rawValues : (rawValues ? [rawValues] : []);
-                        const allValues = identifierValueId 
-                          ? Array.from(new Set([identifierValueId, ...currentValues]))
-                          : currentValues;
+                        // Only include existing values, no automatic identifier addition
+                        const allValues = currentValues;
                         
                         if (allValues.length > 0) {
                           return (
@@ -1362,28 +1361,20 @@ function ValueEditor({
                                 return (
                                   <Badge 
                                     key={valueId} 
-                                    className={`flex items-center gap-1.5 ${
-                                      isIdentifier 
-                                        ? 'bg-[#071e54] text-white border-[#071e54] dark:bg-[#5A70B5] dark:border-[#5A70B5]' 
-                                        : 'bg-[#E8EDF7] text-[#071e54] border-[#B8C5E0] hover:bg-[#DDE4F2] dark:bg-[#2A3550] dark:text-[#C5D3E8] dark:border-[#5A70B5]'
-                                    }`}
+                                    className="flex items-center gap-1.5 bg-[#E8EDF7] text-[#071e54] border-[#B8C5E0] hover:bg-[#DDE4F2] dark:bg-[#2A3550] dark:text-[#C5D3E8] dark:border-[#5A70B5]"
                                   >
-                                    <span className={isIdentifier ? 'font-medium' : ''}>{referencedValue.stepName}</span>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${
-                                      isIdentifier ? 'bg-white/60 dark:bg-white/40' : 'bg-[#4F63A4] dark:bg-[#8B9DC3]'
-                                    }`} />
+                                    <span>{referencedValue.stepName}</span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#4F63A4] dark:bg-[#8B9DC3]" />
                                     <span>{referencedValue.name}</span>
-                                    {!isIdentifier && (
-                                      <X 
-                                        className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
-                                        onClick={() => {
-                                          const updatedValues = currentValues.filter((v: string) => v !== valueId);
-                                          onUpdate({
-                                            inputValues: { ...value.inputValues, [param.id]: updatedValues }
-                                          });
-                                        }}
-                                      />
-                                    )}
+                                    <X 
+                                      className="h-3 w-3 cursor-pointer hover:text-red-500 ml-1"
+                                      onClick={() => {
+                                        const updatedValues = currentValues.filter((v: string) => v !== valueId);
+                                        onUpdate({
+                                          inputValues: { ...value.inputValues, [param.id]: updatedValues }
+                                        });
+                                      }}
+                                    />
                                   </Badge>
                                 );
                               })}
