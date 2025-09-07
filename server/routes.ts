@@ -7574,22 +7574,27 @@ def extract_function(Column_Name, Excel_File):
       console.log(`🚀 REACHED REPLACEMENT SECTION - this should always appear`);
       
       // Replace 'user_document' placeholders with actual session document content
+      // This must happen AFTER parameter mapping but BEFORE tool execution
       console.log(`🔍 Debug - documentContent available: ${!!documentContent}, length: ${documentContent?.length || 0}`);
-      console.log(`🔍 Debug - toolInputs before replacement:`, JSON.stringify(toolInputs, null, 2));
       
       if (documentContent) {
         console.log(`🔄 Checking for 'user_document' placeholders to replace...`);
         for (const [key, value] of Object.entries(toolInputs)) {
-          console.log(`🔍 Checking ${key}:`, value);
-          if (Array.isArray(value) && value.includes('user_document')) {
-            console.log(`📄 Replacing 'user_document' placeholder in ${key} with session document content`);
-            toolInputs[key] = documentContent;
+          if (Array.isArray(value)) {
+            // Check if array contains 'user_document'
+            if (value.length === 1 && value[0] === 'user_document') {
+              console.log(`📄 Replacing ['user_document'] in ${key} with actual document content`);
+              toolInputs[key] = documentContent;
+            } else if (value.includes('user_document')) {
+              console.log(`📄 Replacing 'user_document' in array ${key} with document content`);
+              // Replace the user_document element with the actual content
+              toolInputs[key] = value.map(v => v === 'user_document' ? documentContent : v);
+            }
           } else if (value === 'user_document') {
             console.log(`📄 Replacing 'user_document' placeholder in ${key} with session document content`);
             toolInputs[key] = documentContent;
           }
         }
-        console.log(`🔍 Debug - toolInputs after replacement:`, JSON.stringify(toolInputs, null, 2));
       } else {
         console.log(`⚠️ No documentContent available - cannot replace 'user_document' placeholders`);
       }
