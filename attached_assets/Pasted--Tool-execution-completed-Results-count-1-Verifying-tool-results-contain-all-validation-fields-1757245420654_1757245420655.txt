@@ -1,0 +1,29 @@
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": "Error processing Excel file: openpyxl does not support .16\t\tn\t\tn\t0\t file format, please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm",
+  "validationStatus": "invalid",
+  "aiReasoning": "An error occurred while processing the Excel file: openpyxl does not support .16\t\tn\t\tn\t0\t file format, please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm",
+  "confidenceScore": 70,
+  "documentSource": "Excel File"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+🔍 CREATE operation: Filtered 1 results to 1 with actual values
+📊 Processing 1 actual AI results (not creating validations for unprocessed records)
+🔗 Generated new UUID identifierId for first column at position 0: bc64636b-df28-447d-b904-73b6d1b72a88
+✨ Created validation for Member Red Flags.Member ID[0] with value: "Error processing Excel file: openpyxl does not support .16        n       n   0    file format, please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm"
+   🔑 Using valueId: 0a78a27e-c6d6-4faa-b20f-013a3b37fc5f (Member ID)
+💾 Saved 1 validation records
+11:43:28 AM [express] POST /api/sessions/07e15f0b-2567-47e8-9db5-2f8ee8744805/extract-column 200 in 2367ms :: {"success":true,"message":"Ex…
+11:43:28 AM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Member ID","resultsCount":1}
+11:43:28 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+11:43:28 AM [browser] 📝 🔄 Invalidating validation queries...
+11:43:28 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+11:43:28 AM [express] GET /api/sessions/07e15f0b-2567-47e8-9db5-2f8ee8744805/validations 200 in 92ms
+11:43:29 AM [express] GET /api/validations/project/ff368604-296c-4382-a89a-1d5149b802e2 200 in 10ms
+11:43:29 AM [browser] 📝 ✅ Validation queries refreshed
+11:43:29 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
