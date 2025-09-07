@@ -7390,18 +7390,27 @@ def extract_function(Column_Name, Excel_File):
                       continue;
                     }
                     
-                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${valueInfo.stepId}`);
+                    // Get the actual step value with stepId
+                    const fullValueInfo = await storage.getStepValue(valueId);
+                    const actualStepId = fullValueInfo?.stepId || valueInfo.stepId;
+                    
+                    if (!actualStepId) {
+                      console.log(`  ⚠️ No stepId found for value ${valueId}`);
+                      continue;
+                    }
+                    
+                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${actualStepId}`);
                     
                     // If we haven't processed this step yet, get all its data
-                    if (!processedSteps.has(valueInfo.stepId)) {
-                      processedSteps.add(valueInfo.stepId);
+                    if (!processedSteps.has(actualStepId)) {
+                      processedSteps.add(actualStepId);
                       
                       // Get all values for this step to build complete rows
-                      const stepValues = await storage.getStepValues(valueInfo.stepId);
+                      const stepValues = await storage.getStepValues(actualStepId);
                       
                       // Debug: Check what's in allValidations
-                      console.log(`  🔍 Checking validations for step ${valueInfo.stepId}`);
-                      let stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      console.log(`  🔍 Checking validations for step ${actualStepId}`);
+                      let stepValidations = allValidations.filter(v => v.stepId === actualStepId);
                       
                       // Alternative: Try filtering by valueId if stepId doesn't work
                       if (stepValidations.length === 0) {
@@ -7416,7 +7425,7 @@ def extract_function(Column_Name, Excel_File):
                         }
                       }
                       
-                      console.log(`  📋 Processing step ${valueInfo.stepId} for value ${valueInfo.valueName}`);
+                      console.log(`  📋 Processing step ${actualStepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
                       
                       // Build complete row objects
@@ -7725,18 +7734,27 @@ def extract_function(Column_Name, Excel_File):
                       continue;
                     }
                     
-                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${valueInfo.stepId}`);
+                    // Get the actual step value with stepId
+                    const fullValueInfo = await storage.getStepValue(valueId);
+                    const actualStepId = fullValueInfo?.stepId || valueInfo.stepId;
+                    
+                    if (!actualStepId) {
+                      console.log(`  ⚠️ No stepId found for value ${valueId}`);
+                      continue;
+                    }
+                    
+                    console.log(`  🔍 Value ${valueInfo.valueName} belongs to step ${actualStepId}`);
                     
                     // If we haven't processed this step yet, get all its data
-                    if (!processedSteps.has(valueInfo.stepId)) {
-                      processedSteps.add(valueInfo.stepId);
+                    if (!processedSteps.has(actualStepId)) {
+                      processedSteps.add(actualStepId);
                       
                       // Get all values for this step to build complete rows
-                      const stepValues = await storage.getStepValues(valueInfo.stepId);
+                      const stepValues = await storage.getStepValues(actualStepId);
                       
                       // Debug: Check what's in allValidations
-                      console.log(`  🔍 Checking validations for step ${valueInfo.stepId}`);
-                      let stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      console.log(`  🔍 Checking validations for step ${actualStepId}`);
+                      let stepValidations = allValidations.filter(v => v.stepId === actualStepId);
                       
                       // Alternative: Try filtering by valueId if stepId doesn't work
                       if (stepValidations.length === 0) {
@@ -7751,7 +7769,7 @@ def extract_function(Column_Name, Excel_File):
                         }
                       }
                       
-                      console.log(`  📋 Processing step ${valueInfo.stepId} for value ${valueInfo.valueName}`);
+                      console.log(`  📋 Processing step ${actualStepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
                       
                       // Build complete row objects

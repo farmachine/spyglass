@@ -160,7 +160,7 @@ export interface IStorage {
   deleteSessionDocument(id: string): Promise<boolean>;
 
   // Step value operations for reference resolution
-  getStepValueById(valueId: string): Promise<{ valueName: string } | undefined>;
+  getStepValueById(valueId: string): Promise<{ valueName: string; stepId: string } | undefined>;
 
   // Knowledge Documents
   getKnowledgeDocuments(projectId: string): Promise<KnowledgeDocument[]>;
@@ -1542,9 +1542,9 @@ export class MemStorage implements IStorage {
     return this.sessionDocuments.delete(id);
   }
 
-  async getStepValueById(valueId: string): Promise<{ valueName: string } | undefined> {
+  async getStepValueById(valueId: string): Promise<{ valueName: string; stepId: string } | undefined> {
     const value = this.stepValues.get(valueId);
-    return value ? { valueName: value.valueName } : undefined;
+    return value ? { valueName: value.valueName, stepId: value.stepId } : undefined;
   }
 
   // Knowledge Documents
@@ -3411,12 +3411,12 @@ class PostgreSQLStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async getStepValueById(valueId: string): Promise<{ valueName: string } | undefined> {
+  async getStepValueById(valueId: string): Promise<{ valueName: string; stepId: string } | undefined> {
     const result = await this.db
-      .select({ valueName: stepValues.valueName })
+      .select({ valueName: stepValues.valueName, stepId: stepValues.stepId })
       .from(stepValues)
       .where(eq(stepValues.id, valueId));
-    return result.length > 0 ? { valueName: result[0].valueName } : undefined;
+    return result.length > 0 ? { valueName: result[0].valueName, stepId: result[0].stepId } : undefined;
   }
 
   // Chat Messages
