@@ -7352,52 +7352,92 @@ def extract_function(Column_Name, Excel_File):
         console.log(`📚 Added document content to tool inputs (${documentContent?.length || 0} chars)`);
       }
       
-      // Map inputValues (with random IDs) to actual tool parameter names
-      // First, check if we have inputValues with random IDs that need mapping
+      // Map inputValues (with parameter IDs) to tool parameters using IDs only
       if (value.inputValues && Object.keys(value.inputValues).length > 0) {
-        console.log(`📐 Mapping inputValues to tool parameters...`);
+        console.log(`📐 Mapping inputValues to tool parameters using IDs...`);
         
-        // For each tool parameter, check if there's a corresponding inputValue
+        // For each tool parameter, check if there's a corresponding inputValue by parameter ID
         for (const param of tool.inputParameters || []) {
-          // Check if param.id matches any inputValue key (the random IDs)
+          // Use param.id to find the configured value
           if (param.id && value.inputValues[param.id] !== undefined) {
             const configuredValue = value.inputValues[param.id];
-            console.log(`🔗 Found inputValue config for parameter ${param.name} (${param.id}):`, configuredValue);
+            console.log(`🔗 Found inputValue config for parameter ${param.name} (ID: ${param.id}):`, configuredValue);
             
-            // Check if this is a cross-step reference (array of UUIDs)
+            // Check if this is an array of value IDs (cross-step reference)
             if (Array.isArray(configuredValue)) {
               const hasUUIDs = configuredValue.some(item => 
                 typeof item === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item)
               );
               
-              if (hasUUIDs && toolInputs.__crossStepData && toolInputs.__crossStepData.size > 0) {
-                // Get the cross-step data for these UUIDs
-                console.log(`📊 Mapping cross-step data for parameter ${param.name} (${param.id})`);
-                console.log(`  Referenced UUIDs:`, configuredValue);
-                console.log(`  Available cross-step data keys:`, Array.from(toolInputs.__crossStepData.keys()));
+              if (hasUUIDs) {
+                // These are value IDs - fetch the data for these values
+                console.log(`📊 Fetching data for parameter ${param.name} using value IDs:`, configuredValue);
                 
-                // Get data from the first UUID (all UUIDs from same step have same data)
-                for (const refId of configuredValue) {
-                  if (typeof refId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refId)) {
-                    const crossStepData = toolInputs.__crossStepData.get(refId);
-                    if (crossStepData) {
-                      toolInputs[param.name] = crossStepData;
-                      console.log(`✅ Mapped cross-step data to ${param.name}: ${crossStepData.length} rows`);
-                      if (crossStepData.length > 0) {
-                        console.log(`  Sample row:`, crossStepData[0]);
+                // Get all validations for the session
+                const allValidations = await storage.getFieldValidations(sessionId);
+                
+                // Collect data for each referenced value ID
+                const parameterData: any[] = [];
+                const processedSteps = new Set<string>();
+                
+                for (const valueId of configuredValue) {
+                  if (typeof valueId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valueId)) {
+                    // Get value info to find its step
+                    const valueInfo = await storage.getStepValueById(valueId);
+                    if (!valueInfo) {
+                      console.log(`  ⚠️ Value not found: ${valueId}`);
+                      continue;
+                    }
+                    
+                    // If we haven't processed this step yet, get all its data
+                    if (!processedSteps.has(valueInfo.stepId)) {
+                      processedSteps.add(valueInfo.stepId);
+                      
+                      // Get all values for this step to build complete rows
+                      const stepValues = await storage.getStepValues(valueInfo.stepId);
+                      const stepValidations = allValidations.filter(v => v.stepId === valueInfo.stepId);
+                      
+                      console.log(`  📋 Processing step ${valueInfo.stepId} for value ${valueInfo.valueName}`);
+                      console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
+                      
+                      // Build complete row objects
+                      const rowsByIdentifier = new Map<string, any>();
+                      for (const validation of stepValidations) {
+                        if (!validation.identifierId) continue;
+                        
+                        if (!rowsByIdentifier.has(validation.identifierId)) {
+                          rowsByIdentifier.set(validation.identifierId, {});
+                        }
+                        
+                        // Find the column name for this validation
+                        const stepValue = stepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
+                        if (stepValue) {
+                          rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+                        }
                       }
-                      break;
-                    } else {
-                      console.log(`  ⚠️ No data found for UUID ${refId}`);
+                      
+                      // Add these rows to the parameter data
+                      const rows = Array.from(rowsByIdentifier.values());
+                      if (rows.length > 0) {
+                        parameterData.push(...rows);
+                        console.log(`    Added ${rows.length} rows to parameter data`);
+                      }
                     }
                   }
                 }
                 
-                if (!toolInputs[param.name]) {
-                  console.log(`  ❌ Failed to map cross-step data for ${param.name}`);
+                // Set the parameter data
+                if (parameterData.length > 0) {
+                  toolInputs[param.name] = parameterData;
+                  console.log(`✅ Set ${param.name} to ${parameterData.length} rows from cross-step references`);
+                  if (parameterData.length > 0) {
+                    console.log(`  Sample row:`, parameterData[0]);
+                  }
+                } else {
+                  console.log(`  ❌ No data found for parameter ${param.name}`);
                 }
-              } else if (!hasUUIDs) {
-                // Direct value (not a UUID reference)
+              } else {
+                // Direct value (not UUIDs)
                 toolInputs[param.name] = configuredValue;
                 console.log(`✅ Mapped direct value to ${param.name}`);
               }
