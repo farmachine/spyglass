@@ -7470,8 +7470,8 @@ def extract_function(Column_Name, Excel_File):
                 if (Array.isArray(configuredValue) && configuredValue.includes('user_document')) {
                   // Replace 'user_document' with actual document content
                   const replacedValue = configuredValue.map(item => 
-                    item === 'user_document' && sessionDocumentContent 
-                      ? sessionDocumentContent 
+                    item === 'user_document' && documentContent 
+                      ? documentContent 
                       : item
                   );
                   
@@ -7834,8 +7834,8 @@ def extract_function(Column_Name, Excel_File):
                 if (Array.isArray(configuredValue) && configuredValue.includes('user_document')) {
                   // Replace 'user_document' with actual document content
                   const replacedValue = configuredValue.map(item => 
-                    item === 'user_document' && sessionDocumentContent 
-                      ? sessionDocumentContent 
+                    item === 'user_document' && documentContent 
+                      ? documentContent 
                       : item
                   );
                   
