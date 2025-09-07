@@ -476,8 +476,10 @@ Your response must maintain the identifierId mapping for all processed items.
                         value_config += "\n  IMPORTANT: The 'e.g.' items above are ONLY FORMAT EXAMPLES to show the desired output structure."
                         value_config += "\n  You must extract ALL matching items from the document, not just these examples."
                         value_config += "\n  Search the ENTIRE document and return EVERY item that matches the criteria."
+                        value_config += "\n  If Input Data is provided, use that data to extract the corresponding values."
                     else:
                         value_config += f"\n- For '{param_key}', apply the AI Query: \"{param_value}\""
+                        value_config += "\n  If Input Data columns are referenced, extract values from those columns for each record."
                     has_instructions = True
             elif isinstance(param_value, list):
                 # Handle array-based instructions

@@ -1013,9 +1013,7 @@ function ValueEditor({
     // Add all values from current step that have a lower orderIndex
     step.values.forEach(v => {
       const vOrderIndex = v.orderIndex !== undefined ? v.orderIndex : step.values.indexOf(v);
-      console.log(`Checking value "${v.name}" with orderIndex ${vOrderIndex} against current ${currentOrderIndex}`);
       if (vOrderIndex < currentOrderIndex && v.id !== value.id) {
-        console.log(`  -> Adding "${v.name}" to available values`);
         availableValues.push({
           id: v.id, // Store the actual value ID
           valueId: v.id, // Explicit value ID for clarity
