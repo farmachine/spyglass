@@ -908,16 +908,24 @@ export class ToolEngine {
     console.log(`🔍 DEBUG findDataInput - Looking for data input...`);
     console.log(`   Available input keys: [${Object.keys(inputs).join(', ')}]`);
     
+    // Debug: Log tool.inputParameters structure
+    console.log(`   Tool has ${tool.inputParameters?.length || 0} input parameters defined`);
+    if (tool.inputParameters && tool.inputParameters.length > 0) {
+      console.log(`   Tool input parameters:`, tool.inputParameters.map(p => `${p.name} (type: ${p.type})`));
+    }
+    
     // First try to find by parameter type
-    for (const [key, value] of Object.entries(inputs)) {
-      console.log(`   Checking key: "${key}", type: ${typeof value}, isArray: ${Array.isArray(value)}`);
-      const param = tool.inputParameters.find(p => p.id === key || p.name === key);
-      if (param) {
-        console.log(`     Found matching parameter: ${param.name} (type: ${param.type})`);
-      }
-      if (param?.type === 'data' && Array.isArray(value)) {
-        console.log(`📊 ✅ Found data parameter "${key}" with ${value.length} items`);
-        return { key, value };
+    if (tool.inputParameters && Array.isArray(tool.inputParameters)) {
+      for (const [key, value] of Object.entries(inputs)) {
+        console.log(`   Checking key: "${key}", type: ${typeof value}, isArray: ${Array.isArray(value)}`);
+        const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+        if (param) {
+          console.log(`     Found matching parameter: ${param.name} (type: ${param.type})`);
+        }
+        if (param?.type === 'data' && Array.isArray(value)) {
+          console.log(`📊 ✅ Found data parameter "${key}" with ${value.length} items`);
+          return { key, value };
+        }
       }
     }
     
@@ -937,17 +945,24 @@ export class ToolEngine {
       }
     }
     
-    console.log(`⚠️ ❌ No data input found. Available keys: ${Object.keys(inputs).join(', ')}`);
-    console.log(`   Full inputs object for debugging:`);
+    console.log(`⚠️ ❌ No data input found. Debugging why...`);
+    console.log(`   Available keys: ${Object.keys(inputs).join(', ')}`);
+    console.log(`   Full inputs structure for debugging:`);
     for (const [key, value] of Object.entries(inputs)) {
       if (Array.isArray(value)) {
         console.log(`     "${key}": Array with ${value.length} items`);
+        if (value.length > 0) {
+          console.log(`       First item:`, value[0]);
+        }
       } else if (typeof value === 'object' && value !== null) {
         console.log(`     "${key}": Object with keys [${Object.keys(value).join(', ')}]`);
+      } else if (typeof value === 'string' && value.length > 100) {
+        console.log(`     "${key}": String (${value.length} chars) - "${value.substring(0, 100)}..."`);
       } else {
-        console.log(`     "${key}": ${typeof value} = ${String(value).substring(0, 100)}`);
+        console.log(`     "${key}": ${typeof value} - ${JSON.stringify(value)}`);
       }
     }
+    
     return null;
   }
   
