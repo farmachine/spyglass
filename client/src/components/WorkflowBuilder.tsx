@@ -493,35 +493,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </div>
                 )}
 
-                {/* Right-angled connection line from selected step */}
-                {selectedStepId === step.id && step.values.length > 0 && (
-                  <svg 
-                    className="absolute pointer-events-none" 
-                    style={{ 
-                      left: '100%',
-                      top: `-${stepIndex * 106}px`, // Adjust SVG position based on step index
-                      width: '72px',
-                      height: '800px',
-                      zIndex: 10
-                    }}
-                  >
-                    {(() => {
-                      const stepCenterY = (stepIndex * 106) + 49; // Actual position of this step
-                      const valueCenterY = 49; // Top value card is always at 49px from values container top
-                      const horizontalLength = 52;
-                      const verticalMidPoint = 20;
-                      
-                      return (
-                        <path
-                          d={`M 0 ${stepCenterY} L ${verticalMidPoint} ${stepCenterY} L ${verticalMidPoint} ${valueCenterY} L ${horizontalLength} ${valueCenterY}`}
-                          stroke="#4F63A4"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                      );
-                    })()}
-                  </svg>
-                )}
 
               </div>
             ))}
