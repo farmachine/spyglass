@@ -648,9 +648,37 @@ function ValueCard({
   useEffect(() => {
     if (!isManual && selectedTool?.inputParameters) {
       try {
-        const params = typeof selectedTool.inputParameters === 'string' 
+        let params = typeof selectedTool.inputParameters === 'string' 
           ? JSON.parse(selectedTool.inputParameters)
           : selectedTool.inputParameters;
+        
+        // Handle different parameter structures
+        if (params && typeof params === 'object' && !Array.isArray(params)) {
+          // Convert object format to array format
+          params = Object.entries(params).map(([key, param]: [string, any]) => ({
+            id: key,
+            name: param.name || param.label || key,
+            label: param.label || param.name || key,
+            type: param.type || 'text',
+            placeholder: param.placeholder || param.description || '',
+            description: param.description || '',
+            required: param.required !== false,
+            ...param
+          }));
+        } else if (Array.isArray(params)) {
+          // Ensure each param has proper structure
+          params = params.map((param: any) => ({
+            id: param.id || param.key || Math.random().toString(),
+            name: param.name || param.label || param.id || 'Parameter',
+            label: param.label || param.name || param.id || 'Parameter',
+            type: param.type || 'text',
+            placeholder: param.placeholder || param.description || '',
+            description: param.description || '',
+            required: param.required !== false,
+            ...param
+          }));
+        }
+        
         setInputParameters(Array.isArray(params) ? params : []);
       } catch (error) {
         console.error("Error parsing input parameters:", error);
@@ -892,13 +920,35 @@ function ValueCard({
             {selectedTool && inputParameters.length > 0 && (
               <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg space-y-3">
                 <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Tool Parameters</Label>
-                {inputParameters.map((param: any) => (
+                {inputParameters.map((param: any) => {
+                  // Determine the actual parameter type
+                  const paramType = param.type?.toLowerCase() || 'text';
+                  const paramName = param.name?.toLowerCase() || '';
+                  
+                  // Check for document types
+                  const isUserDocument = paramType === 'document' || paramType.includes('user_document') || 
+                                        paramName.includes('document') && !paramName.includes('reference');
+                  const isReferenceDocument = paramType.includes('reference_document') || 
+                                             paramType.includes('knowledge') || paramName.includes('knowledge') || 
+                                             paramName.includes('reference document');
+                  
+                  // Check for field/value references
+                  const isFieldReference = paramType === 'reference' || paramType === 'field_reference' || 
+                                          paramType === 'value_reference' || paramName.includes('referenced') || 
+                                          (paramName.includes('field') && paramName.includes('reference'));
+                  
+                  // Check for text types
+                  const isPrompt = paramType === 'text' && (param.multiline === true || paramName.includes('instruction') || 
+                                                            paramName.includes('prompt'));
+                  const isBoolean = paramType === 'boolean' || paramType === 'bool';
+                  
+                  return (
                   <div key={param.id} className="space-y-1">
                     <Label className="text-xs text-gray-600 dark:text-gray-400">
-                      {param.label || param.id}
+                      {param.name || param.label || param.id}
                       {param.required !== false && <span className="text-red-500 ml-1">*</span>}
                     </Label>
-                    {param.type === 'value_reference' || param.type === 'field_reference' ? (
+                    {isFieldReference && !isReferenceDocument ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}
                         onValueChange={(v) => {
@@ -930,7 +980,7 @@ function ValueCard({
                           )}
                         </SelectContent>
                       </Select>
-                    ) : param.type === 'knowledge_reference' || param.type === 'knowledge_document' ? (
+                    ) : isReferenceDocument ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}
                         onValueChange={(v) => {
@@ -960,7 +1010,11 @@ function ValueCard({
                           )}
                         </SelectContent>
                       </Select>
-                    ) : param.type === 'boolean' ? (
+                    ) : isUserDocument ? (
+                      <div className="text-xs text-gray-600 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-200 dark:border-yellow-800">
+                        📄 Document will be selected during extraction
+                      </div>
+                    ) : isBoolean ? (
                       <Select
                         value={String(value.inputValues?.[param.id] || 'false')}
                         onValueChange={(v) => {
@@ -980,7 +1034,7 @@ function ValueCard({
                           <SelectItem value="false">No</SelectItem>
                         </SelectContent>
                       </Select>
-                    ) : param.type === 'text' || param.type === 'prompt' ? (
+                    ) : isPrompt ? (
                       <Textarea
                         value={value.inputValues?.[param.id] || ''}
                         onChange={(e) => {
@@ -1013,7 +1067,8 @@ function ValueCard({
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{param.description}</p>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
