@@ -571,6 +571,18 @@ export class ToolEngine {
           const AI_RECORD_LIMIT = 50;
           inputArray = dataInput.value.slice(0, AI_RECORD_LIMIT);
           console.log(`🔄 UPDATE operation with ${inputArray.length} records`);
+          
+          // CRITICAL: Log if inputArray has identifierIds for debugging
+          if (inputArray.length > 0) {
+            const hasIdentifierIds = inputArray[0].identifierId !== undefined;
+            console.log(`📊 InputArray has identifierIds: ${hasIdentifierIds}`);
+            if (hasIdentifierIds) {
+              console.log(`📊 First 3 identifierIds in inputArray:`);
+              inputArray.slice(0, 3).forEach((item, idx) => {
+                console.log(`   [${idx}] ${item.identifierId}`);
+              });
+            }
+          }
         }
       }
       
@@ -717,6 +729,16 @@ export class ToolEngine {
           if (inputDataParam && Array.isArray(inputDataParam) && inputDataParam.length > 0 && inputDataParam[0].identifierId) {
             console.log(`🔄 UPDATE operation with Input Data: ${inputDataParam.length} records with identifierIds`);
             console.log(`🔄 AI returned ${parsedResults.length} values`);
+            
+            // Log the first few identifierIds to verify they exist
+            console.log(`📊 Input Data identifierIds (first 3):`);
+            inputDataParam.slice(0, 3).forEach((item: any, idx: number) => {
+              console.log(`   [${idx}] identifierId: ${item.identifierId}`);
+            });
+            
+            // Check if AI returned any identifierIds
+            const aiReturnedIds = parsedResults.filter((r: any) => r.identifierId).length;
+            console.log(`🔍 AI returned ${aiReturnedIds} results with identifierIds out of ${parsedResults.length} total`);
             
             // Map AI results by identifierId (AI should return matching identifierIds)
             if (parsedResults.length > 0) {

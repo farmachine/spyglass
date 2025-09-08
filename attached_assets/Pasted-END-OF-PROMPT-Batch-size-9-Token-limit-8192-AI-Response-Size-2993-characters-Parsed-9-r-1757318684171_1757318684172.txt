@@ -1,0 +1,81 @@
+END OF PROMPT
+📊 Batch size: 9, Token limit: 8192
+📏 AI Response Size: 2993 characters
+📦 Parsed 9 results from AI response
+🎯 COLUMN EXTRACTION DEBUG for "Unknown":
+   Step: Unknown
+   Results count: 9
+   First 3 results for column "Unknown":
+   [0] identifierId: none, value: "CPI subject to a maximum of 5%"
+   [1] identifierId: none, value: "CPI subject to a maximum of 5%"
+   [2] identifierId: none, value: "CPI subject to a maximum of 5%"
+✅ Found 2 unique values for column "Unknown"
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 9
+   - isCreateOperation: false
+🔄 UPDATE operation processed 9 records
+✅ AI extraction complete: 9 results
+✅ Tool execution completed. Results count: 9
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": "CPI subject to a maximum of 5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The description of the revaluation or in-payment increase rate for this item is CPI subject to a maximum of 5%, as indicated by the 'CPI Max 5%' in the Benefit Identifier.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  Second result: {
+  "extractedValue": "CPI subject to a maximum of 5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The description of the revaluation or in-payment increase rate for this item is CPI subject to a maximum of 5%, as indicated by the 'CPI Max 5%' in the Benefit Identifier.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Building index map from 9 records in previousData
+  Record index 0 -> identifierId: a5841333-d766-4696-a4b2-dfd299bbe7f4
+  Record index 1 -> identifierId: 24a846bb-99d1-4670-8980-9f2b91a02d86
+  Record index 2 -> identifierId: 59207153-452c-4838-ad6d-20f08f152106
+  Record index 3 -> identifierId: 49619fe7-c7fc-47a8-be18-41bbe1c4b923
+  Record index 4 -> identifierId: 48350e93-99bf-4e98-b9b3-21f2614e41d7
+📊 Mapped 9 identifierIds to their array indices
+📊 Processing 9 actual AI results (not creating validations for unprocessed records)
+⚠️ AI didn't return identifierId for position 0 - generating new one
+✨ Created validation for Benefit History.Description[0] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 1 - generating new one
+✨ Created validation for Benefit History.Description[1] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 2 - generating new one
+✨ Created validation for Benefit History.Description[2] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 3 - generating new one
+✨ Created validation for Benefit History.Description[3] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 4 - generating new one
+✨ Created validation for Benefit History.Description[4] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 5 - generating new one
+✨ Created validation for Benefit History.Description[5] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 6 - generating new one
+✨ Created validation for Benefit History.Description[6] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 7 - generating new one
+✨ Created validation for Benefit History.Description[7] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI didn't return identifierId for position 8 - generating new one
+✨ Created validation for Benefit History.Description[8] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+💾 Saved 9 validation records
+8:04:04 AM [express] POST /api/sessions/2731bedd-3ffd-4f58-a08a-5374b7ca83aa/extract-column 200 in 5717ms :: {"success":true,"message":"Ex…
+8:04:05 AM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 9 values for Description","resultsCount":9}
+8:04:05 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+8:04:05 AM [browser] 📝 🔄 Invalidating validation queries...
+8:04:05 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+8:04:05 AM [express] GET /api/sessions/2731bedd-3ffd-4f58-a08a-5374b7ca83aa/validati
