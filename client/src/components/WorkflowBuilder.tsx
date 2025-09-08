@@ -262,7 +262,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       toolId: 'manual',
       inputValues: {},
       orderIndex: insertAt !== undefined ? insertAt : step.values.length,
-      fields: step.type === 'page' ? [] : null
+      fields: step.type === 'page' ? [] : undefined
     };
 
     // If inserting at a specific position, update orderIndex for values after
@@ -549,8 +549,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 )}
               </div>
 
-              {/* Values Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Values Stack - Vertical layout for better space */}
+              <div className="space-y-4">
                 {steps.find(s => s.id === selectedStepId)?.values.map((value, valueIndex) => (
                   <ValueCard
                     key={value.id}
@@ -568,14 +568,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   />
                 ))}
 
-                {/* Add Value Card */}
+                {/* Add Value Button - Below the stacked values */}
                 <button
                   onClick={() => addValue(selectedStepId)}
-                  className="h-48 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex flex-col items-center justify-center gap-2 transition-colors group"
+                  className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
                 >
-                  <div className="p-3 rounded-full bg-gray-100 group-hover:bg-[#4F63A4]/10 dark:bg-gray-700 dark:group-hover:bg-[#5A70B5]/10 transition-colors">
-                    <Plus className="h-5 w-5 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
-                  </div>
+                  <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
                   <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
                     Add Value
                   </span>
@@ -710,8 +708,8 @@ function ValueCard({
   };
 
   return (
-    <Card className="h-48 flex flex-col hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2 flex-shrink-0">
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {getValueIcon()}
@@ -745,7 +743,7 @@ function ValueCard({
         </div>
       </CardHeader>
       
-      <CardContent className="flex-1 overflow-auto">
+      <CardContent>
         {!isExpanded ? (
           <div className="space-y-2">
             {value.description && (
@@ -863,31 +861,44 @@ function ValueCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual">Manual Entry</SelectItem>
-                  {excelFunctions.map((func) => (
+                  <div className="px-2 py-1 text-xs text-gray-500 font-semibold">AI Tools</div>
+                  {excelFunctions.filter(f => f.toolType === "AI_ONLY").map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       <div className="flex items-center gap-2">
-                        {func.toolType === "AI_ONLY" ? 
-                          <Brain className="h-3 w-3" /> : 
-                          <Code className="h-3 w-3" />
-                        }
-                        {func.name}
+                        <Brain className="h-3 w-3 text-purple-500" />
+                        <span>{func.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <div className="px-2 py-1 text-xs text-gray-500 font-semibold mt-2">Function Tools</div>
+                  {excelFunctions.filter(f => f.toolType !== "AI_ONLY").map((func) => (
+                    <SelectItem key={func.id} value={func.id}>
+                      <div className="flex items-center gap-2">
+                        <Code className="h-3 w-3 text-blue-500" />
+                        <span>{func.name}</span>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedTool && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {selectedTool.description}
+                </p>
+              )}
             </div>
 
             {/* Tool Parameters */}
             {selectedTool && inputParameters.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-600 dark:text-gray-400">Parameters</Label>
+              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg space-y-3">
+                <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Tool Parameters</Label>
                 {inputParameters.map((param: any) => (
-                  <div key={param.id}>
-                    <Label className="text-xs text-gray-500 dark:text-gray-400">
-                      {param.label}
+                  <div key={param.id} className="space-y-1">
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">
+                      {param.label || param.id}
+                      {param.required !== false && <span className="text-red-500 ml-1">*</span>}
                     </Label>
-                    {param.type === 'value_reference' ? (
+                    {param.type === 'value_reference' || param.type === 'field_reference' ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}
                         onValueChange={(v) => {
@@ -899,18 +910,27 @@ function ValueCard({
                           });
                         }}
                       >
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue placeholder="Select value..." />
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                          <SelectValue placeholder="Select field or value..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {getAvailableValues().map((av) => (
-                            <SelectItem key={av.id} value={av.valueId}>
-                              {av.stepName} → {av.name}
-                            </SelectItem>
-                          ))}
+                          {getAvailableValues().length > 0 ? (
+                            getAvailableValues().map((av) => (
+                              <SelectItem key={av.id} value={av.valueId}>
+                                <div className="flex items-center gap-2">
+                                  <Circle className="h-2 w-2 text-gray-400" />
+                                  <span>{av.stepName}</span>
+                                  <ChevronRight className="h-3 w-3 text-gray-400" />
+                                  <span className="font-medium">{av.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-xs text-gray-500">No previous values available</div>
+                          )}
                         </SelectContent>
                       </Select>
-                    ) : param.type === 'knowledge_reference' ? (
+                    ) : param.type === 'knowledge_reference' || param.type === 'knowledge_document' ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}
                         onValueChange={(v) => {
@@ -922,18 +942,45 @@ function ValueCard({
                           });
                         }}
                       >
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue placeholder="Select document..." />
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                          <SelectValue placeholder="Select knowledge document..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {knowledgeDocuments.map((doc) => (
-                            <SelectItem key={doc.id} value={doc.id}>
-                              {doc.displayName || doc.documentName}
-                            </SelectItem>
-                          ))}
+                          {knowledgeDocuments.length > 0 ? (
+                            knowledgeDocuments.map((doc) => (
+                              <SelectItem key={doc.id} value={doc.id}>
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-3 w-3 text-gray-400" />
+                                  <span>{doc.displayName || doc.fileName || 'Untitled Document'}</span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-xs text-gray-500">No knowledge documents available</div>
+                          )}
                         </SelectContent>
                       </Select>
-                    ) : (
+                    ) : param.type === 'boolean' ? (
+                      <Select
+                        value={String(value.inputValues?.[param.id] || 'false')}
+                        onValueChange={(v) => {
+                          onUpdate({
+                            inputValues: {
+                              ...value.inputValues,
+                              [param.id]: v === 'true'
+                            }
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : param.type === 'text' || param.type === 'prompt' ? (
                       <Textarea
                         value={value.inputValues?.[param.id] || ''}
                         onChange={(e) => {
@@ -944,9 +991,26 @@ function ValueCard({
                             }
                           });
                         }}
-                        placeholder={param.placeholder}
-                        className="h-16 text-xs"
+                        placeholder={param.placeholder || 'Enter text...'}
+                        className="min-h-[60px] text-xs bg-white dark:bg-gray-800 resize-none"
                       />
+                    ) : (
+                      <Input
+                        value={value.inputValues?.[param.id] || ''}
+                        onChange={(e) => {
+                          onUpdate({
+                            inputValues: {
+                              ...value.inputValues,
+                              [param.id]: e.target.value
+                            }
+                          });
+                        }}
+                        placeholder={param.placeholder || `Enter ${param.type || 'value'}...`}
+                        className="h-8 text-xs bg-white dark:bg-gray-800"
+                      />
+                    )}
+                    {param.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{param.description}</p>
                     )}
                   </div>
                 ))}
