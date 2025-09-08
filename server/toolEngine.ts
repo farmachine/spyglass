@@ -1751,17 +1751,25 @@ Return a JSON array where each object contains these exact fields:
   "documentSource": "Reference to the rule or section used for mapping"
 }
 
-CRITICAL INSTRUCTIONS FOR UPDATE OPERATION:
+⚠️⚠️⚠️ CRITICAL INSTRUCTIONS FOR UPDATE OPERATION - FAILURE TO FOLLOW WILL BREAK THE SYSTEM ⚠️⚠️⚠️
 1. Each input object has an "identifierId" field - you MUST copy this EXACT value to your output
-2. For each input object, create exactly one output object with the SAME identifierId
-3. The identifierId links your output to the correct existing record
-4. If no value can be extracted, still include the record with "Not Found" as extractedValue
-5. The order and identifierId values MUST match exactly between input and output
-6. Return ONLY the JSON array, no explanations or markdown formatting
+2. DO NOT GENERATE NEW UUIDs - Use the identifierId values PROVIDED in the input
+3. For input object at index 0, use its identifierId for output object at index 0
+4. For input object at index 1, use its identifierId for output object at index 1
+5. And so on for ALL items - maintain exact 1-to-1 correspondence
+6. If no value can be extracted, still include the record with "Not Found" as extractedValue
+7. The identifierId is what links your output to existing database records - getting this wrong creates duplicate rows
+8. Return ONLY the JSON array, no explanations or markdown formatting
 
-EXAMPLE:
-If input has: {"identifierId": "abc-123", "ID": "Date of Birth", "Worksheet Name": "New_Pensioners"}
-Output must have: {"identifierId": "abc-123", "extractedValue": "DoB", ...other fields...}`;
+⚠️ IDENTIFIERID PRESERVATION IS MANDATORY - EXAMPLES:
+✅ CORRECT: Input has identifierId "b4ecc9a0-97ea-40fd-9d5d-4b5641a37e15" → Output MUST have identifierId "b4ecc9a0-97ea-40fd-9d5d-4b5641a37e15"
+❌ WRONG: Input has identifierId "b4ecc9a0-97ea-40fd-9d5d-4b5641a37e15" → Output has new UUID "d24a95d6-f05f-4688-86c3-862b1c3da9a9"
+
+STEP-BY-STEP PROCESS:
+1. Read the identifierId from each input object
+2. Copy it EXACTLY to your output object for that item
+3. Add the extracted value and other required fields
+4. Move to the next input object and repeat`;
         }
       } else if (tool.operationType?.includes('create')) {
         // For CREATE operations - no identifierId preservation needed
