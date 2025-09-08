@@ -950,54 +950,105 @@ function ValueCard({
                       {param.required !== false && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     {isFieldReference && !isReferenceDocument ? (
-                      <Select
-                        value={value.inputValues?.[param.id] || ''}
-                        onValueChange={(v) => {
-                          onUpdate({
-                            inputValues: {
-                              ...value.inputValues,
-                              [param.id]: v
+                      <div className="space-y-2">
+                        <div className="border rounded-lg p-2 bg-white dark:bg-gray-800 min-h-[32px]">
+                          <div className="flex flex-wrap gap-1">
+                            {(() => {
+                              const selectedValues = value.inputValues?.[param.id] || [];
+                              const selectedArray = Array.isArray(selectedValues) ? selectedValues : 
+                                                   (selectedValues ? [selectedValues] : []);
+                              const availableVals = getAvailableValues();
+                              
+                              return selectedArray.length > 0 ? (
+                                selectedArray.map((valueId: string) => {
+                                  const selected = availableVals.find(av => av.valueId === valueId);
+                                  return selected ? (
+                                    <div key={valueId} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">
+                                      <span>{selected.stepName} → {selected.name}</span>
+                                      <button
+                                        onClick={() => {
+                                          const newValues = selectedArray.filter((v: string) => v !== valueId);
+                                          onUpdate({
+                                            inputValues: {
+                                              ...value.inputValues,
+                                              [param.id]: newValues
+                                            }
+                                          });
+                                        }}
+                                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ) : null;
+                                })
+                              ) : (
+                                <span className="text-xs text-gray-400">Select fields to reference...</span>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        
+                        <Select
+                          value=""
+                          onValueChange={(v) => {
+                            const currentValues = value.inputValues?.[param.id] || [];
+                            const currentArray = Array.isArray(currentValues) ? currentValues : 
+                                               (currentValues ? [currentValues] : []);
+                            if (!currentArray.includes(v)) {
+                              onUpdate({
+                                inputValues: {
+                                  ...value.inputValues,
+                                  [param.id]: [...currentArray, v]
+                                }
+                              });
                             }
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
-                          <SelectValue placeholder="Select field or value..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAvailableValues().length > 0 ? (
-                            <>
-                              {/* Group by step for better organization */}
-                              {(() => {
-                                const availableVals = getAvailableValues();
-                                const groupedValues: Record<string, typeof availableVals> = {};
-                                availableVals.forEach(av => {
-                                  if (!groupedValues[av.stepName]) {
-                                    groupedValues[av.stepName] = [];
-                                  }
-                                  groupedValues[av.stepName].push(av);
-                                });
-                                
-                                return Object.entries(groupedValues).map(([stepName, values]) => (
-                                  <div key={stepName}>
-                                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold">{stepName}</div>
-                                    {values.map((av) => (
-                                      <SelectItem key={av.id} value={av.valueId}>
-                                        <div className="flex items-center gap-2 pl-2">
-                                          <Circle className="h-2 w-2 text-gray-400" />
-                                          <span>{av.name}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </div>
-                                ));
-                              })()}
-                            </>
-                          ) : (
-                            <div className="px-2 py-1 text-xs text-gray-500">No previous values available</div>
-                          )}
-                        </SelectContent>
-                      </Select>
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                            <SelectValue placeholder="Add field reference..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableValues().length > 0 ? (
+                              <>
+                                {/* Group by step for better organization */}
+                                {(() => {
+                                  const availableVals = getAvailableValues();
+                                  const currentValues = value.inputValues?.[param.id] || [];
+                                  const currentArray = Array.isArray(currentValues) ? currentValues : 
+                                                     (currentValues ? [currentValues] : []);
+                                  const groupedValues: Record<string, typeof availableVals> = {};
+                                  
+                                  availableVals
+                                    .filter(av => !currentArray.includes(av.valueId))
+                                    .forEach(av => {
+                                      if (!groupedValues[av.stepName]) {
+                                        groupedValues[av.stepName] = [];
+                                      }
+                                      groupedValues[av.stepName].push(av);
+                                    });
+                                  
+                                  return Object.entries(groupedValues).map(([stepName, values]) => (
+                                    <div key={stepName}>
+                                      <div className="px-2 py-1 text-xs text-gray-500 font-semibold">{stepName}</div>
+                                      {values.map((av) => (
+                                        <SelectItem key={av.id} value={av.valueId}>
+                                          <div className="flex items-center gap-2 pl-2">
+                                            <Circle className="h-2 w-2 text-gray-400" />
+                                            <span>{av.name}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </div>
+                                  ));
+                                })()}
+                              </>
+                            ) : (
+                              <div className="px-2 py-1 text-xs text-gray-500">No previous values available</div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     ) : isReferenceDocument ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}
