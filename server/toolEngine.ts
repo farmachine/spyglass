@@ -1165,13 +1165,27 @@ ${JSON.stringify(dataArray, null, 2)}
       if (hasIdentifierIds && !isCreateOperation) {
         // Only add identifierId requirement for UPDATE operations
         console.log(`   ✅ Adding CRITICAL REQUIREMENT for identifierId preservation`);
-        prompt += `=== CRITICAL REQUIREMENT ===
+        prompt += `=== 🚨 CRITICAL REQUIREMENT - YOU MUST RETURN ${dataArray.length} RESULTS 🚨 ===
+
+📊 INPUT: You received ${dataArray.length} records
+📊 OUTPUT: You MUST return EXACTLY ${dataArray.length} results (one for each input record)
+
 Each item in the list above has an "identifierId" field. You MUST:
-1. Include the EXACT SAME "identifierId" in your response for each item
-2. Return results in ANY order, but each result MUST have its corresponding identifierId
-3. The identifierId links the extracted value to the correct row/record
-4. Example: If input has {"identifierId": "abc-123", "Column Name": "Date"}, 
-   your output MUST include {"identifierId": "abc-123", "extractedValue": "..."}
+1. Return EXACTLY ${dataArray.length} results - one result for EACH input record
+2. Include the EXACT SAME "identifierId" in your response for each item
+3. Each result MUST have its corresponding identifierId from the input
+4. The identifierId links the extracted value to the correct row/record
+
+MANDATORY RESPONSE FORMAT:
+[
+${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", "extractedValue": "...", "validationStatus": "valid", "aiReasoning": "...", "confidenceScore": 95, "documentSource": "..."}`).join(',\n')}${dataArray.length > 2 ? ',\n  ... (continue for all ' + dataArray.length + ' records)' : ''}
+]
+
+⚠️ IMPORTANT: 
+- If you return fewer than ${dataArray.length} results, the extraction will FAIL
+- Each input record needs its own individual extracted value
+- Do NOT return a single generic value for all records
+- Look at the context data for each record to extract the appropriate value
 
 `;
       } else if (isCreateOperation) {
