@@ -2659,7 +2659,7 @@ class PostgreSQLStorage implements IStorage {
     }
 
     // Duplicate Excel Wizardry Functions (AI Tools)
-    const originalTools = await this.getExcelWizardryFunctions(id);
+    const originalTools = await this.getExcelWizardryFunctionsByProject(id);
     const toolMapping = new Map<string, string>(); // Map old tool IDs to new tool IDs
     for (const tool of originalTools) {
       const newToolId = uuidv4();
