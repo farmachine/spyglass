@@ -5872,7 +5872,48 @@ print(json.dumps(results))
     try {
       console.log('🤖 Generating tool content with input:', JSON.stringify(req.body, null, 2));
       
-      const { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType } = req.body;
+      let { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType } = req.body;
+      
+      // 🎯 OPTIMIZE FOR UPDATE OPERATIONS: Auto-configure default parameters
+      if (operationType && operationType.includes('update')) {
+        console.log('🔄 Detected UPDATE operation - optimizing input parameters...');
+        
+        // Auto-add AI Instructions parameter if not present
+        const hasAiInstructions = inputParameters.some(p => 
+          p.name && p.name.toLowerCase().includes('instruction')
+        );
+        
+        if (!hasAiInstructions) {
+          console.log('➕ Adding automatic AI Instructions parameter for UPDATE operation');
+          inputParameters.unshift({
+            id: `auto-instructions-${Date.now()}`,
+            name: 'AI Instructions',
+            type: 'text',
+            multiline: true,
+            description: 'Instructions for the AI to extract/update data',
+            defaultValue: `Extract and update the following information: ${description}\n\nFor each record, analyze the document content and update the relevant data field based on the existing record information.`
+          });
+        }
+        
+        // Auto-add Document parameter if not present
+        const hasDocument = inputParameters.some(p => 
+          p.name && (p.name.toLowerCase().includes('document') || p.type === 'document')
+        );
+        
+        if (!hasDocument) {
+          console.log('➕ Adding automatic Document parameter for UPDATE operation');
+          inputParameters.push({
+            id: `auto-document-${Date.now()}`,
+            name: 'Document',
+            type: 'document',
+            multiline: false,
+            description: 'Document containing content for extraction.',
+            documentType: 'all'
+          });
+        }
+        
+        console.log('✅ Optimized input parameters for UPDATE operation:', inputParameters.map(p => p.name));
+      }
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
         console.error('❌ Missing required fields for tool generation');
@@ -5890,10 +5931,12 @@ print(json.dumps(results))
       console.log('📝 Description:', description);
       console.log('='.repeat(80));
       
-      // Generate tool content using unified engine
+      // Generate tool content using unified engine with optimized parameters
       const { content } = await toolEngine.generateToolContent({
         name,
-        description,
+        description: operationType && operationType.includes('update') 
+          ? `${description}\n\nOPERATION TYPE: UPDATE - This tool automatically receives current step data and maintains identifierId relationships for proper data mapping.`
+          : description,
         toolType: toolType as "AI_ONLY" | "CODE",
         operationType: operationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
         outputType: outputType as "single" | "multiple",
