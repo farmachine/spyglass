@@ -7960,7 +7960,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex);
+      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       

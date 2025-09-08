@@ -469,7 +469,8 @@ export class ToolEngine {
     knowledgeDocuments?: any,
     progressCallback?: (current: number, total: number, message?: string) => void,
     stepId?: string,
-    orderIndex?: number
+    orderIndex?: number,
+    sessionId?: string
   ): Promise<ToolResult[]> {
     console.log(`\n🚀 TOOL ENGINE - testTool() called`);
     console.log(`   Tool Name: ${tool.name}`);
@@ -500,7 +501,7 @@ export class ToolEngine {
       console.log(`   Order Index: ${effectiveOrderIndex}`);
       
       // Build incremental data automatically
-      const incrementalData = await this.buildIncrementalData(effectiveStepId, valueId, effectiveOrderIndex);
+      const incrementalData = await this.buildIncrementalData(effectiveStepId, valueId, effectiveOrderIndex, sessionId);
       
       if (incrementalData.length > 0) {
         console.log(`   ✅ Injecting ${incrementalData.length} rows of incremental data`);
@@ -2032,10 +2033,12 @@ except Exception as e:
   private async buildIncrementalData(
     stepId: string,
     currentValueId: string,
-    currentValueOrder: number
+    currentValueOrder: number,
+    sessionId?: string
   ): Promise<any[]> {
     console.log(`\n🔄 Building incremental data for UPDATE operation`);
     console.log(`   Step ID: ${stepId}`);
+    console.log(`   Session ID: ${sessionId || 'not provided'}`);
     console.log(`   Current Value Order: ${currentValueOrder}`);
     
     try {
@@ -2052,9 +2055,9 @@ except Exception as e:
         return [];
       }
       
-      // Get all validations for this step
-      const validations = await storage.getValidationsByStep(stepId);
-      console.log(`   Total validations in step: ${validations.length}`);
+      // Get all validations for this step - FILTERED BY SESSION ID
+      const validations = await storage.getValidationsByStep(stepId, sessionId);
+      console.log(`   Total validations in step${sessionId ? ' for this session' : ''}: ${validations.length}`);
       
       // Get unique identifierIds (rows)
       const uniqueIdentifierIds = [...new Set(validations.map(v => v.identifierId))];
