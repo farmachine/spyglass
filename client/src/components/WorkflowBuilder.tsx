@@ -518,9 +518,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {/* Right Column - Values for Selected Step */}
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
-            <div className="relative" style={{
-              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * (98 + 8)}px`
-            }}>
+            <div className="relative">
                 
                 
                 {/* Value Cards Container */}
