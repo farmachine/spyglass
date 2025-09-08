@@ -8105,12 +8105,25 @@ def extract_function(Column_Name, Excel_File):
       }
       
       const { toolEngine } = await import("./toolEngine");
+      
+      // Parse inputParameters if it's a string
+      let parsedInputParameters = tool.inputParameters || [];
+      if (typeof parsedInputParameters === 'string') {
+        try {
+          parsedInputParameters = JSON.parse(parsedInputParameters);
+          console.log(`📊 Parsed inputParameters from string:`, parsedInputParameters.map((p: any) => `${p.name} (${p.type})`));
+        } catch (e) {
+          console.error('Failed to parse inputParameters:', e);
+          parsedInputParameters = [];
+        }
+      }
+      
       const results = await toolEngine.testTool({
         id: tool.id,
         name: tool.name,
         description: tool.description,
         toolType: tool.toolType,
-        inputParameters: tool.inputParameters || [],
+        inputParameters: parsedInputParameters,
         functionCode: tool.functionCode,
         aiPrompt: tool.aiPrompt || tool.description,
         outputType: tool.outputType,
