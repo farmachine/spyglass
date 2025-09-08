@@ -565,7 +565,15 @@ Your response must maintain the identifierId mapping for all processed items.
             elif param_name == 'Input Data' and isinstance(param_value, list):
                 # For Input Data array, include the full JSON data with identifierIds
                 actual_input_data += f"\n{param_name} (MUST preserve identifierId for each item):\n{json.dumps(param_value, indent=2)}\n"
-                actual_input_data += "\nCRITICAL: Each item above has an 'identifierId' field. You MUST include this exact identifierId in your response for each corresponding item.\n"
+                actual_input_data += "\n⚠️ CRITICAL INSTRUCTION: Each item above has an 'identifierId' field.\n"
+                actual_input_data += "You MUST include this EXACT identifierId in your response for each corresponding item.\n"
+                actual_input_data += "DO NOT generate new UUIDs - use the identifierIds provided above.\n"
+                actual_input_data += f"Your response MUST have exactly {len(param_value)} items, one for each input item.\n"
+                if param_value and len(param_value) > 0:
+                    actual_input_data += f"Response item [0] must have identifierId: {param_value[0].get('identifierId', 'missing')}\n"
+                    if len(param_value) > 1:
+                        actual_input_data += f"Response item [1] must have identifierId: {param_value[1].get('identifierId', 'missing')}\n"
+                    actual_input_data += "And so on for all items...\n"
             elif param_name == 'document' and isinstance(param_value, str) and len(param_value) > 0:
                 # For document content, include a truncated version if too long
                 if len(param_value) > 5000:
@@ -602,17 +610,22 @@ CRITICAL FOR COMPREHENSIVE EXTRACTION:
         output_requirements = f"""
 SYSTEM OUTPUT REQUIREMENTS FOR UPDATE OPERATIONS:
 Return a JSON array with one object per input item. Each object MUST include:
-- identifierId: The same identifierId from the input (preserve exactly)
+- identifierId: The EXACT SAME identifierId from the input (copy it character-for-character, DO NOT generate new UUIDs)
 - extractedValue: The extracted/processed value for "{value_name}"
 - validationStatus: Either "valid" or "invalid" based on confidence
 - aiReasoning: Detailed explanation of the extraction logic and decision
 - confidenceScore: Number between 0-100 representing confidence
 - documentSource: Specific source reference (page, section, or location)
 
-CRITICAL: 
-- Maintain the EXACT SAME ORDER as the input items
-- Include ALL input items in the response, even if no match is found (use null for extractedValue)
-- ALWAYS preserve the identifierId for each item to maintain data relationships"""
+CRITICAL REQUIREMENTS FOR identifierId PRESERVATION:
+1. COPY the exact identifierId from each input item - DO NOT create new UUIDs
+2. The identifierId is a UUID like "b4ecc9a0-97ea-40fd-9d5d-4b5641a37e15" - use the EXACT one from input
+3. Maintain the EXACT SAME ORDER as the input items
+4. Include ALL input items in the response, even if no match is found (use null for extractedValue)
+5. Your response array MUST have the same number of items as the input array
+6. Each response item at index N must have the identifierId from input item at index N
+
+EXAMPLE: If input has identifierId "abc-123", your response MUST have identifierId "abc-123", NOT a new UUID"""
     
     # Build the prompt with optional output requirements
     prompt_parts = [system_prompt, tool_prompt, value_config, knowledge_context, input_summary, actual_input_data]
