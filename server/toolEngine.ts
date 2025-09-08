@@ -835,7 +835,7 @@ export class ToolEngine {
                   return {
                     identifierId: record.identifierId,
                     extractedValue: fallbackResult?.extractedValue || fallbackResult?.value || null,
-                    validationStatus: fallbackResult?.validationStatus || "pending",
+                    validationStatus: fallbackResult?.validationStatus || "invalid",
                     aiReasoning: fallbackResult?.aiReasoning || "No matching result found",
                     confidenceScore: fallbackResult?.confidenceScore || 50,
                     documentSource: fallbackResult?.documentSource || ""
@@ -848,7 +848,7 @@ export class ToolEngine {
               results = inputDataParam.map((record: any) => ({
                 identifierId: record.identifierId,
                 extractedValue: null,
-                validationStatus: "pending",
+                validationStatus: "invalid",
                 aiReasoning: "No value extracted",
                 confidenceScore: 0,
                 documentSource: ""
@@ -2078,7 +2078,7 @@ except Exception as e:
       console.log(`   Total values in step: ${stepValues.length}`);
       
       // Filter to only previous values (lower orderIndex)
-      const previousValues = stepValues.filter(v => v.orderIndex < currentValueOrder);
+      const previousValues = stepValues.filter((v: any) => v.orderIndex < currentValueOrder);
       console.log(`   Previous values to include: ${previousValues.length}`);
       
       if (previousValues.length === 0) {
