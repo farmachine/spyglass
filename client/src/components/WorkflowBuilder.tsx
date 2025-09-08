@@ -359,7 +359,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   return (
     <div className="space-y-6">
       {/* Two Column Layout */}
-      <div className="flex gap-12">
+      <div className="flex gap-20">
         {/* Left Column - Steps List */}
         <div className="w-80 flex-shrink-0">
           <div className="space-y-2">
@@ -496,10 +496,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
-                    {/* Horizontal line from step card */}
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 w-12 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]"></div>
-                    {/* Connection dot at end of line */}
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 translate-x-12 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
+                    {/* Horizontal line from step card to trunk */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 w-20 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]"></div>
                   </>
                 )}
               </div>
@@ -544,12 +542,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <div className="relative">
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <svg className="absolute -left-12 top-0 w-12 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                  <svg className="absolute -left-20 top-0 w-24 h-full pointer-events-none" style={{ zIndex: 0 }}>
                     {/* Main vertical trunk line */}
                     <line 
-                      x1="12" 
+                      x1="20" 
                       y1="0" 
-                      x2="12" 
+                      x2="20" 
                       y2="100%" 
                       stroke="#4F63A4" 
                       strokeWidth="2"
@@ -566,12 +564,18 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       return (
                         <g key={value.id}>
                           <line 
-                            x1="12" 
+                            x1="20" 
                             y1={yPosition} 
-                            x2="48" 
+                            x2="80" 
                             y2={yPosition} 
                             stroke="#4F63A4" 
                             strokeWidth="2"
+                          />
+                          <circle 
+                            cx="20" 
+                            cy={yPosition} 
+                            r="3" 
+                            fill="#4F63A4"
                           />
                         </g>
                       );
