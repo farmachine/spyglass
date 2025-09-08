@@ -8096,6 +8096,14 @@ def extract_function(Column_Name, Excel_File):
         console.log(`   ✅ 'List Item' included: ${cleanedToolInputs['List Item'].length} records`);
       }
       
+      console.log(`🚨 SIMPLE DEBUG - About to call toolEngine with keys:`, Object.keys(cleanedToolInputs));
+      if (cleanedToolInputs.previousData) {
+        console.log(`🚨 SIMPLE DEBUG - previousData exists with ${cleanedToolInputs.previousData.length} records`);
+      }
+      if (cleanedToolInputs['Input Data']) {
+        console.log(`🚨 SIMPLE DEBUG - Input Data exists with ${cleanedToolInputs['Input Data'].length} records`);  
+      }
+      
       const { toolEngine } = await import("./toolEngine");
       const results = await toolEngine.testTool({
         id: tool.id,
