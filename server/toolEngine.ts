@@ -473,11 +473,55 @@ export class ToolEngine {
     console.log(`   Tool Name: ${tool.name}`);
     console.log(`   Tool Type: ${tool.toolType}`);
     console.log(`   Tool ID: ${tool.id}`);
+    console.log(`   Operation Type: ${tool.operationType}`);
     console.log(`   Input Keys:`, Object.keys(inputs));
     
     // Check for multi-field extraction
     if (inputs.__infoPageFields) {
       console.log(`   📋 Multi-field extraction detected:`, inputs.__infoPageFields);
+    }
+    
+    // CRITICAL: Automatically inject incremental data for UPDATE operations
+    const isUpdateOperation = tool.operationType?.toLowerCase().includes('update');
+    const stepId = inputs.stepId || inputs.valueConfiguration?.stepId;
+    const valueId = inputs.valueId || inputs.valueConfiguration?.valueId;
+    const orderIndex = inputs.valueConfiguration?.orderIndex;
+    
+    if (isUpdateOperation && stepId && orderIndex !== undefined && orderIndex > 0) {
+      console.log(`\n🔄 AUTO-INJECTING INCREMENTAL DATA FOR UPDATE OPERATION`);
+      console.log(`   Step ID: ${stepId}`);
+      console.log(`   Value ID: ${valueId}`);
+      console.log(`   Order Index: ${orderIndex}`);
+      
+      // Build incremental data automatically
+      const incrementalData = await this.buildIncrementalData(stepId, valueId, orderIndex);
+      
+      if (incrementalData.length > 0) {
+        console.log(`   ✅ Injecting ${incrementalData.length} rows of incremental data`);
+        
+        // Find the data input parameter name from tool configuration
+        let dataParamName = 'Input Data'; // Default name
+        
+        // Look for a data-type parameter in the tool
+        const dataParam = tool.inputParameters.find(p => p.type === 'data');
+        if (dataParam) {
+          dataParamName = dataParam.name;
+          console.log(`   Using data parameter: ${dataParamName}`);
+        }
+        
+        // Inject the incremental data
+        inputs[dataParamName] = incrementalData;
+        console.log(`   📊 Incremental data injected as "${dataParamName}"`);
+        
+        // Log sample for debugging
+        console.log(`   Sample incremental data (first row):`, incrementalData[0]);
+      } else {
+        console.log(`   ⚠️ No incremental data available (first column or no previous data)`);
+      }
+    } else if (isUpdateOperation) {
+      console.log(`   ℹ️ UPDATE operation but missing context for incremental data`);
+      console.log(`     - stepId: ${stepId}`);
+      console.log(`     - orderIndex: ${orderIndex}`);
     }
     
     // Clean triage between AI and CODE tools
@@ -1955,6 +1999,71 @@ except Exception as e:
     print(traceback.format_exc(), file=sys.stderr)
     sys.exit(1)
 `;
+  }
+  
+  /**
+   * Build incremental data automatically for UPDATE operations
+   * This constructs an array with previous column data for each row
+   */
+  private async buildIncrementalData(
+    stepId: string,
+    currentValueId: string,
+    currentValueOrder: number
+  ): Promise<any[]> {
+    console.log(`\n🔄 Building incremental data for UPDATE operation`);
+    console.log(`   Step ID: ${stepId}`);
+    console.log(`   Current Value Order: ${currentValueOrder}`);
+    
+    try {
+      // Get all values in this step ordered by orderIndex
+      const stepValues = await storage.getStepValues(stepId);
+      console.log(`   Total values in step: ${stepValues.length}`);
+      
+      // Filter to only previous values (lower orderIndex)
+      const previousValues = stepValues.filter(v => v.orderIndex < currentValueOrder);
+      console.log(`   Previous values to include: ${previousValues.length}`);
+      
+      if (previousValues.length === 0) {
+        console.log(`   ⚠️ No previous values - this is the first column`);
+        return [];
+      }
+      
+      // Get all validations for this step
+      const validations = await storage.getValidationsByStep(stepId);
+      console.log(`   Total validations in step: ${validations.length}`);
+      
+      // Get unique identifierIds (rows)
+      const uniqueIdentifierIds = [...new Set(validations.map(v => v.identifierId))];
+      console.log(`   Unique rows (identifierIds): ${uniqueIdentifierIds.length}`);
+      
+      // Build incremental data array
+      const incrementalData = uniqueIdentifierIds.map(identifierId => {
+        const rowData: any = { identifierId };
+        
+        // Add data from each previous column
+        previousValues.forEach(value => {
+          const validation = validations.find(
+            v => v.fieldId === value.id && v.identifierId === identifierId
+          );
+          // Use the value's name as the key
+          rowData[value.valueName] = validation?.extractedValue || null;
+        });
+        
+        return rowData;
+      });
+      
+      console.log(`   ✅ Built incremental data for ${incrementalData.length} rows`);
+      
+      // Log sample of incremental data for debugging
+      if (incrementalData.length > 0) {
+        console.log(`   Sample row data (first row):`, incrementalData[0]);
+      }
+      
+      return incrementalData;
+    } catch (error) {
+      console.error(`   ❌ Error building incremental data:`, error);
+      return [];
+    }
   }
   
   /**
