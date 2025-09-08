@@ -402,7 +402,7 @@ export default function DefineData({
               onClick={() => {
                 // Trigger workflow save
                 if (workflowRef.current) {
-                  workflowRef.current.saveFlow();
+                  workflowRef.current.save();
                 }
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white border border-gray-600"
