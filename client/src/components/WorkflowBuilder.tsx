@@ -496,12 +496,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
-                    {/* Horizontal line from step card to values */}
+                    {/* Horizontal line from step card to values - precisely centered */}
                     <div 
-                      className="absolute h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
+                      className="absolute h-px bg-[#4F63A4] dark:bg-[#5A70B5]" 
                       style={{ 
                         left: '100%',
-                        top: '50%', 
+                        top: '50%',
                         transform: 'translateY(-50%)', 
                         width: '52px',
                         zIndex: 10
@@ -551,11 +551,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       const values = steps.find(s => s.id === selectedStepId)!.values;
                       const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
                       
-                      // Account for the padding offset that positions values relative to their step
+                      // Calculate precise center alignment
                       const stepPaddingOffset = selectedStepIndex * 98;
-                      // Each step card is 98px tall, so center is at 49px from top
-                      // Each value card is ~80px tall, so we need to align centers
-                      const baseOffset = stepPaddingOffset + 49; // Step center (49px) aligns with value center
+                      // Step cards are 98px tall, so exact center is at 49px
+                      // Value cards need to align their visual center with this
+                      const baseOffset = stepPaddingOffset + 49; // True geometric center
                       const cardSpacing = 96; // Height + gap for cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
