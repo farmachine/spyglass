@@ -496,15 +496,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
-                    {/* Horizontal line from step card to trunk - stops at vertical line */}
+                    {/* Horizontal line from step card to central vertical trunk */}
                     <div 
-                      className="absolute left-full w-16 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
+                      className="absolute left-full w-10 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
                       style={{ top: '50%', transform: 'translateY(-1px)' }}
                     ></div>
                     {/* Connection dot at junction point */}
                     <div 
                       className="absolute left-full w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full" 
-                      style={{ top: '50%', transform: 'translateX(64px) translateY(-4px)' }}
+                      style={{ top: '50%', transform: 'translateX(40px) translateY(-4px)' }}
                     ></div>
                   </>
                 )}
@@ -536,7 +536,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             <div className="relative">
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <svg className="absolute -left-20 top-0 w-24 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                  <svg className="absolute -left-10 top-0 w-20 h-full pointer-events-none" style={{ zIndex: 0 }}>
                     {(() => {
                       const values = steps.find(s => s.id === selectedStepId)!.values;
                       const baseOffset = 40; // Center of first card
@@ -546,11 +546,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       
                       return (
                         <>
-                          {/* Main vertical trunk line - from first to last card center */}
+                          {/* Main vertical trunk line - centered between columns */}
                           <line 
-                            x1="20" 
+                            x1="10" 
                             y1={firstYPosition} 
-                            x2="20" 
+                            x2="10" 
                             y2={lastYPosition} 
                             stroke="#4F63A4" 
                             strokeWidth="2"
@@ -563,16 +563,16 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                               <g key={value.id}>
                                 {/* Junction dot on trunk */}
                                 <circle 
-                                  cx="20" 
+                                  cx="10" 
                                   cy={yPosition} 
                                   r="3" 
                                   fill="#4F63A4"
                                 />
                                 {/* Horizontal line from trunk to card */}
                                 <line 
-                                  x1="20" 
+                                  x1="10" 
                                   y1={yPosition} 
-                                  x2="80" 
+                                  x2="70" 
                                   y2={yPosition} 
                                   stroke="#4F63A4" 
                                   strokeWidth="2"
