@@ -515,9 +515,19 @@ export class ToolEngine {
           console.log(`   Using data parameter: ${dataParamName}`);
         }
         
-        // Inject the incremental data
+        // Inject the incremental data - this REPLACES any configured test data
         inputs[dataParamName] = incrementalData;
         console.log(`   📊 Incremental data injected as "${dataParamName}"`);
+        
+        // CRITICAL: Also clear any other data parameters that might contain test data
+        // Look for common data parameter names and clear them
+        const dataParameterNames = ['List Items', 'List Item', 'data', 'records', 'items', 'rows'];
+        for (const paramName of dataParameterNames) {
+          if (paramName !== dataParamName && inputs[paramName]) {
+            console.log(`   🗑️ Clearing test data from "${paramName}" parameter (was ${Array.isArray(inputs[paramName]) ? inputs[paramName].length : 'non-array'} items)`);
+            delete inputs[paramName];
+          }
+        }
         
         // Log sample for debugging
         console.log(`   Sample incremental data (first row):`, incrementalData[0]);

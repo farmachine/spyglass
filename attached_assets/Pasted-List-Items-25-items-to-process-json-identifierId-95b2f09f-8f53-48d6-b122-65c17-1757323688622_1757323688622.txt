@@ -1,0 +1,248 @@
+List Items** (25 items to process):
+```json
+[
+  {
+    "identifierId": "95b2f09f-8f53-48d6-b122-65c17817af80",
+    "Benefit Identifier": "16: Section B - Escalation - CPI Max 2.5% - Post 5 April 2005 pension"
+  },
+  {
+    "identifierId": "5df87609-42d6-41ea-b43c-2b1e300355d7",
+    "Benefit Identifier": "8: Section A - Revaluation - CPI (0,2.5) - post 5 April 2009"
+  },
+  {
+    "identifierId": "c608e20b-b30c-478b-92aa-a6d03b573187",
+    "Benefit Identifier": "5: Section A - Revaluation - Section 148 Orders - Post 5 April 1997 Leavers"
+  },
+  {
+    "identifierId": "57d180f9-855b-4e5d-8af2-c193bd4c66ad",
+    "Benefit Identifier": "7: Section A - Revaluation - CPI (0,5) - pre 6 April 2009"
+  },
+  {
+    "identifierId": "46577840-3ff0-42a0-9c9d-c148728b19f9",
+    "Benefit Identifier": "9: Section B - Revaluation - Fixed 5% - N/A"
+  },
+  {
+    "identifierId": "1fe9dd2d-b265-43b7-b8cd-95e35d487ec8",
+    "Benefit Identifier": "11: All members - Escalation - CPI Max 3% - Post 5 April 1988 GMP"
+  },
+  {
+    "identifierId": "4ee0ff1f-99b4-4f7d-b067-a4033b39d395",
+    "Benefit Identifier": "13: Section B - Escalation - Fixed 5% - Pre 21 July 1997 pension in excess of GMP"
+  },
+  {
+    "identifierId": "72323285-5caf-49ba-9c46-11fba845fc40",
+    "Benefit Identifier": "6: Section B - Revaluation - Fixed Rate - Pre 6 April 1997 leavers"
+  },
+  {
+    "identifierId": "e0f84b6e-18b6-447e-9b98-8bcc1e8ff08d",
+    "Benefit Identifier": "2: Section A - Revaluation - Section 148 Orders - Post 5 April 1997 Leavers"
+  },
+  {
+    "identifierId": "43768859-13dc-4f23-a1c4-c3cc1a848685",
+    "Benefit Identifier": "4: Section A - Revaluation - Fixed Rate - Pre 6 April 1997 leavers"
+  },
+  {
+    "identifierId": "f15fa456-ca73-41ac-a1c8-6b26a9a4d671",
+    "Benefit Identifier": "1: Section A - Revaluation - Fixed Rate - Pre 6 April 1997 leavers"
+  },
+  {
+    "identifierId": "d562b04f-4526-4c07-a54b-6e728ae07702",
+    "Benefit Identifier": "12: Section A - Escalation - CPI Max 2.5% - Pre 6 April 1997 pension in excess of GMP"
+  },
+  {
+    "identifierId": "d24a95d6-f05f-4688-86c3-862b1c3da9a9",
+    "Benefit Identifier": "3: Section B - Revaluation - Fixed Rate - Pre 6 April 1997 leavers"
+  },
+  {
+    "identifierId": "8dd59ae1-78f0-44b5-ab99-b221ab219f0c",
+    "Benefit Identifier": "17: Section A - Escalation - RPI Max 2.5% - Post 31 December 2007 pension"
+  },
+  {
+    "identifierId": "196464e3-12ee-4c94-8714-deb4c9c3627d",
+    "Benefit Identifier": "15: Section B - Escalation - CPI Max 5% - Post 20 July 1997 pre 6 April 2005 pension"
+  },
+  {
+    "identifierId": "f5488968-7c3b-4cc3-b1cb-47120698d6a8",
+    "Benefit Identifier": "18: All members - Escalation - None - Non -escalating pension"
+  },
+  {
+    "identifierId": "ee6c2bca-0238-4a2d-a087-a8a9fac6d07a",
+    "Benefit Identifier": "19: Section A - Escalation - RPI Max 5% - SUPPs"
+  },
+  {
+    "identifierId": "815c4f9b-2f09-4d2b-b655-04fda7a74b17",
+    "Benefit Identifier": "6: Section B - Revaluation - Fixed 5% - Post-5 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "19e1d3a9-6d9f-4930-b715-c0f82fe9a78a",
+    "Benefit Identifier": "1: Section A - Escalation - CPI Max 5% - Pre-6 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "0e793d11-cd61-4b6b-9e1d-9a66e8a07633",
+    "Benefit Identifier": "2: Section A - Escalation - Fixed 5% - Pre-6 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "48551205-b30a-4c18-8f8d-f7af0b6f8287",
+    "Benefit Identifier": "4: Section A - Escalation - Fixed 5% - Post-5 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "28102e37-d69a-4262-bcaf-db1e61f3da3d",
+    "Benefit Identifier": "3: Section A - Escalation - CPI Max 5% - Post-5 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "3fd76b75-0955-4b22-8933-1b01eb13d701",
+    "Benefit Identifier": "5: Section B - Revaluation - Fixed 5% - Pre-6 Apr 1997 leavers"
+  },
+  {
+    "identifierId": "6ff3cf80-9d33-42f5-8356-a31c872f9172",
+    "Benefit Identifier": "14: Section A - Escalation - RPI Max 5% - Post 5 April 1997 pre 1 January 2008 pension"
+  },
+  {
+    "identifierId": "d4cae381-4231-45aa-b58a-11701fa01d66",
+    "Benefit Identifier": "10: All members - Escalation - None - Pre 6 April 1988 GMP"
+  }
+]
+```
+
+=== CRITICAL REQUIREMENT ===
+Each item in the list above has an "identifierId" field. You MUST:
+1. Include the EXACT SAME "identifierId" in your response for each item
+2. Return results in ANY order, but each result MUST have its corresponding identifierId
+3. The identifierId links the extracted value to the correct row/record
+4. Example: If input has {"identifierId": "abc-123", "Column Name": "Date"}, 
+   your output MUST include {"identifierId": "abc-123", "extractedValue": "..."}
+
+
+================================================================================
+END OF PROMPT
+📊 Batch size: 25, Token limit: 12500
+📏 AI Response Size: 9140 characters
+📦 Parsed 25 results from AI response
+🎯 COLUMN EXTRACTION DEBUG for "Unknown":
+   Step: Unknown
+   Results count: 25
+   First 3 results for column "Unknown":
+   [0] identifierId: 95b2f09f-8f53-48d6-b122-65c17817af80, value: "CPI subject to a maximum of 2.5%"
+   [1] identifierId: 5df87609-42d6-41ea-b43c-2b1e300355d7, value: "CPI subject to a maximum of 2.5%"
+   [2] identifierId: c608e20b-b30c-478b-92aa-a6d03b573187, value: "Section 148 Orders"
+✅ Found 9 unique values for column "Unknown"
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 25
+   - isCreateOperation: false
+🔄 UPDATE operation processed 25 records
+✅ AI extraction complete: 25 results
+✅ Tool execution completed. Results count: 25
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "identifierId": "95b2f09f-8f53-48d6-b122-65c17817af80",
+  "extractedValue": "CPI subject to a maximum of 2.5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The Benefit Identifier indicates 'CPI Max 2.5%' which means the revaluation or in-payment increase rate is CPI subject to a maximum of 2.5%.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  Second result: {
+  "identifierId": "5df87609-42d6-41ea-b43c-2b1e300355d7",
+  "extractedValue": "CPI subject to a maximum of 2.5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The Benefit Identifier indicates 'CPI (0,2.5)' which means the revaluation or in-payment increase rate is CPI subject to a maximum of 2.5%.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Building index map from 6 records in previousData
+  Record index 0 -> identifierId: 815c4f9b-2f09-4d2b-b655-04fda7a74b17
+  Record index 1 -> identifierId: 19e1d3a9-6d9f-4930-b715-c0f82fe9a78a
+  Record index 2 -> identifierId: 0e793d11-cd61-4b6b-9e1d-9a66e8a07633
+  Record index 3 -> identifierId: 48551205-b30a-4c18-8f8d-f7af0b6f8287
+  Record index 4 -> identifierId: 28102e37-d69a-4262-bcaf-db1e61f3da3d
+📊 Mapped 6 identifierIds to their array indices
+📊 Processing 25 actual AI results (not creating validations for unprocessed records)
+⚠️ AI returned unknown identifierId: 95b2f09f-8f53-48d6-b122-65c17817af80 - generating new one
+✨ Created validation for Benefit History.Description[0] with value: "CPI subject to a maximum of 2.5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 5df87609-42d6-41ea-b43c-2b1e300355d7 - generating new one
+✨ Created validation for Benefit History.Description[1] with value: "CPI subject to a maximum of 2.5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: c608e20b-b30c-478b-92aa-a6d03b573187 - generating new one
+✨ Created validation for Benefit History.Description[2] with value: "Section 148 Orders"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 57d180f9-855b-4e5d-8af2-c193bd4c66ad - generating new one
+✨ Created validation for Benefit History.Description[3] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 46577840-3ff0-42a0-9c9d-c148728b19f9 - generating new one
+✨ Created validation for Benefit History.Description[4] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 1fe9dd2d-b265-43b7-b8cd-95e35d487ec8 - generating new one
+✨ Created validation for Benefit History.Description[5] with value: "CPI subject to a maximum of 3%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 4ee0ff1f-99b4-4f7d-b067-a4033b39d395 - generating new one
+✨ Created validation for Benefit History.Description[6] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 72323285-5caf-49ba-9c46-11fba845fc40 - generating new one
+✨ Created validation for Benefit History.Description[7] with value: "Fixed Rate"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: e0f84b6e-18b6-447e-9b98-8bcc1e8ff08d - generating new one
+✨ Created validation for Benefit History.Description[8] with value: "Section 148 Orders"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 43768859-13dc-4f23-a1c4-c3cc1a848685 - generating new one
+✨ Created validation for Benefit History.Description[9] with value: "Fixed Rate"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: f15fa456-ca73-41ac-a1c8-6b26a9a4d671 - generating new one
+✨ Created validation for Benefit History.Description[10] with value: "Fixed Rate"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: d562b04f-4526-4c07-a54b-6e728ae07702 - generating new one
+✨ Created validation for Benefit History.Description[11] with value: "CPI subject to a maximum of 2.5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: d24a95d6-f05f-4688-86c3-862b1c3da9a9 - generating new one
+✨ Created validation for Benefit History.Description[12] with value: "Fixed Rate"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 8dd59ae1-78f0-44b5-ab99-b221ab219f0c - generating new one
+✨ Created validation for Benefit History.Description[13] with value: "RPI subject to a maximum of 2.5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 196464e3-12ee-4c94-8714-deb4c9c3627d - generating new one
+✨ Created validation for Benefit History.Description[14] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: f5488968-7c3b-4cc3-b1cb-47120698d6a8 - generating new one
+⏭️ Skipping validation creation for Benefit History.Description[15] - no meaningful value ("None")
+⚠️ AI returned unknown identifierId: ee6c2bca-0238-4a2d-a087-a8a9fac6d07a - generating new one
+✨ Created validation for Benefit History.Description[16] with value: "RPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 815c4f9b-2f09-4d2b-b655-04fda7a74b17 (original index: 0)
+✨ Created validation for Benefit History.Description[0] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 19e1d3a9-6d9f-4930-b715-c0f82fe9a78a (original index: 1)
+✨ Created validation for Benefit History.Description[1] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 0e793d11-cd61-4b6b-9e1d-9a66e8a07633 (original index: 2)
+✨ Created validation for Benefit History.Description[2] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 48551205-b30a-4c18-8f8d-f7af0b6f8287 (original index: 3)
+✨ Created validation for Benefit History.Description[3] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 28102e37-d69a-4262-bcaf-db1e61f3da3d (original index: 4)
+✨ Created validation for Benefit History.Description[4] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+✅ AI returned valid identifierId: 3fd76b75-0955-4b22-8933-1b01eb13d701 (original index: 5)
+✨ Created validation for Benefit History.Description[5] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: 6ff3cf80-9d33-42f5-8356-a31c872f9172 - generating new one
+✨ Created validation for Benefit History.Description[23] with value: "RPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+⚠️ AI returned unknown identifierId: d4cae381-4231-45aa-b58a-11701fa01d66 - generating new one
+⏭️ Skipping validation creation for Benefit History.Description[24] - no meaningful value ("None")
+💾 Saved 25 validation records
+9:27:01 AM [express] POST /api/sessions/2731bedd-3ffd-4f58-a08a-5374b7ca83aa/extract-column 200 in 18055ms :: {"success":true,"message":"E…
+9:27:01 AM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 25 values for Description","resultsCount":25}
+9:27:01 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:27:01 AM [browser] 📝 🔄 Invalidating validation queries...
+9:27:01 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+9:27:02 AM [express] GET /api/sessions/2731bedd-3ffd-4f58-a08a-5374b7ca83aa/validations 200 in 89ms
+9:27:02 AM [express] GET /api/validations/project/ff368604-296c-4382-a89a-1d5149b802e2 200 in 5ms
+9:27:03 AM [browser] 📝 ✅ Validation queries refreshed
+9:27:03 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
