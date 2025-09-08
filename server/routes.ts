@@ -156,9 +156,24 @@ async function processWorkflowTestAsync(
       jobManager.updateProgress(jobId, current, total, message);
     };
     
+    // Add valueConfiguration to inputs for automatic incremental data
+    const enrichedInputs = {
+      ...preparedInputValues,
+      valueConfiguration: {
+        stepId: valueConfig.stepId,
+        valueId: valueConfig.valueId || valueConfig.id,
+        valueName: valueConfig.valueName,
+        stepName: valueConfig.stepName,
+        orderIndex: valueConfig.orderIndex,
+        inputValues: valueConfig.inputValues
+      },
+      stepId: valueConfig.stepId,
+      valueId: valueConfig.valueId || valueConfig.id
+    };
+    
     const result = await toolEngine.testTool(
       excelFunction,
-      preparedInputValues,
+      enrichedInputs,
       documentContent,
       null,
       progressCallback
@@ -9136,8 +9151,23 @@ def extract_function(Column_Name, Excel_File):
               }
             }
             
+            // Add valueConfiguration to inputs for automatic incremental data
+            const enrichedInputs = {
+              ...preparedInputValues,
+              valueConfiguration: {
+                stepId: valueConfig.stepId,
+                valueId: valueConfig.valueId || valueConfig.id,
+                valueName: valueConfig.valueName,
+                stepName: valueConfig.stepName,
+                orderIndex: valueConfig.orderIndex,
+                inputValues: valueConfig.inputValues
+              },
+              stepId: valueConfig.stepId,
+              valueId: valueConfig.valueId || valueConfig.id
+            };
+            
             // Execute using toolEngine's testTool method
-            const toolResults = await toolEngine.testTool(excelFunction, preparedInputValues);
+            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs);
             
             console.log(`📊 TOOL EXECUTION COMPLETE: ${excelFunction.name}`);
             console.log(`  Results returned: ${toolResults?.length || 0} items`);
