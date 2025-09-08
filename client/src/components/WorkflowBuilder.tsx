@@ -549,10 +549,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   >
                     {(() => {
                       const values = steps.find(s => s.id === selectedStepId)!.values;
-                      // Values are now positioned relative to their container with padding
-                      // So lines should be positioned relative to the values container, not absolute positions
-                      const baseOffset = 40; // Center of first value card within the values container
-                      const cardSpacing = 96; // Approximate height + gap for collapsed cards
+                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
+                      
+                      // Account for the padding offset that positions values relative to their step
+                      const stepPaddingOffset = selectedStepIndex * 98;
+                      const baseOffset = stepPaddingOffset + 40; // Center of first value card
+                      const cardSpacing = 96; // Height + gap for cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
                       
