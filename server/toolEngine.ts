@@ -905,25 +905,49 @@ export class ToolEngine {
    * Find the data input parameter from inputs
    */
   private findDataInput(tool: Tool, inputs: Record<string, any>): { key: string; value: any } | null {
+    console.log(`🔍 DEBUG findDataInput - Looking for data input...`);
+    console.log(`   Available input keys: [${Object.keys(inputs).join(', ')}]`);
+    
     // First try to find by parameter type
     for (const [key, value] of Object.entries(inputs)) {
+      console.log(`   Checking key: "${key}", type: ${typeof value}, isArray: ${Array.isArray(value)}`);
       const param = tool.inputParameters.find(p => p.id === key || p.name === key);
+      if (param) {
+        console.log(`     Found matching parameter: ${param.name} (type: ${param.type})`);
+      }
       if (param?.type === 'data' && Array.isArray(value)) {
-        console.log(`📊 Found data parameter "${key}" with ${value.length} items`);
+        console.log(`📊 ✅ Found data parameter "${key}" with ${value.length} items`);
         return { key, value };
       }
     }
     
     // Fallback: Look for common data keys used by extraction endpoints
-    const dataKeys = ['Input Data', 'List Item', 'data', 'records', 'items', 'rows'];
+    const dataKeys = ['Input Data', 'List Item', 'data', 'records', 'items', 'rows', 'previousData'];
+    console.log(`   Checking fallback data keys: [${dataKeys.join(', ')}]`);
     for (const key of dataKeys) {
-      if (inputs[key] && Array.isArray(inputs[key])) {
-        console.log(`📊 Found data in fallback key: "${key}" with ${inputs[key].length} items`);
-        return { key, value: inputs[key] };
+      if (inputs[key]) {
+        console.log(`     Key "${key}" exists: ${typeof inputs[key]}, isArray: ${Array.isArray(inputs[key])}, length: ${Array.isArray(inputs[key]) ? inputs[key].length : 'N/A'}`);
+        if (Array.isArray(inputs[key])) {
+          console.log(`📊 ✅ Found data in fallback key: "${key}" with ${inputs[key].length} items`);
+          if (inputs[key].length > 0) {
+            console.log(`     Sample record:`, inputs[key][0]);
+          }
+          return { key, value: inputs[key] };
+        }
       }
     }
     
-    console.log(`⚠️ No data input found. Available keys: ${Object.keys(inputs).join(', ')}`);
+    console.log(`⚠️ ❌ No data input found. Available keys: ${Object.keys(inputs).join(', ')}`);
+    console.log(`   Full inputs object for debugging:`);
+    for (const [key, value] of Object.entries(inputs)) {
+      if (Array.isArray(value)) {
+        console.log(`     "${key}": Array with ${value.length} items`);
+      } else if (typeof value === 'object' && value !== null) {
+        console.log(`     "${key}": Object with keys [${Object.keys(value).join(', ')}]`);
+      } else {
+        console.log(`     "${key}": ${typeof value} = ${String(value).substring(0, 100)}`);
+      }
+    }
     return null;
   }
   
