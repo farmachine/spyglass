@@ -736,64 +736,128 @@ function ValueCard({
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getValueIcon()}
-            {selectedTool && (
-              selectedTool.toolType === "AI_ONLY" ? 
-                <Brain className="h-4 w-4 text-gray-600 dark:text-gray-400" /> :
-                <Code className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-            )}
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {value.name || "Untitled"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              )}
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-            >
-              <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-            </button>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent>
+    <div className={`group cursor-pointer rounded-lg border-2 transition-all ${
+      isExpanded
+        ? 'border-[#4F63A4] bg-[#4F63A4]/5 dark:border-[#5A70B5] dark:bg-[#5A70B5]/10'
+        : 'border-gray-200 hover:border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600'
+    }`}>
+      <div className="p-4">
         {!isExpanded ? (
-          <div className="space-y-2">
-            {value.description && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                {value.description}
-              </p>
-            )}
-            {selectedTool && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {selectedTool.name}
-                </Badge>
+          /* Collapsed State - Compact */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              {/* Icon */}
+              <div className={`p-2 rounded-lg ${
+                selectedTool 
+                  ? 'bg-green-100 dark:bg-green-900/20' 
+                  : 'bg-gray-100 dark:bg-gray-700'
+              }`}>
+                {getValueIcon()}
               </div>
-            )}
-            {step.type === 'page' && value.fields && value.fields.length > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {value.fields.length} field{value.fields.length !== 1 ? 's' : ''}
+              
+              {/* Name and Description */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    {value.name || "Untitled Value"}
+                  </span>
+                  {selectedTool && (
+                    <Badge variant="outline" className="text-xs">
+                      {selectedTool.toolType === "AI_ONLY" ? (
+                        <>
+                          <Brain className="h-3 w-3 mr-1" />
+                          {selectedTool.name}
+                        </>
+                      ) : (
+                        <>
+                          <Code className="h-3 w-3 mr-1" />
+                          {selectedTool.name}
+                        </>
+                      )}
+                    </Badge>
+                  )}
+                </div>
+                {value.description && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                    {value.description}
+                  </p>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              >
+                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          /* Expanded State */
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                {/* Icon */}
+                <div className={`p-2 rounded-lg ${
+                  selectedTool 
+                    ? 'bg-green-100 dark:bg-green-900/20' 
+                    : 'bg-gray-100 dark:bg-gray-700'
+                }`}>
+                  {getValueIcon()}
+                </div>
+                
+                {/* Name */}
+                <div>
+                  <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    {value.name || "Untitled Value"}
+                  </span>
+                  {selectedTool && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {selectedTool.toolType === "AI_ONLY" ? 'AI Tool' : 'Function Tool'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                >
+                  <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
             {/* Name input */}
             <div>
               <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Name</Label>
@@ -1184,10 +1248,11 @@ function ValueCard({
                 className="h-16 text-xs resize-none"
               />
             </div>
-          </div>
+            </div>
+          </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
