@@ -1011,9 +1011,42 @@ function ValueCard({
                         </SelectContent>
                       </Select>
                     ) : isUserDocument ? (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-200 dark:border-yellow-800">
-                        📄 Document will be selected during extraction
-                      </div>
+                      <Select
+                        value={value.inputValues?.[param.id] || ''}
+                        onValueChange={(v) => {
+                          onUpdate({
+                            inputValues: {
+                              ...value.inputValues,
+                              [param.id]: v
+                            }
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                          <SelectValue placeholder="Select document source..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user_document">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-3 w-3 text-blue-500" />
+                              <span>User Uploaded Document</span>
+                            </div>
+                          </SelectItem>
+                          {knowledgeDocuments.length > 0 && (
+                            <>
+                              <div className="px-2 py-1 text-xs text-gray-500 font-semibold">Knowledge Documents</div>
+                              {knowledgeDocuments.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-3 w-3 text-gray-400" />
+                                    <span>{doc.displayName || doc.fileName || 'Untitled Document'}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
                     ) : isBoolean ? (
                       <Select
                         value={String(value.inputValues?.[param.id] || 'false')}
