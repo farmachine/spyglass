@@ -185,6 +185,7 @@ export interface IStorage {
   getSessionWithValidations(sessionId: string): Promise<ExtractionSessionWithValidation | undefined>;
   getValidationsByCollectionAndIndex(sessionId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
   getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]>;
+  getValidationsByStep(stepId: string): Promise<FieldValidation[]>;
   populateMissingCollectionIds(): Promise<void>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
 
@@ -1692,6 +1693,21 @@ export class MemStorage implements IStorage {
     return this.fieldValidations.delete(id);
   }
 
+  async getValidationsByStep(stepId: string): Promise<FieldValidation[]> {
+    // For MemStorage, we need to get validations through value IDs
+    // First get all values for this step
+    const stepValuesList = Array.from(this.stepValues.values())
+      .filter(value => value.stepId === stepId);
+    
+    // Get all validations that match these value IDs
+    const validations = Array.from(this.fieldValidations.values())
+      .filter(validation => 
+        stepValuesList.some(value => value.id === validation.fieldId)
+      );
+    
+    return validations;
+  }
+  
   async getValidationsByFieldAndCollection(sessionId: string, fieldId: string, collectionId: string, recordIndex: number): Promise<FieldValidation[]> {
     const validations = Array.from(this.fieldValidations.values())
       .filter(validation => 
@@ -3305,6 +3321,28 @@ class PostgreSQLStorage implements IStorage {
     });
     
     return enhancedValidations;
+  }
+  
+  // Get all validations for a step (for incremental data building)
+  async getValidationsByStep(stepId: string): Promise<FieldValidation[]> {
+    // First get all values for this step
+    const stepValuesList = await this.db
+      .select()
+      .from(stepValues)
+      .where(eq(stepValues.stepId, stepId));
+    
+    if (stepValuesList.length === 0) {
+      return [];
+    }
+    
+    // Get all validations that match these value IDs
+    const valueIds = stepValuesList.map(v => v.id);
+    const result = await this.db
+      .select()
+      .from(fieldValidations)
+      .where(inArray(fieldValidations.fieldId, valueIds));
+    
+    return result;
   }
 
   // Method to populate missing collectionId values for existing validations
