@@ -2916,6 +2916,36 @@ export default function SessionView() {
       ? 'createMultiple' 
       : 'updateMultiple';
     
+    // 🎯 CRITICAL FIX: For UPDATE operations, include existing validation data for this specific column
+    if (inferredOperationType === 'updateMultiple' && previousColumnsData.length === 0) {
+      console.log(`🔄 UPDATE operation detected with no previous data - fetching existing validation records for column "${valueName}"`);
+      
+      // Get existing validation records for this specific column
+      const currentColumnValidations = validations.filter(v => 
+        v.valueId === valueId || (v.fieldId === valueId && v.collectionName === stepName)
+      );
+      
+      console.log(`📊 Found ${currentColumnValidations.length} existing validation records for column "${valueName}"`);
+      
+      if (currentColumnValidations.length > 0) {
+        // Group by identifierId to get unique records
+        const existingRecordsByIdentifier = new Map<string, any>();
+        
+        currentColumnValidations.forEach(validation => {
+          if (validation.identifierId) {
+            existingRecordsByIdentifier.set(validation.identifierId, {
+              identifierId: validation.identifierId,
+              [valueName]: validation.extractedValue || null // Include current value
+            });
+          }
+        });
+        
+        previousColumnsData = Array.from(existingRecordsByIdentifier.values());
+        console.log(`✅ Added ${previousColumnsData.length} existing records for UPDATE operation`);
+        console.log(`📋 Sample existing record:`, previousColumnsData[0]);
+      }
+    }
+    
     // Create field information that includes the actual tool configuration
     const fieldWithToolConfig = {
       id: valueId,
