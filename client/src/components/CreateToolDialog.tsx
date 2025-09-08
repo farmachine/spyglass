@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code, Info as InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -1078,6 +1078,28 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Information about automatic incremental data for UPDATE operations */}
+              {operationType === 'update' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <InfoIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                        Automatic Incremental Data for Update Operations
+                      </p>
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        Update operations automatically receive previous column data from the current step. 
+                        Each subsequent column gets all previously extracted data with identifierIds for proper row mapping.
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                        <span className="font-medium">Note:</span> Data inputs defined below are for reference data only 
+                        (e.g., lookup tables, validation rules) - not for the data being updated.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {inputParameters.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">
@@ -1250,7 +1272,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                             {param.type === "data" && (
                               <div className="space-y-3">
                                 <Label className="text-sm font-medium text-gray-700">
-                                  Create sample data collection (up to 5 rows)
+                                  {operationType === 'update' 
+                                    ? 'Reference Data Collection (e.g., lookup tables, validation rules)'
+                                    : 'Create sample data collection (up to 5 rows)'}
                                 </Label>
                                 
                                 {/* Sample Data Name */}
