@@ -1212,7 +1212,7 @@ function ValueCard({
                           });
                         }}
                         placeholder={param.placeholder || 'Enter text...'}
-                        className="min-h-[60px] text-xs bg-white dark:bg-gray-800 resize-none"
+                        className="min-h-[60px] text-xs bg-white dark:bg-gray-800 resize-y"
                       />
                     ) : (
                       <Input
@@ -1245,7 +1245,7 @@ function ValueCard({
                 value={value.description}
                 onChange={(e) => onUpdate({ description: e.target.value })}
                 placeholder="What does this value extract?"
-                className="h-16 text-xs resize-none"
+                className="min-h-[64px] text-xs resize-y"
               />
             </div>
             </div>
