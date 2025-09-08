@@ -927,14 +927,15 @@ function ValueCard({
                   
                   // Check for document types
                   const isUserDocument = paramType === 'document' || paramType.includes('user_document') || 
-                                        paramName.includes('document') && !paramName.includes('reference');
+                                        (paramName.includes('document') && !paramName.includes('reference') && !paramName.includes('input'));
                   const isReferenceDocument = paramType.includes('reference_document') || 
                                              paramType.includes('knowledge') || paramName.includes('knowledge') || 
                                              paramName.includes('reference document');
                   
-                  // Check for field/value references
+                  // Check for field/value references - including 'Input Data' parameter
                   const isFieldReference = paramType === 'reference' || paramType === 'field_reference' || 
                                           paramType === 'value_reference' || paramName.includes('referenced') || 
+                                          paramName.includes('input data') || paramName === 'input data' ||
                                           (paramName.includes('field') && paramName.includes('reference'));
                   
                   // Check for text types
@@ -965,16 +966,33 @@ function ValueCard({
                         </SelectTrigger>
                         <SelectContent>
                           {getAvailableValues().length > 0 ? (
-                            getAvailableValues().map((av) => (
-                              <SelectItem key={av.id} value={av.valueId}>
-                                <div className="flex items-center gap-2">
-                                  <Circle className="h-2 w-2 text-gray-400" />
-                                  <span>{av.stepName}</span>
-                                  <ChevronRight className="h-3 w-3 text-gray-400" />
-                                  <span className="font-medium">{av.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))
+                            <>
+                              {/* Group by step for better organization */}
+                              {(() => {
+                                const availableVals = getAvailableValues();
+                                const groupedValues: Record<string, typeof availableVals> = {};
+                                availableVals.forEach(av => {
+                                  if (!groupedValues[av.stepName]) {
+                                    groupedValues[av.stepName] = [];
+                                  }
+                                  groupedValues[av.stepName].push(av);
+                                });
+                                
+                                return Object.entries(groupedValues).map(([stepName, values]) => (
+                                  <div key={stepName}>
+                                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold">{stepName}</div>
+                                    {values.map((av) => (
+                                      <SelectItem key={av.id} value={av.valueId}>
+                                        <div className="flex items-center gap-2 pl-2">
+                                          <Circle className="h-2 w-2 text-gray-400" />
+                                          <span>{av.name}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </div>
+                                ));
+                              })()}
+                            </>
                           ) : (
                             <div className="px-2 py-1 text-xs text-gray-500">No previous values available</div>
                           )}
