@@ -6542,45 +6542,98 @@ def extract_function(Column_Name, Excel_File):
       }
       console.log(`   ✅ Found value: "${value.valueName}"`)
       
-      // CRITICAL: Check if this is a subsequent column and build previousData if needed
-      // For subsequent columns, we MUST have previousData with identifierIds
+      // 🎯 AUTOMATIC DATA FLOW: All subsequent columns get identifiers + previous column values
+      // For subsequent columns, automatically build comprehensive previousData
       const firstColumn = allStepValues.find(v => v.isIdentifier) || allStepValues[0];
       const isFirstColumn = value.id === firstColumn?.id;
+      const currentColumnOrder = allStepValues.findIndex(v => v.id === value.id);
       
-      if (!isFirstColumn && (!previousData || previousData.length === 0)) {
-        console.log(`📊 CRITICAL: This is a subsequent column (not first) - building previousData with identifierIds`);
+      console.log(`🔄 AUTOMATIC DATA FLOW CHECK:`);
+      console.log(`   Current column: ${value.valueName} (order: ${currentColumnOrder})`);
+      console.log(`   Is first column: ${isFirstColumn}`);
+      console.log(`   Step has ${allStepValues.length} total columns`);
+      
+      // ALWAYS build comprehensive previousData for ANY subsequent column (not just when empty)
+      if (!isFirstColumn) {
+        console.log(`📊 🎯 BUILDING AUTOMATIC DATA FLOW: Subsequent column detected - building comprehensive previousData`);
         console.log(`   First column: ${firstColumn?.valueName} (${firstColumn?.id})`);
         console.log(`   Current column: ${value.valueName} (${value.id})`);
+        console.log(`   Will include: identifierId + ALL previous ${currentColumnOrder} columns`);
         
-        // Get all validations for this step to build previousData
+        // Get all validations for this step to build comprehensive previousData
         const existingValidations = await storage.getFieldValidations(sessionId);
         const stepValidations = existingValidations.filter(v => v.stepId === stepId);
+        
+        console.log(`📊 Found ${stepValidations.length} total validations for this step`);
         
         // Build rows by grouping validations by identifierId
         const rowsByIdentifier = new Map<string, any>();
         
+        // Get all previous columns (up to but not including current column)
+        const previousColumns = allStepValues.slice(0, currentColumnOrder);
+        console.log(`📋 Previous columns to include:`, previousColumns.map(c => c.valueName));
+        
         for (const validation of stepValidations) {
           if (!validation.identifierId) continue;
           
+          // Initialize row if not exists
           if (!rowsByIdentifier.has(validation.identifierId)) {
             rowsByIdentifier.set(validation.identifierId, {
               identifierId: validation.identifierId
             });
           }
           
-          // Find the column name for this validation
+          // Find the column this validation belongs to
           const stepValue = allStepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
           if (stepValue) {
-            rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+            // Only include columns that come BEFORE the current column in the step
+            const validationColumnOrder = allStepValues.findIndex(v => v.id === stepValue.id);
+            if (validationColumnOrder < currentColumnOrder && validationColumnOrder >= 0) {
+              rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue || null;
+              console.log(`  ✅ Added ${stepValue.valueName} = "${validation.extractedValue}" for identifier ${validation.identifierId?.substring(0, 8)}...`);
+            }
           }
         }
         
-        // Convert to array and use as previousData
-        previousData = Array.from(rowsByIdentifier.values());
-        console.log(`✅ Built previousData with ${previousData.length} rows containing identifierIds`);
+        // Convert to array and ensure proper column order
+        const rawPreviousData = Array.from(rowsByIdentifier.values());
+        
+        // Filter to only include rows that have at least the first column value
+        const filteredPreviousData = rawPreviousData.filter(row => {
+          const hasFirstColumn = firstColumn && row[firstColumn.valueName] !== null && row[firstColumn.valueName] !== undefined && row[firstColumn.valueName] !== '';
+          if (!hasFirstColumn) {
+            console.log(`  ⚠️ Excluding row ${row.identifierId?.substring(0, 8)}... - missing first column value`);
+          }
+          return hasFirstColumn;
+        });
+        
+        // Reorder columns in each row to match step order (identifierId first, then columns in step order)
+        previousData = filteredPreviousData.map(row => {
+          const orderedRow: any = { identifierId: row.identifierId };
+          
+          // Add columns in step order
+          previousColumns.forEach(column => {
+            orderedRow[column.valueName] = row[column.valueName] || null;
+          });
+          
+          return orderedRow;
+        });
+        
+        console.log(`✅ 🎯 AUTOMATIC DATA FLOW COMPLETE: Built comprehensive previousData`);
+        console.log(`   📊 Total rows: ${previousData.length}`);
+        console.log(`   📋 Columns included: identifierId + ${previousColumns.map(c => c.valueName).join(', ')}`);
         if (previousData.length > 0) {
-          console.log(`   Sample row:`, previousData[0]);
+          console.log(`   📝 Sample row:`, previousData[0]);
+          console.log(`   📝 Column count per row: ${Object.keys(previousData[0]).length}`);
         }
+        
+        // Log summary of automatic data flow
+        console.log(`🚀 AUTOMATIC DATA FLOW SUMMARY:`);
+        console.log(`   Current extraction: ${value.valueName} (column ${currentColumnOrder + 1} of ${allStepValues.length})`);
+        console.log(`   Automatic input: ${previousData.length} records with ${previousColumns.length} previous columns`);
+        console.log(`   This creates incremental data flow where each column builds on previous ones`);
+      } else {
+        console.log(`🏁 FIRST COLUMN: ${value.valueName} - no automatic data flow needed`);
       }
       
       console.log(`   🎯 Extracting ONLY: "${value.valueName}" (${valueId})`);
@@ -7187,9 +7240,15 @@ def extract_function(Column_Name, Excel_File):
         
         // 🎯 CRITICAL FIX: For UPDATE operations, ALWAYS include previousData if available
         const isUpdateOperation = tool.operationType && tool.operationType.includes('update');
+        const hasAutomaticDataFlow = !isFirstColumn && previousData && previousData.length > 0;
         console.log(`🔄 Is UPDATE operation? ${isUpdateOperation}`);
+        console.log(`🎯 Has automatic data flow? ${hasAutomaticDataFlow}`);
         
-        if ((listItemParam || inputDataParam || anyDataParam || isUpdateOperation) && previousData && previousData.length > 0) {
+        // Include data if:
+        // 1. Tool has data parameters, OR
+        // 2. It's an UPDATE operation, OR  
+        // 3. It's a subsequent column with automatic data flow
+        if ((listItemParam || inputDataParam || anyDataParam || isUpdateOperation || hasAutomaticDataFlow) && previousData && previousData.length > 0) {
           
           // CRITICAL: Ensure all referenced columns are available in previousData
           // Check if the value has array references that should be included
@@ -7449,8 +7508,13 @@ def extract_function(Column_Name, Excel_File):
             return formattedRecord;
           });
           
-          console.log(`✅ Populated ${dataParamName} with ${toolInputs[dataParamName].length} records from previousData`);
-          console.log(`  Sample records:`, toolInputs[dataParamName].slice(0, 3));
+          console.log(`✅ 🎯 AUTOMATIC DATA FLOW APPLIED: Populated ${dataParamName} with ${toolInputs[dataParamName].length} records`);
+          console.log(`  📊 Incremental data: Each record contains identifierId + ${Object.keys(toolInputs[dataParamName][0] || {}).filter(k => k !== 'identifierId').length} previous columns`);
+          console.log(`  📝 Sample records:`, toolInputs[dataParamName].slice(0, 2));
+          
+          if (!isFirstColumn) {
+            console.log(`🚀 AUTOMATIC DATA FLOW SUCCESS: Column "${value.valueName}" has full context from previous columns`);
+          }
         }
       }
       
