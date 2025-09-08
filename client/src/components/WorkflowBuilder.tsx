@@ -568,11 +568,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                                   r="3" 
                                   fill="#4F63A4"
                                 />
-                                {/* Horizontal line from trunk to card */}
+                                {/* Horizontal line from trunk to card edge */}
                                 <line 
                                   x1="10" 
                                   y1={yPosition} 
-                                  x2="70" 
+                                  x2="60" 
                                   y2={yPosition} 
                                   stroke="#4F63A4" 
                                   strokeWidth="2"
