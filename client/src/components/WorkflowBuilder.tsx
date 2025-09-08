@@ -552,10 +552,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
                       
                       // Calculate precise center alignment
-                      const stepPaddingOffset = selectedStepIndex * 98;
-                      // Step cards are 98px tall, so exact center is at 49px
-                      // Value cards need to align their visual center with this
-                      const baseOffset = stepPaddingOffset + 49; // True geometric center
+                      // The values container is padded down to align with the selected step
+                      // So the first value card center should align with the step card center
+                      const baseOffset = 49; // Center of the first value card (accounting for padding)
                       const cardSpacing = 96; // Height + gap for cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
@@ -573,6 +572,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           />
                           {/* Horizontal branch lines to each value card with junction dots */}
                           {values.map((value, index) => {
+                            // Each value card center should align properly
                             const yPosition = baseOffset + (index * cardSpacing);
                             
                             return (
