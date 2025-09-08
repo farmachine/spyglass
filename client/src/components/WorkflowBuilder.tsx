@@ -528,13 +528,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {/* Right Column - Values for Selected Step */}
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
-            <div className="relative">
+            <div className="relative" style={{
+              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
+            }}>
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
                   <svg className="absolute -left-12 top-0 w-20 h-full pointer-events-none" style={{ zIndex: 0 }}>
                     {(() => {
                       const values = steps.find(s => s.id === selectedStepId)!.values;
-                      const baseOffset = 40; // Center of first card
+                      const baseOffset = 40; // Center of first card (relative to container)
                       const cardSpacing = 96; // Approximate height + gap for collapsed cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
