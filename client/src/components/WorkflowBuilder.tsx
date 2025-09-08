@@ -499,16 +499,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     className="absolute pointer-events-none" 
                     style={{ 
                       left: '100%',
-                      top: '0',
+                      top: `-${stepIndex * 106}px`, // Adjust SVG position based on step index
                       width: '72px',
-                      height: '500px',
+                      height: '800px',
                       zIndex: 10
                     }}
                   >
                     {(() => {
-                      const stepCenterY = 49; // Center of this step card
-                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
-                      const valueCenterY = 49 - (selectedStepIndex * 106); // Adjust for step position
+                      const stepCenterY = (stepIndex * 106) + 49; // Actual position of this step
+                      const valueCenterY = 49; // Top value card is always at 49px from values container top
                       const horizontalLength = 52;
                       const verticalMidPoint = 20;
                       
