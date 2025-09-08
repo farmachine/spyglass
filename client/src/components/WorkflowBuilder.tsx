@@ -496,15 +496,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
-                    {/* Horizontal line from step card to central vertical trunk */}
+                    {/* Horizontal line from step card */}
                     <div 
                       className="absolute left-full h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
-                      style={{ top: '50%', transform: 'translateY(-1px)', width: '44px' }}
-                    ></div>
-                    {/* Connection dot at junction point */}
-                    <div 
-                      className="absolute left-full w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full" 
-                      style={{ top: '50%', transform: 'translateX(44px) translateY(-4px)' }}
+                      style={{ top: '50%', transform: 'translateY(-1px)', width: '40px' }}
                     ></div>
                   </>
                 )}
