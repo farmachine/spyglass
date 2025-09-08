@@ -599,6 +599,15 @@ export class ToolEngine {
     console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
     console.log(`   Has __infoPageFields: ${!!inputs.__infoPageFields}`);
     
+    // CRITICAL DEBUG: Log all input keys to see what we have
+    console.log(`   🚨 INPUT KEYS RECEIVED:`, Object.keys(inputs));
+    if (inputs['Input Data']) {
+      console.log(`   🚨 'Input Data' EXISTS with ${inputs['Input Data'].length} records`);
+    }
+    if (inputs.previousData) {
+      console.log(`   🚨 'previousData' EXISTS with ${inputs.previousData.length} records`);
+    }
+    
     if (inputs.__infoPageFields) {
       console.log(`   Multi-field extraction fields:`, inputs.__infoPageFields);
     }
