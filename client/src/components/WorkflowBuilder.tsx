@@ -519,7 +519,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
             <div className="relative" style={{
-              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
+              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * (98 + 8)}px`
             }}>
                 
                 
