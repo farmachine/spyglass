@@ -7954,7 +7954,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, cleanedToolInputs);
+      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       

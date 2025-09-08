@@ -467,7 +467,9 @@ export class ToolEngine {
     inputs: Record<string, any>,
     documentContent?: string,
     knowledgeDocuments?: any,
-    progressCallback?: (current: number, total: number, message?: string) => void
+    progressCallback?: (current: number, total: number, message?: string) => void,
+    stepId?: string,
+    orderIndex?: number
   ): Promise<ToolResult[]> {
     console.log(`\n🚀 TOOL ENGINE - testTool() called`);
     console.log(`   Tool Name: ${tool.name}`);
@@ -475,6 +477,8 @@ export class ToolEngine {
     console.log(`   Tool ID: ${tool.id}`);
     console.log(`   Operation Type: ${tool.operationType}`);
     console.log(`   Input Keys:`, Object.keys(inputs));
+    console.log(`   Step ID: ${stepId || 'not provided'}`);
+    console.log(`   Order Index: ${orderIndex !== undefined ? orderIndex : 'not provided'}`);
     
     // Check for multi-field extraction
     if (inputs.__infoPageFields) {
@@ -483,18 +487,20 @@ export class ToolEngine {
     
     // CRITICAL: Automatically inject incremental data for UPDATE operations
     const isUpdateOperation = tool.operationType?.toLowerCase().includes('update');
-    const stepId = inputs.stepId || inputs.valueConfiguration?.stepId;
-    const valueId = inputs.valueId || inputs.valueConfiguration?.valueId;
-    const orderIndex = inputs.valueConfiguration?.orderIndex;
     
-    if (isUpdateOperation && stepId && orderIndex !== undefined && orderIndex > 0) {
+    // Use passed parameters or fall back to inputs
+    const effectiveStepId = stepId || inputs.stepId || inputs.valueConfiguration?.stepId;
+    const valueId = inputs.valueId || inputs.valueConfiguration?.valueId;
+    const effectiveOrderIndex = orderIndex !== undefined ? orderIndex : inputs.valueConfiguration?.orderIndex;
+    
+    if (isUpdateOperation && effectiveStepId && effectiveOrderIndex !== undefined && effectiveOrderIndex > 0) {
       console.log(`\n🔄 AUTO-INJECTING INCREMENTAL DATA FOR UPDATE OPERATION`);
-      console.log(`   Step ID: ${stepId}`);
+      console.log(`   Step ID: ${effectiveStepId}`);
       console.log(`   Value ID: ${valueId}`);
-      console.log(`   Order Index: ${orderIndex}`);
+      console.log(`   Order Index: ${effectiveOrderIndex}`);
       
       // Build incremental data automatically
-      const incrementalData = await this.buildIncrementalData(stepId, valueId, orderIndex);
+      const incrementalData = await this.buildIncrementalData(effectiveStepId, valueId, effectiveOrderIndex);
       
       if (incrementalData.length > 0) {
         console.log(`   ✅ Injecting ${incrementalData.length} rows of incremental data`);

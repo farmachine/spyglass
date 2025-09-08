@@ -1,0 +1,174 @@
+=== REQUIRED OUTPUT FORMAT ===
+CRITICAL: You MUST return ONLY a valid JSON array. Do NOT include any text, markdown, or explanations.
+Your entire response must be a properly formatted JSON array that can be parsed by JSON.parse().
+Example format:
+[
+  {
+    "extractedValue": "Example Value",
+    "validationStatus": "valid",
+    "aiReasoning": "Found this value in the document",
+    "confidenceScore": 95,
+    "documentSource": "Section 1, Page 1"
+  }
+]
+
+=== INPUT VALUES ===
+
+**AI Instructions**: A description of the revaluation or in-payment increase rate, for example "CPI subject to a maximum of 5%".
+
+**List Items** (18 items to process):
+```json
+[
+  {
+    "Benefit Identifier": "3: Section A - Escalation - CPI Max 5% - 6 Apr 1997 to 5 Apr 2005 leavers"
+  },
+  {
+    "Benefit Identifier": "1: Section A - Escalation - CPI Max 5% - Pre-6 Apr 1997 leavers"
+  },
+  {
+    "Benefit Identifier": "4: Section A - Escalation - Fixed 5% - 6 Apr 1997 to 5 Apr 2005 leavers"
+  },
+  {
+    "Benefit Identifier": "2: Section A - Escalation - Fixed 5% - Pre-6 Apr 1997 leavers"
+  },
+  {
+    "Benefit Identifier": "6: Section A - Escalation - Fixed 5% - Post 5 Apr 2005 leavers"
+  },
+  {
+    "Benefit Identifier": "8: Section B - Revaluation - Fixed 5% - 6 Apr 1997 to 5 Apr 2005 leavers"
+  },
+  {
+    "Benefit Identifier": "9: Section B - Revaluation - Fixed 5% - Post 5 Apr 2005 leavers"
+  },
+  {
+    "Description": "CPI subject to a maximum of 5%"
+  },
+  {
+    "Description": "CPI subject to a maximum of 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Description": "CPI subject to a maximum of 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Description": "Fixed 5%"
+  },
+  {
+    "Benefit Identifier": "5: Section A - Escalation - CPI Max 5% - Post 5 Apr 2005 leavers"
+  },
+  {
+    "Benefit Identifier": "7: Section B - Revaluation - Fixed 5% - Pre-6 Apr 1997 leavers"
+  }
+]
+```
+
+
+================================================================================
+END OF PROMPT
+📊 Batch size: 18, Token limit: 9000
+📏 AI Response Size: 6020 characters
+📦 Parsed 18 results from AI response
+🎯 COLUMN EXTRACTION DEBUG for "Unknown":
+   Step: Unknown
+   Results count: 18
+   First 3 results for column "Unknown":
+   [0] identifierId: none, value: "CPI subject to a maximum of 5%"
+   [1] identifierId: none, value: "CPI subject to a maximum of 5%"
+   [2] identifierId: none, value: "Fixed 5%"
+✅ Found 2 unique values for column "Unknown"
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 18
+   - isCreateOperation: false
+🔄 UPDATE operation processed 18 records
+✅ AI extraction complete: 18 results
+✅ Tool execution completed. Results count: 18
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": "CPI subject to a maximum of 5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The AI Instructions asked for the revaluation or in-payment increase rate, for example \"CPI subject to a maximum of 5%\". This was found in the Benefit Identifier.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  Second result: {
+  "extractedValue": "CPI subject to a maximum of 5%",
+  "validationStatus": "valid",
+  "aiReasoning": "The AI Instructions asked for the revaluation or in-payment increase rate, for example \"CPI subject to a maximum of 5%\". This was found in the Benefit Identifier.",
+  "confidenceScore": 100,
+  "documentSource": "Benefit Identifier"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Processing 18 actual AI results (not creating validations for unprocessed records)
+🔗 Generated new UUID identifierId for first column at position 0: ef4ab10c-bb46-4531-999c-db5f9cc8a936
+✨ Created validation for Benefit History.Description[0] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 1: 77b53687-b3cf-466b-8347-e796fb8d3b1e
+✨ Created validation for Benefit History.Description[1] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 2: 80df162a-ebb6-4de5-ad65-285a12eea324
+✨ Created validation for Benefit History.Description[2] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 3: a11292b6-39ae-4768-8638-8781569685eb
+✨ Created validation for Benefit History.Description[3] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 4: 39e334fa-7e2c-48b9-aaa5-206a1da8579d
+✨ Created validation for Benefit History.Description[4] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 5: ac649db3-db89-487e-8f49-db42a2954ae9
+✨ Created validation for Benefit History.Description[5] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 6: 528eee7d-d6d7-4503-b52c-7dd237f34433
+✨ Created validation for Benefit History.Description[6] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 7: 21886c65-5ed4-4af2-90c0-135007961228
+✨ Created validation for Benefit History.Description[7] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 8: 8db97166-8109-4c9e-b62c-c88162858306
+✨ Created validation for Benefit History.Description[8] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 9: 0a1c849c-2968-42fe-8e62-6c09a292d79f
+✨ Created validation for Benefit History.Description[9] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 10: b1b37e2e-fa6d-46fb-a09e-9cc094d07384
+✨ Created validation for Benefit History.Description[10] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 11: 4e710ff9-b20e-4c42-9e63-db730636960a
+✨ Created validation for Benefit History.Description[11] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 12: 98140144-c437-43c4-8806-202a373431f7
+✨ Created validation for Benefit History.Description[12] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 13: e08fdeab-51c9-42ed-b935-2647f5a17426
+✨ Created validation for Benefit History.Description[13] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 14: d76dd329-a446-4458-b402-5dd6023899cc
+✨ Created validation for Benefit History.Description[14] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 15: fc002d80-3c0e-467c-ae5c-6265f5b08904
+✨ Created validation for Benefit History.Description[15] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 16: d6699028-6dfa-4b34-9f76-0998839033bd
+✨ Created validation for Benefit History.Description[16] with value: "CPI subject to a maximum of 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
+🔗 Generated new UUID identifierId for first column at position 17: ec941dad-4cb5-4a30-b32c-0226f2831ac6
+✨ Created validation for Benefit History.Description[17] with value: "Fixed 5%"
+   🔑 Using valueId: 39a30de4-2245-45b3-98ad-fb135d13999e (Description)
