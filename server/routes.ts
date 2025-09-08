@@ -7181,8 +7181,15 @@ def extract_function(Column_Name, Excel_File):
       if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         const inputDataParam = tool.inputParameters?.find(p => p.name === 'Input Data' && p.type === 'data');
-        console.log(`🤖 AI tool detected. Has List Item param? ${!!listItemParam}, Has Input Data param? ${!!inputDataParam}, previousData records: ${previousData?.length || 0}`);
-        if ((listItemParam || inputDataParam) && previousData && previousData.length > 0) {
+        // Also check for generic 'data' type parameters that could receive the input data
+        const anyDataParam = tool.inputParameters?.find(p => p.type === 'data');
+        console.log(`🤖 AI tool detected. Has List Item param? ${!!listItemParam}, Has Input Data param? ${!!inputDataParam}, Has any data param? ${!!anyDataParam}, previousData records: ${previousData?.length || 0}`);
+        
+        // 🎯 CRITICAL FIX: For UPDATE operations, ALWAYS include previousData if available
+        const isUpdateOperation = tool.operationType && tool.operationType.includes('update');
+        console.log(`🔄 Is UPDATE operation? ${isUpdateOperation}`);
+        
+        if ((listItemParam || inputDataParam || anyDataParam || isUpdateOperation) && previousData && previousData.length > 0) {
           
           // CRITICAL: Ensure all referenced columns are available in previousData
           // Check if the value has array references that should be included
@@ -7415,7 +7422,9 @@ def extract_function(Column_Name, Excel_File):
           
           // Format previousData for the AI tool - it should contain merged column information
           // Use the correct parameter name based on what the tool expects
-          const dataParamName = inputDataParam ? 'Input Data' : 'List Item';
+          const dataParamName = inputDataParam ? 'Input Data' : 
+                               anyDataParam ? anyDataParam.name :
+                               'List Item';
           toolInputs[dataParamName] = limitedPreviousData.map(record => {
             // Include identifierId and all column values from the record
             const formattedRecord: any = {};
