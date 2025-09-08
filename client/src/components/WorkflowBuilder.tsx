@@ -493,6 +493,37 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </div>
                 )}
 
+                {/* Right-angled connection line from selected step */}
+                {selectedStepId === step.id && step.values.length > 0 && (
+                  <svg 
+                    className="absolute pointer-events-none" 
+                    style={{ 
+                      left: '100%',
+                      top: '0',
+                      width: '72px',
+                      height: '500px',
+                      zIndex: 10
+                    }}
+                  >
+                    {(() => {
+                      const stepCenterY = 49; // Center of this step card
+                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
+                      const valueCenterY = 49 - (selectedStepIndex * 106); // Adjust for step position
+                      const horizontalLength = 52;
+                      const verticalMidPoint = 20;
+                      
+                      return (
+                        <path
+                          d={`M 0 ${stepCenterY} L ${verticalMidPoint} ${stepCenterY} L ${verticalMidPoint} ${valueCenterY} L ${horizontalLength} ${valueCenterY}`}
+                          stroke="#4F63A4"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                      );
+                    })()}
+                  </svg>
+                )}
+
               </div>
             ))}
 
@@ -519,8 +550,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
             <div className="relative">
-                
-                
                 {/* Value Cards Container */}
                 <div className="space-y-4" style={{ width: '90%', marginLeft: '0' }}>
                 {steps.find(s => s.id === selectedStepId)?.values.map((value, valueIndex) => (
