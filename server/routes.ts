@@ -7762,31 +7762,9 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
-      // CRITICAL: For UPDATE operations, clear ALL configured test data inputs
-      // The incremental data builder will inject the actual session data
-      if (tool.operationType?.toLowerCase().includes('update') && value.orderIndex && value.orderIndex > 0) {
-        console.log(`\n⚠️ UPDATE OPERATION DETECTED - Clearing ALL test data`);
-        console.log(`   Operation Type: ${tool.operationType}`);
-        console.log(`   Column Order: ${value.orderIndex}`);
-        console.log(`   Previous Data Available: ${previousData?.length || 0} records`);
-        
-        // Clear ALL inputs that might contain test data - be very aggressive
-        const keysToKeep = ['AI Query', 'projectId', 'sessionDocumentContent', 'valueConfiguration', 'stepId', 'valueId'];
-        const originalKeys = Object.keys(toolInputs);
-        
-        for (const key of originalKeys) {
-          if (!keysToKeep.includes(key)) {
-            const itemCount = Array.isArray(toolInputs[key]) ? toolInputs[key].length : 
-                            typeof toolInputs[key] === 'string' ? `${toolInputs[key].length} chars` : 'value';
-            console.log(`   🗑️ Clearing "${key}" (was ${itemCount}) - will use session data`);
-            delete toolInputs[key];
-          }
-        }
-        
-        console.log(`   ✅ Cleared ${originalKeys.length - keysToKeep.length} test data fields`);
-        console.log(`   ✅ Kept only: ${keysToKeep.join(', ')}`);
-        console.log(`   ✅ Incremental builder will inject ${previousData?.length || 0} actual session records`);
-      }
+      
+      // CRITICAL: Check for UPDATE operation FIRST
+      const isUpdateOperation = tool.operationType?.toLowerCase().includes('update') && value.orderIndex && value.orderIndex > 0;
       
       // Execute the tool using the tool engine
       console.log(`\n🔧 EXECUTING TOOL: ${tool.name}`);
@@ -7797,9 +7775,11 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   Has AI Prompt: ${!!tool.aiPrompt}`);
       console.log(`   Has Function Code: ${!!tool.functionCode}`);
       console.log(`   LLM Model: ${tool.llmModel || 'default'}`);
+      console.log(`   🔄 Is UPDATE Operation: ${isUpdateOperation}`);
       
-      // Map inputValues (with parameter IDs) to tool parameters using IDs only
-      if (value.inputValues && Object.keys(value.inputValues).length > 0 && tool.inputParameters) {
+      // Map inputValues ONLY for non-UPDATE operations
+      // For UPDATE operations, skip parameter mapping entirely - incremental builder will provide data
+      if (!isUpdateOperation && value.inputValues && Object.keys(value.inputValues).length > 0 && tool.inputParameters) {
         console.log(`📐 Mapping inputValues to tool parameters using IDs...`);
         
         // For each tool parameter, check if there's a corresponding inputValue by parameter ID
