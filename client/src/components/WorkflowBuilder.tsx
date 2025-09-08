@@ -525,21 +525,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {/* Right Column - Values for Selected Step */}
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
-            <div className="space-y-4">
-              {/* Selected Step Header */}
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {steps.find(s => s.id === selectedStepId)?.name} Values
-                </h3>
-                {steps.find(s => s.id === selectedStepId)?.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {steps.find(s => s.id === selectedStepId)?.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Values Stack - Vertical layout for better space */}
-              <div className="relative">
+            <div className="relative">
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
                   <svg className="absolute -left-20 top-0 w-24 h-full pointer-events-none" style={{ zIndex: 0 }}>
@@ -613,16 +599,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     </span>
                   </button>
                 </div>
-              </div>
-
-              {/* Empty State */}
-              {steps.find(s => s.id === selectedStepId)?.values.length === 0 && (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <Layers className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No values defined for this step</p>
-                  <p className="text-sm mt-1">Click "Add Value" to create one</p>
-                </div>
-              )}
             </div>
           ) : (
             /* No Step Selected */
