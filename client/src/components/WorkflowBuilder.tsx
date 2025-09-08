@@ -507,9 +507,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </div>
                 )}
 
-                {/* Connection line to values (only for selected step) */}
+                {/* Connection point for selected step */}
                 {selectedStepId === step.id && step.values.length > 0 && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 w-8 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]"></div>
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
                 )}
               </div>
             ))}
@@ -534,7 +534,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         </div>
 
         {/* Right Column - Values for Selected Step */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
             <div className="space-y-4">
               {/* Selected Step Header */}
@@ -550,7 +550,46 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </div>
 
               {/* Values Stack - Vertical layout for better space */}
-              <div className="space-y-4">
+              <div className="relative pl-12">
+                {/* Connection Lines */}
+                {steps.find(s => s.id === selectedStepId)?.values.length > 0 && (
+                  <svg className="absolute left-0 top-0 w-12 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                    {/* Main vertical trunk line */}
+                    <line 
+                      x1="24" 
+                      y1="0" 
+                      x2="24" 
+                      y2="100%" 
+                      stroke="#4F63A4" 
+                      strokeWidth="2"
+                    />
+                    {/* Horizontal branch lines to each value card */}
+                    {steps.find(s => s.id === selectedStepId)?.values.map((_, index) => {
+                      const yPosition = 56 + (index * 120); // Approximate center of each card
+                      return (
+                        <g key={index}>
+                          <line 
+                            x1="24" 
+                            y1={yPosition} 
+                            x2="48" 
+                            y2={yPosition} 
+                            stroke="#4F63A4" 
+                            strokeWidth="2"
+                          />
+                          <circle 
+                            cx="48" 
+                            cy={yPosition} 
+                            r="3" 
+                            fill="#4F63A4"
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                )}
+                
+                {/* Value Cards Container */}
+                <div className="space-y-4" style={{ width: '90%', marginLeft: 'auto' }}>
                 {steps.find(s => s.id === selectedStepId)?.values.map((value, valueIndex) => (
                   <ValueCard
                     key={value.id}
@@ -568,16 +607,17 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   />
                 ))}
 
-                {/* Add Value Button - Below the stacked values */}
-                <button
-                  onClick={() => addValue(selectedStepId)}
-                  className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
-                >
-                  <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
-                  <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
-                    Add Value
-                  </span>
-                </button>
+                  {/* Add Value Button - Below the stacked values */}
+                  <button
+                    onClick={() => addValue(selectedStepId)}
+                    className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
+                  >
+                    <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
+                    <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
+                      Add Value
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* Empty State */}
