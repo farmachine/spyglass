@@ -499,6 +499,8 @@ export class ToolEngine {
       console.log(`   Step ID: ${effectiveStepId}`);
       console.log(`   Value ID: ${valueId}`);
       console.log(`   Order Index: ${effectiveOrderIndex}`);
+      console.log(`   Session ID: ${sessionId || 'not provided'}`);
+      console.log(`   Tool operationType: ${tool.operationType}`);
       
       // Build incremental data automatically
       const incrementalData = await this.buildIncrementalData(effectiveStepId, valueId, effectiveOrderIndex, sessionId);
@@ -1132,8 +1134,13 @@ ${JSON.stringify(dataArray, null, 2)}
       const hasIdentifierIds = dataArray.some(item => item.identifierId);
       const isCreateOperation = tool.operationType?.toLowerCase().includes('create');
       
+      console.log(`   📊 Data array has identifierIds: ${hasIdentifierIds}`);
+      console.log(`   📊 Is CREATE operation: ${isCreateOperation}`);
+      console.log(`   📊 Will add identifierId requirement: ${hasIdentifierIds && !isCreateOperation}`);
+      
       if (hasIdentifierIds && !isCreateOperation) {
         // Only add identifierId requirement for UPDATE operations
+        console.log(`   ✅ Adding CRITICAL REQUIREMENT for identifierId preservation`);
         prompt += `=== CRITICAL REQUIREMENT ===
 Each item in the list above has an "identifierId" field. You MUST:
 1. Include the EXACT SAME "identifierId" in your response for each item
