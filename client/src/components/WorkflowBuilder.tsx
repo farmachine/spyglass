@@ -498,6 +498,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   <>
                     {/* Horizontal line from step card to trunk */}
                     <div className="absolute left-full top-1/2 -translate-y-1/2 w-20 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]"></div>
+                    {/* Connection dot at end of horizontal line */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 translate-x-20 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full -translate-x-1"></div>
                   </>
                 )}
               </div>
@@ -529,43 +531,52 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
                   <svg className="absolute -left-20 top-0 w-24 h-full pointer-events-none" style={{ zIndex: 0 }}>
-                    {/* Main vertical trunk line */}
-                    <line 
-                      x1="20" 
-                      y1="0" 
-                      x2="20" 
-                      y2="100%" 
-                      stroke="#4F63A4" 
-                      strokeWidth="2"
-                    />
-                    {/* Horizontal branch lines to each value card */}
-                    {steps.find(s => s.id === selectedStepId)?.values.map((value, index) => {
-                      // Calculate position based on card index and estimated height
-                      // Each collapsed card is about 80px height + 16px gap (space-y-4)
-                      // Center the line on each card
+                    {(() => {
+                      const values = steps.find(s => s.id === selectedStepId)!.values;
                       const baseOffset = 40; // Center of first card
                       const cardSpacing = 96; // Approximate height + gap for collapsed cards
-                      const yPosition = baseOffset + (index * cardSpacing);
+                      const firstYPosition = baseOffset;
+                      const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
                       
                       return (
-                        <g key={value.id}>
+                        <>
+                          {/* Main vertical trunk line - from first to last card center */}
                           <line 
                             x1="20" 
-                            y1={yPosition} 
-                            x2="80" 
-                            y2={yPosition} 
+                            y1={firstYPosition} 
+                            x2="20" 
+                            y2={lastYPosition} 
                             stroke="#4F63A4" 
                             strokeWidth="2"
                           />
-                          <circle 
-                            cx="20" 
-                            cy={yPosition} 
-                            r="3" 
-                            fill="#4F63A4"
-                          />
-                        </g>
+                          {/* Horizontal branch lines to each value card with junction dots */}
+                          {values.map((value, index) => {
+                            const yPosition = baseOffset + (index * cardSpacing);
+                            
+                            return (
+                              <g key={value.id}>
+                                {/* Junction dot on trunk */}
+                                <circle 
+                                  cx="20" 
+                                  cy={yPosition} 
+                                  r="3" 
+                                  fill="#4F63A4"
+                                />
+                                {/* Horizontal line from trunk to card */}
+                                <line 
+                                  x1="20" 
+                                  y1={yPosition} 
+                                  x2="80" 
+                                  y2={yPosition} 
+                                  stroke="#4F63A4" 
+                                  strokeWidth="2"
+                                />
+                              </g>
+                            );
+                          })}
+                        </>
                       );
-                    })}
+                    })()}
                   </svg>
                 )}
                 
