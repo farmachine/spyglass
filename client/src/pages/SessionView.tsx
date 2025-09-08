@@ -2635,38 +2635,104 @@ export default function SessionView() {
     console.log(`  - Has document input: ${hasDocumentInput}`);
     console.log(`  - RESULT: needsDocument = ${needsDocument}`);
     
-    // Compile previous column data as input
+    // SIMPLIFIED APPROACH: For any column in a datatable step, automatically fetch all validations 
+    // from preceding columns in the same step
     let previousColumnsData: any[] = [];
     
-    // Check if this value has references to other values (stored as value IDs)
+    // Get the current value's order index
+    const currentValueIndex = valueToRun.orderIndex || 0;
+    console.log(`📊 Current column "${valueName}" is at index ${currentValueIndex}`);
+    
+    // Get all preceding values in this step (columns that come before this one)
+    const precedingValues = workflowStep.values
+      ?.filter(v => (v.orderIndex || 0) < currentValueIndex)
+      ?.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)) || [];
+    
+    console.log(`📊 Found ${precedingValues.length} preceding columns:`, precedingValues.map(v => v.valueName));
+    
+    // If there are preceding columns, fetch their validations
+    if (precedingValues.length > 0 && workflowStep) {
+      console.log(`🔄 Fetching validations for preceding columns in step "${stepName}"`);
+      
+      // Get all validations for this step
+      const stepValidations = validations.filter(v => 
+        v.stepId === workflowStep.id || 
+        v.collectionName === stepName
+      );
+      
+      console.log(`📊 Found ${stepValidations.length} total validations for step`);
+      
+      // Group validations by identifierId
+      const recordsByIdentifier = new Map<string, any>();
+      
+      // Get unique identifier IDs
+      const uniqueIdentifierIds = [...new Set(stepValidations
+        .map(v => v.identifierId)
+        .filter(id => id !== null && id !== undefined)
+      )];
+      
+      console.log(`📊 Found ${uniqueIdentifierIds.length} unique records`);
+      
+      // Build records with data from preceding columns only
+      uniqueIdentifierIds.forEach(identifierId => {
+        const record: any = { identifierId };
+        
+        // Add data from each preceding column
+        precedingValues.forEach(precedingValue => {
+          // Find validation for this identifier and column
+          const validation = stepValidations.find(v => 
+            v.identifierId === identifierId && 
+            v.fieldId === precedingValue.id
+          );
+          
+          if (validation && validation.extractedValue) {
+            // Use the column name as the key
+            record[precedingValue.valueName] = validation.extractedValue;
+          }
+        });
+        
+        // Only add records that have at least one value besides identifierId
+        if (Object.keys(record).length > 1) {
+          recordsByIdentifier.set(identifierId, record);
+        }
+      });
+      
+      previousColumnsData = Array.from(recordsByIdentifier.values());
+      console.log(`✅ Compiled ${previousColumnsData.length} records with data from ${precedingValues.length} preceding columns`);
+      
+      if (previousColumnsData.length > 0) {
+        console.log('📊 Sample record:', previousColumnsData[0]);
+      }
+    } else {
+      console.log(`ℹ️ This is the first column in the step - no previous data needed`);
+    }
+    
+    // Check if this value has references to other values (stored as value IDs) for cross-step references
     const referencedValueIds = new Set<string>();
     if (hasColumnReferences && valueToRun.inputValues) {
-      console.log(`🔍 Checking for value ID references in ${valueName}'s inputValues`);
+      console.log(`🔍 Checking for cross-step value ID references in ${valueName}'s inputValues`);
       Object.values(valueToRun.inputValues).forEach(value => {
         if (typeof value === 'string') {
-          // Check if it's a UUID (value ID) or legacy @-notation
+          // Check if it's a UUID (value ID)
           if (value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
             referencedValueIds.add(value);
-            console.log(`  - References value ID: "${value}"`);
-          } else if (value.includes('@')) {
-            // Legacy support for @-notation
-            console.log(`  - Legacy @ reference found: "${value}"`);
+            console.log(`  - References value ID from another step: "${value}"`);
           }
         } else if (Array.isArray(value)) {
           value.forEach(v => {
             if (typeof v === 'string' && v.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
               referencedValueIds.add(v);
-              console.log(`  - References value ID: "${v}"`);
+              console.log(`  - References value ID from another step: "${v}"`);
             }
           });
         }
       });
+      console.log(`🔍 Found ${referencedValueIds.size} cross-step value ID references`);
     }
     
-    // If we have referenced value IDs, get data from those values
-    console.log(`📊 Referenced value IDs found: ${Array.from(referencedValueIds).join(', ')} (count: ${referencedValueIds.size})`);
+    // If we have cross-step referenced value IDs, handle them separately
     if (referencedValueIds.size > 0) {
-      console.log(`✅ Loading data from ${referencedValueIds.size} referenced value(s) for "${valueName}"`);
+      console.log(`📊 Found ${referencedValueIds.size} cross-step value ID references - handling cross-step data`);
       
       // Get all validations that match the referenced value IDs
       const allReferencedValidations = validations.filter(v => {
@@ -2677,163 +2743,40 @@ export default function SessionView() {
         return referencedValueIds.has(v.valueId || '');
       });
       
-      // Group by identifierId to check if ALL columns are verified
-      const verifiedIdentifierIds = new Set<string>();
-      const identifierGroups = new Map<string, any[]>();
-      
-      allReferencedValidations.forEach(v => {
-        if (!identifierGroups.has(v.identifierId!)) {
-          identifierGroups.set(v.identifierId!, []);
-        }
-        identifierGroups.get(v.identifierId!)?.push(v);
-      });
-      
-      // Check each identifier group - only include records where ALL values are validated
-      identifierGroups.forEach((validationGroup, identifierId) => {
-        const allVerified = validationGroup.every(v => {
-          const statusValid = v.validationStatus === 'valid' || v.validationStatus === 'manual';
-          const valueValid = v.extractedValue !== '' && v.extractedValue !== null && v.extractedValue !== undefined;
-          return statusValid && valueValid;
-        });
+      // Build cross-step data if needed
+      if (allReferencedValidations.length > 0) {
+        const crossStepRecords = new Map<string, any>();
         
-        if (allVerified) {
-          verifiedIdentifierIds.add(identifierId);
-        }
-      });
-      
-      // Compile records from validations
-      const recordsByIdentifier = new Map<string, any>();
-      
-      // First, include first columns from all referenced steps
-      const referencedStepIds = new Set(allReferencedValidations.map(v => v.stepId).filter(id => id));
-      referencedStepIds.forEach(stepId => {
-        const referencedStep = project?.workflowSteps?.find(s => s.id === stepId);
-        if (referencedStep && referencedStep.values && referencedStep.values[0]) {
-          const firstColumnId = referencedStep.values[0].id;
-          const firstColumnName = referencedStep.values[0].valueName;
-          console.log(`📝 Including first column "${firstColumnName}" from step "${referencedStep.name}"`);
-          
-          // Get validations for the first column
-          const firstColumnValidations = validations.filter(v => 
-            v.valueId === firstColumnId && 
-            v.identifierId && 
-            verifiedIdentifierIds.has(v.identifierId)
-          );
-          
-          firstColumnValidations.forEach(v => {
-            if (!recordsByIdentifier.has(v.identifierId)) {
-              recordsByIdentifier.set(v.identifierId, {
+        allReferencedValidations.forEach(v => {
+          if (v.identifierId) {
+            if (!crossStepRecords.has(v.identifierId)) {
+              crossStepRecords.set(v.identifierId, {
                 identifierId: v.identifierId
               });
             }
-            recordsByIdentifier.get(v.identifierId)[firstColumnName] = v.extractedValue;
-          });
-        }
-      });
-      
-      // Then add all referenced validations (including any duplicates which will be overwritten)
-      allReferencedValidations.forEach(v => {
-        if (v.identifierId && verifiedIdentifierIds.has(v.identifierId)) {
-          if (!recordsByIdentifier.has(v.identifierId)) {
-            recordsByIdentifier.set(v.identifierId, {
-              identifierId: v.identifierId
-            });
-          }
-          
-          // Find the value name from the project configuration
-          const referencedStepValue = project?.workflowSteps?.flatMap(s => s.values || [])
-            .find(val => val.id === v.valueId);
-          
-          if (referencedStepValue) {
-            recordsByIdentifier.get(v.identifierId)[referencedStepValue.valueName] = v.extractedValue;
-          }
-        }
-      });
-      
-      // Convert to array
-      previousColumnsData = Array.from(recordsByIdentifier.values());
-      console.log(`📊 Found ${recordsByIdentifier.size} records with verified data from referenced values`);
-      
-    } else if (workflowStep && workflowStep.values) {
-      console.log(`❌ No cross-step references found for "${valueName}" - using within-step data compilation`);
-      
-      // SIMPLIFIED LOGIC: Just group validations by identifierId and build records
-      const stepValidations = validations.filter(v => 
-        v.stepId === workflowStep.id || 
-        v.collectionName === stepName
-      );
-      
-      // Group all validations by identifierId
-      const recordsByIdentifier = new Map<string, any>();
-      
-      // Get all unique identifierIds from step validations
-      const uniqueIdentifierIds = [...new Set(stepValidations
-        .map(v => v.identifierId)
-        .filter(id => id !== null && id !== undefined)
-      )];
-      
-      console.log(`📊 Found ${uniqueIdentifierIds.length} unique identifiers in step "${stepName}"`);
-      
-      // For each identifierId, build a complete record with all column values
-      for (const identifierId of uniqueIdentifierIds) {
-        const record: any = { identifierId };
-        
-        // Get ALL validations for this identifierId (not just from stepValidations)
-        const identifierValidations = validations.filter(v => v.identifierId === identifierId);
-        
-        // Add each column's value to the record
-        for (const validation of identifierValidations) {
-          // Find which column this validation belongs to (from the SAME step)
-          const columnDef = workflowStep.values.find(val => 
-            val.id === validation.valueId || val.id === validation.fieldId
-          );
-          
-          if (columnDef && validation.extractedValue !== null && validation.extractedValue !== undefined) {
-            record[columnDef.valueName] = validation.extractedValue;
-          }
-        }
-        
-        // ALWAYS include the first column (it's the identifier) and all previous columns
-        let hasRequiredColumns = true;
-        
-        // First column MUST always be present (it's the identifier)
-        const firstColName = workflowStep.values[0].valueName;
-        if (!record[firstColName]) {
-          hasRequiredColumns = false;
-        }
-        
-        // Check other previous columns (up to but not including current)
-        for (let i = 1; i < valueIndex; i++) {
-          const colName = workflowStep.values[i].valueName;
-          if (!record[colName]) {
-            hasRequiredColumns = false;
-            break;
-          }
-        }
-        
-        if (hasRequiredColumns) {
-          // Ensure the record has columns in the right order
-          const orderedRecord: any = { identifierId };
-          
-          // Always add first column first (Document Name)
-          if (record[firstColName]) {
-            orderedRecord[firstColName] = record[firstColName];
-          }
-          
-          // Then add other columns in order
-          for (let i = 1; i < workflowStep.values.length; i++) {
-            const colName = workflowStep.values[i].valueName;
-            if (record[colName]) {
-              orderedRecord[colName] = record[colName];
+            
+            // Find the value name from the project configuration
+            const referencedStepValue = project?.workflowSteps?.flatMap(s => s.values || [])
+              .find(val => val.id === v.valueId);
+            
+            if (referencedStepValue && v.extractedValue) {
+              crossStepRecords.get(v.identifierId)[referencedStepValue.valueName] = v.extractedValue;
             }
           }
-          
-          recordsByIdentifier.set(identifierId, orderedRecord);
-        }
+        });
+        
+        // Merge cross-step data with existing previousColumnsData
+        const mergedData = previousColumnsData.map(record => {
+          const crossStepData = crossStepRecords.get(record.identifierId);
+          if (crossStepData) {
+            return { ...record, ...crossStepData };
+          }
+          return record;
+        });
+        
+        previousColumnsData = mergedData;
+        console.log(`📊 Merged cross-step data into ${previousColumnsData.length} records`);
       }
-      
-      previousColumnsData = Array.from(recordsByIdentifier.values());
-      console.log(`📊 Compiled ${previousColumnsData.length} records with data for extraction`);
     }
     
     // Log filtering results
