@@ -498,11 +498,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   <>
                     {/* Horizontal line from step card to values */}
                     <div 
-                      className="absolute left-full h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
+                      className="absolute h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
                       style={{ 
+                        left: '100%',
                         top: '50%', 
                         transform: 'translateY(-1px)', 
-                        width: '40px',
+                        width: '52px',
                         zIndex: 10
                       }}
                     ></div>
@@ -542,15 +543,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     className="absolute -left-12 w-20 pointer-events-none" 
                     style={{ 
                       zIndex: 0,
-                      top: `-${steps.findIndex(s => s.id === selectedStepId) * 98}px`,
-                      height: `${steps.length * 98 + 400}px`
+                      top: '0px',
+                      height: 'calc(100% + 400px)'
                     }}
                   >
                     {(() => {
                       const values = steps.find(s => s.id === selectedStepId)!.values;
-                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
-                      const stepOffset = selectedStepIndex * 98; // Offset to align with step position
-                      const baseOffset = stepOffset + 40; // Center of first card aligned with step
+                      // Values are now positioned relative to their container with padding
+                      // So lines should be positioned relative to the values container, not absolute positions
+                      const baseOffset = 40; // Center of first value card within the values container
                       const cardSpacing = 96; // Approximate height + gap for collapsed cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
