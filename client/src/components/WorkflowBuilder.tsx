@@ -358,20 +358,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   return (
     <div className="space-y-6">
-      {/* Header with Save Button */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-[#071e54] dark:text-[#5A70B5]">Extraction Steps</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Design your data extraction workflow</p>
-        </div>
-        <Button 
-          onClick={saveWorkflow} 
-          className="bg-[#4F63A4] hover:bg-[#3E4F85] text-white"
-        >
-          Save Extraction Steps
-        </Button>
-      </div>
-
       {/* Two Column Layout */}
       <div className="flex gap-6">
         {/* Left Column - Steps List */}
@@ -550,34 +536,40 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </div>
 
               {/* Values Stack - Vertical layout for better space */}
-              <div className="relative pl-12">
+              <div className="relative">
                 {/* Connection Lines */}
-                {steps.find(s => s.id === selectedStepId)?.values.length > 0 && (
-                  <svg className="absolute left-0 top-0 w-12 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
+                  <svg className="absolute -left-12 top-0 w-16 h-full pointer-events-none" style={{ zIndex: 0 }}>
                     {/* Main vertical trunk line */}
                     <line 
-                      x1="24" 
+                      x1="32" 
                       y1="0" 
-                      x2="24" 
+                      x2="32" 
                       y2="100%" 
                       stroke="#4F63A4" 
                       strokeWidth="2"
                     />
                     {/* Horizontal branch lines to each value card */}
-                    {steps.find(s => s.id === selectedStepId)?.values.map((_, index) => {
-                      const yPosition = 56 + (index * 120); // Approximate center of each card
+                    {steps.find(s => s.id === selectedStepId)?.values.map((value, index) => {
+                      // Calculate position based on card index and estimated height
+                      // Each collapsed card is about 80px height + 16px gap (space-y-4)
+                      // Each expanded card varies, but we position at the top of each card
+                      const baseOffset = 24; // Initial offset for first card
+                      const cardSpacing = 96; // Approximate height + gap for collapsed cards
+                      const yPosition = baseOffset + (index * cardSpacing);
+                      
                       return (
-                        <g key={index}>
+                        <g key={value.id}>
                           <line 
-                            x1="24" 
+                            x1="32" 
                             y1={yPosition} 
-                            x2="48" 
+                            x2="64" 
                             y2={yPosition} 
                             stroke="#4F63A4" 
                             strokeWidth="2"
                           />
                           <circle 
-                            cx="48" 
+                            cx="64" 
                             cy={yPosition} 
                             r="3" 
                             fill="#4F63A4"
@@ -589,7 +581,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 )}
                 
                 {/* Value Cards Container */}
-                <div className="space-y-4" style={{ width: '90%', marginLeft: 'auto' }}>
+                <div className="space-y-4" style={{ width: '90%', marginLeft: '0' }}>
                 {steps.find(s => s.id === selectedStepId)?.values.map((value, valueIndex) => (
                   <ValueCard
                     key={value.id}
