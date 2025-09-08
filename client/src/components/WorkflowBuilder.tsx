@@ -359,7 +359,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   return (
     <div className="space-y-6">
       {/* Two Column Layout */}
-      <div className="flex gap-6">
+      <div className="flex gap-12">
         {/* Left Column - Steps List */}
         <div className="w-80 flex-shrink-0">
           <div className="space-y-2">
@@ -493,9 +493,14 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </div>
                 )}
 
-                {/* Connection point for selected step */}
+                {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
+                  <>
+                    {/* Horizontal line from step card */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 w-12 h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]"></div>
+                    {/* Connection dot at end of line */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 translate-x-12 w-2 h-2 bg-[#4F63A4] dark:bg-[#5A70B5] rounded-full"></div>
+                  </>
                 )}
               </div>
             ))}
@@ -539,12 +544,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <div className="relative">
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <svg className="absolute -left-12 top-0 w-16 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                  <svg className="absolute -left-12 top-0 w-12 h-full pointer-events-none" style={{ zIndex: 0 }}>
                     {/* Main vertical trunk line */}
                     <line 
-                      x1="32" 
+                      x1="12" 
                       y1="0" 
-                      x2="32" 
+                      x2="12" 
                       y2="100%" 
                       stroke="#4F63A4" 
                       strokeWidth="2"
@@ -553,26 +558,20 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     {steps.find(s => s.id === selectedStepId)?.values.map((value, index) => {
                       // Calculate position based on card index and estimated height
                       // Each collapsed card is about 80px height + 16px gap (space-y-4)
-                      // Each expanded card varies, but we position at the top of each card
-                      const baseOffset = 24; // Initial offset for first card
+                      // Center the line on each card
+                      const baseOffset = 40; // Center of first card
                       const cardSpacing = 96; // Approximate height + gap for collapsed cards
                       const yPosition = baseOffset + (index * cardSpacing);
                       
                       return (
                         <g key={value.id}>
                           <line 
-                            x1="32" 
+                            x1="12" 
                             y1={yPosition} 
-                            x2="64" 
+                            x2="48" 
                             y2={yPosition} 
                             stroke="#4F63A4" 
                             strokeWidth="2"
-                          />
-                          <circle 
-                            cx="64" 
-                            cy={yPosition} 
-                            r="3" 
-                            fill="#4F63A4"
                           />
                         </g>
                       );
