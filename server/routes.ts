@@ -7762,6 +7762,25 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
+      // CRITICAL: For UPDATE operations, clear ALL configured test data inputs
+      // The incremental data builder will inject the actual session data
+      if (tool.operationType?.toLowerCase().includes('update') && value.orderIndex && value.orderIndex > 0) {
+        console.log(`\n⚠️ UPDATE OPERATION DETECTED - Clearing configured test data`);
+        console.log(`   Operation Type: ${tool.operationType}`);
+        console.log(`   Column Order: ${value.orderIndex}`);
+        
+        // Clear all data-related inputs that might contain test data
+        const dataKeys = ['List Items', 'List Item', 'data', 'records', 'items', 'rows', 'Input Data'];
+        for (const key of dataKeys) {
+          if (toolInputs[key]) {
+            const itemCount = Array.isArray(toolInputs[key]) ? toolInputs[key].length : 'non-array';
+            console.log(`   🗑️ Clearing "${key}" (was ${itemCount} items) - will use session data instead`);
+            delete toolInputs[key];
+          }
+        }
+        console.log(`   ✅ Test data cleared - incremental builder will inject ${previousData?.length || 0} session records`);
+      }
+      
       // Execute the tool using the tool engine
       console.log(`\n🔧 EXECUTING TOOL: ${tool.name}`);
       console.log(`   Tool ID: ${tool.id}`);
