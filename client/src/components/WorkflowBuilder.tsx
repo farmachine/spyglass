@@ -535,7 +535,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         <div className="flex-1 min-w-0 relative">
           {selectedStepId ? (
             <div className="relative" style={{
-              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98 + 8}px`
+              paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
             }}>
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
@@ -552,8 +552,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
                       
                       // Account for the padding offset that positions values relative to their step
-                      const stepPaddingOffset = selectedStepIndex * 98 + 8; // +8px for alignment adjustment
-                      const baseOffset = stepPaddingOffset + 40; // Center of first value card
+                      const stepPaddingOffset = selectedStepIndex * 98;
+                      const baseOffset = stepPaddingOffset + 49; // Perfect center alignment with step card (98/2 = 49)
                       const cardSpacing = 96; // Height + gap for cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
