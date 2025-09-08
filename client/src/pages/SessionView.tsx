@@ -1583,6 +1583,7 @@ export default function SessionView() {
     knowledgeDocuments?: any[];
     extractedCount?: number;
     totalAvailable?: number;
+    isFirstColumn?: boolean; // Add flag to indicate if this is the first column
   } | null>(null);
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
 
@@ -3092,7 +3093,8 @@ export default function SessionView() {
       inputValues: valueToRun.inputValues,
       knowledgeDocuments: referencedKnowledgeDocs,
       extractedCount: extractedCount,
-      totalAvailable: previousColumnsData.length
+      totalAvailable: previousColumnsData.length,
+      isFirstColumn: isFirstColumn // Pass the flag to indicate if this is the first column
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -6586,6 +6588,7 @@ Thank you for your assistance.`;
           extractedCount={columnExtractionModal.extractedCount}
           totalAvailable={columnExtractionModal.totalAvailable}
           columnOrder={columnExtractionModal.columnOrder}
+          isFirstColumn={columnExtractionModal.isFirstColumn}
           onConfirm={async (documentId) => {
             if (!columnExtractionModal) return;
             

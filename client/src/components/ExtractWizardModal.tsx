@@ -39,6 +39,7 @@ interface ExtractWizardModalProps {
   extractedCount?: number;
   totalAvailable?: number;
   columnOrder?: string[]; // Array of column names in the correct order
+  isFirstColumn?: boolean; // Flag to indicate if this is the first column
 }
 
 export default function ExtractWizardModal({
@@ -57,7 +58,8 @@ export default function ExtractWizardModal({
   knowledgeDocuments = [],
   extractedCount = 0,
   totalAvailable = 0,
-  columnOrder
+  columnOrder,
+  isFirstColumn = false
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -339,8 +341,8 @@ export default function ExtractWizardModal({
               </div>
             )}
             
-            {/* Warning for no data */}
-            {!hasInputData && inputData.length === 0 && (
+            {/* Warning for no data - only show for non-first columns */}
+            {!hasInputData && inputData.length === 0 && !isFirstColumn && (
               <Alert className="border-orange-200 bg-orange-50">
                 <AlertCircle className="h-4 w-4 text-orange-600" />
                 <AlertDescription>
