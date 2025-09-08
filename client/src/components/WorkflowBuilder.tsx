@@ -493,7 +493,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   </div>
                 )}
 
-                {/* Connection line from step card */}
+                {/* Connection line from step card - only for selected step */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
                     {/* Horizontal line from step card to values - precisely centered */}
@@ -537,7 +537,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             <div className="relative" style={{
               paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
             }}>
-                {/* Connection Lines */}
+                {/* Connection Lines for selected step only */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
                   <svg 
                     className="absolute -left-12 w-20 pointer-events-none" 
@@ -601,6 +601,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     })()}
                   </svg>
                 )}
+                
                 
                 {/* Value Cards Container */}
                 <div className="space-y-4" style={{ width: '90%', marginLeft: '0' }}>
