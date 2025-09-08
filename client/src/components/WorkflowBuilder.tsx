@@ -104,6 +104,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Helper function to get tool output description
@@ -419,12 +420,30 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     </div>
 
                     {/* Step Actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                    <div className="flex items-center gap-1">
+                      {/* Expand/Collapse Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedStepId(expandedStepId === step.id ? null : step.id);
+                        }}
+                      >
+                        {expandedStepId === step.id ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={(e) => {
                           e.stopPropagation();
@@ -483,8 +502,77 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   </div>
                 </div>
+
+                {/* Expanded Step Configuration */}
+                {expandedStepId === step.id && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t">
+                    <div className="space-y-4">
+                      {/* Step Name */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Step Name
+                        </label>
+                        <Input
+                          value={step.name}
+                          onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                          placeholder="Enter step name..."
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Step Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={step.description || ''}
+                          onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                          placeholder="Describe what this step extracts..."
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                          rows={3}
+                        />
+                      </div>
+
+                      {/* Step Type */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Step Type
+                        </label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`step-type-${step.id}`}
+                              checked={step.type === 'page'}
+                              onChange={() => updateStep(step.id, { type: 'page' })}
+                              className="mr-2 text-[#4F63A4]"
+                            />
+                            <FileText className="h-4 w-4 mr-1 text-[#4F63A4]" />
+                            <span className="text-sm">Info Page</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`step-type-${step.id}`}
+                              checked={step.type === 'list'}
+                              onChange={() => updateStep(step.id, { type: 'list' })}
+                              className="mr-2 text-[#4F63A4]"
+                            />
+                            <List className="h-4 w-4 mr-1 text-[#4F63A4]" />
+                            <span className="text-sm">Data Table</span>
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {step.type === 'page' ? 'Extract single values from documents' : 'Extract multiple rows of data'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Connector line to next step */}
                 {stepIndex < steps.length - 1 && (
