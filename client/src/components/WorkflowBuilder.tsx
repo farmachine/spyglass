@@ -537,69 +537,17 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             <div className="relative" style={{
               paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
             }}>
-                {/* Connection Lines for selected step only */}
+                {/* Simple connection line to top value card only */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <svg 
-                    className="absolute -left-12 w-20 pointer-events-none" 
+                  <div 
+                    className="absolute h-px bg-[#4F63A4] dark:bg-[#5A70B5]" 
                     style={{ 
-                      zIndex: 0,
-                      top: '0px',
-                      height: 'calc(100% + 400px)'
+                      left: '-52px',
+                      top: '49px', // Center of first value card
+                      width: '52px',
+                      zIndex: 10
                     }}
-                  >
-                    {(() => {
-                      const values = steps.find(s => s.id === selectedStepId)!.values;
-                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
-                      
-                      // Calculate precise center alignment
-                      // The values container is padded down to align with the selected step
-                      // So the first value card center should align with the step card center
-                      const baseOffset = 49; // Center of the first value card (accounting for padding)
-                      const cardSpacing = 96; // Height + gap for cards
-                      const firstYPosition = baseOffset;
-                      const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
-                      
-                      return (
-                        <>
-                          {/* Main vertical trunk line - centered between columns */}
-                          <line 
-                            x1="12" 
-                            y1={firstYPosition} 
-                            x2="12" 
-                            y2={lastYPosition} 
-                            stroke="#4F63A4" 
-                            strokeWidth="2"
-                          />
-                          {/* Horizontal branch lines to each value card with junction dots */}
-                          {values.map((value, index) => {
-                            // Each value card center should align properly
-                            const yPosition = baseOffset + (index * cardSpacing);
-                            
-                            return (
-                              <g key={value.id}>
-                                {/* Junction dot on trunk */}
-                                <circle 
-                                  cx="12" 
-                                  cy={yPosition} 
-                                  r="3" 
-                                  fill="#4F63A4"
-                                />
-                                {/* Horizontal line from trunk to card edge */}
-                                <line 
-                                  x1="12" 
-                                  y1={yPosition} 
-                                  x2="50" 
-                                  y2={yPosition} 
-                                  stroke="#4F63A4" 
-                                  strokeWidth="2"
-                                />
-                              </g>
-                            );
-                          })}
-                        </>
-                      );
-                    })()}
-                  </svg>
+                  ></div>
                 )}
                 
                 
