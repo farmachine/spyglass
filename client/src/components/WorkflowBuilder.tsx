@@ -537,17 +537,65 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             <div className="relative" style={{
               paddingTop: `${steps.findIndex(s => s.id === selectedStepId) * 98}px`
             }}>
-                {/* Simple connection line to top value card only */}
+                {/* Train-track connection lines for selected step */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <div 
-                    className="absolute h-px bg-[#4F63A4] dark:bg-[#5A70B5]" 
+                  <svg 
+                    className="absolute -left-12 w-20 pointer-events-none" 
                     style={{ 
-                      left: '-52px',
-                      top: '49px', // Center of first value card
-                      width: '52px',
-                      zIndex: 10
+                      zIndex: 0,
+                      top: '0px',
+                      height: 'calc(100% + 400px)'
                     }}
-                  ></div>
+                  >
+                    {(() => {
+                      const values = steps.find(s => s.id === selectedStepId)!.values;
+                      
+                      // Simple alignment: first value card center is at 49px from its container top
+                      const firstValueCenter = 49;
+                      const cardSpacing = 96; // Height + gap between value cards
+                      
+                      // Calculate positions for all value cards
+                      const valuePositions = values.map((_, index) => firstValueCenter + (index * cardSpacing));
+                      
+                      return (
+                        <>
+                          {/* Vertical trunk line connecting all values */}
+                          {values.length > 1 && (
+                            <line 
+                              x1="12" 
+                              y1={valuePositions[0]} 
+                              x2="12" 
+                              y2={valuePositions[valuePositions.length - 1]} 
+                              stroke="#4F63A4" 
+                              strokeWidth="2"
+                            />
+                          )}
+                          
+                          {/* Horizontal branch lines to each value card */}
+                          {valuePositions.map((yPosition, index) => (
+                            <g key={values[index].id}>
+                              {/* Junction dot */}
+                              <circle 
+                                cx="12" 
+                                cy={yPosition} 
+                                r="3" 
+                                fill="#4F63A4"
+                              />
+                              {/* Horizontal line from trunk to value card */}
+                              <line 
+                                x1="12" 
+                                y1={yPosition} 
+                                x2="50" 
+                                y2={yPosition} 
+                                stroke="#4F63A4" 
+                                strokeWidth="2"
+                              />
+                            </g>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </svg>
                 )}
                 
                 
