@@ -8052,6 +8052,26 @@ def extract_function(Column_Name, Excel_File):
         console.log(`   Added __infoPageFields to toolInputs for AI processing`);
       }
       
+      // 🎯 CRITICAL FIX: Include automatic data flow previousData in tool inputs
+      // This ensures the comprehensive previousData built earlier reaches the extraction processor
+      if (previousData && previousData.length > 0) {
+        console.log(`🔄 🎯 ADDING AUTOMATIC DATA FLOW to tool inputs:`);
+        console.log(`   previousData records: ${previousData.length}`);
+        console.log(`   Will be available to extraction processor as inputArray`);
+        
+        // Add previousData to toolInputs so it reaches the extraction processor
+        toolInputs.previousData = previousData;
+        
+        // Also add it as specific parameter names that AI tools might expect
+        toolInputs['Input Data'] = previousData;
+        toolInputs['List Item'] = previousData;
+        
+        if (previousData.length > 0) {
+          console.log(`   Sample record structure:`, Object.keys(previousData[0]));
+          console.log(`   First record:`, previousData[0]);
+        }
+      }
+      
       // Clean up internal data before passing to tool
       const cleanedToolInputs = { ...toolInputs };
       delete cleanedToolInputs.__crossStepData; // Remove internal cross-step data
@@ -8061,6 +8081,19 @@ def extract_function(Column_Name, Excel_File):
         for (const paramId of Object.keys(value.inputValues)) {
           delete cleanedToolInputs[paramId];
         }
+      }
+      
+      // 📝 LOG FINAL TOOL INPUTS for debugging
+      console.log(`📝 FINAL TOOL INPUTS being passed to toolEngine:`);
+      console.log(`   Keys: ${Object.keys(cleanedToolInputs)}`);
+      if (cleanedToolInputs.previousData) {
+        console.log(`   ✅ previousData included: ${cleanedToolInputs.previousData.length} records`);
+      }
+      if (cleanedToolInputs['Input Data']) {
+        console.log(`   ✅ 'Input Data' included: ${cleanedToolInputs['Input Data'].length} records`);
+      }
+      if (cleanedToolInputs['List Item']) {
+        console.log(`   ✅ 'List Item' included: ${cleanedToolInputs['List Item'].length} records`);
       }
       
       const { toolEngine } = await import("./toolEngine");
