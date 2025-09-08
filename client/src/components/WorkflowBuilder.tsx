@@ -496,10 +496,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 {/* Connection line from step card */}
                 {selectedStepId === step.id && step.values.length > 0 && (
                   <>
-                    {/* Horizontal line from step card */}
+                    {/* Horizontal line from step card to values */}
                     <div 
                       className="absolute left-full h-0.5 bg-[#4F63A4] dark:bg-[#5A70B5]" 
-                      style={{ top: '50%', transform: 'translateY(-1px)', width: '40px' }}
+                      style={{ 
+                        top: '50%', 
+                        transform: 'translateY(-1px)', 
+                        width: '40px',
+                        zIndex: 10
+                      }}
                     ></div>
                   </>
                 )}
@@ -533,10 +538,19 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             }}>
                 {/* Connection Lines */}
                 {steps.find(s => s.id === selectedStepId)?.values && steps.find(s => s.id === selectedStepId)!.values.length > 0 && (
-                  <svg className="absolute -left-12 top-0 w-20 h-full pointer-events-none" style={{ zIndex: 0 }}>
+                  <svg 
+                    className="absolute -left-12 w-20 pointer-events-none" 
+                    style={{ 
+                      zIndex: 0,
+                      top: `-${steps.findIndex(s => s.id === selectedStepId) * 98}px`,
+                      height: `${steps.length * 98 + 400}px`
+                    }}
+                  >
                     {(() => {
                       const values = steps.find(s => s.id === selectedStepId)!.values;
-                      const baseOffset = 40; // Center of first card (relative to container)
+                      const selectedStepIndex = steps.findIndex(s => s.id === selectedStepId);
+                      const stepOffset = selectedStepIndex * 98; // Offset to align with step position
+                      const baseOffset = stepOffset + 40; // Center of first card aligned with step
                       const cardSpacing = 96; // Approximate height + gap for collapsed cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
