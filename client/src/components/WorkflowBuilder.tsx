@@ -502,7 +502,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       style={{ 
                         left: '100%',
                         top: '50%', 
-                        transform: 'translateY(-1px)', 
+                        transform: 'translateY(-50%)', 
                         width: '52px',
                         zIndex: 10
                       }}
@@ -553,7 +553,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       
                       // Account for the padding offset that positions values relative to their step
                       const stepPaddingOffset = selectedStepIndex * 98;
-                      const baseOffset = stepPaddingOffset + 49; // Perfect center alignment with step card (98/2 = 49)
+                      // Each step card is 98px tall, so center is at 49px from top
+                      // Each value card is ~80px tall, so we need to align centers
+                      const baseOffset = stepPaddingOffset + 49; // Step center (49px) aligns with value center
                       const cardSpacing = 96; // Height + gap for cards
                       const firstYPosition = baseOffset;
                       const lastYPosition = baseOffset + ((values.length - 1) * cardSpacing);
