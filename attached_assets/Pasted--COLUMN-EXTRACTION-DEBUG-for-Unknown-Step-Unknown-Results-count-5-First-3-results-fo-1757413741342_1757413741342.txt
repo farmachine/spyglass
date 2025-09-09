@@ -1,0 +1,62 @@
+🎯 COLUMN EXTRACTION DEBUG for "Unknown":
+   Step: Unknown
+   Results count: 5
+   First 3 results for column "Unknown":
+   [0] identifierId: db32647c-b937-402d-908b-b183095fb867, value: "Start Date"
+   [1] identifierId: 0d3463a8-ca7e-4498-b240-f66c256f6b40, value: "Start Date"
+   [2] identifierId: 8b941541-a6d1-4fa4-9a0b-dc901a34a778, value: "Start Date"
+⚠️ WARNING: All 5 records have the SAME value for column "Unknown": "Start Date"
+⚠️ This might indicate the AI is not extracting column-specific data!
+🔍 Checking multi-field extraction conditions:
+   - Has __infoPageFields: false
+   - inputArray.length: 5
+   - isCreateOperation: false
+🔄 UPDATE operation processed 5 records
+✅ AI extraction complete: 5 results
+✅ Tool execution completed. Results count: 5
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "identifierId": "db32647c-b937-402d-908b-b183095fb867",
+  "extractedValue": "Start Date",
+  "validationStatus": "valid",
+  "aiReasoning": "Based on the AI instructions, I need to find the column header that indicates the start date the member started being eligible for the service. After reviewing the Active deferreds worksheet, the column header 'Start Date' seems to be the most appropriate.",
+  "confidenceScore": 95,
+  "documentSource": "Active deferreds worksheet"
+}
+  Second result: {
+  "identifierId": "0d3463a8-ca7e-4498-b240-f66c256f6b40",
+  "extractedValue": "Start Date",
+  "validationStatus": "valid",
+  "aiReasoning": "Based on the AI instructions, I need to find the column header that indicates the start date the member started being eligible for the service. After reviewing the Children worksheet, the column header 'Start Date' seems to be the most appropriate.",
+  "confidenceScore": 95,
+  "documentSource": "Children worksheet"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Building index map from 5 records in previousData
+  Record index 0 -> identifierId: db32647c-b937-402d-908b-b183095fb867
+  Record index 1 -> identifierId: 0d3463a8-ca7e-4498-b240-f66c256f6b40
+  Record index 2 -> identifierId: 8b941541-a6d1-4fa4-9a0b-dc901a34a778
+  Record index 3 -> identifierId: 355622d4-c67f-4023-97fa-af1c3eacac6b
+  Record index 4 -> identifierId: 3f7ea6ec-4d23-4efa-903d-9bf7baf76aa4
+📊 Mapped 5 identifierIds to their array indices
+📊 Processing 5 actual AI results (not creating validations for unprocessed records)
+✅ AI returned valid identifierId: db32647c-b937-402d-908b-b183095fb867 (original index: 0)
+✨ Created validation for Service Dates.Start Date[0] with value: "Start Date"
+   🔑 Using valueId: d934cb21-a971-44a9-bf6b-2bb39d1e135e (Start Date)
+✅ AI returned valid identifierId: 0d3463a8-ca7e-4498-b240-f66c256f6b40 (original index: 1)
+✨ Created validation for Service Dates.Start Date[1] with value: "Start Date"
+   🔑 Using valueId: d934cb21-a971-44a9-bf6b-2bb39d1e135e (Start Date)
+✅ AI returned valid identifierId: 8b941541-a6d1-4fa4-9a0b-dc901a34a778 (original index: 2)
+✨ Created validation for Service Dates.Start Date[2] with value: "Start Date"
+   🔑 Using valueId: d934cb21-a971-44a9-bf6b-2bb39d1e135e (Start Date)
+✅ AI returned valid identifierId: 355622d4-c67f-4023-97fa-af1c3eacac6b (original index: 3)
+✨ Created validation for Service Dates.Start Date[3] with value: "Start Date"
+   🔑 Using valueId: d934cb21-a971-44a9-bf6b-2bb39d1e135e (Start Date)
+✅ AI returned valid identifierId: 3f7ea6ec-4d23-4efa-903d-9bf7baf76aa4 (original index: 4)
+✨ Created validation for Service Dates.Start Date[4] with value: "Start Date"
+   🔑 Using valueId: d934cb21-a971-44a9-bf6b-2bb39d1e135e (Start Date)
+💾 Saved 5 validation records
