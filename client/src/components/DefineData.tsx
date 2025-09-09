@@ -129,8 +129,10 @@ export default function DefineData({
     queryKey: [`/api/projects/${project.id}/excel-functions`],
   });
 
-  const { data: workflowData, refetch: refetchWorkflow } = useQuery({
+  const { data: workflowData, refetch: refetchWorkflow, isLoading: isWorkflowLoading } = useQuery({
     queryKey: [`/api/projects/${project.id}/workflow`],
+    staleTime: 1000 * 60 * 5, // Keep data fresh for 5 minutes
+    cacheTime: 1000 * 60 * 10, // Cache for 10 minutes
   });
 
   // Create mutations
@@ -450,6 +452,7 @@ export default function DefineData({
         excelFunctions={wizardryFunctions}
         knowledgeDocuments={knowledgeDocuments}
         onSave={handleSaveWorkflow}
+        isLoading={isWorkflowLoading}
       />
 
       {/* Dialogs */}

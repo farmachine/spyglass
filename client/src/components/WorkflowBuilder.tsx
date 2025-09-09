@@ -90,6 +90,7 @@ interface WorkflowBuilderProps {
   excelFunctions: ExcelWizardryFunction[];
   knowledgeDocuments: KnowledgeDocument[];
   onSave: (steps: WorkflowStep[]) => Promise<void>;
+  isLoading?: boolean;
 }
 
 export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
@@ -98,7 +99,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   collections,
   excelFunctions,
   knowledgeDocuments,
-  onSave
+  onSave,
+  isLoading = false
 }, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
@@ -643,13 +645,27 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             /* No Step Selected */
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Layers className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  {steps.length === 0 ? 'No steps created yet' : 'Select a step to view its values'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {steps.length === 0 ? 'Click "Add Step" to get started' : 'Click on a step in the left panel'}
-                </p>
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin h-8 w-8 border-4 border-[#4F63A4] border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Loading extraction steps...
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Please wait while we fetch your workflow configuration
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Layers className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      {steps.length === 0 ? 'No steps created yet' : 'Select a step to view its values'}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {steps.length === 0 ? 'Click "Add Step" to get started' : 'Click on a step in the left panel'}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}
