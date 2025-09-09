@@ -6668,6 +6668,7 @@ Thank you for your assistance.`;
           columnOrder={columnExtractionModal.columnOrder}
           isFirstColumn={columnExtractionModal.isFirstColumn}
           referenceFieldNames={columnExtractionModal.referenceFieldNames}
+          validations={validations}
           onConfirm={async (documentId) => {
             if (!columnExtractionModal) return;
             

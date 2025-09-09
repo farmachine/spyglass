@@ -41,6 +41,7 @@ interface ExtractWizardModalProps {
   columnOrder?: string[]; // Array of column names in the correct order
   isFirstColumn?: boolean; // Flag to indicate if this is the first column
   referenceFieldNames?: Record<string, string>; // Map of field IDs to human-readable names
+  validations?: any[]; // Validation records to resolve UUIDs to extracted values
 }
 
 export default function ExtractWizardModal({
@@ -61,7 +62,8 @@ export default function ExtractWizardModal({
   totalAvailable = 0,
   columnOrder,
   isFirstColumn = false,
-  referenceFieldNames = {}
+  referenceFieldNames = {},
+  validations = []
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -338,30 +340,23 @@ export default function ExtractWizardModal({
                               // Map UUIDs to actual values for display
                               let displayValue = value;
                               
-                              if (inputData && Array.isArray(inputData) && inputData.length > 0) {
+                              if (validations && validations.length > 0) {
                                 if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
-                                  // This is an array of UUIDs - map them to actual values
+                                  // This is an array of UUIDs (identifierId) - map them to actual extracted values
                                   displayValue = value.map((uuid: string) => {
-                                    const record = inputData.find(item => item.identifierId === uuid);
-                                    if (record) {
-                                      // Extract meaningful values from the record (exclude identifierId and internal fields)
-                                      const meaningfulData = Object.entries(record)
-                                        .filter(([k, v]) => k !== 'identifierId' && k !== '_recordIndex' && v !== null && v !== undefined && v !== '')
-                                        .map(([k, v]) => `${k}: ${v}`)
-                                        .join(', ');
-                                      return meaningfulData || 'No data';
+                                    const validation = validations.find(v => v.identifierId === uuid);
+                                    if (validation && validation.extractedValue) {
+                                      return validation.extractedValue;
                                     }
                                     return uuid.substring(0, 8) + '...';
                                   });
                                 } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-                                  // Single UUID - map to actual value
-                                  const record = inputData.find(item => item.identifierId === value);
-                                  if (record) {
-                                    const meaningfulData = Object.entries(record)
-                                      .filter(([k, v]) => k !== 'identifierId' && k !== '_recordIndex' && v !== null && v !== undefined && v !== '')
-                                      .map(([k, v]) => `${k}: ${v}`)
-                                      .join(', ');
-                                    displayValue = meaningfulData || 'No data';
+                                  // Single UUID (identifierId) - map to actual extracted value
+                                  const validation = validations.find(v => v.identifierId === value);
+                                  if (validation && validation.extractedValue) {
+                                    displayValue = validation.extractedValue;
+                                  } else {
+                                    displayValue = value.substring(0, 8) + '...';
                                   }
                                 }
                               }
