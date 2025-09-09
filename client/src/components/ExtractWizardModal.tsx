@@ -340,25 +340,31 @@ export default function ExtractWizardModal({
                               // Map UUIDs to actual values for display
                               let displayValue = value;
                               
-                              // Map UUIDs (fieldId values) to their extracted values from validation records
+                              // Map column UUIDs to their extracted values from validation records
                               
                               if (validations && validations.length > 0) {
                                 if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
-                                  // This is an array of UUIDs (fieldId) - map them to actual extracted values
-                                  displayValue = value.map((uuid: string) => {
-                                    const validation = validations.find(v => v.fieldId === uuid);
-                                    if (validation && validation.extractedValue) {
-                                      return validation.extractedValue;
+                                  // This is an array of column UUIDs - for each unique valueId, show all extracted values from that column
+                                  const allExtractedValues = [];
+                                  
+                                  for (const uuid of value) {
+                                    const columnValidations = validations.filter(v => v.valueId === uuid && v.extractedValue);
+                                    if (columnValidations.length > 0) {
+                                      allExtractedValues.push(...columnValidations.map(v => v.extractedValue));
+                                    } else {
+                                      allExtractedValues.push(uuid.substring(0, 8) + '...');
                                     }
-                                    return uuid.substring(0, 8) + '...';
-                                  });
+                                  }
+                                  
+                                  displayValue = allExtractedValues;
                                 } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-                                  // Single UUID (fieldId) - map to actual extracted value
-                                  const validation = validations.find(v => v.fieldId === value);
-                                  if (validation && validation.extractedValue) {
-                                    displayValue = validation.extractedValue;
+                                  // Single column UUID - show all extracted values from that column  
+                                  const columnValidations = validations.filter(v => v.valueId === value && v.extractedValue);
+                                  
+                                  if (columnValidations.length > 0) {
+                                    displayValue = columnValidations.map(v => v.extractedValue);
                                   } else {
-                                    displayValue = value.substring(0, 8) + '...';
+                                    displayValue = [value.substring(0, 8) + '...'];
                                   }
                                 }
                               }
