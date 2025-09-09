@@ -52,8 +52,8 @@ export default function CreateProjectDialog({ open, onOpenChange }: CreateProjec
       form.reset();
       onOpenChange(false);
       
-      // Navigate to the newly created project
-      setLocation(`/projects/${newProject.id}?tab=define`);
+      // Navigate to the newly created project's configuration page
+      setLocation(`/projects/${newProject.id}/configure`);
     } catch (error) {
       console.error("Create project error:", error);
     }
