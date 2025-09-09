@@ -549,6 +549,7 @@ Your response must maintain the identifierId mapping for all processed items.
     # 6. ACTUAL INPUT DATA - Include the actual data to process
     actual_input_data = ""
     if input_data:
+        print(f"   📝 Processing input_data with {len(input_data)} keys: {list(input_data.keys())}")
         actual_input_data = "\nACTUAL INPUT DATA TO PROCESS:\n"
         
         # Check if we have Input Data that contains column data for cross-referencing
@@ -572,9 +573,13 @@ Your response must maintain the identifierId mapping for all processed items.
         for param_name, param_value in input_data.items():
             if param_name == 'previous_data' and isinstance(param_value, dict):
                 # For previous_data, include the actual JSON data
+                print(f"      Adding previous_data (dict) with {len(param_value)} keys to prompt")
                 actual_input_data += f"\n{param_name}:\n{json.dumps(param_value, indent=2)}\n"
             elif param_name == 'Input Data' and isinstance(param_value, list):
                 # For Input Data array, include the full JSON data with identifierIds
+                print(f"      Adding Input Data (list) with {len(param_value)} records to prompt")
+                if param_value and len(param_value) > 0:
+                    print(f"        First record keys: {list(param_value[0].keys())}")
                 actual_input_data += f"\n{param_name} (MUST preserve identifierId for each item):\n{json.dumps(param_value, indent=2)}\n"
                 actual_input_data += "\n⚠️ CRITICAL INSTRUCTION: Each item above has an 'identifierId' field.\n"
                 actual_input_data += "You MUST include this EXACT identifierId in your response for each corresponding item.\n"
@@ -662,11 +667,25 @@ def execute_ai_extraction(tool_data: Dict[str, Any], value_data: Dict[str, Any],
         # Initialize Gemini client
         client = genai.Client(api_key=api_key)
         
-        # Generate dynamic prompt using tool and value configuration
-        prompt = generate_dynamic_ai_prompt(tool_data, value_data, knowledge_docs, input_data)
-        
+        # Log incoming data structure
         value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
         print(f"🤖 AI EXTRACTION: Processing {value_name}")
+        print(f"   📊 Input data structure:")
+        if 'previous_data' in input_data:
+            prev_data = input_data['previous_data']
+            if isinstance(prev_data, list) and len(prev_data) > 0:
+                print(f"      Previous data: {len(prev_data)} records")
+                print(f"      First record keys: {list(prev_data[0].keys()) if prev_data[0] else 'empty'}")
+            elif isinstance(prev_data, dict):
+                print(f"      Previous data: Dictionary with {len(prev_data)} keys")
+                print(f"      Keys: {list(prev_data.keys())[:5]}..." if len(prev_data) > 5 else list(prev_data.keys()))
+            else:
+                print(f"      Previous data: {type(prev_data)}")
+        else:
+            print(f"      No previous_data in input")
+        
+        # Generate dynamic prompt using tool and value configuration
+        prompt = generate_dynamic_ai_prompt(tool_data, value_data, knowledge_docs, input_data)
         
         # Log knowledge documents summary
         if knowledge_docs:
@@ -764,7 +783,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                     operation_type = tool_info.get('operationType', 'updateMultiple')
             
             # Filter previous extractions based on input configuration and operation type
+            print(f"   📋 Previous extractions available: {len(previous_extractions)} fields")
             filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config, operation_type)
+            print(f"   📋 After filtering: {len(filtered_previous_data)} fields will be passed")
             
             if extraction_type == 'FUNCTION' and prop.get('function_id'):
                 # Route to function extraction with filtered data
@@ -812,6 +833,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 # Add filtered previous extractions as reference data
                 if filtered_previous_data:
                     input_data['previous_data'] = filtered_previous_data
+                    print(f"   ✅ Added {len(filtered_previous_data)} previous data fields to input")
+                else:
+                    print(f"   ⚠️ No previous data added to input")
                 
                 result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
@@ -847,7 +871,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                     operation_type = tool_info.get('operationType', 'updateMultiple')
             
             # Filter previous extractions based on input configuration and operation type
+            print(f"   📋 Previous extractions available: {len(previous_extractions)} fields")
             filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config, operation_type)
+            print(f"   📋 After filtering: {len(filtered_previous_data)} fields will be passed")
             
             if extraction_type == 'FUNCTION' and field.get('function_id'):
                 # Route to function extraction with filtered data
@@ -892,6 +918,9 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 # Add filtered previous extractions as reference data
                 if filtered_previous_data:
                     input_data['previous_data'] = filtered_previous_data
+                    print(f"   ✅ Added {len(filtered_previous_data)} previous data fields to input")
+                else:
+                    print(f"   ⚠️ No previous data added to input")
                 
                 result = execute_ai_extraction(tool_data, value_data, knowledge_docs, input_data)
                 
