@@ -340,19 +340,21 @@ export default function ExtractWizardModal({
                               // Map UUIDs to actual values for display
                               let displayValue = value;
                               
+                              // Map UUIDs (fieldId values) to their extracted values from validation records
+                              
                               if (validations && validations.length > 0) {
                                 if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
-                                  // This is an array of UUIDs (identifierId) - map them to actual extracted values
+                                  // This is an array of UUIDs (fieldId) - map them to actual extracted values
                                   displayValue = value.map((uuid: string) => {
-                                    const validation = validations.find(v => v.identifierId === uuid);
+                                    const validation = validations.find(v => v.fieldId === uuid);
                                     if (validation && validation.extractedValue) {
                                       return validation.extractedValue;
                                     }
                                     return uuid.substring(0, 8) + '...';
                                   });
                                 } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-                                  // Single UUID (identifierId) - map to actual extracted value
-                                  const validation = validations.find(v => v.identifierId === value);
+                                  // Single UUID (fieldId) - map to actual extracted value
+                                  const validation = validations.find(v => v.fieldId === value);
                                   if (validation && validation.extractedValue) {
                                     displayValue = validation.extractedValue;
                                   } else {
