@@ -259,10 +259,21 @@ def get_step_value_input_config(value_id: str) -> Dict[str, Any]:
         cursor.close()
         conn.close()
 
-def filter_previous_data_by_input_config(previous_extractions: Dict[str, Any], input_values: Dict[str, Any]) -> Dict[str, Any]:
-    """Filter previous extractions to only include referenced fields from input configuration"""
+def filter_previous_data_by_input_config(previous_extractions: Dict[str, Any], input_values: Dict[str, Any], operation_type: str = None) -> Dict[str, Any]:
+    """Filter previous extractions to only include referenced fields from input configuration
+    
+    Args:
+        previous_extractions: All available previous extractions
+        input_values: Input configuration specifying which fields to include
+        operation_type: Type of operation (e.g., 'updateMultiple', 'createMultiple')
+    """
     if not input_values:
-        # If no input configuration, return empty (don't pass all data)
+        # For UPDATE operations without explicit config, pass all previous data
+        # This maintains backward compatibility for data table workflows
+        if operation_type and ('update' in operation_type.lower()):
+            print(f"📊 UPDATE operation with no explicit config - passing all {len(previous_extractions)} previous fields")
+            return previous_extractions
+        # For CREATE operations or unknown types, return empty (don't pass all data)
         return {}
     
     filtered_data = {}
@@ -347,7 +358,7 @@ def filter_previous_data_by_input_config(previous_extractions: Dict[str, Any], i
         
         elif isinstance(param_value, dict):
             # If it's a dict, recursively check for references
-            nested_filtered = filter_previous_data_by_input_config(previous_extractions, param_value)
+            nested_filtered = filter_previous_data_by_input_config(previous_extractions, param_value, operation_type)
             filtered_data.update(nested_filtered)
     
     # Log what was filtered for debugging
@@ -745,8 +756,15 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 # Try to get input configuration from step_values
                 input_values_config = get_step_value_input_config(prop['id'])
             
-            # Filter previous extractions based on input configuration
-            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config)
+            # Get operation type from tool data if available
+            operation_type = None
+            if prop.get('tool_id'):
+                tool_info = get_function_by_id(prop['tool_id'])
+                if tool_info:
+                    operation_type = tool_info.get('operationType', 'updateMultiple')
+            
+            # Filter previous extractions based on input configuration and operation type
+            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config, operation_type)
             
             if extraction_type == 'FUNCTION' and prop.get('function_id'):
                 # Route to function extraction with filtered data
@@ -821,8 +839,15 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 # Try to get input configuration from step_values
                 input_values_config = get_step_value_input_config(field['id'])
             
-            # Filter previous extractions based on input configuration
-            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config)
+            # Get operation type from tool data if available
+            operation_type = None
+            if field.get('tool_id'):
+                tool_info = get_function_by_id(field['tool_id'])
+                if tool_info:
+                    operation_type = tool_info.get('operationType', 'updateMultiple')
+            
+            # Filter previous extractions based on input configuration and operation type
+            filtered_previous_data = filter_previous_data_by_input_config(previous_extractions, input_values_config, operation_type)
             
             if extraction_type == 'FUNCTION' and field.get('function_id'):
                 # Route to function extraction with filtered data
