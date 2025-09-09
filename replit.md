@@ -33,6 +33,13 @@ The core pipeline involves: Document Upload -> Tool Selection -> Extraction Engi
 *   **FieldValidation**: Represents an extracted data point, including `id`, `fieldId`, `identifierId`, `extractedValue`, and `validationStatus`.
 *   **ExtractionRequest**: Contains parameters for an extraction job, including `stepId`, `valueId`, `previousData` (with `identifierId`s), and crucially, `__infoPageFields` for multi-field handling.
 
+### Data Flow Preservation
+The system maintains data chain integrity for multi-column extraction:
+*   **routes.ts** builds comprehensive `previousData` with accumulated column values
+*   **toolEngine.ts** preserves this data (does not overwrite with incremental data)
+*   **Python extraction processor** receives the full data context for UPDATE operations
+*   This ensures each column receives all previous column data in the extraction pipeline
+
 ### UI/UX Architecture
 The design system uses Slate Blue (#4F63A4) as the primary color and features comprehensive dark mode theming. Loading states are managed via an overlay with a spinner. Components include modals with collapsible sections, fixed-width tables, and forms built with React Hook Form and Zod validation.
 

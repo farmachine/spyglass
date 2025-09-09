@@ -518,9 +518,15 @@ export class ToolEngine {
           console.log(`   Using data parameter: ${dataParamName}`);
         }
         
-        // Inject the incremental data - this REPLACES any configured test data
-        inputs[dataParamName] = incrementalData;
-        console.log(`   📊 Incremental data injected as "${dataParamName}"`);
+        // CRITICAL FIX: Only inject incremental data if there's no existing data from routes
+        // routes.ts builds comprehensive previousData that should take precedence
+        if (!inputs[dataParamName] || (Array.isArray(inputs[dataParamName]) && inputs[dataParamName].length === 0)) {
+          inputs[dataParamName] = incrementalData;
+          console.log(`   📊 Incremental data injected as "${dataParamName}" (no existing data)`);
+        } else {
+          console.log(`   ⚠️ PRESERVING EXISTING DATA: "${dataParamName}" already has ${Array.isArray(inputs[dataParamName]) ? inputs[dataParamName].length : 'non-array'} items from routes`);
+          console.log(`   📊 NOT replacing with incremental data (would have been ${incrementalData.length} rows)`);
+        }
         
         // CRITICAL: Also clear any other data parameters that might contain test data
         // Look for common data parameter names and clear them
