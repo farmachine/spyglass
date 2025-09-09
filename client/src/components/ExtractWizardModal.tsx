@@ -40,6 +40,7 @@ interface ExtractWizardModalProps {
   totalAvailable?: number;
   columnOrder?: string[]; // Array of column names in the correct order
   isFirstColumn?: boolean; // Flag to indicate if this is the first column
+  referenceFieldNames?: Record<string, string>; // Map of field IDs to human-readable names
 }
 
 export default function ExtractWizardModal({
@@ -59,7 +60,8 @@ export default function ExtractWizardModal({
   extractedCount = 0,
   totalAvailable = 0,
   columnOrder,
-  isFirstColumn = false
+  isFirstColumn = false,
+  referenceFieldNames = {}
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -250,6 +252,79 @@ export default function ExtractWizardModal({
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Collapsible Referenced Input Data */}
+            {inputValues && Object.keys(inputValues).length > 0 && (
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                <button
+                  onClick={() => toggleSection('references')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Referenced input data</span>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                    >
+                      {Object.keys(inputValues).filter(key => !key.startsWith('knowledge_document')).length} field{Object.keys(inputValues).filter(key => !key.startsWith('knowledge_document')).length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  {expandedSections.has('references') ? (
+                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  )}
+                </button>
+                
+                {expandedSections.has('references') && (
+                  <div className="px-4 pb-4 space-y-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                      The following fields are being used as input for this extraction:
+                    </p>
+                    {Object.entries(inputValues).filter(([key]) => !key.startsWith('knowledge_document')).map(([key, value], index) => {
+                      // Get readable name from referenceFieldNames or parse the key
+                      const displayName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
+                      const isArray = Array.isArray(value);
+                      const valueCount = isArray ? value.length : 1;
+                      
+                      return (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Database className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                                {displayName}
+                              </span>
+                            </div>
+                            {isArray && (
+                              <Badge variant="outline" className="text-xs">
+                                {valueCount} item{valueCount !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <span className="font-mono text-xs">
+                              {isArray 
+                                ? `[${value.slice(0, 3).map((v: any) => {
+                                    if (typeof v === 'string' && v.length > 30) {
+                                      return '"' + v.substring(0, 30) + '..."';
+                                    }
+                                    return JSON.stringify(v);
+                                  }).join(', ')}${value.length > 3 ? ', ...' : ''}]`
+                                : typeof value === 'string' && value.length > 100 
+                                  ? value.substring(0, 100) + '...'
+                                  : String(value)
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

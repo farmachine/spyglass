@@ -3049,6 +3049,49 @@ export default function SessionView() {
       ? Object.keys(filteredPreviousData[0]).filter(k => k !== 'identifierId' && k !== '_recordIndex')
       : [];
     
+    // Build a map of field IDs to human-readable names for the referenced input data
+    const referenceFieldNames: Record<string, string> = {};
+    if (valueToRun.inputValues) {
+      Object.entries(valueToRun.inputValues).forEach(([key, value]: [string, any]) => {
+        if (!key.startsWith('knowledge_document')) {
+          // Try to find the value name from workflowSteps
+          if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+            // It's an array of IDs - find the first one to get the step and value name
+            const firstId = value[0];
+            
+            // Search through all workflow steps to find this value
+            for (const step of workflowSteps || []) {
+              const foundValue = step.values?.find(v => v.id === firstId);
+              if (foundValue) {
+                referenceFieldNames[key] = `${step.stepName} → ${foundValue.valueName}`;
+                break;
+              }
+            }
+          }
+          
+          // If we still don't have a name, try to parse it from the key
+          if (!referenceFieldNames[key]) {
+            // Extract a readable name from the key (e.g., "0.abc123" -> "Field 1")
+            const parts = key.split('.');
+            if (parts.length > 1) {
+              const stepPart = parts[0];
+              const fieldPart = parts[1];
+              
+              // Try to find in workflowSteps based on partial match
+              const stepIndex = parseInt(stepPart);
+              if (!isNaN(stepIndex) && workflowSteps && workflowSteps[stepIndex]) {
+                const step = workflowSteps[stepIndex];
+                const value = step.values?.find(v => v.id === fieldPart || v.valueName === fieldPart);
+                if (value) {
+                  referenceFieldNames[key] = `${step.stepName} → ${value.valueName}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
     // Open the extraction wizard modal with the value's tool configuration
     setColumnExtractionModal({
       isOpen: true,
@@ -3067,7 +3110,8 @@ export default function SessionView() {
       knowledgeDocuments: referencedKnowledgeDocs,
       extractedCount: extractedCount,
       totalAvailable: previousColumnsData.length,
-      isFirstColumn: isFirstColumn // Pass the flag to indicate if this is the first column
+      isFirstColumn: isFirstColumn, // Pass the flag to indicate if this is the first column
+      referenceFieldNames: referenceFieldNames // Pass the field names mapping
     });
     
     console.log('🎯 Session documents available:', sessionDocuments?.length || 0, 'documents');
@@ -6562,6 +6606,7 @@ Thank you for your assistance.`;
           totalAvailable={columnExtractionModal.totalAvailable}
           columnOrder={columnExtractionModal.columnOrder}
           isFirstColumn={columnExtractionModal.isFirstColumn}
+          referenceFieldNames={columnExtractionModal.referenceFieldNames}
           onConfirm={async (documentId) => {
             if (!columnExtractionModal) return;
             
