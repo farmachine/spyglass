@@ -73,9 +73,24 @@ ${Object.entries(collectionGroups).map(([collectionName, validations]) => {
   const recordCount = Math.max(...validations.map(v => v.recordIndex || 0)) + 1;
   return `\n${collectionName} Collection (${recordCount} records):
 ${validations.slice(0, 10).map(v => {
-    // Find the property name from collection properties
-    const prop = context.collectionProperties.find(p => p.id === v.fieldId);
-    const propName = prop?.propertyName || `Property ${v.fieldId}`;
+    // Use the fieldName from validation if available (already formatted properly)
+    // Otherwise try to find the property name from collection properties
+    let propName = 'Unknown Property';
+    
+    if (v.fieldName) {
+      // Extract just the property name from the formatted fieldName (e.g., "Collection.PropertyName[0]" -> "PropertyName")
+      const parts = v.fieldName.split('.');
+      if (parts.length > 1) {
+        propName = parts[parts.length - 1].split('[')[0];
+      } else {
+        propName = v.fieldName;
+      }
+    } else {
+      // Fallback to finding property by ID
+      const prop = context.collectionProperties.find(p => p.id === v.fieldId);
+      propName = prop?.propertyName || 'Unknown Property';
+    }
+    
     return `  - Record ${v.recordIndex}: ${propName} = ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`;
   }).join('\n')}${validations.length > 10 ? `\n  ... and ${validations.length - 10} more fields in this collection` : ''}`;
 }).join('\n')}
