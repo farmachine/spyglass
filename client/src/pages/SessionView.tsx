@@ -3051,12 +3051,88 @@ export default function SessionView() {
     
     // Build a map of field IDs to human-readable names for the referenced input data
     const referenceFieldNames: Record<string, string> = {};
-    if (valueToRun.inputValues) {
+    
+    // If we have a tool ID, fetch it first to get parameter names
+    if (valueToRun.toolId && valueToRun.inputValues) {
+      try {
+        // Fetch the tool configuration synchronously before opening modal
+        const response = await fetch(`/api/tools/${valueToRun.toolId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        });
+        
+        if (response.ok) {
+          const tool = await response.json();
+          
+          // Map parameter IDs to their names and referenced values
+          if (tool.inputParameters) {
+            Object.entries(valueToRun.inputValues).forEach(([paramId, value]: [string, any]) => {
+              if (!paramId.startsWith('knowledge_document')) {
+                // Find the parameter definition
+                const param = tool.inputParameters.find((p: any) => p.id === paramId);
+                
+                if (param) {
+                  // Build a descriptive name based on the parameter and its value
+                  let displayName = param.name;
+                  
+                  // If the value is an array of IDs, find what they reference
+                  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+                    const firstId = value[0];
+                    
+                    // Search through all workflow steps to find this value
+                    for (const step of workflowSteps || []) {
+                      const foundValue = step.values?.find(v => v.id === firstId);
+                      if (foundValue) {
+                        displayName = `${step.stepName} → ${foundValue.valueName}`;
+                        break;
+                      }
+                    }
+                  } else if (typeof value === 'string' && value.includes('@')) {
+                    // Parse @-notation references
+                    const match = value.match(/@([^.]+)\.(.+)/);
+                    if (match) {
+                      displayName = `${match[1]} → ${match[2]}`;
+                    }
+                  }
+                  
+                  referenceFieldNames[paramId] = displayName;
+                } else {
+                  // Fallback - try to find the value name from workflowSteps
+                  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+                    const firstId = value[0];
+                    
+                    for (const step of workflowSteps || []) {
+                      const foundValue = step.values?.find(v => v.id === firstId);
+                      if (foundValue) {
+                        referenceFieldNames[paramId] = `${step.stepName} → ${foundValue.valueName}`;
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // If still no name, use the param ID
+                  if (!referenceFieldNames[paramId]) {
+                    referenceFieldNames[paramId] = paramId;
+                  }
+                }
+              }
+            });
+          }
+        } else {
+          console.error('Failed to fetch tool:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching tool:', error);
+      }
+    }
+    
+    // If we still don't have names, provide fallback names based on inputValues structure
+    if (valueToRun.inputValues && Object.keys(referenceFieldNames).length === 0) {
       Object.entries(valueToRun.inputValues).forEach(([key, value]: [string, any]) => {
         if (!key.startsWith('knowledge_document')) {
-          // Try to find the value name from workflowSteps
+          // Try to find the value name from workflowSteps as a fallback
           if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-            // It's an array of IDs - find the first one to get the step and value name
             const firstId = value[0];
             
             // Search through all workflow steps to find this value
@@ -3069,24 +3145,9 @@ export default function SessionView() {
             }
           }
           
-          // If we still don't have a name, try to parse it from the key
+          // If still no name, use the key
           if (!referenceFieldNames[key]) {
-            // Extract a readable name from the key (e.g., "0.abc123" -> "Field 1")
-            const parts = key.split('.');
-            if (parts.length > 1) {
-              const stepPart = parts[0];
-              const fieldPart = parts[1];
-              
-              // Try to find in workflowSteps based on partial match
-              const stepIndex = parseInt(stepPart);
-              if (!isNaN(stepIndex) && workflowSteps && workflowSteps[stepIndex]) {
-                const step = workflowSteps[stepIndex];
-                const value = step.values?.find(v => v.id === fieldPart || v.valueName === fieldPart);
-                if (value) {
-                  referenceFieldNames[key] = `${step.stepName} → ${value.valueName}`;
-                }
-              }
-            }
+            referenceFieldNames[key] = key;
           }
         }
       });
