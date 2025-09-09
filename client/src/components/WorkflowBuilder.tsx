@@ -135,15 +135,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             isExpanded: false,
             orderIndex: serverStep.orderIndex || 0,
             values: serverStep.values ? serverStep.values.map((serverValue: any) => ({
-              id: serverValue.id,
-              name: serverValue.valueName,
-              description: serverValue.description || getToolOutputDescription(serverValue.toolId),
-              dataType: serverValue.dataType || 'TEXT',
-              toolId: serverValue.toolId || 'manual',
-              inputValues: serverValue.inputValues || {},
-              orderIndex: serverValue.orderIndex || 0,
-              fields: serverValue.fields || (serverStep.stepType === 'page' ? [] : null),
-              outputDescription: serverValue.outputDescription
+                id: serverValue.id,
+                name: serverValue.valueName,
+                description: serverValue.description || getToolOutputDescription(serverValue.toolId),
+                dataType: serverValue.dataType || 'TEXT',
+                toolId: serverValue.toolId || 'manual',
+                inputValues: serverValue.inputValues || {},
+                orderIndex: serverValue.orderIndex || 0,
+                fields: serverValue.fields || (serverStep.stepType === 'page' ? [] : null),
+                outputDescription: serverValue.outputDescription
             })) : []
           }));
           

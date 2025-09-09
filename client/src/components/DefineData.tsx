@@ -314,6 +314,34 @@ export default function DefineData({
     // Convert workflow steps back to schema fields and collections
     console.log('Saving workflow steps:', steps);
     
+    // Save each step to the server
+    for (const step of steps) {
+      try {
+        const stepData = {
+          ...step,
+          projectId: project.id
+        };
+        
+        // Save the step to the server
+        const response = await fetch(`/api/workflow-steps/${step.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(stepData)
+        });
+        
+        if (!response.ok) {
+          console.error(`Failed to save step ${step.id}:`, await response.text());
+        } else {
+          console.log(`Successfully saved step ${step.id}`);
+        }
+      } catch (error) {
+        console.error(`Error saving step ${step.id}:`, error);
+      }
+    }
+    
     // After saving, refresh the workflow data for the test modal
     await refetchWorkflow();
   };
