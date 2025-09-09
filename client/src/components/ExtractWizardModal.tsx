@@ -286,7 +286,33 @@ export default function ExtractWizardModal({
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                       The following fields are being used as input for this extraction:
                     </p>
-                    {Object.entries(inputValues).filter(([key]) => !key.startsWith('knowledge_document')).map(([key, value], index) => {
+                    {Object.entries(inputValues).filter(([key, value]) => {
+                      // Filter out knowledge documents
+                      if (key.startsWith('knowledge_document')) return false;
+                      
+                      // Filter out user document parameters since they're handled by the document dropdown
+                      if (Array.isArray(value)) {
+                        const hasUserDoc = value.some(v => {
+                          if (typeof v === 'string') {
+                            const lowerV = v.toLowerCase();
+                            return lowerV.includes('user') && lowerV.includes('document') ||
+                                   lowerV === 'user_document';
+                          }
+                          return false;
+                        });
+                        if (hasUserDoc) return false;
+                      }
+                      
+                      if (typeof value === 'string') {
+                        const lowerValue = value.toLowerCase();
+                        if (lowerValue.includes('user') && lowerValue.includes('document') ||
+                            lowerValue === 'user_document') {
+                          return false;
+                        }
+                      }
+                      
+                      return true;
+                    }).map(([key, value], index) => {
                       // Get readable name from referenceFieldNames or parse the key
                       const displayName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
                       const isArray = Array.isArray(value);
