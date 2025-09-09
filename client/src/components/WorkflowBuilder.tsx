@@ -1050,7 +1050,10 @@ function ValueCard({
                   const isFieldReference = paramType === 'reference' || paramType === 'field_reference' || 
                                           paramType === 'value_reference' || paramName.includes('referenced') || 
                                           paramName.includes('input data') || paramName === 'input data' ||
-                                          (paramName.includes('field') && paramName.includes('reference'));
+                                          (paramName.includes('field') && paramName.includes('reference')) ||
+                                          // Additional patterns for data references
+                                          paramName.includes('info') || paramName.includes('data') ||
+                                          paramType.includes('data') || paramType.includes('info');
                   
                   // Check for text types
                   const isPrompt = paramType === 'text' && (param.multiline === true || paramName.includes('instruction') || 
