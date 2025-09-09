@@ -372,19 +372,19 @@ export default function AllData({ project }: AllDataProps) {
               </div>
             </div>
           ) : (
-            <div className="border-t overflow-x-hidden">
-              <Table>
+            <div className="border-t">
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName">Session Name</SortableHeader>
-                    <SortableHeader field="documentCount" className="py-3 w-24">Docs</SortableHeader>
-                    <SortableHeader field="progress" className="py-3 w-32">Progress</SortableHeader>
-                    <SortableHeader field="status" className="py-3 w-16 text-center">
+                    <SortableHeader field="sessionName" className="py-3 w-2/5">Session Name</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 w-1/12 text-center">Docs</SortableHeader>
+                    <SortableHeader field="progress" className="py-3 w-1/4">Progress</SortableHeader>
+                    <SortableHeader field="status" className="py-3 w-1/12 text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </SortableHeader>
-                    <SortableHeader field="createdAt" className="py-3 w-32">Created</SortableHeader>
+                    <SortableHeader field="createdAt" className="py-3 w-1/6">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -398,16 +398,16 @@ export default function AllData({ project }: AllDataProps) {
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors">
-                            <p className="font-medium text-sm">{session.sessionName || 'Untitled Session'}</p>
+                            <p className="font-medium text-sm truncate">{session.sessionName || 'Untitled Session'}</p>
                             {session.description && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {session.description}
                               </p>
                             )}
                           </div>
                         </Link>
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300">
+                      <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
                       </TableCell>
                       <TableCell className="py-3">
