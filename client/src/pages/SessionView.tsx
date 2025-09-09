@@ -3081,7 +3081,7 @@ export default function SessionView() {
                     const firstId = value[0];
                     
                     // Search through all workflow steps to find this value
-                    for (const step of workflowSteps || []) {
+                    for (const step of project?.workflowSteps || []) {
                       const foundValue = step.values?.find(v => v.id === firstId);
                       if (foundValue) {
                         displayName = `${step.stepName} → ${foundValue.valueName}`;
@@ -3102,7 +3102,7 @@ export default function SessionView() {
                   if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
                     const firstId = value[0];
                     
-                    for (const step of workflowSteps || []) {
+                    for (const step of project?.workflowSteps || []) {
                       const foundValue = step.values?.find(v => v.id === firstId);
                       if (foundValue) {
                         referenceFieldNames[paramId] = `${step.stepName} → ${foundValue.valueName}`;
@@ -3136,7 +3136,7 @@ export default function SessionView() {
             const firstId = value[0];
             
             // Search through all workflow steps to find this value
-            for (const step of workflowSteps || []) {
+            for (const step of project?.workflowSteps || []) {
               const foundValue = step.values?.find(v => v.id === firstId);
               if (foundValue) {
                 referenceFieldNames[key] = `${step.stepName} → ${foundValue.valueName}`;
