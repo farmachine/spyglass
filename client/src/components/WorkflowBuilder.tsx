@@ -607,7 +607,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         </div>
 
         {/* Right Column - Values for Selected Step */}
-        <div className="flex-1 min-w-0 relative">
+        <div className="flex-1 min-w-0 relative flex flex-col">
           {selectedStepId ? (
             <div className="relative">
                 {/* Value Cards Container */}
@@ -643,7 +643,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
             </div>
           ) : (
             /* No Step Selected */
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center flex-1">
               <div className="text-center">
                 {isLoading ? (
                   <>
