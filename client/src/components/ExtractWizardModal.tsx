@@ -334,19 +334,61 @@ export default function ExtractWizardModal({
                             )}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
-                            <span className="font-mono text-xs">
-                              {isArray 
-                                ? `[${value.slice(0, 3).map((v: any) => {
-                                    if (typeof v === 'string' && v.length > 30) {
-                                      return '"' + v.substring(0, 30) + '..."';
+                            {(() => {
+                              // Map UUIDs to actual values for display
+                              let displayValue = value;
+                              
+                              if (inputData && Array.isArray(inputData) && inputData.length > 0) {
+                                if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
+                                  // This is an array of UUIDs - map them to actual values
+                                  displayValue = value.map((uuid: string) => {
+                                    const record = inputData.find(item => item.identifierId === uuid);
+                                    if (record) {
+                                      // Extract meaningful values from the record (exclude identifierId and internal fields)
+                                      const meaningfulData = Object.entries(record)
+                                        .filter(([k, v]) => k !== 'identifierId' && k !== '_recordIndex' && v !== null && v !== undefined && v !== '')
+                                        .map(([k, v]) => `${k}: ${v}`)
+                                        .join(', ');
+                                      return meaningfulData || 'No data';
                                     }
-                                    return JSON.stringify(v);
-                                  }).join(', ')}${value.length > 3 ? ', ...' : ''}]`
-                                : typeof value === 'string' && value.length > 100 
-                                  ? value.substring(0, 100) + '...'
-                                  : String(value)
+                                    return uuid.substring(0, 8) + '...';
+                                  });
+                                } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
+                                  // Single UUID - map to actual value
+                                  const record = inputData.find(item => item.identifierId === value);
+                                  if (record) {
+                                    const meaningfulData = Object.entries(record)
+                                      .filter(([k, v]) => k !== 'identifierId' && k !== '_recordIndex' && v !== null && v !== undefined && v !== '')
+                                      .map(([k, v]) => `${k}: ${v}`)
+                                      .join(', ');
+                                    displayValue = meaningfulData || 'No data';
+                                  }
+                                }
                               }
-                            </span>
+                              
+                              if (isArray) {
+                                return (
+                                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                                    {displayValue.slice(0, 3).map((item: any, idx: number) => (
+                                      <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+                                        {typeof item === 'string' ? item : JSON.stringify(item)}
+                                      </div>
+                                    ))}
+                                    {displayValue.length > 3 && (
+                                      <div className="text-xs text-gray-500 italic px-2">
+                                        ... and {displayValue.length - 3} more
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-16 overflow-y-auto">
+                                    {String(displayValue).substring(0, 200) + (String(displayValue).length > 200 ? '...' : '')}
+                                  </div>
+                                );
+                              }
+                            })()}
                           </div>
                         </div>
                       );
