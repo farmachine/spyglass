@@ -357,81 +357,80 @@ export default function Tools({ projectId }: ExcelToolsProps) {
           />
         </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {tools?.map((tool) => (
-          <Card key={tool.id} className="border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow bg-white dark:bg-slate-900">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    {tool.toolType === 'AI_ONLY' ? (
-                      <Brain className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    ) : (
-                      <Code className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    )}
-                    {tool.name}
-                  </CardTitle>
+          <div key={tool.id} className="group cursor-pointer rounded-lg border-2 transition-all border-gray-200 hover:border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600">
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                {/* Tool Icon */}
+                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+                  {tool.toolType === 'AI_ONLY' ? (
+                    <Brain className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                  ) : (
+                    <Code className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-4">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  {tool.description}
-                </p>
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                      <span>Used {tool.usageCount} times</span>
+                {/* Tool Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    {tool.name}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                    {tool.description}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Used {tool.usageCount} times
                     </div>
-                    <Badge variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">
+                    <Badge variant="outline" className="text-xs h-4 px-1.5 dark:border-gray-600 dark:text-gray-300">
                       {tool.toolType === 'AI_ONLY' ? 'AI' : 'Code'}
                     </Badge>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleTest(tool)}
-                      className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      Test
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleEdit(tool)}
-                      className="bg-gray-700 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white"
-                    >
-                      <Edit3 className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleDelete(tool.id)}
-                      className="border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Tool Actions */}
+              <div className="flex items-center gap-1 ml-4">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleTest(tool)}
+                  className="h-7 px-2 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Test
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => handleEdit(tool)}
+                  className="h-7 px-2 text-xs bg-gray-700 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white"
+                >
+                  <Edit3 className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleDelete(tool.id)}
+                  className="h-7 px-2 text-xs border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
         ))}
 
         {(!tools || tools.length === 0) && (
-          <Card className="p-8 text-center border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-900">
+          <div className="rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-8 text-center">
             <div className="text-gray-500 dark:text-gray-400">
               <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">No Tools Available</h3>
               <p className="text-gray-600 dark:text-gray-400">Tools will appear here after they are generated during extraction processes.</p>
             </div>
-          </Card>
+          </div>
         )}
       </div>
 
