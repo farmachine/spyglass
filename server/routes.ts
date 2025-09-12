@@ -220,6 +220,11 @@ async function processWorkflowTestAsync(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint to prevent continuous HEAD request spam
+  app.head("/api", (req, res) => {
+    res.status(200).end();
+  });
+
   // Authentication Routes
 
   app.post("/api/auth/login", async (req, res) => {
