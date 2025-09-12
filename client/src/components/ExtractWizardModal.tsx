@@ -260,7 +260,33 @@ export default function ExtractWizardModal({
             )}
             
             {/* Collapsible Referenced Input Data */}
-            {inputValues && Object.keys(inputValues).length > 0 && (
+            {inputValues && Object.keys(inputValues).length > 0 && Object.entries(inputValues).filter(([key, value]) => {
+              // Filter out knowledge documents
+              if (key.startsWith('knowledge_document')) return false;
+              
+              // Filter out user document parameters since they're handled by the document dropdown
+              if (Array.isArray(value)) {
+                const hasUserDoc = value.some(v => {
+                  if (typeof v === 'string') {
+                    const lowerV = v.toLowerCase();
+                    return lowerV.includes('user') && lowerV.includes('document') ||
+                           lowerV === 'user_document';
+                  }
+                  return false;
+                });
+                if (hasUserDoc) return false;
+              }
+              
+              if (typeof value === 'string') {
+                const lowerValue = value.toLowerCase();
+                if (lowerValue.includes('user') && lowerValue.includes('document') ||
+                    lowerValue === 'user_document') {
+                  return false;
+                }
+              }
+              
+              return true;
+            }).length > 0 && (
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
                 <button
                   onClick={() => toggleSection('references')}
