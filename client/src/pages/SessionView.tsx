@@ -6725,8 +6725,26 @@ Thank you for your assistance.`;
               await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
               console.log('✅ Validation queries refreshed');
               
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error running column extraction:', error);
+              
+              // Handle 409 Conflict - missing anchor records
+              if (error?.status === 409 || error?.message?.includes('base rows') || error?.message?.includes('anchor records')) {
+                toast({
+                  title: "Cannot Extract Column",
+                  description: "The base rows for this extraction have been deleted. Please re-extract the first column before extracting additional columns.",
+                  variant: "destructive",
+                  duration: 7000
+                });
+              } else {
+                // General error handling
+                toast({
+                  title: "Extraction Failed",
+                  description: error?.message || "Failed to extract column data. Please try again.",
+                  variant: "destructive",
+                  duration: 5000
+                });
+              }
             } finally {
               setIsColumnExtracting(false);
             }

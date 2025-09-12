@@ -8187,6 +8187,29 @@ def extract_function(Column_Name, Excel_File):
         // Get existing validations to update based on identifier ID
         const existingValidations = await storage.getFieldValidations(sessionId);
         
+        // CRITICAL: If this is a re-extraction of the first column, clean up old records
+        // Check if we're extracting the first column (no previousData) but have existing records
+        if ((!previousData || previousData.length === 0) && existingValidations.length > 0) {
+          // Check if there are existing records for THIS specific column
+          const existingColumnValidations = existingValidations.filter(v => v.valueId === valueId);
+          
+          if (existingColumnValidations.length > processedResults.length) {
+            console.log(`🧹 CLEANUP: Found ${existingColumnValidations.length} existing records but only ${processedResults.length} new results`);
+            console.log(`   This indicates orphaned records from previous extractions`);
+            
+            // Delete all existing validations for this column to start fresh
+            // This prevents duplicate rows from accumulating
+            for (const validation of existingColumnValidations) {
+              await storage.deleteFieldValidation(validation.id);
+              console.log(`   🗑️ Deleted orphaned validation: ${validation.id}`);
+            }
+            
+            // Clear the array so we don't try to match against deleted records
+            existingValidations.length = 0;
+            existingValidations.push(...await storage.getFieldValidations(sessionId));
+          }
+        }
+        
         // If previousData is provided, create a Set of valid identifierIds
         // This is the source of truth for row identifiers
         let validIdentifierIds: Set<string> = new Set();
@@ -8210,6 +8233,63 @@ def extract_function(Column_Name, Excel_File):
           }
           
           console.log(`📊 Mapped ${validIdentifierIds.size} identifierIds to their array indices`);
+          
+          // CRITICAL VALIDATION: Check if the identifierIds in previousData actually exist in the database
+          // This prevents creating orphaned rows when anchor records have been deleted
+          if (validIdentifierIds.size > 0) {
+            console.log(`🔍 Validating ${validIdentifierIds.size} identifierIds from previousData against existing database records...`);
+            
+            // Get existing validations for this step/table to verify anchors exist
+            const stepValidations = existingValidations.filter(v => v.stepId === stepId);
+            const existingIdentifierIds = new Set<string>();
+            
+            for (const validation of stepValidations) {
+              if (validation.identifierId) {
+                existingIdentifierIds.add(validation.identifierId);
+              }
+            }
+            
+            console.log(`📊 Found ${existingIdentifierIds.size} existing identifierIds in database for this step`);
+            
+            // Check how many of the previousData identifierIds actually exist
+            let matchingCount = 0;
+            for (const id of validIdentifierIds) {
+              if (existingIdentifierIds.has(id)) {
+                matchingCount++;
+              } else {
+                console.log(`⚠️ IdentifierId ${id} from previousData not found in database - likely deleted`);
+              }
+            }
+            
+            console.log(`✅ ${matchingCount} out of ${validIdentifierIds.size} identifierIds from previousData exist in database`);
+            
+            // If NONE of the previousData identifierIds exist, this means all anchor records were deleted
+            // Return 409 Conflict to inform the user they need to re-extract the first column
+            if (matchingCount === 0) {
+              console.error(`❌ CRITICAL: No anchor records found! All ${validIdentifierIds.size} identifierIds from previousData have been deleted.`);
+              console.error(`   User must re-extract the first column before extracting additional columns.`);
+              
+              return res.status(409).json({
+                success: false,
+                message: "The base rows for this extraction have been deleted. Please re-extract the first column before extracting additional columns.",
+                error: "MISSING_ANCHOR_RECORDS",
+                details: {
+                  providedIdentifierCount: validIdentifierIds.size,
+                  existingIdentifierCount: 0,
+                  stepId: stepId,
+                  valueId: valueId
+                }
+              });
+            }
+            
+            // If only SOME identifierIds exist, log a warning but continue
+            // The extraction will only update/create records for the existing anchors
+            if (matchingCount < validIdentifierIds.size) {
+              const missingCount = validIdentifierIds.size - matchingCount;
+              console.warn(`⚠️ WARNING: ${missingCount} out of ${validIdentifierIds.size} anchor records are missing (deleted).`);
+              console.warn(`   Extraction will proceed with ${matchingCount} existing anchors only.`);
+            }
+          }
         }
         
         // Create new validations ONLY for the actual AI results returned
