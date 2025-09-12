@@ -275,12 +275,29 @@ export default function ExtractWizardModal({
                   return false;
                 });
                 if (hasUserDoc) return false;
+                
+                // Only show arrays if they contain actual data references (UUIDs or meaningful identifiers)
+                // Arrays should contain actual data references, not just text
+                const hasActualDataRefs = value.some(v => {
+                  if (typeof v === 'string') {
+                    // Check if it looks like a UUID or column reference
+                    return v.match(/^[a-f0-9-]{36}$/i) || v.match(/^[a-f0-9]{8,}$/);
+                  }
+                  return false;
+                });
+                if (!hasActualDataRefs) return false;
               }
               
               if (typeof value === 'string') {
                 const lowerValue = value.toLowerCase();
                 if (lowerValue.includes('user') && lowerValue.includes('document') ||
                     lowerValue === 'user_document') {
+                  return false;
+                }
+                
+                // Filter out plain text prompts/descriptions - only show if it looks like a data reference
+                // Check if it's a UUID or actual data identifier, not just descriptive text
+                if (!value.match(/^[a-f0-9-]{36}$/i) && !value.match(/^[a-f0-9]{8,}$/) && value.length > 50) {
                   return false;
                 }
               }
