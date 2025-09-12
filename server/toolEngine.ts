@@ -123,10 +123,53 @@ export class ToolEngine {
     // Check for project ID in inputs for reference document loading
     const projectId = rawInputs.projectId || '';
     
+    // CRITICAL: Universal 'user_document' placeholder resolver (before any type-specific logic)
+    // This fixes the issue where param.type !== 'document' but value is 'user_document'
+    const resolveUserDocumentPlaceholder = (value: any): any => {
+      const sessionDocContent = rawInputs.sessionDocumentContent;
+      
+      if (typeof value === 'string') {
+        if (value === 'user_document' || value === '@user_document') {
+          if (sessionDocContent) {
+            console.log(`🔄 Resolved 'user_document' placeholder with session content (${sessionDocContent.length} chars)`);
+            return sessionDocContent;
+          } else {
+            console.log(`⚠️ 'user_document' placeholder found but no sessionDocumentContent available`);
+            return '';
+          }
+        }
+      } else if (Array.isArray(value)) {
+        return value.map(item => {
+          if (typeof item === 'string' && (item === 'user_document' || item === '@user_document')) {
+            if (sessionDocContent) {
+              console.log(`🔄 Resolved 'user_document' placeholder in array with session content (${sessionDocContent.length} chars)`);
+              return sessionDocContent;
+            } else {
+              console.log(`⚠️ 'user_document' placeholder in array found but no sessionDocumentContent available`);
+              return '';
+            }
+          }
+          return item;
+        });
+      }
+      return value;
+    };
+    
     for (const param of tool.inputParameters) {
       // Try to get input value by parameter ID first, then by name
       const paramId = (param as any).id || param.name;
-      const inputValue = rawInputs[paramId] || rawInputs[param.name];
+      let inputValue = rawInputs[paramId] || rawInputs[param.name];
+      
+      // UNIVERSAL: Apply user_document placeholder resolution first (regardless of param.type)
+      inputValue = resolveUserDocumentPlaceholder(inputValue);
+      
+      // Set resolved value for both param.name and paramId to cover all access patterns
+      preparedInputs[param.name] = inputValue;
+      if (paramId !== param.name) {
+        preparedInputs[paramId] = inputValue;
+      }
+      
+      console.log(`📝 Set ${param.name} (${paramId}) = ${typeof inputValue === 'string' ? `${inputValue.length} chars` : JSON.stringify(inputValue).substring(0, 100)}`);
       
       // Special handling for Reference Document parameter
       if (param.name === 'Reference Document' || paramId === '0.4uir69thnel' || paramId === 'Reference Document') {
@@ -190,20 +233,8 @@ export class ToolEngine {
               preparedInputs[param.name] = inputValue;
             }
           } else {
-            // Check if this is a 'user_document' placeholder that needs session document content
-            if ((Array.isArray(inputValue) && inputValue.includes('user_document')) || 
-                (typeof inputValue === 'string' && inputValue === 'user_document')) {
-              console.log(`🔍 Found 'user_document' placeholder for ${param.name} - need session document content`);
-              // This should be provided by the calling endpoint via rawInputs.sessionDocumentContent
-              const sessionDocContent = rawInputs.sessionDocumentContent;
-              if (sessionDocContent) {
-                console.log(`📄 Using session document content for ${param.name} (${sessionDocContent.length} chars)`);
-                preparedInputs[param.name] = sessionDocContent;
-              } else {
-                console.log(`⚠️ 'user_document' placeholder found but no sessionDocumentContent provided in rawInputs`);
-                preparedInputs[param.name] = '';
-              }
-            } else {
+            // Document-specific handling (placeholder resolution is now handled universally above)
+            {
               // Always check sample_documents table for pre-extracted content first
               const [sampleDoc] = await db
                 .select()
@@ -383,9 +414,15 @@ export class ToolEngine {
       }
     }
     
+    // CRITICAL: Always preserve sessionDocumentContent for document resolution
+    if (rawInputs.sessionDocumentContent) {
+      preparedInputs.sessionDocumentContent = rawInputs.sessionDocumentContent;
+      console.log(`📊 Preserved sessionDocumentContent (${rawInputs.sessionDocumentContent.length} chars)`);
+    }
+    
     // CRITICAL: Also preserve data fields that routes.ts sends for column extraction
     // These are essential for maintaining the data chain across columns
-    const criticalDataFields = ['Input Data', 'List Item', 'previousData', 'sessionDocumentContent'];
+    const criticalDataFields = ['Input Data', 'List Item', 'previousData'];
     for (const dataField of criticalDataFields) {
       if (rawInputs[dataField] && !preparedInputs[dataField]) {
         preparedInputs[dataField] = rawInputs[dataField];
@@ -394,6 +431,20 @@ export class ToolEngine {
           : `(${typeof rawInputs[dataField]})`;
         console.log(`📊 Preserved critical data field: ${dataField} ${fieldInfo}`);
       }
+    }
+    
+    // LAST-MILE GUARD: Check for any remaining 'user_document' placeholders and replace them
+    const containsUserDocumentToken = JSON.stringify(preparedInputs).includes('"user_document"');
+    if (containsUserDocumentToken && rawInputs.sessionDocumentContent) {
+      console.log(`🚨 LAST-MILE GUARD: Found remaining 'user_document' tokens, applying final replacement`);
+      for (const [key, value] of Object.entries(preparedInputs)) {
+        if (typeof value === 'string' && (value === 'user_document' || value === '@user_document')) {
+          preparedInputs[key] = rawInputs.sessionDocumentContent;
+          console.log(`🔄 Last-mile replaced ${key}: 'user_document' -> ${rawInputs.sessionDocumentContent.length} chars`);
+        }
+      }
+    } else if (containsUserDocumentToken) {
+      console.log(`⚠️ LAST-MILE GUARD: Found 'user_document' tokens but no sessionDocumentContent available`);
     }
     
     return preparedInputs;
