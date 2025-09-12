@@ -191,7 +191,8 @@ export class ToolEngine {
             }
           } else {
             // Check if this is a 'user_document' placeholder that needs session document content
-            if (Array.isArray(inputValue) && inputValue.includes('user_document')) {
+            if ((Array.isArray(inputValue) && inputValue.includes('user_document')) || 
+                (typeof inputValue === 'string' && inputValue === 'user_document')) {
               console.log(`🔍 Found 'user_document' placeholder for ${param.name} - need session document content`);
               // This should be provided by the calling endpoint via rawInputs.sessionDocumentContent
               const sessionDocContent = rawInputs.sessionDocumentContent;
