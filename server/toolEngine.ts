@@ -385,7 +385,7 @@ export class ToolEngine {
     
     // CRITICAL: Also preserve data fields that routes.ts sends for column extraction
     // These are essential for maintaining the data chain across columns
-    const criticalDataFields = ['Input Data', 'List Item', 'previousData'];
+    const criticalDataFields = ['Input Data', 'List Item', 'previousData', 'sessionDocumentContent'];
     for (const dataField of criticalDataFields) {
       if (rawInputs[dataField] && !preparedInputs[dataField]) {
         preparedInputs[dataField] = rawInputs[dataField];
