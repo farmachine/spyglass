@@ -35,9 +35,14 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      // Filter out noisy validation requests that spam the console
+      // Filter out noisy requests that spam the console
       if (path.includes("/validations") && req.method === "GET" && res.statusCode === 304) {
         return; // Skip these frequent validation checks
+      }
+      
+      // Skip health check HEAD requests to /api
+      if (path === "/api" && req.method === "HEAD") {
+        return; // Skip external health check requests
       }
 
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
