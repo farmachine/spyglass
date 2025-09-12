@@ -8261,7 +8261,22 @@ def extract_function(Column_Name, Excel_File):
           // CRITICAL: Match by identifierId (row ID), not fieldName
           let existingValidation = null;
           
-          if (identifierId) {
+          // First, check if this is a re-extraction of the same column
+          // For first column extractions, we need to check for existing records by valueId and recordIndex
+          if (!previousData || previousData.length === 0) {
+            // This is a first column or re-extraction of first column
+            // Check for existing validation by valueId and recordIndex to prevent duplicates
+            existingValidation = existingValidations.find(v => 
+              v.valueId === valueId && 
+              v.recordIndex === recordIndex
+            );
+            
+            // If we found an existing validation, use its identifierId
+            if (existingValidation && existingValidation.identifierId) {
+              identifierId = existingValidation.identifierId;
+              console.log(`🔄 Re-extraction: Using existing identifierId ${identifierId} for record at index ${recordIndex}`);
+            }
+          } else if (identifierId) {
             // For subsequent columns: match by identifierId AND correct valueId
             existingValidation = existingValidations.find(v => 
               v.identifierId === identifierId && 
@@ -8271,10 +8286,10 @@ def extract_function(Column_Name, Excel_File):
             // Don't look for wrong valueId validations - they likely belong to other columns
             // Only create new validations if none exist for this specific row+column combo
           } else {
-            // Fallback for first column or when no identifierId
+            // Fallback for edge cases
             existingValidation = existingValidations.find(v => 
               v.valueId === valueId && 
-              v.recordIndex === i
+              v.recordIndex === recordIndex
             );
           }
           
