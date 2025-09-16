@@ -261,42 +261,17 @@ export default function ExtractWizardModal({
             
             {/* Individual sections for each input parameter */}
             {inputValues && Object.keys(inputValues).length > 0 && (() => {
-              // Filter valid input parameters 
+              // Filter only to exclude knowledge documents and user document dropdown parameter
               const validInputs = Object.entries(inputValues).filter(([key, value]) => {
                 // Filter out knowledge documents (handled separately)
                 if (key.startsWith('knowledge_document')) return false;
                 
-                // Filter out user document parameters (handled by document dropdown)
-                if (Array.isArray(value)) {
-                  const hasUserDoc = value.some(v => {
-                    if (typeof v === 'string') {
-                      const lowerV = v.toLowerCase();
-                      return lowerV.includes('user') && lowerV.includes('document') ||
-                             lowerV === 'user_document';
-                    }
-                    return false;
-                  });
-                  if (hasUserDoc) return false;
-                  
-                  // Check if it contains data references (UUIDs)
-                  const hasActualDataRefs = value.some(v => {
-                    if (typeof v === 'string') {
-                      return v.match(/^[a-f0-9-]{36}$/i) || v.match(/^[a-f0-9]{8,}$/);
-                    }
-                    return false;
-                  });
-                  if (!hasActualDataRefs) return false;
-                } else if (typeof value === 'string') {
-                  const lowerValue = value.toLowerCase();
-                  if (lowerValue.includes('user') && lowerValue.includes('document') ||
-                      lowerValue === 'user_document') {
-                    return false;
-                  }
-                  
-                  // Filter out long text prompts - only show data references
-                  if (!value.match(/^[a-f0-9-]{36}$/i) && !value.match(/^[a-f0-9]{8,}$/) && value.length > 50) {
-                    return false;
-                  }
+                // Only filter out user document parameters that are specifically for the document dropdown
+                if (typeof value === 'string' && value === 'user_document') {
+                  return false;
+                }
+                if (Array.isArray(value) && value.length === 1 && value[0] === 'user_document') {
+                  return false;
                 }
                 
                 return true;
@@ -405,7 +380,10 @@ export default function ExtractWizardModal({
                                   <div className="space-y-1 max-h-24 overflow-y-auto">
                                     {displayValue.slice(0, 3).map((item: any, idx: number) => (
                                       <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
-                                        {typeof item === 'string' ? item : JSON.stringify(item)}
+                                        {typeof item === 'string' ? 
+                                          (item.length > 100 ? item.substring(0, 100) + '...' : item) : 
+                                          JSON.stringify(item)
+                                        }
                                       </div>
                                     ))}
                                     {displayValue.length > 3 && (
@@ -417,8 +395,11 @@ export default function ExtractWizardModal({
                                 );
                               } else {
                                 return (
-                                  <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-16 overflow-y-auto">
-                                    {String(displayValue).substring(0, 200) + (String(displayValue).length > 200 ? '...' : '')}
+                                  <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-20 overflow-y-auto whitespace-pre-wrap">
+                                    {String(displayValue).length > 300 ? 
+                                      String(displayValue).substring(0, 300) + '...' : 
+                                      String(displayValue)
+                                    }
                                   </div>
                                 );
                               }
