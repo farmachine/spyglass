@@ -259,249 +259,220 @@ export default function ExtractWizardModal({
               </div>
             )}
             
-            {/* Individual sections for each input parameter */}
-            {inputValues && Object.keys(inputValues).length > 0 && (() => {
-              // Filter only to exclude knowledge documents and user document dropdown parameter
-              const validInputs = Object.entries(inputValues).filter(([key, value]) => {
-                // Filter out knowledge documents (handled separately)
-                if (key.startsWith('knowledge_document')) return false;
-                
-                // Only filter out user document parameters that are specifically for the document dropdown
-                if (typeof value === 'string' && value === 'user_document') {
-                  return false;
-                }
-                if (Array.isArray(value) && value.length === 1 && value[0] === 'user_document') {
-                  return false;
-                }
-                
-                return true;
-              });
-              
-              if (validInputs.length === 0) return null;
-              
-              const renderParameterSection = (key: string, value: any) => {
-                // Get parameter name from referenceFieldNames or use key as fallback
-                const parameterName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
-                const isArray = Array.isArray(value);
-                const valueCount = isArray ? value.length : 1;
-                
-                // Determine icon based on parameter name and value content
-                const getParameterIcon = () => {
-                  const lowerName = parameterName.toLowerCase();
-                  const lowerKey = key.toLowerCase();
+            {/* Sections rendered purely from tool input configuration */}
+            {inputValues && Object.keys(inputValues).length > 0 && (
+              <div className="space-y-4">
+                {Object.entries(inputValues).map(([key, value]) => {
+                  // Get parameter name from referenceFieldNames or use key as fallback
+                  const parameterName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
+                  const isArray = Array.isArray(value);
+                  const valueCount = isArray ? value.length : 1;
                   
-                  if (lowerName.includes('document') || lowerKey.includes('document') || 
-                      lowerName.includes('file') || lowerKey.includes('file')) {
-                    return <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
-                  } else if (lowerName.includes('instruction') || lowerName.includes('prompt') || 
-                             lowerName.includes('query') || lowerName.includes('ai')) {
-                    return <Sparkles className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
-                  } else {
-                    return <Database className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
-                  }
-                };
-                
-                // Determine badge color based on parameter type
-                const getBadgeColor = () => {
-                  const lowerName = parameterName.toLowerCase();
-                  const lowerKey = key.toLowerCase();
+                  // Check if this is a document input (needs dropdown)
+                  const isDocumentInput = (typeof value === 'string' && value === 'user_document') || 
+                                         (Array.isArray(value) && value.length === 1 && value[0] === 'user_document');
                   
-                  if (lowerName.includes('document') || lowerKey.includes('document') || 
-                      lowerName.includes('file') || lowerKey.includes('file')) {
-                    return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-                  } else if (lowerName.includes('instruction') || lowerName.includes('prompt') || 
-                             lowerName.includes('query') || lowerName.includes('ai')) {
-                    return 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
-                  } else {
-                    return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-                  }
-                };
-                
-                return (
-                  <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <button
-                      onClick={() => toggleSection(key)}
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        {getParameterIcon()}
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{parameterName}</span>
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-xs ${getBadgeColor()}`}
-                        >
-                          {isArray ? `${valueCount} item${valueCount !== 1 ? 's' : ''}` : 'value'}
-                        </Badge>
-                      </div>
-                      {expandedSections.has(key) ? (
-                        <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </button>
+                  // Check if this is a knowledge document input
+                  const isKnowledgeDocInput = key.startsWith('knowledge_document');
+                  
+                  // Determine icon based on parameter name and value content
+                  const getParameterIcon = () => {
+                    const lowerName = parameterName.toLowerCase();
+                    const lowerKey = key.toLowerCase();
                     
-                    {expandedSections.has(key) && (
-                      <div className="px-4 pb-4">
-                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            {(() => {
-                              // Map UUIDs to actual values for display
-                              let displayValue = value;
-                              
-                              if (validations && validations.length > 0) {
-                                if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
-                                  // Array of column UUIDs - show extracted values from each column
-                                  const allExtractedValues = [];
-                                  
-                                  for (const uuid of value) {
-                                    const columnValidations = validations.filter(v => v.valueId === uuid && v.extractedValue);
-                                    if (columnValidations.length > 0) {
-                                      allExtractedValues.push(...columnValidations.map(v => v.extractedValue));
-                                    } else {
-                                      allExtractedValues.push(uuid.substring(0, 8) + '...');
-                                    }
-                                  }
-                                  
-                                  displayValue = allExtractedValues;
-                                } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-                                  // Single column UUID - show extracted values from that column  
-                                  const columnValidations = validations.filter(v => v.valueId === value && v.extractedValue);
-                                  
-                                  if (columnValidations.length > 0) {
-                                    displayValue = columnValidations.map(v => v.extractedValue);
-                                  } else {
-                                    displayValue = [value.substring(0, 8) + '...'];
-                                  }
-                                }
-                              }
-                              
-                              if (isArray) {
-                                return (
-                                  <div className="space-y-1 max-h-24 overflow-y-auto">
-                                    {displayValue.slice(0, 3).map((item: any, idx: number) => (
-                                      <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
-                                        {typeof item === 'string' ? 
-                                          (item.length > 100 ? item.substring(0, 100) + '...' : item) : 
-                                          JSON.stringify(item)
-                                        }
-                                      </div>
-                                    ))}
-                                    {displayValue.length > 3 && (
-                                      <div className="text-xs text-gray-500 italic px-2">
-                                        ... and {displayValue.length - 3} more
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              } else {
-                                return (
-                                  <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-20 overflow-y-auto whitespace-pre-wrap">
-                                    {String(displayValue).length > 300 ? 
-                                      String(displayValue).substring(0, 300) + '...' : 
-                                      String(displayValue)
-                                    }
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              };
-              
-              return (
-                <div className="space-y-4">
-                  {validInputs.map(([key, value]) => renderParameterSection(key, value))}
-                </div>
-              );
-            })()}
-            
-            {/* Collapsible Reference Documents */}
-            {knowledgeDocuments && knowledgeDocuments.length > 0 && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
-                <button
-                  onClick={() => toggleSection('knowledge')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Files className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Reference documents</span>
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs bg-gray-50 dark:bg-gray-700"
-                    >
-                      {knowledgeDocuments.length} document{knowledgeDocuments.length > 1 ? 's' : ''}
-                    </Badge>
-                  </div>
-                  {expandedSections.has('knowledge') ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  )}
-                </button>
-                
-                {expandedSections.has('knowledge') && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {knowledgeDocuments.map((doc, index) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {doc.documentName || doc.displayName || doc.fileName || 'Reference Document'}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 max-h-20 overflow-y-auto">
-                          {(() => {
-                            let content = doc.documentContent || doc.content;
-                            if (content && content !== '@reference_document') {
-                              return content.length > 200 
-                                ? content.substring(0, 200) + '...'
-                                : content;
-                            }
-                            return (
-                              <span className="italic">
-                                Standard field mappings reference document
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Document Selection */}
-            {needsDocument && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select document for extraction
-                </Label>
-                <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose your document..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {documents.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
+                    if (lowerName.includes('document') || lowerKey.includes('document') || 
+                        lowerName.includes('file') || lowerKey.includes('file')) {
+                      return <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
+                    } else if (lowerName.includes('instruction') || lowerName.includes('prompt') || 
+                               lowerName.includes('query') || lowerName.includes('ai')) {
+                      return <Sparkles className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
+                    } else {
+                      return <Database className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
+                    }
+                  };
+                  
+                  // Determine badge color based on parameter type
+                  const getBadgeColor = () => {
+                    const lowerName = parameterName.toLowerCase();
+                    const lowerKey = key.toLowerCase();
+                    
+                    if (lowerName.includes('document') || lowerKey.includes('document') || 
+                        lowerName.includes('file') || lowerKey.includes('file')) {
+                      return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+                    } else if (lowerName.includes('instruction') || lowerName.includes('prompt') || 
+                               lowerName.includes('query') || lowerName.includes('ai')) {
+                      return 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+                    } else {
+                      return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+                    }
+                  };
+                  
+                  return (
+                    <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <button
+                        onClick={() => toggleSection(key)}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span>{doc.name}</span>
-                          <Badge variant="outline" className="text-xs ml-2">
-                            {doc.type}
+                          {getParameterIcon()}
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{parameterName}</span>
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-xs ${getBadgeColor()}`}
+                          >
+                            {isDocumentInput ? 'document selection' : 
+                             isKnowledgeDocInput ? `${knowledgeDocuments?.length || 0} reference${knowledgeDocuments?.length !== 1 ? 's' : ''}` :
+                             isArray ? `${valueCount} item${valueCount !== 1 ? 's' : ''}` : 'value'}
                           </Badge>
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!selectedDocument && documents.length === 0 && (
-                  <p className="text-xs text-red-500">No documents available in session</p>
-                )}
+                        {expandedSections.has(key) ? (
+                          <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        )}
+                      </button>
+                      
+                      {expandedSections.has(key) && (
+                        <div className="px-4 pb-4">
+                          {/* Document dropdown for user document inputs */}
+                          {isDocumentInput && (
+                            <div className="space-y-2">
+                              <Label htmlFor={`document-select-${key}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Select document
+                              </Label>
+                              <Select
+                                value={selectedDocument}
+                                onValueChange={setSelectedDocument}
+                              >
+                                <SelectTrigger id={`document-select-${key}`} className="w-full">
+                                  <SelectValue placeholder="Choose your document..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {documents.map((doc) => (
+                                    <SelectItem key={doc.id} value={doc.id}>
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-gray-500" />
+                                        <span>{doc.name}</span>
+                                        <Badge variant="outline" className="text-xs ml-2">
+                                          {doc.type}
+                                        </Badge>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {!selectedDocument && documents.length === 0 && (
+                                <p className="text-xs text-red-500">No documents available in session</p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Knowledge documents display */}
+                          {isKnowledgeDocInput && knowledgeDocuments && knowledgeDocuments.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                Reference documents that will be used:
+                              </p>
+                              {knowledgeDocuments.map((doc, index) => (
+                                <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                      {doc.displayName || doc.documentName || doc.fileName || 'Reference Document'}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 max-h-20 overflow-y-auto">
+                                    {(() => {
+                                      let content = doc.documentContent || doc.content;
+                                      if (content && content !== '@reference_document') {
+                                        return content.length > 200 
+                                          ? content.substring(0, 200) + '...'
+                                          : content;
+                                      }
+                                      return (
+                                        <span className="italic">
+                                          Standard field mappings reference document
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Regular parameter value display */}
+                          {!isDocumentInput && !isKnowledgeDocInput && (
+                            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                {(() => {
+                                  // Map UUIDs to actual values for display
+                                  let displayValue = value;
+                                  
+                                  if (validations && validations.length > 0) {
+                                    if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
+                                      // Array of column UUIDs - show extracted values from each column
+                                      const allExtractedValues = [];
+                                      
+                                      for (const uuid of value) {
+                                        const columnValidations = validations.filter(v => v.valueId === uuid && v.extractedValue);
+                                        if (columnValidations.length > 0) {
+                                          allExtractedValues.push(...columnValidations.map(v => v.extractedValue));
+                                        } else {
+                                          allExtractedValues.push(uuid.substring(0, 8) + '...');
+                                        }
+                                      }
+                                      
+                                      displayValue = allExtractedValues;
+                                    } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
+                                      // Single column UUID - show extracted values from that column  
+                                      const columnValidations = validations.filter(v => v.valueId === value && v.extractedValue);
+                                      
+                                      if (columnValidations.length > 0) {
+                                        displayValue = columnValidations.map(v => v.extractedValue);
+                                      } else {
+                                        displayValue = [value.substring(0, 8) + '...'];
+                                      }
+                                    }
+                                  }
+                                  
+                                  if (Array.isArray(displayValue)) {
+                                    return (
+                                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                                        {displayValue.slice(0, 3).map((item: any, idx: number) => (
+                                          <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+                                            {typeof item === 'string' ? 
+                                              (item.length > 100 ? item.substring(0, 100) + '...' : item) : 
+                                              JSON.stringify(item)
+                                            }
+                                          </div>
+                                        ))}
+                                        {displayValue.length > 3 && (
+                                          <div className="text-xs text-gray-500 italic px-2">
+                                            ... and {displayValue.length - 3} more
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-20 overflow-y-auto whitespace-pre-wrap">
+                                        {String(displayValue).length > 300 ? 
+                                          String(displayValue).substring(0, 300) + '...' : 
+                                          String(displayValue)
+                                        }
+                                      </div>
+                                    );
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
             
