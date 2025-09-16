@@ -1044,7 +1044,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Choose the AI model to use for data extraction
                 </p>
               </CardContent>
@@ -1056,13 +1056,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-gray-800">
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">
                   Inputs *
                 </CardTitle>
                 
                 {/* Output Type Selectors - Top Right */}
                 <div className="flex items-center gap-3">
-                  <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                     Method
                   </Label>
                   <Select value={operationType} onValueChange={(value: "create" | "update") => setOperationType(value)}>
@@ -1102,7 +1102,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               
               {inputParameters.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
                     No inputs defined. Click "Add Input" to start.
                   </p>
                   <Button 
@@ -1119,7 +1119,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   {inputParameters.map((param, index) => {
                     const isExpanded = expandedInputs.has(param.id);
                     return (
-                      <div key={param.id} className="border border-gray-200 rounded-lg">
+                      <div key={param.id} className="border border-gray-200 dark:border-gray-700 rounded-lg">
                         <div className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
@@ -1165,7 +1165,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => toggleInputExpanded(param.id)}
-                                className="p-1 h-auto text-gray-600 hover:text-gray-800"
+                                className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                               >
                                 {isExpanded ? (
                                   <ChevronDown className="h-4 w-4" />
@@ -1185,9 +1185,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                           </div>
                         </div>
                         {isExpanded && (
-                          <div className="px-4 pb-4 pt-3 space-y-3 border-t border-gray-100">
+                          <div className="px-4 pb-4 pt-3 space-y-3 border-t border-gray-100 dark:border-gray-700">
                             <div>
-                              <Label className="text-sm font-medium text-gray-700">Description</Label>
+                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</Label>
                               <Textarea
                                 value={param.description}
                                 onChange={(e) => updateInputParameter(param.id, "description", e.target.value)}
@@ -1204,14 +1204,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     checked={param.multiline}
                                     onCheckedChange={(checked) => updateInputParameter(param.id, "multiline", checked)}
                                   />
-                                  <Label className="text-sm text-gray-600">Multi-line text input</Label>
+                                  <Label className="text-sm text-gray-600 dark:text-gray-400">Multi-line text input</Label>
                                 </div>
                               </div>
                             )}
                             {param.type === "document" && (
                               <div className="space-y-3">
                                 <div>
-                                  <Label className="text-sm font-medium text-gray-700">Document Type</Label>
+                                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Document Type</Label>
                                   <Select 
                                     value={param.documentType || "all"} 
                                     onValueChange={(value: "all" | "excel" | "word" | "pdf") => updateInputParameter(param.id, "documentType", value)}
@@ -1228,7 +1228,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                   </Select>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm font-medium text-gray-700">
+                                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                     Upload a sample document to test this tool.
                                   </Label>
                                   <div className="relative">
@@ -1240,14 +1240,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                           onChange={(e) => handleSampleFileUpload(param.id, e.target.files?.[0])}
                                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                         />
-                                        <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer">
-                                          <Upload className="h-5 w-5 text-gray-400" />
+                                        <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer">
+                                          <Upload className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                                         </div>
                                       </>
                                     ) : (
-                                      <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                                        <Loader2 className="h-5 w-5 text-gray-600 animate-spin mr-2" />
-                                        <span className="text-sm text-gray-700">Processing document...</span>
+                                      <div className="flex items-center justify-center w-full h-10 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                                        <Loader2 className="h-5 w-5 text-gray-600 dark:text-gray-400 animate-spin mr-2" />
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">Processing document...</span>
                                       </div>
                                     )}
                                   </div>
@@ -1271,7 +1271,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
                             {param.type === "data" && (
                               <div className="space-y-3">
-                                <Label className="text-sm font-medium text-gray-700">
+                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   {operationType === 'update' 
                                     ? 'Reference Data Collection (e.g., lookup tables, validation rules)'
                                     : 'Create sample data collection (up to 5 rows)'}
@@ -1279,7 +1279,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                 
                                 {/* Sample Data Name */}
                                 <div>
-                                  <Label className="text-xs font-medium text-gray-600">Sample Data Name</Label>
+                                  <Label className="text-xs font-medium text-gray-600 dark:text-gray-400">Sample Data Name</Label>
                                   <Input
                                     value={param.sampleData?.name || ''}
                                     onChange={(e) => updateSampleDataName(param.id, e.target.value)}
@@ -1349,27 +1349,27 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
                                 {/* Data Table */}
                                 {param.sampleData && param.sampleData.columns.length > 0 && (
-                                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                                     {/* Table Header */}
-                                    <div className="bg-gray-50 border-b border-gray-200">
+                                    <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                                       <div className="flex">
                                         {param.sampleData.columns.map((column, colIndex) => {
                                           const columnName = typeof column === 'string' ? column : column.name;
                                           return (
-                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                            <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
                                               <div className="flex items-center justify-between p-2">
                                                 <div className="flex items-center gap-1">
                                                   {param.sampleData?.identifierColumn === columnName && (
                                                     <Key className="h-3 w-3 text-amber-500" />
                                                   )}
-                                                  <span className="text-xs font-medium text-gray-700 truncate">{columnName}</span>
+                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{columnName}</span>
                                                 </div>
                                                 <Button
                                                   type="button"
                                                   size="sm"
                                                   variant="ghost"
                                                   onClick={() => removeSampleColumn(param.id, columnName)}
-                                                  className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 ml-1"
+                                                  className="h-5 w-5 p-0 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 ml-1"
                                                 >
                                                   <X className="h-3 w-3" />
                                                 </Button>
@@ -1382,13 +1382,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     </div>
 
                                     {/* Table Rows */}
-                                    <div className="bg-white">
+                                    <div className="bg-white dark:bg-gray-900">
                                       {param.sampleData.rows.map((row, rowIndex) => (
-                                        <div key={rowIndex} className="flex border-b border-gray-100 last:border-b-0">
+                                        <div key={rowIndex} className="flex border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                                           {param.sampleData!.columns.map((column, colIndex) => {
                                             const columnName = typeof column === 'string' ? column : column.name;
                                             return (
-                                              <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0">
+                                              <div key={colIndex} className="flex-1 min-w-0 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
                                                 <Input
                                                   value={row[columnName] || ''}
                                                   onChange={(e) => updateSampleCellValue(param.id, rowIndex, columnName, e.target.value)}
@@ -1404,7 +1404,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                               size="sm"
                                               variant="ghost"
                                               onClick={() => removeSampleRow(param.id, rowIndex)}
-                                              className="h-5 w-5 p-0 text-gray-400 hover:text-red-600"
+                                              className="h-5 w-5 p-0 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"
                                             >
                                               <X className="h-3 w-3" />
                                             </Button>
@@ -1415,13 +1415,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
                                     {/* Add Row Button */}
                                     {param.sampleData.rows.length < 5 && (
-                                      <div className="bg-gray-50 border-t border-gray-200 p-2">
+                                      <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-2">
                                         <Button
                                           type="button"
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => addSampleRow(param.id)}
-                                          className="w-full text-xs text-gray-600 hover:text-gray-800"
+                                          className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                                         >
                                           <Plus className="h-3 w-3 mr-1" />
                                           Add Row ({param.sampleData.rows.length}/5)
@@ -1432,7 +1432,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                 )}
 
                                 {(!param.sampleData || param.sampleData.columns.length === 0) && (
-                                  <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                  <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
                                     Click "Add Column" to start creating your sample data collection
                                   </div>
                                 )}
@@ -1474,13 +1474,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     checked={aiAssistanceRequired}
                     onCheckedChange={setAiAssistanceRequired}
                   />
-                  <Label htmlFor="ai-assistance" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="ai-assistance" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Require AI assistance for final output processing
                   </Label>
                 </div>
                 {aiAssistanceRequired && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       AI Assistance Instructions
                     </Label>
                     <Textarea
@@ -1501,7 +1501,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-gray-800">
+                  <CardTitle className="text-lg text-gray-800 dark:text-gray-100">
                     {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
                   </CardTitle>
                   <Button
@@ -1526,7 +1526,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                       generateToolCode.mutate(toolData);
                     }}
                     disabled={regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending || !formData.name || !formData.description || inputParameters.length === 0}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'animate-spin' : ''}`} />
                     {(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 
@@ -1552,7 +1552,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   rows={12}
                   className="font-mono text-sm"
                 />
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   You can manually enter {toolType === 'AI_ONLY' ? 'your prompt' : 'Python code'} or use the "{toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code'}" button to create it automatically based on your inputs.
                 </p>
               </CardContent>
