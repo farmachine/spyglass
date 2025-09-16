@@ -3056,7 +3056,7 @@ export default function SessionView() {
     if (valueToRun.toolId && valueToRun.inputValues) {
       try {
         // Fetch the tool configuration synchronously before opening modal
-        const response = await fetch(`/api/tools/${valueToRun.toolId}`, {
+        const response = await fetch(`/api/excel-functions/${valueToRun.toolId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
