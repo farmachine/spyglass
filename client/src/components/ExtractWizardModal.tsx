@@ -259,190 +259,220 @@ export default function ExtractWizardModal({
               </div>
             )}
             
-            {/* Collapsible Referenced Input Data */}
-            {inputValues && Object.keys(inputValues).length > 0 && Object.entries(inputValues).filter(([key, value]) => {
-              // Filter out knowledge documents
-              if (key.startsWith('knowledge_document')) return false;
-              
-              // Filter out user document parameters since they're handled by the document dropdown
-              if (Array.isArray(value)) {
-                const hasUserDoc = value.some(v => {
-                  if (typeof v === 'string') {
-                    const lowerV = v.toLowerCase();
-                    return lowerV.includes('user') && lowerV.includes('document') ||
-                           lowerV === 'user_document';
-                  }
-                  return false;
-                });
-                if (hasUserDoc) return false;
+            {/* Separate sections for different input types */}
+            {inputValues && Object.keys(inputValues).length > 0 && (() => {
+              // Categorize inputs into document inputs and text inputs
+              const categorizeInputs = () => {
+                const documentInputs: [string, any][] = [];
+                const textInputs: [string, any][] = [];
                 
-                // Only show arrays if they contain actual data references (UUIDs or meaningful identifiers)
-                // Arrays should contain actual data references, not just text
-                const hasActualDataRefs = value.some(v => {
-                  if (typeof v === 'string') {
-                    // Check if it looks like a UUID or column reference
-                    return v.match(/^[a-f0-9-]{36}$/i) || v.match(/^[a-f0-9]{8,}$/);
+                Object.entries(inputValues).forEach(([key, value]) => {
+                  // Filter out knowledge documents (handled separately)
+                  if (key.startsWith('knowledge_document')) return;
+                  
+                  // Filter out user document parameters (handled by document dropdown)
+                  if (Array.isArray(value)) {
+                    const hasUserDoc = value.some(v => {
+                      if (typeof v === 'string') {
+                        const lowerV = v.toLowerCase();
+                        return lowerV.includes('user') && lowerV.includes('document') ||
+                               lowerV === 'user_document';
+                      }
+                      return false;
+                    });
+                    if (hasUserDoc) return;
+                    
+                    // Check if it contains data references (UUIDs)
+                    const hasActualDataRefs = value.some(v => {
+                      if (typeof v === 'string') {
+                        return v.match(/^[a-f0-9-]{36}$/i) || v.match(/^[a-f0-9]{8,}$/);
+                      }
+                      return false;
+                    });
+                    if (!hasActualDataRefs) return;
+                    
+                    // Categorize based on content
+                    const isDocumentRef = key.toLowerCase().includes('document') || 
+                                          key.toLowerCase().includes('file') ||
+                                          value.some(v => typeof v === 'string' && 
+                                            (v.toLowerCase().includes('document') || v.toLowerCase().includes('file')));
+                    
+                    if (isDocumentRef) {
+                      documentInputs.push([key, value]);
+                    } else {
+                      textInputs.push([key, value]);
+                    }
+                  } else if (typeof value === 'string') {
+                    const lowerValue = value.toLowerCase();
+                    if (lowerValue.includes('user') && lowerValue.includes('document') ||
+                        lowerValue === 'user_document') {
+                      return;
+                    }
+                    
+                    // Filter out long text prompts - only show data references
+                    if (!value.match(/^[a-f0-9-]{36}$/i) && !value.match(/^[a-f0-9]{8,}$/) && value.length > 50) {
+                      return;
+                    }
+                    
+                    // Categorize based on key name and content
+                    const isDocumentRef = key.toLowerCase().includes('document') || 
+                                          key.toLowerCase().includes('file') ||
+                                          lowerValue.includes('document') || 
+                                          lowerValue.includes('file');
+                    
+                    if (isDocumentRef) {
+                      documentInputs.push([key, value]);
+                    } else {
+                      textInputs.push([key, value]);
+                    }
                   }
-                  return false;
                 });
-                if (!hasActualDataRefs) return false;
-              }
-              
-              if (typeof value === 'string') {
-                const lowerValue = value.toLowerCase();
-                if (lowerValue.includes('user') && lowerValue.includes('document') ||
-                    lowerValue === 'user_document') {
-                  return false;
-                }
                 
-                // Filter out plain text prompts/descriptions - only show if it looks like a data reference
-                // Check if it's a UUID or actual data identifier, not just descriptive text
-                if (!value.match(/^[a-f0-9-]{36}$/i) && !value.match(/^[a-f0-9]{8,}$/) && value.length > 50) {
-                  return false;
-                }
-              }
+                return { documentInputs, textInputs };
+              };
               
-              return true;
-            }).length > 0 && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
-                <button
-                  onClick={() => toggleSection('references')}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Referenced input data</span>
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+              const { documentInputs, textInputs } = categorizeInputs();
+              
+              const renderInputSection = (inputs: [string, any][], sectionKey: string, title: string, icon: any, badgeColor: string) => {
+                if (inputs.length === 0) return null;
+                
+                return (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <button
+                      onClick={() => toggleSection(sectionKey)}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      {Object.keys(inputValues).filter(key => !key.startsWith('knowledge_document')).length} field{Object.keys(inputValues).filter(key => !key.startsWith('knowledge_document')).length !== 1 ? 's' : ''}
-                    </Badge>
-                  </div>
-                  {expandedSections.has('references') ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  )}
-                </button>
-                
-                {expandedSections.has('references') && (
-                  <div className="px-4 pb-4 space-y-2">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                      The following fields are being used as input for this extraction:
-                    </p>
-                    {Object.entries(inputValues).filter(([key, value]) => {
-                      // Filter out knowledge documents
-                      if (key.startsWith('knowledge_document')) return false;
-                      
-                      // Filter out user document parameters since they're handled by the document dropdown
-                      if (Array.isArray(value)) {
-                        const hasUserDoc = value.some(v => {
-                          if (typeof v === 'string') {
-                            const lowerV = v.toLowerCase();
-                            return lowerV.includes('user') && lowerV.includes('document') ||
-                                   lowerV === 'user_document';
-                          }
-                          return false;
-                        });
-                        if (hasUserDoc) return false;
-                      }
-                      
-                      if (typeof value === 'string') {
-                        const lowerValue = value.toLowerCase();
-                        if (lowerValue.includes('user') && lowerValue.includes('document') ||
-                            lowerValue === 'user_document') {
-                          return false;
-                        }
-                      }
-                      
-                      return true;
-                    }).map(([key, value], index) => {
-                      // Get readable name from referenceFieldNames or parse the key
-                      const displayName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
-                      const isArray = Array.isArray(value);
-                      const valueCount = isArray ? value.length : 1;
-                      
-                      return (
-                        <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <Database className="h-3 w-3 text-gray-500 dark:text-gray-400" />
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
-                                {displayName}
-                              </span>
-                            </div>
-                            {isArray && (
-                              <Badge variant="outline" className="text-xs">
-                                {valueCount} item{valueCount !== 1 ? 's' : ''}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            {(() => {
-                              // Map UUIDs to actual values for display
-                              let displayValue = value;
-                              
-                              // Map column UUIDs to their extracted values from validation records
-                              
-                              if (validations && validations.length > 0) {
-                                if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
-                                  // This is an array of column UUIDs - for each unique valueId, show all extracted values from that column
-                                  const allExtractedValues = [];
+                      <div className="flex items-center gap-2">
+                        {icon}
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</span>
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${badgeColor}`}
+                        >
+                          {inputs.length} input{inputs.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      {expandedSections.has(sectionKey) ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      )}
+                    </button>
+                    
+                    {expandedSections.has(sectionKey) && (
+                      <div className="px-4 pb-4 space-y-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          The following {title.toLowerCase()} are being used for this extraction:
+                        </p>
+                        {inputs.map(([key, value], index) => {
+                          // Get readable name from referenceFieldNames or parse the key
+                          const displayName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
+                          const isArray = Array.isArray(value);
+                          const valueCount = isArray ? value.length : 1;
+                          
+                          return (
+                            <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  {sectionKey === 'documents' ? (
+                                    <FileText className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                  ) : (
+                                    <Database className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                                    {displayName}
+                                  </span>
+                                </div>
+                                {isArray && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {valueCount} item{valueCount !== 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                {(() => {
+                                  // Map UUIDs to actual values for display
+                                  let displayValue = value;
                                   
-                                  for (const uuid of value) {
-                                    const columnValidations = validations.filter(v => v.valueId === uuid && v.extractedValue);
-                                    if (columnValidations.length > 0) {
-                                      allExtractedValues.push(...columnValidations.map(v => v.extractedValue));
-                                    } else {
-                                      allExtractedValues.push(uuid.substring(0, 8) + '...');
+                                  if (validations && validations.length > 0) {
+                                    if (isArray && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
+                                      // Array of column UUIDs - show extracted values from each column
+                                      const allExtractedValues = [];
+                                      
+                                      for (const uuid of value) {
+                                        const columnValidations = validations.filter(v => v.valueId === uuid && v.extractedValue);
+                                        if (columnValidations.length > 0) {
+                                          allExtractedValues.push(...columnValidations.map(v => v.extractedValue));
+                                        } else {
+                                          allExtractedValues.push(uuid.substring(0, 8) + '...');
+                                        }
+                                      }
+                                      
+                                      displayValue = allExtractedValues;
+                                    } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
+                                      // Single column UUID - show extracted values from that column  
+                                      const columnValidations = validations.filter(v => v.valueId === value && v.extractedValue);
+                                      
+                                      if (columnValidations.length > 0) {
+                                        displayValue = columnValidations.map(v => v.extractedValue);
+                                      } else {
+                                        displayValue = [value.substring(0, 8) + '...'];
+                                      }
                                     }
                                   }
                                   
-                                  displayValue = allExtractedValues;
-                                } else if (typeof value === 'string' && value.match(/^[a-f0-9-]{36}$/i)) {
-                                  // Single column UUID - show all extracted values from that column  
-                                  const columnValidations = validations.filter(v => v.valueId === value && v.extractedValue);
-                                  
-                                  if (columnValidations.length > 0) {
-                                    displayValue = columnValidations.map(v => v.extractedValue);
+                                  if (isArray) {
+                                    return (
+                                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                                        {displayValue.slice(0, 3).map((item: any, idx: number) => (
+                                          <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+                                            {typeof item === 'string' ? item : JSON.stringify(item)}
+                                          </div>
+                                        ))}
+                                        {displayValue.length > 3 && (
+                                          <div className="text-xs text-gray-500 italic px-2">
+                                            ... and {displayValue.length - 3} more
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
                                   } else {
-                                    displayValue = [value.substring(0, 8) + '...'];
+                                    return (
+                                      <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-16 overflow-y-auto">
+                                        {String(displayValue).substring(0, 200) + (String(displayValue).length > 200 ? '...' : '')}
+                                      </div>
+                                    );
                                   }
-                                }
-                              }
-                              
-                              if (isArray) {
-                                return (
-                                  <div className="space-y-1 max-h-24 overflow-y-auto">
-                                    {displayValue.slice(0, 3).map((item: any, idx: number) => (
-                                      <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
-                                        {typeof item === 'string' ? item : JSON.stringify(item)}
-                                      </div>
-                                    ))}
-                                    {displayValue.length > 3 && (
-                                      <div className="text-xs text-gray-500 italic px-2">
-                                        ... and {displayValue.length - 3} more
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              } else {
-                                return (
-                                  <div className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 max-h-16 overflow-y-auto">
-                                    {String(displayValue).substring(0, 200) + (String(displayValue).length > 200 ? '...' : '')}
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </div>
-                        </div>
-                      );
-                    })}
+                                })()}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                );
+              };
+              
+              return (
+                <div className="space-y-4">
+                  {renderInputSection(
+                    documentInputs, 
+                    'documents', 
+                    'Document inputs',
+                    <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />,
+                    'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  )}
+                  {renderInputSection(
+                    textInputs, 
+                    'textdata', 
+                    'Text inputs',
+                    <Database className="h-4 w-4 text-gray-500 dark:text-gray-400" />,
+                    'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  )}
+                </div>
+              );
+            })()}
             
             {/* Collapsible Reference Documents */}
             {knowledgeDocuments && knowledgeDocuments.length > 0 && (
