@@ -959,7 +959,7 @@ def main():
         
         # Handle legacy wizardry format
         if 'document_ids' in input_data and 'session_id' in input_data:
-            print(f"DEBUG: Legacy wizardry format detected - processing with extraction_wizardry.py")
+            # print(f"DEBUG: Legacy wizardry format detected - processing with extraction_wizardry.py")
             # Route to original extraction_wizardry for compatibility
             from extraction_wizardry import run_wizardry
             
