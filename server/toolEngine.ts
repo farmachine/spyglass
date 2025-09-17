@@ -581,10 +581,11 @@ export class ToolEngine {
       } else if (Array.isArray(value)) {
         await logToBrowser(`  ${key}: [Array, ${value.length} items]`);
         if (value.length > 0 && value.length <= 3) {
-          value.forEach((item, idx) => {
+          for (let idx = 0; idx < value.length; idx++) {
+            const item = value[idx];
             const itemStr = typeof item === 'object' ? JSON.stringify(item) : String(item);
             await logToBrowser(`    [${idx}]: ${truncate(itemStr, 200)}`);
-          });
+          }
         } else if (value.length > 3) {
           // Show first 2 items only
           for (let i = 0; i < Math.min(2, value.length); i++) {
