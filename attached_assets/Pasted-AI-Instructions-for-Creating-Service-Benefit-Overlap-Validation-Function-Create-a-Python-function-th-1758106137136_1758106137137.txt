@@ -1,0 +1,102 @@
+AI Instructions for Creating Service-Benefit Overlap Validation Function
+Create a Python function that validates whether members received benefits they were eligible for and didn't receive benefits they weren't eligible for, based on service period overlaps with benefit availability periods.
+Function Requirements
+Input Parameters:
+
+excelDocumentContent: Excel file content (workbook object)
+service_dates: Array of service date configurations per worksheet
+benefits: Array of benefit definitions with availability periods
+
+Service Dates Array Format:
+python[{
+    "Category": "Worksheet Name", 
+    "Service Start Date": "Column name for service start", 
+    "Service End Date": "Column name for service end", 
+    "Member ID": "Column name for member identifier"
+}]
+Benefits Array Format:
+python[{
+    "Scheme Column Equivalent": "Column name (use ' <> ' separator for multiple possible column names)", 
+    "Start Date": "Benefit availability start date (YYYY-MM-DD)", 
+    "End Date": "Benefit availability end date (YYYY-MM-DD)"
+}]
+Processing Logic
+For each worksheet specified in service_dates:
+
+Parse benefit column names: Split "Scheme Column Equivalent" on " <> " separator to get multiple possible column names
+Find existing columns: Check which benefit columns actually exist in the current worksheet
+For each existing benefit column:
+Non-zero benefit validation (Rule A):
+
+Find all rows where benefit amount > 0
+For each such row:
+
+Extract member's service start/end dates
+Check if service period overlaps with benefit availability period
+If NO overlap: Flag as "paid but not eligible"
+
+
+
+Zero benefit validation (Rule B):
+
+Find all rows where benefit amount = 0 (or null/empty)
+For each such row:
+
+Extract member's service start/end dates
+Check if service period overlaps with benefit availability period
+If overlap EXISTS: Flag as "eligible but not paid"
+
+
+
+
+
+Overlap Logic
+Two periods overlap if: max(start1, start2) <= min(end1, end2)
+Output Format
+Return array of validation failures:
+python[{
+    "member_id": "Member identifier",
+    "worksheet": "Worksheet name",
+    "benefit_column": "Column name",
+    "benefit_amount": "Actual benefit amount",
+    "service_start": "Member service start date",
+    "service_end": "Member service end date", 
+    "benefit_period_start": "Benefit availability start",
+    "benefit_period_end": "Benefit availability end",
+    "reason": "paid but not eligible" | "eligible but not paid"
+}]
+Additional Requirements
+
+Handle date parsing with appropriate error handling
+Treat null/empty benefit amounts as zero
+Use case-insensitive column name matching
+Handle missing columns gracefully
+Ensure service start <= service end (swap if needed)
+
+
+My Understanding of the Logic
+This validation implements a bidirectional eligibility check for pension benefits:
+The Two Validation Rules
+
+"Paid but not eligible" - Members who received benefits (amount > 0) but their service period doesn't overlap with when that benefit was available
+"Eligible but not paid" - Members who were in service during a benefit's availability period but received zero benefits
+
+Key Concepts
+Service Period: The time span when a member was actively contributing/working (from service start to service end dates in member records)
+Benefit Availability Period: The calendar period when a specific benefit was offered by the scheme (defined in the benefits array)
+Overlap Logic: A member is eligible for a benefit if their service period has any overlap with the benefit's availability period
+Business Purpose
+This catches data quality issues like:
+
+Overpayments: Benefits paid to members who left before the benefit became available
+Underpayments: Benefits not paid to members who were eligible during their service
+Data integrity: Misaligned service records vs benefit calculations
+
+Example Scenario
+
+Benefit X was available 2015-2020
+Member A served 2010-2014 but received Benefit X → "paid but not eligible"
+Member B served 2016-2019 but received $0 for Benefit X → "eligible but not paid"
+Member C served 2016-2019 and received Benefit X → Valid (no flag)
+
+The function essentially ensures that benefit payments align with service-based eligibility periods.
