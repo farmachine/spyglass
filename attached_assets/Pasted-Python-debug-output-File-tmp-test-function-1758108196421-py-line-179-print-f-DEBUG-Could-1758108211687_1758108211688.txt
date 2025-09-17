@@ -1,0 +1,30 @@
+Python debug output:   File "/tmp/test_function_1758108196421.py", line 179
+    print(f"DEBUG: Could not parse benefit dates: {benefit_config[\"Start Date\"]} to {benefit_config[\"End Date\"]}")
+                                                                                                                     ^
+SyntaxError: f-string expression part cannot include a backslash
+
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Code execution failed: Python process exited with code 1:   File \"/tmp/test_function_1758108196421.py\", line 179\n    print(f\"DEBUG: Could not parse benefit dates: {benefit_config[\\\"Start Date\\\"]} to {benefit_config[\\\"End Date\\\"]}\")\n                                                                                                                     ^\nSyntaxError: f-string expression part cannot include a backslash\n",
+  "confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+🔍 CREATE operation: Filtered 1 results to 0 with actual values
+📊 Processing 0 actual AI results (not creating validations for unprocessed records)
+💾 Saved 0 validation records
+11:23:16 AM [express] POST /api/sessions/eb32b054-5b96-4bd5-be47-44c87949d70d/extract-column 200 in 2299ms :: {"success":true,"message":"Ex…
+11:23:16 AM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Failure","resultsCount":1}
+11:23:16 AM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+11:23:16 AM [browser] 📝 🔄 Invalidating validation queries...
+11:23:16 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+11:23:17 AM [express] GET /api/validations/project/7a573108-18cc-4d87-8e2a-2caf79cc5174 200 in 4ms
+11:23:18 AM [browser] 📝 ✅ Validation queries refreshed
+11:23:18 AM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
