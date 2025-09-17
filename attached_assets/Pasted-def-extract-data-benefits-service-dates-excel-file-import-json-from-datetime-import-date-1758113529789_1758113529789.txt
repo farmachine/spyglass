@@ -1,0 +1,144 @@
+def extract_data(benefits, service_dates, excel_file):
+    import json
+    from datetime import datetime
+
+    results = []
+
+    def parse_date(date_string):
+        if not date_string:
+            return None
+        try:
+            return datetime.strptime(date_string, '%Y-%m-%d')
+        except ValueError:
+            try:
+                return datetime.strptime(date_string, '%m/%d/%Y')
+            except ValueError:
+                return None
+
+    def date_overlap(start1, end1, start2, end2):
+        if not all([start1, end1, start2, end2]):
+            return False
+        return start1 <= end2 and end1 >= start2
+
+    # Parse the extracted Excel content (already in text format)
+    excel_lines = excel_file.strip().split('\n')
+    excel_data = {}
+    current_sheet = None
+    for line in excel_lines:
+        if line.startswith('=== Sheet:'):
+            current_sheet = line.split(': ')[1].strip()
+            excel_data[current_sheet] = {}
+        elif current_sheet and 'headers' not in excel_data[current_sheet]:
+            excel_data[current_sheet]['headers'] = [h.strip() for h in line.split('\t')]
+        elif current_sheet:
+            if 'rows' not in excel_data[current_sheet]:
+                excel_data[current_sheet]['rows'] = []
+            excel_data[current_sheet]['rows'].append([r.strip() for r in line.split('\t')])
+
+    for benefit in benefits:
+        scheme_column_equivalents = benefit.get('Scheme Column Equivalent', '').split(' <> ')
+        benefit_start_date = parse_date(benefit.get('Benefit Start Date'))
+        benefit_end_date = parse_date(benefit.get('Benefit End Date'))
+
+        if benefit_start_date and benefit_end_date and benefit_start_date > benefit_end_date:
+            benefit_start_date, benefit_end_date = benefit_end_date, benefit_start_date
+
+        for worksheet_name, worksheet_data in excel_data.items():
+            headers = worksheet_data.get('headers', [])
+            rows = worksheet_data.get('rows', [])
+
+            benefit_column_index = None
+            for col_index, header in enumerate(headers):
+                if any(col.lower() == header.lower() for col in scheme_column_equivalents):
+                    benefit_column_index = col_index
+                    break
+
+            service_start_col_index = None
+            service_end_col_index = None
+            member_id_col_index = None
+
+            for col_index, header in enumerate(headers):
+                if header.lower() == 'service start date':
+                    service_start_col_index = col_index
+                elif header.lower() == 'service end date':
+                    service_end_col_index = col_index
+                elif header.lower() == 'member id':
+                    member_id_col_index = col_index
+
+            if not all([benefit_column_index is not None, service_start_col_index is not None,
+                        service_end_col_index is not None, member_id_col_index is not None]):
+                continue
+
+            for row_index, row in enumerate(rows):
+                try:
+                    benefit_amount = float(row[benefit_column_index]) if row[benefit_column_index] else 0.0
+                    service_start_date_str = row[service_start_col_index]
+                    service_end_date_str = row[service_end_col_index]
+                    member_id = row[member_id_col_index]
+
+                    service_start_date = parse_date(service_start_date_str)
+                    service_end_date = parse_date(service_end_date_str)
+
+                    if service_start_date and service_end_date and service_start_date > service_end_date:
+                        service_start_date, service_end_date = service_end_date, service_start_date
+
+                    overlap = date_overlap(service_start_date, service_end_date, benefit_start_date, benefit_end_date)
+
+                    benefit_name = scheme_column_equivalents[0] if scheme_column_equivalents else "Unknown Benefit"
+
+                    if benefit_amount > 0:
+                        if not overlap:
+                            extracted_value = f"{member_id} - {benefit_name} - non eligible"
+                            result = {
+                                "extractedValue": extracted_value,
+                                "validationStatus": "valid",
+                                "aiReasoning": "Service period does not overlap with benefit availability period and benefit amount > 0.",
+                                "confidenceScore": 95,
+                                "documentSource": f"{worksheet_name}, Row {row_index + 2}, Column {headers[benefit_column_index]}"
+                            }
+                            results.append(result)
+                        else:
+                            extracted_value = f"{member_id} - {benefit_name} - eligible"
+                            result = {
+                                "extractedValue": extracted_value,
+                                "validationStatus": "valid",
+                                "aiReasoning": "Service period overlaps with benefit availability period and benefit amount > 0.",
+                                "confidenceScore": 95,
+                                "documentSource": f"{worksheet_name}, Row {row_index + 2}, Column {headers[benefit_column_index]}"
+                            }
+                            results.append(result)
+
+                    elif benefit_amount == 0:
+                        if overlap:
+                            extracted_value = f"{member_id} - {benefit_name} - eligible"
+                            result = {
+                                "extractedValue": extracted_value,
+                                "validationStatus": "valid",
+                                "aiReasoning": "Service period overlaps with benefit availability period and benefit amount = 0.",
+                                "confidenceScore": 95,
+                                "documentSource": f"{worksheet_name}, Row {row_index + 2}, Column {headers[benefit_column_index]}"
+                            }
+                            results.append(result)
+                        else:
+                            extracted_value = f"{member_id} - {benefit_name} - non eligible"
+                            result = {
+                                "extractedValue": extracted_value,
+                                "validationStatus": "valid",
+                                "aiReasoning": "Service period does not overlap with benefit availability period and benefit amount = 0.",
+                                "confidenceScore": 95,
+                                "documentSource": f"{worksheet_name}, Row {row_index + 2}, Column {headers[benefit_column_index]}"
+                            }
+                            results.append(result)
+
+                except (ValueError, IndexError) as e:
+                    extracted_value = None
+                    result = {
+                        "extractedValue": extracted_value,
+                        "validationStatus": "invalid",
+                        "aiReasoning": f"Error processing row: {e}",
+                        "confidenceScore": 60,
+                        "documentSource": f"{worksheet_name}, Row {row_index + 2}"
+                    }
+                    results.append(result)
+
+    return json.dumps(results)
