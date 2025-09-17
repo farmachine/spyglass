@@ -8209,14 +8209,15 @@ def extract_function(Column_Name, Excel_File):
       const browserLogger = async (message: string, level = 'log') => {
         console.log(message);
         try {
-          // Forward to browser console via the dev console endpoint
-          await fetch('http://localhost:5000/api/dev/console', {
+          // Forward to browser console via the dev console endpoint AND log to browser
+          const response = await fetch('http://localhost:5000/api/dev/console', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               level,
               message: `📝 ${message}`,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              logToBrowser: true  // Signal that this should also log to actual browser console
             })
           });
         } catch (error) {
@@ -9829,10 +9830,14 @@ def extract_function(Column_Name, Excel_File):
   });
 
 
+  // In-memory store for browser console logs
+  const browserLogs: any[] = [];
+  const MAX_BROWSER_LOGS = 100;
+
   // Development console forwarding endpoint
   app.post("/api/dev/console", (req, res) => {
     try {
-      const { level, message, timestamp } = req.body;
+      const { level, message, timestamp, logToBrowser } = req.body;
       
       // Filter out noisy console messages to improve readability
       if (message.includes("CollectionCard - Props received") ||
@@ -9861,9 +9866,43 @@ def extract_function(Column_Name, Excel_File):
       const prefix = prefixes[level] || '📝';
       log(`${prefix} ${cleanMessage}`, 'browser');
       
+      // If logToBrowser flag is set, store for browser consumption
+      if (req.body.logToBrowser) {
+        const logEntry = {
+          level,
+          message: cleanMessage,
+          timestamp,
+          id: Date.now() + Math.random() // Simple unique ID
+        };
+        browserLogs.push(logEntry);
+        
+        // Keep only the most recent logs
+        if (browserLogs.length > MAX_BROWSER_LOGS) {
+          browserLogs.splice(0, browserLogs.length - MAX_BROWSER_LOGS);
+        }
+      }
+      
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(500).json({ success: false });
+    }
+  });
+
+  // Browser logs fetch endpoint  
+  app.get("/api/dev/browser-logs", (req, res) => {
+    try {
+      const { since } = req.query;
+      let logs = browserLogs;
+      
+      // If 'since' parameter is provided, filter logs after that timestamp
+      if (since) {
+        const sinceTime = parseInt(since as string);
+        logs = browserLogs.filter(log => log.id > sinceTime);
+      }
+      
+      res.status(200).json({ logs });
+    } catch (error) {
+      res.status(500).json({ logs: [] });
     }
   });
 

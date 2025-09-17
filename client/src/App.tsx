@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useEffect, useRef } from "react";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
 // import SessionReview from "@/pages/SessionReview";
@@ -90,12 +91,43 @@ function Router() {
   );
 }
 
+// Browser console logging component
+function BrowserConsoleLogger() {
+  const lastLogId = useRef<number>(0);
+  
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/dev/browser-logs?since=${lastLogId.current}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.logs && data.logs.length > 0) {
+            data.logs.forEach((log: any) => {
+              // Log to actual browser console based on level
+              const consoleFn = console[log.level] || console.log;
+              consoleFn(`🔧 [Tool Debug] ${log.message}`);
+              lastLogId.current = Math.max(lastLogId.current, log.id);
+            });
+          }
+        }
+      } catch (error) {
+        // Silently ignore polling errors to avoid spam
+      }
+    }, 1000); // Poll every second
+    
+    return () => clearInterval(pollInterval);
+  }, []);
+  
+  return null; // This component doesn't render anything
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
+            <BrowserConsoleLogger />
             <Toaster />
             <Router />
           </AuthProvider>
