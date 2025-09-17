@@ -646,7 +646,7 @@ export class MemStorage implements IStorage {
         collectionName: "Line Items",
         recordIndex: 0,
         extractedValue: "25.5",
-        validationStatus: "invalid" as const,
+        validationStatus: "pending" as const,
         aiReasoning: "Price format appears correct but may need verification against source document",
         manuallyVerified: false,
         confidenceScore: 72
@@ -1673,7 +1673,78 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     this.fieldValidations.set(id, validation);
+
+    // Check if this is an identifier field - if so, auto-create row
+    if (insertValidation.valueId && insertValidation.identifierId) {
+      const stepValue = await this.getStepValueById(insertValidation.valueId);
+      if (stepValue?.isIdentifier) {
+        await this.createCompleteRowForIdentifier(insertValidation.sessionId!, insertValidation.stepId!, insertValidation.identifierId);
+      }
+    }
+
     return validation;
+  }
+
+  private async createCompleteRowForIdentifier(sessionId: string, stepId: string, identifierId: string): Promise<void> {
+    try {
+      console.log(`🏗️ Creating complete row for identifier ${identifierId} in step ${stepId}`);
+      
+      // Get all step values for this step
+      const allStepValues = Array.from(this.stepValues.values())
+        .filter(value => value.stepId === stepId)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
+      if (allStepValues.length === 0) {
+        console.log(`No step values found for step ${stepId}`);
+        return;
+      }
+
+      // Create field validations for all columns in this row
+      for (const stepValue of allStepValues) {
+        // Check if field validation already exists
+        const existingValidation = Array.from(this.fieldValidations.values())
+          .find(v => 
+            v.sessionId === sessionId &&
+            v.stepId === stepId &&
+            v.valueId === stepValue.id &&
+            v.identifierId === identifierId
+          );
+
+        if (!existingValidation) {
+          console.log(`Creating field validation for ${stepValue.valueName} in row ${identifierId}`);
+          
+          const fieldValidationData: InsertFieldValidation = {
+            sessionId,
+            stepId,
+            valueId: stepValue.id,
+            identifierId,
+            validationType: 'step_value', // New type for step-based validations
+            dataType: stepValue.dataType,
+            fieldId: stepValue.id, // Use stepValue.id as fieldId for consistency
+            extractedValue: null,
+            validationStatus: 'pending' as const,
+            aiReasoning: null,
+            manuallyVerified: false,
+            manuallyUpdated: false,
+            confidenceScore: 0
+          };
+
+          const newFieldValidation: FieldValidation = {
+            ...fieldValidationData,
+            id: this.generateUUID(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          this.fieldValidations.set(newFieldValidation.id, newFieldValidation);
+          console.log(`✅ Created field validation for ${stepValue.valueName}`);
+        } else {
+          console.log(`Field validation already exists for ${stepValue.valueName} in row ${identifierId}`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error creating complete row for identifier ${identifierId}:`, error);
+    }
   }
 
   async updateFieldValidation(id: string, updateData: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> {
@@ -3168,7 +3239,78 @@ class PostgreSQLStorage implements IStorage {
 
   async createFieldValidation(validation: InsertFieldValidation): Promise<FieldValidation> { 
     const result = await this.db.insert(fieldValidations).values(validation).returning();
-    return result[0];
+    const createdValidation = result[0];
+
+    // Check if this is an identifier field - if so, auto-create row
+    if (validation.valueId && validation.identifierId) {
+      const stepValue = await this.getStepValueById(validation.valueId);
+      if (stepValue?.isIdentifier) {
+        await this.createCompleteRowForIdentifier(validation.sessionId!, validation.stepId!, validation.identifierId);
+      }
+    }
+
+    return createdValidation;
+  }
+
+  private async createCompleteRowForIdentifier(sessionId: string, stepId: string, identifierId: string): Promise<void> {
+    try {
+      console.log(`🏗️ Creating complete row for identifier ${identifierId} in step ${stepId}`);
+      
+      // Get all step values for this step
+      const allStepValues = await this.db
+        .select()
+        .from(stepValues)
+        .where(eq(stepValues.stepId, stepId))
+        .orderBy(stepValues.orderIndex);
+
+      if (allStepValues.length === 0) {
+        console.log(`No step values found for step ${stepId}`);
+        return;
+      }
+
+      // Create field validations for all columns in this row
+      for (const stepValue of allStepValues) {
+        // Check if field validation already exists
+        const existingValidations = await this.db
+          .select()
+          .from(fieldValidations)
+          .where(
+            and(
+              eq(fieldValidations.sessionId, sessionId),
+              eq(fieldValidations.stepId, stepId),
+              eq(fieldValidations.valueId, stepValue.id),
+              eq(fieldValidations.identifierId, identifierId)
+            )
+          );
+
+        if (existingValidations.length === 0) {
+          console.log(`Creating field validation for ${stepValue.valueName} in row ${identifierId}`);
+          
+          const fieldValidationData: InsertFieldValidation = {
+            sessionId,
+            stepId,
+            valueId: stepValue.id,
+            identifierId,
+            validationType: 'step_value', // New type for step-based validations
+            dataType: stepValue.dataType,
+            fieldId: stepValue.id, // Use stepValue.id as fieldId for consistency
+            extractedValue: null,
+            validationStatus: 'pending' as const,
+            aiReasoning: null,
+            manuallyVerified: false,
+            manuallyUpdated: false,
+            confidenceScore: 0
+          };
+
+          await this.db.insert(fieldValidations).values(fieldValidationData);
+          console.log(`✅ Created field validation for ${stepValue.valueName}`);
+        } else {
+          console.log(`Field validation already exists for ${stepValue.valueName} in row ${identifierId}`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error creating complete row for identifier ${identifierId}:`, error);
+    }
   }
   async updateFieldValidation(id: string, validation: Partial<InsertFieldValidation>): Promise<FieldValidation | undefined> { 
     const result = await this.db.update(fieldValidations).set(validation).where(eq(fieldValidations.id, id)).returning();
