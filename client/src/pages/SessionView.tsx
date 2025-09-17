@@ -3457,8 +3457,8 @@ export default function SessionView() {
 
     console.log(`Found ${nonValidatedValidations.length} non-validated validations to delete for ${collectionName}`);
     
-    // Confirm before deleting non-validated data
-    if (!confirm(`Are you sure you want to delete all non-validated data from the "${collectionName}" collection? This will remove ${nonValidatedValidations.length} records. Manually set values and verified data will be preserved. This action cannot be undone.`)) {
+    // Confirm before deleting non-validated data  
+    if (!confirm(`Delete ${nonValidatedValidations.length} non-validated records from "${collectionName}"?\n\nThis will remove only pending, unverified, extracted, and invalid data. Verified and manual entries will be preserved.\n\nThis action cannot be undone.`)) {
       return;
     }
 
