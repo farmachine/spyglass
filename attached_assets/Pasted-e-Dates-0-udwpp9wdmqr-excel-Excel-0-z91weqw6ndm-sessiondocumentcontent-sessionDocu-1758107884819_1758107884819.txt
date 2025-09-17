@@ -1,0 +1,23 @@
+e Dates', '0.udwpp9wdmqr', 'excel', 'Excel', '0.z91weqw6ndm', 'sessiondocumentcontent', 'sessionDocumentContent']
+DEBUG: Input 'benefits' is array with 19 items
+DEBUG: First item of 'benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input 'Benefits' is array with 19 items
+DEBUG: First item of 'Benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input '0.uzcgmuxuaa' is array with 19 items
+DEBUG: First item of '0.uzcgmuxuaa': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input 'service_dates' is array with 5 items
+DEBUG: First item of 'service_dates': {'Category': 'Widows', 'Service Start Date': 'Date Became Widow(er) Beneficiary', 'Service End Date': 'Date Of Exit From Widow(er) Beneficiary Status', 'Member ID': "Widow(er)'s Reference No"}
+DEBUG: Input 'Service Dates' is array with 5 items
+DEBUG: First item of 'Service Dates': {'Category': 'Widows', 'Service Start Date': 'Date Became Widow(er) Beneficiary', 'Service End Date': 'Date Of Exit From Widow(er) Beneficiary Status', 'Member ID': "Widow(er)'s Reference No"}
+DEBUG: Input '0.udwpp9wdmqr' is array with 5 items
+DEBUG: First item of '0.udwpp9wdmqr': {'Category': 'Widows', 'Service Start Date': 'Date Became Widow(er) Beneficiary', 'Service End Date': 'Date Of Exit From Widow(er) Beneficiary Status', 'Member ID': "Widow(er)'s Reference No"}
+DEBUG: Input 'excel' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'Excel' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input '0.z91weqw6ndm' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessiondocumentcontent' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessionDocumentContent' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
