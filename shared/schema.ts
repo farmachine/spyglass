@@ -28,7 +28,8 @@
  * - Zod schemas for form validation and API requests
  */
 
-import { pgTable, text, serial, integer, boolean, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -216,7 +217,29 @@ export const fieldValidations = pgTable("field_validations", {
   documentSections: text("document_sections"), // sections where data was found (JSON array)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Unique constraint for step-based validations (new architecture)
+  stepValidationUnique: uniqueIndex('step_validation_unique').on(
+    table.sessionId, 
+    table.stepId, 
+    table.valueId, 
+    table.identifierId
+  ).where(sql`step_id IS NOT NULL AND value_id IS NOT NULL AND identifier_id IS NOT NULL`),
+  
+  // Unique constraint for legacy collection validations  
+  legacyValidationUnique: uniqueIndex('legacy_validation_unique').on(
+    table.sessionId,
+    table.fieldId, 
+    table.collectionId,
+    table.recordIndex
+  ).where(sql`validation_type = 'collection_property' AND collection_id IS NOT NULL`),
+  
+  // Unique constraint for schema field validations
+  schemaFieldValidationUnique: uniqueIndex('schema_field_validation_unique').on(
+    table.sessionId,
+    table.fieldId
+  ).where(sql`validation_type = 'schema_field'`),
+}));
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
