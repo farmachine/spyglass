@@ -140,7 +140,7 @@ def excel_column_extraction(document_ids, session_id, target_fields_data):
                     print("\n" + "=" * 80)
                     print("EXECUTING GENERATED FUNCTION")
                     print("=" * 80)
-                    print(f"Processing document: {file_name}")
+                    print(f"Processing document: {file_name}", file=sys.stderr, flush=True)
                     
                     # Create a safe execution environment
                     exec_globals = {

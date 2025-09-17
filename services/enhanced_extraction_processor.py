@@ -470,7 +470,7 @@ Your response must maintain the identifierId mapping for all processed items.
         has_instructions = False
         for param_key, param_value in input_values.items():
             # Log what we're processing for debugging
-            print(f"  Processing inputValue [{param_key}]: {param_value[:100] if isinstance(param_value, str) else param_value}")
+            print(f"  Processing inputValue [{param_key}]: {param_value[:100] if isinstance(param_value, str) else param_value}", file=sys.stderr, flush=True)
             
             # Extract the AI instruction from input values
             if isinstance(param_value, str):
@@ -549,7 +549,7 @@ Your response must maintain the identifierId mapping for all processed items.
     # 6. ACTUAL INPUT DATA - Include the actual data to process
     actual_input_data = ""
     if input_data:
-        print(f"   📝 Processing input_data with {len(input_data)} keys: {list(input_data.keys())}")
+        print(f"   📝 Processing input_data with {len(input_data)} keys: {list(input_data.keys())}", file=sys.stderr, flush=True)
         actual_input_data = "\nACTUAL INPUT DATA TO PROCESS:\n"
         
         # Check if we have Input Data that contains column data for cross-referencing
@@ -669,7 +669,7 @@ def execute_ai_extraction(tool_data: Dict[str, Any], value_data: Dict[str, Any],
         
         # Log incoming data structure
         value_name = value_data.get('valueName', '') or value_data.get('value_name', '')
-        print(f"🤖 AI EXTRACTION: Processing {value_name}")
+        print(f"🤖 AI EXTRACTION: Processing {value_name}", file=sys.stderr, flush=True)
         print(f"   📊 Input data structure:")
         if 'previous_data' in input_data:
             prev_data = input_data['previous_data']
@@ -767,7 +767,7 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
             field_id = prop['id']
             extraction_type = prop.get('extraction_type', 'AI')
             
-            print(f"\n🔄 Processing {prop['property_name']} ({extraction_type})")
+            print(f"\n🔄 Processing {prop['property_name']} ({extraction_type})", file=sys.stderr, flush=True)
             
             # Get input values configuration if available
             input_values_config = {}
@@ -855,7 +855,7 @@ def process_enhanced_extraction(input_data: Dict[str, Any]) -> Dict[str, Any]:
             field_id = field['id']
             extraction_type = field.get('extraction_type', 'AI')
             
-            print(f"\n🔄 Processing {field['field_name']} ({extraction_type})")
+            print(f"\n🔄 Processing {field['field_name']} ({extraction_type})", file=sys.stderr, flush=True)
             
             # Get input values configuration if available
             input_values_config = {}

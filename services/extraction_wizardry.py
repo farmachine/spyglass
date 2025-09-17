@@ -1165,7 +1165,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0, llm_model=
                                         print("=" * 80)
                                         print(f"Next extraction number: {next_extraction_number}")
                                         print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
-                                        print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
+                                        print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed", file=sys.stderr, flush=True)
                                         
                                         # Load merged identifier references from database for next run
                                         merged_references = load_merged_identifier_references_from_db(session_id, extraction_number)
@@ -1595,7 +1595,7 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0, llm_model=
             print("=" * 80)
             print(f"Next extraction number: {next_extraction_number}")
             print(f"Target field: {target_fields[next_extraction_number].get('propertyName', 'Unknown') if target_fields else 'None'}")
-            print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed")
+            print(f"Progress: {next_extraction_number}/{total_target_fields} fields processed", file=sys.stderr, flush=True)
             
             # Create new data object with updated target fields and identifier references
             rerun_data = {
