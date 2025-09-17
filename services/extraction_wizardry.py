@@ -141,9 +141,9 @@ def log_remaining_collection_fields(extracted_results, all_collection_properties
         print("EXTRACTION PROGRESS TRACKING", flush=True)
         print("=" * 80, flush=True)
         
-        # Debug: Show what data we received
-        print(f"DEBUG: Received {len(extracted_results)} extracted results", flush=True)
-        print(f"DEBUG: Received {len(all_collection_properties)} collection properties", flush=True)
+        # Debug: Show what data we received  
+        # print(f"DEBUG: Received {len(extracted_results)} extracted results", flush=True)
+        # print(f"DEBUG: Received {len(all_collection_properties)} collection properties", flush=True)
         
         if not all_collection_properties:
             print("No collection properties data provided", flush=True)
