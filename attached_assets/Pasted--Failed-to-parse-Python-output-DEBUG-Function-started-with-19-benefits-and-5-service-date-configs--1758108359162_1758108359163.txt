@@ -1,0 +1,30 @@
+
+Failed to parse Python output: DEBUG: Function started with 19 benefits and 5 service date configs
+DEBUG: Filtered to 12 benefits
+DEBUG: First benefit: {'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member', 'Start Date': '1978-04-06', 'End Date': '1997-04-05'}
+DEBUG: Filtered to 5 service date configs
+DEBUG: First service date config: {'Category': 'Widows', 'Service Start Date': 'Date Became Widow(er) Beneficiary', 'Service End Date': 'Date Of Exit From Widow(er) Beneficiary Status', 'Member ID': "Widow(er)'s Reference No"}
+DEBUG: Processing 1948 lines from Excel content
+DEBUG: Found sheet: Active deferreds ===
+DEBUG: Headers for Active deferreds ===: ['Valuation Record Type', "Member's Reference No", 'Employer Code', 'Benefits Scale Code', 'Sex Code']...
+DEBUG: Found sheet: Deferreds ===
+DEBUG: Headers for Deferreds ===: ['Valuation Record Type', "Member's Reference No", 'Employer Code', 'Benefits Scale Code', 'Sex Code']...
+DEBUG: Found sheet: Pensioners ===
+DEBUG: Headers for Pensioners ===: ["Member's Reference No", 'Employer Code', 'Sex Code', 'Date Of Birth', 'Date Became Pensioner']...
+DEBUG: Found sheet: Widows ===
+DEBUG: Headers for Widows ===: ['Valuation Record Type', "Widow(er)'s Reference No", "Deceased Member's Reference No", "Beneficiary's Code", "Widow(er)'s Date Of Birth"]...
+DEBUG: Found sheet: Children ===
+DEBUG: Headers for Children ===: ['Valuation Record Type', "Child's Reference No", 'Deceased members reference no', "Child's Date of Birth", "Date Child'sPension Commenced"]...
+DEBUG: Found 5 sheets: ['Active deferreds ===', 'Deferreds ===', 'Pensioners ===', 'Widows ===', 'Children ===']
+DEBUG: Processing worksheet: Widows
+DEBUG: Worksheet Widows not found in Excel data
+DEBUG: Processing worksheet: Deferreds
+DEBUG: Worksheet Deferreds not found in Excel data
+DEBUG: Processing worksheet: Active deferreds
+DEBUG: Worksheet Active deferreds not found in Excel data
+DEBUG: Processing worksheet: Pensioners
+DEBUG: Worksheet Pensioners not found in Excel data
+DEBUG: Processing worksheet: Children
+DEBUG: Worksheet Children not found in Excel data
+DEBUG: Found 0 total validation failures
+[]
