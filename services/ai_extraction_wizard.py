@@ -124,7 +124,7 @@ def ai_document_extraction(document_ids, session_id, target_fields_data, identif
         return perform_ai_extraction(documents_content, target_fields_data, extraction_rules, knowledge_documents, identifier_references)
         
     except Exception as e:
-        print(f"Error in ai_document_extraction: {e}")
+        print(f"Error in ai_document_extraction: {e}", file=sys.stderr, flush=True)
         return {"error": str(e)}
 
 def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowledge_documents, identifier_references=None):
@@ -153,20 +153,20 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
                 extraction_number=0  # Default extraction number for AI extraction
             )
             
-            print("\n" + "=" * 80, flush=True)
-            print(f"PERFORMING AI DOCUMENT EXTRACTION (Attempt {attempt + 1}/{max_retries})", flush=True)
-            print("=" * 80, flush=True)
-            print(f"Documents: {len(documents)}", flush=True)
-            print(f"Target fields: {len(target_fields_data)}", flush=True)
-            print(f"Extraction rules: {len(extraction_rules['global']) + len(extraction_rules['targeted'])}", flush=True)
-            print(f"Knowledge documents: {len(knowledge_documents)}", flush=True)
+            print("\n" + "=" * 80, file=sys.stderr, flush=True)
+            print(f"PERFORMING AI DOCUMENT EXTRACTION (Attempt {attempt + 1}/{max_retries})", file=sys.stderr, flush=True)
+            print("=" * 80, file=sys.stderr, flush=True)
+            print(f"Documents: {len(documents)}", file=sys.stderr, flush=True)
+            print(f"Target fields: {len(target_fields_data)}", file=sys.stderr, flush=True)
+            print(f"Extraction rules: {len(extraction_rules['global']) + len(extraction_rules['targeted'])}", file=sys.stderr, flush=True)
+            print(f"Knowledge documents: {len(knowledge_documents)}", file=sys.stderr, flush=True)
             
             # Log the complete AI extraction prompt
-            print("\n" + "=" * 80, flush=True)
-            print("AI EXTRACTION PROMPT (COMPLETE)", flush=True)
-            print("=" * 80, flush=True)
-            print(prompt, flush=True)
-            print("=" * 80, flush=True)
+            print("\n" + "=" * 80, file=sys.stderr, flush=True)
+            print("AI EXTRACTION PROMPT (COMPLETE)", file=sys.stderr, flush=True)
+            print("=" * 80, file=sys.stderr, flush=True)
+            print(prompt, file=sys.stderr, flush=True)
+            print("=" * 80, file=sys.stderr, flush=True)
             
             response = client.models.generate_content(
                 model="gemini-2.5-pro",
@@ -190,13 +190,13 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
             try:
                 extraction_results = json.loads(extracted_data)
                 if isinstance(extraction_results, list):
-                    print(f"Successfully extracted {len(extraction_results)} records", flush=True)
-                    print("AI EXTRACTION RESPONSE:", flush=True)
-                    print(json.dumps(extraction_results[:2], indent=2), flush=True)  # Show first 2 records
-                    print("=" * 80, flush=True)
+                    print(f"Successfully extracted {len(extraction_results)} records", file=sys.stderr, flush=True)
+                    print("AI EXTRACTION RESPONSE:", file=sys.stderr, flush=True)
+                    print(json.dumps(extraction_results[:2], indent=2), file=sys.stderr, flush=True)  # Show first 2 records
+                    print("=" * 80, file=sys.stderr, flush=True)
                     return extraction_results
                 else:
-                    print(f"Invalid response format (attempt {attempt + 1}): Expected array, got {type(extraction_results)}", flush=True)
+                    print(f"Invalid response format (attempt {attempt + 1}): Expected array, got {type(extraction_results)}", file=sys.stderr, flush=True)
                     if attempt < max_retries - 1:
                         continue
                     else:
