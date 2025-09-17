@@ -156,6 +156,27 @@ async function processWorkflowTestAsync(
       jobManager.updateProgress(jobId, current, total, message);
     };
     
+    // Create browser logger function for debugging
+    const browserLogger = async (message: string, level = 'log') => {
+      console.log(message);
+      try {
+        const logEntry = {
+          id: Date.now() + Math.random(), // Simple unique ID
+          message: message,
+          level: level,
+          timestamp: Date.now()
+        };
+        browserLogs.push(logEntry);
+        
+        // Keep only last 100 logs to prevent memory issues
+        if (browserLogs.length > 100) {
+          browserLogs.shift();
+        }
+      } catch (error) {
+        // Ignore logging errors to prevent disruption
+      }
+    };
+    
     // Add valueConfiguration to inputs for automatic incremental data
     const enrichedInputs = {
       ...preparedInputValues,
@@ -176,7 +197,8 @@ async function processWorkflowTestAsync(
       enrichedInputs,
       documentContent,
       null,
-      progressCallback
+      progressCallback,
+      browserLogger
     );
     
     clearInterval(progressInterval);
@@ -6570,7 +6592,28 @@ def extract_function(Column_Name, Excel_File):
           metadata: func.metadata || {}
         };
         
-        testResults = await toolEngine.testTool(tool, inputs);
+        // Create browser logger function for debugging
+        const browserLogger = async (message: string, level = 'log') => {
+          console.log(message);
+          try {
+            const logEntry = {
+              id: Date.now() + Math.random(), // Simple unique ID
+              message: message,
+              level: level,
+              timestamp: Date.now()
+            };
+            browserLogs.push(logEntry);
+            
+            // Keep only last 100 logs to prevent memory issues
+            if (browserLogs.length > 100) {
+              browserLogs.shift();
+            }
+          } catch (error) {
+            // Ignore logging errors to prevent disruption
+          }
+        };
+        
+        testResults = await toolEngine.testTool(tool, inputs, undefined, undefined, undefined, browserLogger);
         await logToBrowser('✅ Tool execution completed');
         
       } catch (error) {
@@ -8231,19 +8274,20 @@ def extract_function(Column_Name, Excel_File):
       const browserLogger = async (message: string, level = 'log') => {
         console.log(message);
         try {
-          // Forward to browser console via the dev console endpoint AND log to browser
-          const response = await fetch('http://localhost:5000/api/dev/console', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              level,
-              message: `📝 ${message}`,
-              timestamp: new Date().toISOString(),
-              logToBrowser: true  // Signal that this should also log to actual browser console
-            })
-          });
+          const logEntry = {
+            id: Date.now() + Math.random(), // Simple unique ID
+            message: message,
+            level: level,
+            timestamp: Date.now()
+          };
+          browserLogs.push(logEntry);
+          
+          // Keep only last 100 logs to prevent memory issues
+          if (browserLogs.length > 100) {
+            browserLogs.shift();
+          }
         } catch (error) {
-          // Ignore fetch errors to avoid breaking the extraction
+          // Ignore logging errors to prevent disruption
         }
       };
       
