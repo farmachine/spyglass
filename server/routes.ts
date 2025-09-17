@@ -7605,8 +7605,13 @@ def extract_function(Column_Name, Excel_File):
                       console.log(`  📋 Processing step ${actualStepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
                       
-                      // Build complete row objects
+                      // Build row objects filtered by expectedFields configuration
                       const rowsByIdentifier = new Map<string, any>();
+                      
+                      // Check if parameter has expectedFields configuration
+                      const expectedFields = param.expectedFields;
+                      console.log(`    Parameter ${param.name} expectedFields:`, expectedFields);
+                      
                       for (const validation of stepValidations) {
                         if (!validation.identifierId) continue;
                         
@@ -7617,7 +7622,13 @@ def extract_function(Column_Name, Excel_File):
                         // Find the column name for this validation
                         const stepValue = stepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
                         if (stepValue) {
-                          rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+                          // Only include field if it's in expectedFields (or if no expectedFields specified)
+                          if (!expectedFields || expectedFields.includes(stepValue.valueName)) {
+                            rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+                            console.log(`      ✅ Including field: ${stepValue.valueName}`);
+                          } else {
+                            console.log(`      ❌ Skipping field: ${stepValue.valueName} (not in expectedFields)`);
+                          }
                         }
                       }
                       
@@ -7975,8 +7986,13 @@ def extract_function(Column_Name, Excel_File):
                       console.log(`  📋 Processing step ${actualStepId} for value ${valueInfo.valueName}`);
                       console.log(`    Found ${stepValidations.length} validations, ${stepValues.length} columns`);
                       
-                      // Build complete row objects
+                      // Build row objects filtered by expectedFields configuration
                       const rowsByIdentifier = new Map<string, any>();
+                      
+                      // Check if parameter has expectedFields configuration
+                      const expectedFields = param.expectedFields;
+                      console.log(`    Parameter ${param.name} expectedFields:`, expectedFields);
+                      
                       for (const validation of stepValidations) {
                         if (!validation.identifierId) continue;
                         
@@ -7987,7 +8003,13 @@ def extract_function(Column_Name, Excel_File):
                         // Find the column name for this validation
                         const stepValue = stepValues.find(v => v.id === validation.valueId || v.id === validation.fieldId);
                         if (stepValue) {
-                          rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+                          // Only include field if it's in expectedFields (or if no expectedFields specified)
+                          if (!expectedFields || expectedFields.includes(stepValue.valueName)) {
+                            rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue;
+                            console.log(`      ✅ Including field: ${stepValue.valueName}`);
+                          } else {
+                            console.log(`      ❌ Skipping field: ${stepValue.valueName} (not in expectedFields)`);
+                          }
                         }
                       }
                       
