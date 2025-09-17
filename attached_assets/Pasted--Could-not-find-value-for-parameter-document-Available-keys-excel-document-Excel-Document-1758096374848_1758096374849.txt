@@ -1,0 +1,18 @@
+⚠️ Could not find value for parameter 'document'. Available keys: ['excel_document', 'Excel Document', '0.bfwtbvzx5r7', 'sessiondocumentcontent', 'sessionDocumentContent']
+Error: extract_data() missing 1 required positional argument: 'document'
+Traceback (most recent call last):
+  File "/tmp/test_function_1758096345012.py", line 150, in <module>
+    result = func(**filtered_inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: extract_data() missing 1 required positional argument: 'document'
+
+
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Code execution failed: Python process exited with code 1: DEBUG: Received inputs keys: ['excel_document', 'Excel Document', '0.bfwtbvzx5r7', 'sessiondocumentcontent', 'sessionDocumentContent']\nDEBUG: Input 'excel_document' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'Excel Document' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input '0.bfwtbvzx5r7' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessiondocumentcontent' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessionDocumentContent' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\n⚠️ Could not find value for parameter 'document'. Available keys: ['excel_document', 'Excel Document', '0.bfwtbvzx5r7', 'sessiondocumentcontent', 'sessionDocumentContent']\nError: extract_data() missing 1 required positional argument: 'document'\nTraceback (most recent call last):\n  File \"/tmp/test_function_1758096345012.py\", line 150, in <module>\n    result = func(**filtered_inputs)\n             ^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: extract_data() missing 1 required positional argument: 'document'\n\n",
+  "confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}

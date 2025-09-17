@@ -3436,6 +3436,93 @@ export default function SessionView() {
     }
   };
 
+  const handleDeleteNonValidatedData = async (collectionName: string) => {
+    // Non-validated statuses that should be deleted: pending, unverified, extracted, invalid
+    // Validated statuses that should NOT be deleted: valid, verified, manual
+    const nonValidatedStatuses = ['pending', 'unverified', 'extracted', 'invalid'];
+    
+    // Find all non-validated field validations for this collection
+    const nonValidatedValidations = validations.filter(v => {
+      // First check if it belongs to this collection
+      let belongsToCollection = false;
+      if (v.collectionName === collectionName) {
+        belongsToCollection = true;
+      } else if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+        belongsToCollection = true;
+      }
+      
+      // If it belongs to the collection, check if it's non-validated
+      return belongsToCollection && nonValidatedStatuses.includes(v.validationStatus);
+    });
+
+    console.log(`Found ${nonValidatedValidations.length} non-validated validations to delete for ${collectionName}`);
+    
+    // Confirm before deleting non-validated data
+    if (!confirm(`Are you sure you want to delete all non-validated data from the "${collectionName}" collection? This will remove ${nonValidatedValidations.length} records. Manually set values and verified data will be preserved. This action cannot be undone.`)) {
+      return;
+    }
+
+    if (nonValidatedValidations.length === 0) {
+      console.warn(`No non-validated validations found for ${collectionName} - nothing to delete`);
+      return;
+    }
+
+    console.log(`Deleting ${nonValidatedValidations.length} non-validated validations from collection: ${collectionName}`);
+
+    // Optimistic update: Remove non-validated items from cache for this collection
+    queryClient.setQueryData(['/api/sessions', sessionId, 'validations'], (old: any) => {
+      if (!old) return old;
+      return old.filter((v: any) => {
+        // Keep items that don't belong to this collection
+        let belongsToCollection = false;
+        if (v.collectionName === collectionName) {
+          belongsToCollection = true;
+        } else if (v.collectionName === null && v.fieldName && v.fieldName.startsWith(`${collectionName}.`)) {
+          belongsToCollection = true;
+        }
+        
+        // If it doesn't belong to this collection, keep it
+        if (!belongsToCollection) {
+          return true;
+        }
+        
+        // If it belongs to this collection, only keep validated items
+        return !nonValidatedStatuses.includes(v.validationStatus);
+      });
+    });
+    
+    try {
+      // Delete all non-validated validation records for this collection
+      const deletePromises = nonValidatedValidations.map(validation => {
+        console.log(`Deleting non-validated record: ${validation.id} (${validation.fieldName}) - Status: ${validation.validationStatus}`);
+        return apiRequest(`/api/validations/${validation.id}`, {
+          method: 'DELETE'
+        });
+      });
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Successfully deleted ${nonValidatedValidations.length} non-validated validation records for ${collectionName}`);
+      
+      // Force complete cache refresh - remove the query data first, then invalidate
+      queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      
+      // Also refresh the session data
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+    } catch (error) {
+      console.error('Error deleting non-validated collection data:', error);
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      // Force complete refresh on error
+      queryClient.removeQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+    }
+  };
+
   // Auto-validation removed - validation now occurs only during extraction process
 
   if (projectLoading || sessionLoading || validationsLoading) {
