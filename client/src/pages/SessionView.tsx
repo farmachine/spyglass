@@ -6087,6 +6087,13 @@ Thank you for your assistance.`;
                                         <X className="h-4 w-4 mr-2 text-gray-600" />
                                         Delete all data
                                       </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteNonValidatedData(collection.collectionName)}
+                                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                      >
+                                        <AlertTriangle className="h-4 w-4 mr-2 text-gray-600" />
+                                        Delete All Non Validated Data
+                                      </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
