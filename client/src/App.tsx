@@ -91,48 +91,6 @@ function Router() {
   );
 }
 
-// Simple browser console logging - polls every 5 seconds when page is active
-function BrowserConsoleLogger() {
-  const lastLogId = useRef<number>(0);
-  
-  useEffect(() => {
-    let isActive = true;
-    
-    const pollLogs = async () => {
-      if (!isActive) return;
-      
-      try {
-        const response = await fetch(`/api/dev/browser-logs?since=${lastLogId.current}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.logs && data.logs.length > 0) {
-            data.logs.forEach((log: any) => {
-              // Log to actual browser console based on level
-              const consoleFn = console[log.level] || console.log;
-              consoleFn(`🔧 [Tool Debug] ${log.message}`);
-              lastLogId.current = Math.max(lastLogId.current, log.id);
-            });
-          }
-        }
-      } catch (error) {
-        // Silently ignore polling errors
-      }
-    };
-    
-    // Initial poll
-    pollLogs();
-    
-    // Poll every 5 seconds (reasonable for debugging)
-    const pollInterval = setInterval(pollLogs, 5000);
-    
-    return () => {
-      isActive = false;
-      clearInterval(pollInterval);
-    };
-  }, []);
-  
-  return null;
-}
 
 function App() {
   return (
@@ -140,7 +98,6 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
-            <BrowserConsoleLogger />
             <Toaster />
             <Router />
           </AuthProvider>

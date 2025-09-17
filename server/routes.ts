@@ -156,26 +156,6 @@ async function processWorkflowTestAsync(
       jobManager.updateProgress(jobId, current, total, message);
     };
     
-    // Create browser logger function for debugging
-    const browserLogger = async (message: string, level = 'log') => {
-      console.log(message);
-      try {
-        const logEntry = {
-          id: Date.now() + Math.random(), // Simple unique ID
-          message: message,
-          level: level,
-          timestamp: Date.now()
-        };
-        browserLogs.push(logEntry);
-        
-        // Keep only last 100 logs to prevent memory issues
-        if (browserLogs.length > 100) {
-          browserLogs.shift();
-        }
-      } catch (error) {
-        // Ignore logging errors to prevent disruption
-      }
-    };
     
     // Add valueConfiguration to inputs for automatic incremental data
     const enrichedInputs = {
@@ -197,8 +177,7 @@ async function processWorkflowTestAsync(
       enrichedInputs,
       documentContent,
       null,
-      progressCallback,
-      browserLogger
+      progressCallback
     );
     
     clearInterval(progressInterval);
@@ -2552,26 +2531,7 @@ except Exception as e:
         // Log what we're passing to the tool
         console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
         
-        // Create browser logger function for debugging
-        const browserLogger = async (message: string, level = 'log') => {
-          console.log(message);
-          try {
-            const logEntry = {
-              id: Date.now() + Math.random(), // Simple unique ID
-              message: message,
-              level: level,
-              timestamp: Date.now()
-            };
-            browserLogs.push(logEntry);
-            
-            // Keep only last 100 logs to prevent memory issues
-            if (browserLogs.length > 100) {
-              browserLogs.shift();
-            }
-          } catch (error) {
-            // Ignore logging errors to prevent disruption
-          }
-        };
+
         
         // Run the tool  
         const toolResults = await toolEngine.runToolForExtraction(
@@ -2584,8 +2544,7 @@ except Exception as e:
             dataType: f.dataType || 'TEXT',
             description: f.description || '',
             identifierId: f.identifierId  // Include identifierId for proper mapping
-          })) : undefined,
-          browserLogger
+          })) : undefined
         );
         
         console.log(`🎯 Tool execution complete. Results:`, toolResults?.length || 0, 'items');
@@ -6592,28 +6551,9 @@ def extract_function(Column_Name, Excel_File):
           metadata: func.metadata || {}
         };
         
-        // Create browser logger function for debugging
-        const browserLogger = async (message: string, level = 'log') => {
-          console.log(message);
-          try {
-            const logEntry = {
-              id: Date.now() + Math.random(), // Simple unique ID
-              message: message,
-              level: level,
-              timestamp: Date.now()
-            };
-            browserLogs.push(logEntry);
-            
-            // Keep only last 100 logs to prevent memory issues
-            if (browserLogs.length > 100) {
-              browserLogs.shift();
-            }
-          } catch (error) {
-            // Ignore logging errors to prevent disruption
-          }
-        };
+
         
-        testResults = await toolEngine.testTool(tool, inputs, undefined, undefined, undefined, browserLogger);
+        testResults = await toolEngine.testTool(tool, inputs, undefined, undefined, undefined);
         await logToBrowser('✅ Tool execution completed');
         
       } catch (error) {
@@ -8270,26 +8210,6 @@ def extract_function(Column_Name, Excel_File):
       
       const { toolEngine } = await import("./toolEngine");
       
-      // Create browser logger function for debugging
-      const browserLogger = async (message: string, level = 'log') => {
-        console.log(message);
-        try {
-          const logEntry = {
-            id: Date.now() + Math.random(), // Simple unique ID
-            message: message,
-            level: level,
-            timestamp: Date.now()
-          };
-          browserLogs.push(logEntry);
-          
-          // Keep only last 100 logs to prevent memory issues
-          if (browserLogs.length > 100) {
-            browserLogs.shift();
-          }
-        } catch (error) {
-          // Ignore logging errors to prevent disruption
-        }
-      };
       
       // Parse inputParameters if it's a string
       let parsedInputParameters = tool.inputParameters || [];
@@ -8315,7 +8235,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId, browserLogger);
+      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       
@@ -9622,29 +9542,9 @@ def extract_function(Column_Name, Excel_File):
               valueId: valueConfig.valueId || valueConfig.id
             };
             
-            // Create browser logger function for debugging
-            const browserLogger = async (message: string, level = 'log') => {
-              console.log(message);
-              try {
-                const logEntry = {
-                  id: Date.now() + Math.random(), // Simple unique ID
-                  message: message,
-                  level: level,
-                  timestamp: Date.now()
-                };
-                browserLogs.push(logEntry);
-                
-                // Keep only last 100 logs to prevent memory issues
-                if (browserLogs.length > 100) {
-                  browserLogs.shift();
-                }
-              } catch (error) {
-                // Ignore logging errors to prevent disruption
-              }
-            };
 
             // Execute using toolEngine's testTool method
-            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs, undefined, sessionId, undefined, browserLogger);
+            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs, undefined, sessionId, undefined);
             
             console.log(`📊 TOOL EXECUTION COMPLETE: ${excelFunction.name}`);
             console.log(`  Results returned: ${toolResults?.length || 0} items`);
@@ -9917,9 +9817,6 @@ def extract_function(Column_Name, Excel_File):
   });
 
 
-  // In-memory store for browser console logs
-  const browserLogs: any[] = [];
-  const MAX_BROWSER_LOGS = 100;
 
   // Development console forwarding endpoint
   app.post("/api/dev/console", (req, res) => {
@@ -9953,21 +9850,7 @@ def extract_function(Column_Name, Excel_File):
       const prefix = prefixes[level] || '📝';
       log(`${prefix} ${cleanMessage}`, 'browser');
       
-      // If logToBrowser flag is set, store for browser consumption
-      if (req.body.logToBrowser) {
-        const logEntry = {
-          level,
-          message: cleanMessage,
-          timestamp,
-          id: Date.now() + Math.random() // Simple unique ID
-        };
-        browserLogs.push(logEntry);
-        
-        // Keep only the most recent logs
-        if (browserLogs.length > MAX_BROWSER_LOGS) {
-          browserLogs.splice(0, browserLogs.length - MAX_BROWSER_LOGS);
-        }
-      }
+      // Browser logging removed - now only logs to server console
       
       res.status(200).json({ success: true });
     } catch (error) {
@@ -9975,23 +9858,6 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
-  // Browser logs fetch endpoint  
-  app.get("/api/dev/browser-logs", (req, res) => {
-    try {
-      const { since } = req.query;
-      let logs = browserLogs;
-      
-      // If 'since' parameter is provided, filter logs after that timestamp
-      if (since) {
-        const sinceTime = parseInt(since as string);
-        logs = browserLogs.filter(log => log.id > sinceTime);
-      }
-      
-      res.status(200).json({ logs });
-    } catch (error) {
-      res.status(500).json({ logs: [] });
-    }
-  });
 
   // Chat endpoints for session assistant
   app.get('/api/sessions/:sessionId/chat', authenticateToken, async (req: AuthRequest, res) => {
