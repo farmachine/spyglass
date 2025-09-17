@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useEffect, useRef } from "react";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
 // import SessionReview from "@/pages/SessionReview";
@@ -90,7 +89,6 @@ function Router() {
     </Switch>
   );
 }
-
 
 function App() {
   return (

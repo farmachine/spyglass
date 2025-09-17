@@ -203,15 +203,15 @@ def perform_ai_extraction(documents, target_fields_data, extraction_rules, knowl
                         return {"error": "Invalid response format after all retries"}
                         
             except json.JSONDecodeError as json_error:
-                print(f"JSON parsing error (attempt {attempt + 1}): {json_error}", file=sys.stderr, flush=True)
-                print(f"Raw response: {extracted_data[:200]}...", file=sys.stderr, flush=True)
+                print(f"JSON parsing error (attempt {attempt + 1}): {json_error}")
+                print(f"Raw response: {extracted_data[:200]}...")
                 if attempt < max_retries - 1:
                     continue
                 else:
                     return {"error": f"JSON parsing failed: {json_error}"}
                     
         except Exception as e:
-            print(f"Error in AI extraction (attempt {attempt + 1}): {e}", file=sys.stderr, flush=True)
+            print(f"Error in AI extraction (attempt {attempt + 1}): {e}")
             if attempt < max_retries - 1:
                 continue
             else:

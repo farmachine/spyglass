@@ -156,7 +156,6 @@ async function processWorkflowTestAsync(
       jobManager.updateProgress(jobId, current, total, message);
     };
     
-    
     // Add valueConfiguration to inputs for automatic incremental data
     const enrichedInputs = {
       ...preparedInputValues,
@@ -2530,8 +2529,6 @@ except Exception as e:
         
         // Log what we're passing to the tool
         console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
-        
-
         
         // Run the tool  
         const toolResults = await toolEngine.runToolForExtraction(
@@ -6551,9 +6548,7 @@ def extract_function(Column_Name, Excel_File):
           metadata: func.metadata || {}
         };
         
-
-        
-        testResults = await toolEngine.testTool(tool, inputs, undefined, undefined, undefined);
+        testResults = await toolEngine.testTool(tool, inputs);
         await logToBrowser('✅ Tool execution completed');
         
       } catch (error) {
@@ -8210,6 +8205,24 @@ def extract_function(Column_Name, Excel_File):
       
       const { toolEngine } = await import("./toolEngine");
       
+      // Create browser logger function for debugging
+      const browserLogger = async (message: string, level = 'log') => {
+        console.log(message);
+        try {
+          // Forward to browser console via the dev console endpoint
+          await fetch('http://localhost:5000/api/dev/console', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              level,
+              message: `📝 ${message}`,
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (error) {
+          // Ignore fetch errors to avoid breaking the extraction
+        }
+      };
       
       // Parse inputParameters if it's a string
       let parsedInputParameters = tool.inputParameters || [];
@@ -8235,7 +8248,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId);
+      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId, browserLogger);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       
@@ -9542,9 +9555,8 @@ def extract_function(Column_Name, Excel_File):
               valueId: valueConfig.valueId || valueConfig.id
             };
             
-
             // Execute using toolEngine's testTool method
-            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs, undefined, sessionId, undefined);
+            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs);
             
             console.log(`📊 TOOL EXECUTION COMPLETE: ${excelFunction.name}`);
             console.log(`  Results returned: ${toolResults?.length || 0} items`);
@@ -9817,11 +9829,10 @@ def extract_function(Column_Name, Excel_File):
   });
 
 
-
   // Development console forwarding endpoint
   app.post("/api/dev/console", (req, res) => {
     try {
-      const { level, message, timestamp, logToBrowser } = req.body;
+      const { level, message, timestamp } = req.body;
       
       // Filter out noisy console messages to improve readability
       if (message.includes("CollectionCard - Props received") ||
@@ -9850,14 +9861,11 @@ def extract_function(Column_Name, Excel_File):
       const prefix = prefixes[level] || '📝';
       log(`${prefix} ${cleanMessage}`, 'browser');
       
-      // Browser logging removed - now only logs to server console
-      
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(500).json({ success: false });
     }
   });
-
 
   // Chat endpoints for session assistant
   app.get('/api/sessions/:sessionId/chat', authenticateToken, async (req: AuthRequest, res) => {

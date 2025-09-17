@@ -535,7 +535,8 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void,
     stepId?: string,
     orderIndex?: number,
-    sessionId?: string
+    sessionId?: string,
+    browserLogger?: (message: string, level?: string) => Promise<void>
   ): Promise<ToolResult[]> {
     // Helper for truncating long content for browser console
     const truncate = (str: string, maxLen: number = 500): string => {
@@ -543,7 +544,17 @@ export class ToolEngine {
       return str.length > maxLen ? str.substring(0, maxLen) + '...[truncated]' : str;
     };
     
-    // Browser logging removed - now only logs to server console
+    // Browser logging wrapper
+    const logToBrowser = async (message: string, level = 'log') => {
+      console.log(message); // Keep server logging
+      if (browserLogger) {
+        try {
+          await browserLogger(message, level);
+        } catch (error) {
+          // Ignore browser logging errors
+        }
+      }
+    };
     
     console.log(`\n🚀 TOOL ENGINE - testTool() called`);
     console.log(`   Tool Name: ${tool.name}`);
@@ -554,9 +565,14 @@ export class ToolEngine {
     console.log(`   Step ID: ${stepId || 'not provided'}`);
     console.log(`   Order Index: ${orderIndex !== undefined ? orderIndex : 'not provided'}`);
     
-    // Tool execution logging
+    // Browser console logging - Tool Start
+    await logToBrowser(`\n🚀 ========== TOOL EXECUTION STARTED ==========`);
+    await logToBrowser(`📋 Tool: ${tool.name}`);
+    await logToBrowser(`🏷️ Type: ${tool.toolType}`);
+    await logToBrowser(`⚙️ Operation: ${tool.operationType || 'standard'}`);
     
     // Log inputs in a clean, readable format
+    await logToBrowser(`\n📥 INPUT PARAMETERS:`);
     for (const [key, value] of Object.entries(inputs)) {
       if (key === '__infoPageFields') {
         await logToBrowser(`  ${key}: [Multi-field extraction] ${JSON.stringify(value)}`);
@@ -565,11 +581,10 @@ export class ToolEngine {
       } else if (Array.isArray(value)) {
         await logToBrowser(`  ${key}: [Array, ${value.length} items]`);
         if (value.length > 0 && value.length <= 3) {
-          for (let idx = 0; idx < value.length; idx++) {
-            const item = value[idx];
+          value.forEach((item, idx) => {
             const itemStr = typeof item === 'object' ? JSON.stringify(item) : String(item);
             await logToBrowser(`    [${idx}]: ${truncate(itemStr, 200)}`);
-          }
+          });
         } else if (value.length > 3) {
           // Show first 2 items only
           for (let i = 0; i < Math.min(2, value.length); i++) {
@@ -1691,8 +1706,7 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
     inputs: Record<string, any>,
     sessionId: string,
     projectId: string,
-    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}>, // For multi-field Info Page values with identifierIds
-    browserLogger?: (message: string, level?: string) => Promise<void>
+    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}> // For multi-field Info Page values with identifierIds
   ): Promise<ToolResult[]> {
     console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length });
     
@@ -1719,7 +1733,7 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
     }
     
     // Execute the tool
-    return this.testTool(tool, inputs, undefined, sessionId, undefined, browserLogger);
+    return this.testTool(tool, inputs);
   }
 
   /**

@@ -1104,10 +1104,10 @@ def run_wizardry_with_gemini_analysis(data=None, extraction_number=0, llm_model=
                                     function_identifier_references = incoming_identifier_references
                                 
                                 # Add debugging for identifier references
-                                print(f"🔍 DEBUG: Function identifier references: {len(function_identifier_references) if function_identifier_references else 0}", file=sys.stderr, flush=True)
+                                print(f"🔍 DEBUG: Function identifier references: {len(function_identifier_references) if function_identifier_references else 0}")
                                 if function_identifier_references and len(function_identifier_references) > 0:
-                                    print(f"🔍 DEBUG: First reference: {function_identifier_references[0]}", file=sys.stderr, flush=True)
-                                    print(f"🔍 DEBUG: Last reference: {function_identifier_references[-1]}", file=sys.stderr, flush=True)
+                                    print(f"🔍 DEBUG: First reference: {function_identifier_references[0]}")
+                                    print(f"🔍 DEBUG: Last reference: {function_identifier_references[-1]}")
                                 
                                 # Execute based on function type
                                 if function_type == 'CODE':
