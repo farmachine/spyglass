@@ -8205,6 +8205,25 @@ def extract_function(Column_Name, Excel_File):
       
       const { toolEngine } = await import("./toolEngine");
       
+      // Create browser logger function for debugging
+      const browserLogger = async (message: string, level = 'log') => {
+        console.log(message);
+        try {
+          // Forward to browser console via the dev console endpoint
+          await fetch('http://localhost:5000/api/dev/console', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              level,
+              message: `📝 ${message}`,
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (error) {
+          // Ignore fetch errors to avoid breaking the extraction
+        }
+      };
+      
       // Parse inputParameters if it's a string
       let parsedInputParameters = tool.inputParameters || [];
       if (typeof parsedInputParameters === 'string') {
@@ -8229,7 +8248,7 @@ def extract_function(Column_Name, Excel_File):
         operationType: tool.operationType,
         llmModel: tool.llmModel,
         metadata: tool.metadata || {}
-      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId);
+      }, cleanedToolInputs, undefined, undefined, undefined, stepId, value.orderIndex, sessionId, browserLogger);
       
       console.log(`✅ Tool execution completed. Results count: ${results?.length || 0}`);
       
