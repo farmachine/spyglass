@@ -91,12 +91,16 @@ function Router() {
   );
 }
 
-// Browser console logging component
+// Browser console logging component - only polls during extractions
 function BrowserConsoleLogger() {
   const lastLogId = useRef<number>(0);
+  const pollInterval = useRef<NodeJS.Timeout | null>(null);
   
-  useEffect(() => {
-    const pollInterval = setInterval(async () => {
+  // Function to start polling when extraction begins
+  const startPolling = () => {
+    if (pollInterval.current) return; // Already polling
+    
+    pollInterval.current = setInterval(async () => {
       try {
         const response = await fetch(`/api/dev/browser-logs?since=${lastLogId.current}`);
         if (response.ok) {
@@ -113,9 +117,34 @@ function BrowserConsoleLogger() {
       } catch (error) {
         // Silently ignore polling errors to avoid spam
       }
-    }, 1000); // Poll every second
+    }, 2000); // Poll every 2 seconds during extractions
+  };
+  
+  // Function to stop polling when extraction ends
+  const stopPolling = () => {
+    if (pollInterval.current) {
+      clearInterval(pollInterval.current);
+      pollInterval.current = null;
+    }
+  };
+  
+  useEffect(() => {
+    // Listen for extraction events
+    const handleExtractionStart = () => startPolling();
+    const handleExtractionEnd = () => {
+      // Stop polling after a brief delay to catch final logs
+      setTimeout(stopPolling, 5000);
+    };
     
-    return () => clearInterval(pollInterval);
+    // Listen for custom events from extraction components
+    window.addEventListener('extraction-started', handleExtractionStart);
+    window.addEventListener('extraction-completed', handleExtractionEnd);
+    
+    return () => {
+      stopPolling();
+      window.removeEventListener('extraction-started', handleExtractionStart);
+      window.removeEventListener('extraction-completed', handleExtractionEnd);
+    };
   }, []);
   
   return null; // This component doesn't render anything
