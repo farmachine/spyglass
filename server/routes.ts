@@ -2530,6 +2530,27 @@ except Exception as e:
         // Log what we're passing to the tool
         console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
         
+        // Create browser logger function for debugging
+        const browserLogger = async (message: string, level = 'log') => {
+          console.log(message);
+          try {
+            const logEntry = {
+              id: Date.now() + Math.random(), // Simple unique ID
+              message: message,
+              level: level,
+              timestamp: Date.now()
+            };
+            browserLogs.push(logEntry);
+            
+            // Keep only last 100 logs to prevent memory issues
+            if (browserLogs.length > 100) {
+              browserLogs.shift();
+            }
+          } catch (error) {
+            // Ignore logging errors to prevent disruption
+          }
+        };
+        
         // Run the tool  
         const toolResults = await toolEngine.runToolForExtraction(
           workflowValue.toolId,
@@ -2541,7 +2562,8 @@ except Exception as e:
             dataType: f.dataType || 'TEXT',
             description: f.description || '',
             identifierId: f.identifierId  // Include identifierId for proper mapping
-          })) : undefined
+          })) : undefined,
+          browserLogger
         );
         
         console.log(`🎯 Tool execution complete. Results:`, toolResults?.length || 0, 'items');
@@ -9556,8 +9578,29 @@ def extract_function(Column_Name, Excel_File):
               valueId: valueConfig.valueId || valueConfig.id
             };
             
+            // Create browser logger function for debugging
+            const browserLogger = async (message: string, level = 'log') => {
+              console.log(message);
+              try {
+                const logEntry = {
+                  id: Date.now() + Math.random(), // Simple unique ID
+                  message: message,
+                  level: level,
+                  timestamp: Date.now()
+                };
+                browserLogs.push(logEntry);
+                
+                // Keep only last 100 logs to prevent memory issues
+                if (browserLogs.length > 100) {
+                  browserLogs.shift();
+                }
+              } catch (error) {
+                // Ignore logging errors to prevent disruption
+              }
+            };
+
             // Execute using toolEngine's testTool method
-            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs);
+            const toolResults = await toolEngine.testTool(excelFunction, enrichedInputs, undefined, sessionId, undefined, browserLogger);
             
             console.log(`📊 TOOL EXECUTION COMPLETE: ${excelFunction.name}`);
             console.log(`  Results returned: ${toolResults?.length || 0} items`);

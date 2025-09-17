@@ -1707,7 +1707,8 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
     inputs: Record<string, any>,
     sessionId: string,
     projectId: string,
-    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}> // For multi-field Info Page values with identifierIds
+    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}>, // For multi-field Info Page values with identifierIds
+    browserLogger?: (message: string, level?: string) => Promise<void>
   ): Promise<ToolResult[]> {
     console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length });
     
@@ -1734,7 +1735,7 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
     }
     
     // Execute the tool
-    return this.testTool(tool, inputs);
+    return this.testTool(tool, inputs, undefined, sessionId, undefined, browserLogger);
   }
 
   /**
