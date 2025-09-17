@@ -91,16 +91,16 @@ function Router() {
   );
 }
 
-// Browser console logging component - only polls during extractions
+// Simple browser console logging - polls every 5 seconds when page is active
 function BrowserConsoleLogger() {
   const lastLogId = useRef<number>(0);
-  const pollInterval = useRef<NodeJS.Timeout | null>(null);
   
-  // Function to start polling when extraction begins
-  const startPolling = () => {
-    if (pollInterval.current) return; // Already polling
+  useEffect(() => {
+    let isActive = true;
     
-    pollInterval.current = setInterval(async () => {
+    const pollLogs = async () => {
+      if (!isActive) return;
+      
       try {
         const response = await fetch(`/api/dev/browser-logs?since=${lastLogId.current}`);
         if (response.ok) {
@@ -115,39 +115,23 @@ function BrowserConsoleLogger() {
           }
         }
       } catch (error) {
-        // Silently ignore polling errors to avoid spam
+        // Silently ignore polling errors
       }
-    }, 2000); // Poll every 2 seconds during extractions
-  };
-  
-  // Function to stop polling when extraction ends
-  const stopPolling = () => {
-    if (pollInterval.current) {
-      clearInterval(pollInterval.current);
-      pollInterval.current = null;
-    }
-  };
-  
-  useEffect(() => {
-    // Listen for extraction events
-    const handleExtractionStart = () => startPolling();
-    const handleExtractionEnd = () => {
-      // Stop polling after a brief delay to catch final logs
-      setTimeout(stopPolling, 5000);
     };
     
-    // Listen for custom events from extraction components
-    window.addEventListener('extraction-started', handleExtractionStart);
-    window.addEventListener('extraction-completed', handleExtractionEnd);
+    // Initial poll
+    pollLogs();
+    
+    // Poll every 5 seconds (reasonable for debugging)
+    const pollInterval = setInterval(pollLogs, 5000);
     
     return () => {
-      stopPolling();
-      window.removeEventListener('extraction-started', handleExtractionStart);
-      window.removeEventListener('extraction-completed', handleExtractionEnd);
+      isActive = false;
+      clearInterval(pollInterval);
     };
   }, []);
   
-  return null; // This component doesn't render anything
+  return null;
 }
 
 function App() {

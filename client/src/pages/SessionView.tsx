@@ -864,9 +864,6 @@ const AIExtractionModal = ({
   const handleRunExtraction = async () => {
     setIsExtracting(true);
     
-    // Dispatch extraction started event for browser console logging
-    window.dispatchEvent(new CustomEvent('extraction-started'));
-    
     // Initialize extraction progress
     const sortedSelectedFields = selectedTargetFields
       .map(id => availableFields.find(f => f.id === id))
@@ -1140,9 +1137,6 @@ const AIExtractionModal = ({
     } finally {
       setIsExtracting(false);
       setExtractionProgress({ currentFieldIndex: -1, completedFields: new Set(), totalFields: 0 });
-      
-      // Dispatch extraction completed event for browser console logging
-      window.dispatchEvent(new CustomEvent('extraction-completed'));
     }
   };
 
