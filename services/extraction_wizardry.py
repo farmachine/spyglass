@@ -41,7 +41,7 @@ def save_identifier_references_to_db(session_id, extraction_number, identifier_r
     try:
         db_url = os.getenv('DATABASE_URL')
         if not db_url:
-            print("⚠️ DATABASE_URL not found, skipping database save")
+            print("⚠️ DATABASE_URL not found, skipping database save", file=sys.stderr, flush=True)
             return False
             
         conn = psycopg2.connect(db_url)
@@ -72,11 +72,11 @@ def save_identifier_references_to_db(session_id, extraction_number, identifier_r
         cursor.close()
         conn.close()
         
-        print(f"✅ Saved {len(identifier_references) if identifier_references else 0} identifier references to database")
+        print(f"✅ Saved {len(identifier_references) if identifier_references else 0} identifier references to database", file=sys.stderr, flush=True)
         return True
         
     except Exception as e:
-        print(f"❌ Failed to save identifier references to database: {str(e)}")
+        print(f"❌ Failed to save identifier references to database: {str(e)}", file=sys.stderr, flush=True)
         return False
 
 def load_merged_identifier_references_from_db(session_id, up_to_extraction_number):
@@ -84,7 +84,7 @@ def load_merged_identifier_references_from_db(session_id, up_to_extraction_numbe
     try:
         db_url = os.getenv('DATABASE_URL')
         if not db_url:
-            print("⚠️ DATABASE_URL not found, returning empty references")
+            print("⚠️ DATABASE_URL not found, returning empty references", file=sys.stderr, flush=True)
             return []
             
         conn = psycopg2.connect(db_url)
@@ -120,33 +120,33 @@ def load_merged_identifier_references_from_db(session_id, up_to_extraction_numbe
                 record_obj[f"{field_name}[{record_index}]"] = value
             merged_array.append(record_obj)
         
-        print(f"✅ Loaded {len(merged_array)} merged identifier references from database")
+        print(f"✅ Loaded {len(merged_array)} merged identifier references from database", file=sys.stderr, flush=True)
         
         # Debug output: show first few merged records
         if merged_array and len(merged_array) > 0:
-            print(f"🔍 DEBUG: First merged record: {merged_array[0]}")
+            print(f"🔍 DEBUG: First merged record: {merged_array[0]}", file=sys.stderr, flush=True)
             if len(merged_array) > 1:
-                print(f"🔍 DEBUG: Second merged record: {merged_array[1]}")
+                print(f"🔍 DEBUG: Second merged record: {merged_array[1]}", file=sys.stderr, flush=True)
         
         return merged_array
         
     except Exception as e:
-        print(f"❌ Failed to load identifier references from database: {str(e)}")
+        print(f"❌ Failed to load identifier references from database: {str(e)}", file=sys.stderr, flush=True)
         return []
 
 def log_remaining_collection_fields(extracted_results, all_collection_properties):
     """Log which collection fields have been extracted and which remain to be processed"""
     try:
-        print("\n" + "=" * 80, flush=True)
-        print("EXTRACTION PROGRESS TRACKING", flush=True)
-        print("=" * 80, flush=True)
+        print("\n" + "=" * 80, file=sys.stderr, flush=True)
+        print("EXTRACTION PROGRESS TRACKING", file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
         
         # Debug: Show what data we received  
         # print(f"DEBUG: Received {len(extracted_results)} extracted results", flush=True)
         # print(f"DEBUG: Received {len(all_collection_properties)} collection properties", flush=True)
         
         if not all_collection_properties:
-            print("No collection properties data provided", flush=True)
+            print("No collection properties data provided", file=sys.stderr, flush=True)
             return
             
         # Get extracted field names
@@ -180,28 +180,28 @@ def log_remaining_collection_fields(extracted_results, all_collection_properties
             # Print collection header if changed
             if collection_name != current_collection:
                 if current_collection is not None:
-                    print("", flush=True)  # Add space between collections
+                    print("", file=sys.stderr, flush=True)  # Add space between collections
                 current_collection = collection_name
-                print(f"🔗 COLLECTION: {collection_name}", flush=True)
+                print(f"🔗 COLLECTION: {collection_name}", file=sys.stderr, flush=True)
             
             # Show field status
             status = "✅ EXTRACTED" if is_extracted else "⏳ NOT EXTRACTED"
             identifier_mark = " [IDENTIFIER]" if is_identifier else ""
             description_snippet = f" - {description[:40]}..." if description else ""
             
-            print(f"   [{order_index:2d}] {property_name}{identifier_mark} - {status}{description_snippet}", flush=True)
+            print(f"   [{order_index:2d}] {property_name}{identifier_mark} - {status}{description_snippet}", file=sys.stderr, flush=True)
         
         # Summary stats
         remaining_count = field_count - extracted_count
         
-        print(f"\n📊 SUMMARY:", flush=True)
-        print(f"   Total Collection Fields: {field_count}", flush=True)
-        print(f"   Extracted: {extracted_count}", flush=True)
-        print(f"   Remaining: {remaining_count}", flush=True)
-        print("=" * 80, flush=True)
+        print(f"\n📊 SUMMARY:", file=sys.stderr, flush=True)
+        print(f"   Total Collection Fields: {field_count}", file=sys.stderr, flush=True)
+        print(f"   Extracted: {extracted_count}", file=sys.stderr, flush=True)
+        print(f"   Remaining: {remaining_count}", file=sys.stderr, flush=True)
+        print("=" * 80, file=sys.stderr, flush=True)
         
     except Exception as e:
-        print(f"Error logging remaining fields: {e}", flush=True)
+        print(f"Error logging remaining fields: {e}", file=sys.stderr, flush=True)
 
 def get_document_properties_from_db(document_ids, session_id):
     """Query session_documents table to get document properties"""
