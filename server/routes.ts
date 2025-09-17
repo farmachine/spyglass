@@ -3720,7 +3720,79 @@ except Exception as e:
           }
           
           try {
-            const result = JSON.parse(output);
+            // Implement defensive JSON extraction to handle any debug statements
+            let jsonData = output;
+            
+            // Try parsing directly first
+            let result;
+            try {
+              result = JSON.parse(jsonData);
+            } catch (directParseError) {
+              console.log('Direct JSON parse failed, attempting defensive extraction...');
+              
+              // Find the largest valid JSON block (array or object)
+              const lines = jsonData.split('\n');
+              let bestJsonCandidate = '';
+              let maxLength = 0;
+              
+              // Try to find JSON starting with [ or {
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('[') || line.startsWith('{')) {
+                  // Found potential JSON start, collect until we have valid JSON
+                  let candidate = '';
+                  let bracketCount = 0;
+                  let inQuotes = false;
+                  let escapeNext = false;
+                  
+                  for (let j = i; j < lines.length; j++) {
+                    candidate += (j > i ? '\n' : '') + lines[j];
+                    
+                    // Count brackets to find complete JSON
+                    for (let k = 0; k < lines[j].length; k++) {
+                      const char = lines[j][k];
+                      if (escapeNext) {
+                        escapeNext = false;
+                        continue;
+                      }
+                      if (char === '\\') {
+                        escapeNext = true;
+                        continue;
+                      }
+                      if (char === '"') {
+                        inQuotes = !inQuotes;
+                        continue;
+                      }
+                      if (!inQuotes) {
+                        if (char === '[' || char === '{') bracketCount++;
+                        if (char === ']' || char === '}') bracketCount--;
+                      }
+                    }
+                    
+                    // If we have balanced brackets, try parsing
+                    if (bracketCount === 0 && candidate.length > maxLength) {
+                      try {
+                        const testResult = JSON.parse(candidate);
+                        if (testResult && (Array.isArray(testResult) || typeof testResult === 'object')) {
+                          bestJsonCandidate = candidate;
+                          maxLength = candidate.length;
+                        }
+                      } catch (testError) {
+                        // Continue searching
+                      }
+                    }
+                  }
+                }
+              }
+              
+              if (bestJsonCandidate) {
+                console.log(`Defensive JSON extraction successful. Extracted ${bestJsonCandidate.length} characters of JSON`);
+                result = JSON.parse(bestJsonCandidate);
+              } else {
+                throw new Error(`Failed to parse Python output: ${directParseError.message}`);
+              }
+            }
+            
             console.log('GEMINI EXTRACTION result:', result.success ? 'Success' : 'Failed');
             
             // Save extraction prompt, AI response, and token counts to database if available
