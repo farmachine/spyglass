@@ -3437,9 +3437,9 @@ export default function SessionView() {
   };
 
   const handleDeleteNonValidatedData = async (collectionName: string) => {
-    // Non-validated statuses that should be deleted: pending, unverified, extracted, invalid
+    // Non-validated statuses that should be deleted: pending (all others have been consolidated)
     // Validated statuses that should NOT be deleted: valid, verified, manual
-    const nonValidatedStatuses = ['pending', 'unverified', 'extracted', 'invalid'];
+    const nonValidatedStatuses = ['pending'];
     
     // Find all non-validated field validations for this collection
     const nonValidatedValidations = validations.filter(v => {
@@ -3458,7 +3458,7 @@ export default function SessionView() {
     console.log(`Found ${nonValidatedValidations.length} non-validated validations to delete for ${collectionName}`);
     
     // Confirm before deleting non-validated data  
-    if (!confirm(`Delete ${nonValidatedValidations.length} non-validated records from "${collectionName}"?\n\nThis will remove only pending, unverified, extracted, and invalid data. Verified and manual entries will be preserved.\n\nThis action cannot be undone.`)) {
+    if (!confirm(`Delete ${nonValidatedValidations.length} non-validated records from "${collectionName}"?\n\nThis will remove only pending data. Verified and manual entries will be preserved.\n\nThis action cannot be undone.`)) {
       return;
     }
 
