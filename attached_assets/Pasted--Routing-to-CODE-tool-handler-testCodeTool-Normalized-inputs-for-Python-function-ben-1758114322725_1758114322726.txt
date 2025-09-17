@@ -1,0 +1,79 @@
+   📦 Routing to CODE tool handler (testCodeTool)
+🐍 Normalized inputs for Python function: [
+  'benefits',
+  'Benefits',
+  '0.uzcgmuxuaa',
+  'service_dates',
+  'Service Dates',
+  '0.udwpp9wdmqr',
+  'excel',
+  'Excel',
+  '0.z91weqw6ndm',
+  'sessiondocumentcontent',
+  'sessionDocumentContent'
+]
+Python debug output: DEBUG: Received inputs keys: ['benefits', 'Benefits', '0.uzcgmuxuaa', 'service_dates', 'Service Dates', '0.udwpp9wdmqr', 'excel', 'Excel', '0.z91weqw6ndm', 'sessiondocumentcontent', 'sessionDocumentContent']
+DEBUG: Input 'benefits' is array with 17 items
+DEBUG: First item of 'benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input 'Benefits' is array with 17 items
+DEBUG: First item of 'Benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input '0.uzcgmuxuaa' is array with 17 items
+DEBUG: First item of '0.uzcgmuxuaa': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}
+DEBUG: Input 'service_dates' is array with 5 items
+DEBUG: First item of 'service_dates': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': "Member's Reference No"}
+DEBUG: Input 'Service Dates' is array with 5 items
+DEBUG: First item of 'Service Dates': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': "Member's Reference No"}
+DEBUG: Input '0.udwpp9wdmqr' is array with 5 items
+DEBUG: First item of '0.udwpp9wdmqr': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': "Member's Reference No"}
+DEBUG: Input 'excel' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'Excel' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input '0.z91weqw6ndm' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessiondocumentcontent' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessionDocumentContent' is string (456561 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+✓ Mapped parameter 'sessionDocumentContent' to string (456561 chars)
+✓ Mapped parameter 'service_dates' to array with 5 items
+  First item type: dict
+  First item keys: ['Category', 'Service Start Date', 'Service End Date', 'Member ID']
+✓ Mapped parameter 'benefits' to array with 17 items
+  First item type: dict
+  First item keys: ['Start Date', 'End Date', 'Scheme Column Equivalent']
+Error: 'End Date'
+Traceback (most recent call last):
+  File "/tmp/test_function_1758114292151.py", line 652, in <module>
+    result = func(**filtered_inputs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/test_function_1758114292151.py", line 176, in validate_service_benefit_periods
+    benefit_end_date = parse_date(benefit["End Date"])
+                                  ~~~~~~~^^^^^^^^^^^^
+KeyError: 'End Date'
+
+
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Code execution failed: Python process exited with code 1: DEBUG: Received inputs keys: ['benefits', 'Benefits', '0.uzcgmuxuaa', 'service_dates', 'Service Dates', '0.udwpp9wdmqr', 'excel', 'Excel', '0.z91weqw6ndm', 'sessiondocumentcontent', 'sessionDocumentContent']\nDEBUG: Input 'benefits' is array with 17 items\nDEBUG: First item of 'benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}\nDEBUG: Input 'Benefits' is array with 17 items\nDEBUG: First item of 'Benefits': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}\nDEBUG: Input '0.uzcgmuxuaa' is array with 17 items\nDEBUG: First item of '0.uzcgmuxuaa': {'Start Date': '06/04/1978', 'End Date': '05/04/1997', 'Scheme Column Equivalent': 'Annual Pre-6.4.1988 GMP Component At Date Became Active Deferred Member'}\nDEBUG: Input 'service_dates' is array with 5 items\nDEBUG: First item of 'service_dates': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': \"Member's Reference No\"}\nDEBUG: Input 'Service Dates' is array with 5 items\nDEBUG: First item of 'Service Dates': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': \"Member's Reference No\"}\nDEBUG: Input '0.udwpp9wdmqr' is array with 5 items\nDEBUG: First item of '0.udwpp9wdmqr': {'Category': 'Deferreds', 'Service Start Date': 'Date Became Deferred Pensioner', 'Service End Date': 'Date Of Exit From Deferred Pensioner Status', 'Member ID': \"Member's Reference No\"}\nDEBUG: Input 'excel' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'Excel' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input '0.z91weqw6ndm' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessiondocumentcontent' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessionDocumentContent' is string (456561 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\n✓ Mapped parameter 'sessionDocumentContent' to string (456561 chars)\n✓ Mapped parameter 'service_dates' to array with 5 items\n  First item type: dict\n  First item keys: ['Category', 'Service Start Date', 'Service End Date', 'Member ID']\n✓ Mapped parameter 'benefits' to array with 17 items\n  First item type: dict\n  First item keys: ['Start Date', 'End Date', 'Scheme Column Equivalent']\nError: 'End Date'\nTraceback (most recent call last):\n  File \"/tmp/test_function_1758114292151.py\", line 652, in <module>\n    result = func(**filtered_inputs)\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/test_function_1758114292151.py\", line 176, in validate_service_benefit_periods\n    benefit_end_date = parse_date(benefit[\"End Date\"])\n                                  ~~~~~~~^^^^^^^^^^^^\nKeyError: 'End Date'\n\n",
+  "confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+🔍 CREATE operation: Filtered 1 results to 0 with actual values
+📊 Processing 0 actual AI results (not creating validations for unprocessed records)
+💾 Saved 0 validation records
+1:04:52 PM [express] POST /api/sessions/eb32b054-5b96-4bd5-be47-44c87949d70d/extract-column 200 in 2122ms :: {"success":true,"message":"Ex…
+1:04:52 PM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Failure","resultsCount":1}
+1:04:52 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+1:04:52 PM [browser] 📝 🔄 Invalidating validation queries...
+1:04:52 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+1:04:53 PM [express] GET /api/validations/project/7a573108-18cc-4d87-8e2a-2caf79cc5174 200 in 10ms
+1:04:54 PM [browser] 📝 ✅ Validation queries refreshed
