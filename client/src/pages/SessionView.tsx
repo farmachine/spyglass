@@ -73,6 +73,7 @@ import type {
 } from "@shared/schema";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateForDisplay } from "@/lib/dateUtils";
 
 // Field Selection Modal Content Component
 const FieldSelectionModalContent = ({
@@ -4490,27 +4491,16 @@ Thank you for your assistance.`;
 
 
 
-  const formatDateForDisplay = (value: any) => {
+  // This function is now replaced by the imported formatDateForDisplay from dateUtils
+  // which properly handles European dates (dd/mm/yyyy format)
+  const formatDateForDisplayLocal = (value: any) => {
     if (!value || value === 'null' || value === 'undefined' || value === null) {
       return 'Empty';
     }
     
-    try {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
-        // Format as a readable date
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      }
-    } catch (error) {
-      // If parsing fails, return "Empty" for invalid dates
-      return 'Empty';
-    }
-    
-    return 'Empty';
+    // Use the imported European date utility function
+    const formattedDate = formatDateForDisplay(value);
+    return formattedDate || 'Empty';
   };
 
   const formatValueForDisplay = (value: any, fieldType: string) => {
@@ -4524,7 +4514,7 @@ Thank you for your assistance.`;
     }
     
     if (fieldType === 'DATE') {
-      return formatDateForDisplay(value);
+      return formatDateForDisplayLocal(value);
     } else if (fieldType === 'BOOLEAN') {
       // Handle boolean values properly
       if (typeof value === 'boolean') {

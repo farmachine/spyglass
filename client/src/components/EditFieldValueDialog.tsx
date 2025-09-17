@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle, X } from "lucide-react";
 import type { FieldValidation, FieldValidationWithName } from "@shared/schema";
+import { formatDateForDisplay, prepareDateForInput, convertDateFromInput } from "@/lib/dateUtils";
 
 interface EditFieldValueDialogProps {
   open: boolean;
@@ -30,10 +31,43 @@ export function EditFieldValueDialog({
   const [currentReasoning, setCurrentReasoning] = useState("");
   const [hasRevertedToAI, setHasRevertedToAI] = useState(false);
 
+  // Field type detection function (moved up for use in hooks)
+  const getFieldType = (validation: FieldValidationWithName) => {
+    // Check if we have schema field or collection property data
+    const fieldType = schemaField?.fieldType || collectionProperty?.propertyType;
+    if (fieldType === "CHOICE") return "choice";
+    if (fieldType === "DATE") return "date";
+    if (fieldType === "NUMBER") return "number";
+    
+    // Fallback to detection from field name for legacy data
+    const fieldName = validation.fieldName?.toLowerCase() || "";
+    const extractedValue = validation.extractedValue || "";
+    
+    if (fieldName.includes("date") || fieldName.includes("time")) return "date";
+    if (fieldName.includes("email")) return "email";
+    if (fieldName.includes("phone") || fieldName.includes("tel")) return "tel";
+    if (fieldName.includes("url") || fieldName.includes("website")) return "url";
+    if (fieldName.includes("description") || fieldName.includes("notes") || fieldName.includes("comment")) return "textarea";
+    
+    // Check if the extracted value is long enough to warrant a textarea
+    if (extractedValue.length > 50 || extractedValue.includes('\n')) return "textarea";
+    
+    return "text";
+  };
+
   // Reset form when validation changes or dialog opens
   useEffect(() => {
     if (validation) {
-      setValue(validation.extractedValue || "");
+      const fieldType = getFieldType(validation);
+      const rawValue = validation.extractedValue || "";
+      
+      // For date fields, prepare value for HTML date input (convert to ISO format)
+      if (fieldType === "date" && rawValue) {
+        setValue(prepareDateForInput(rawValue));
+      } else {
+        setValue(rawValue);
+      }
+      
       setStatus(validation.validationStatus || "manual");
       setCurrentReasoning(validation.aiReasoning || validation.originalAiReasoning || "");
       setHasRevertedToAI(false);
@@ -43,17 +77,33 @@ export function EditFieldValueDialog({
   const handleSave = () => {
     if (!validation) return;
     
+    const fieldType = getFieldType(validation);
+    let finalValue = value;
+    
+    // For date fields, convert from ISO format back to European format for storage
+    if (fieldType === "date" && value) {
+      finalValue = convertDateFromInput(value);
+    }
+    
     // Empty fields are pending, non-empty manually edited fields are manual
-    const finalStatus = value.trim() === "" ? "pending" : "manual";
-    onSave(validation.id, value, finalStatus);
+    const finalStatus = finalValue.trim() === "" ? "pending" : "manual";
+    onSave(validation.id, finalValue, finalStatus);
     onClose();
   };
 
   const handleRevertToAI = () => {
     if (!validation || !validation.originalExtractedValue) return;
     
-    // Revert to original AI values immediately in the UI
-    setValue(validation.originalExtractedValue);
+    const fieldType = getFieldType(validation);
+    const originalValue = validation.originalExtractedValue;
+    
+    // For date fields, prepare original value for HTML date input
+    if (fieldType === "date" && originalValue) {
+      setValue(prepareDateForInput(originalValue));
+    } else {
+      setValue(originalValue);
+    }
+    
     setStatus("valid");
     setCurrentReasoning(validation.originalAiReasoning || "");
     setHasRevertedToAI(true);
@@ -92,29 +142,6 @@ export function EditFieldValueDialog({
     }
   };
 
-  const getFieldType = (validation: FieldValidationWithName) => {
-    // Check if we have schema field or collection property data
-    const fieldType = schemaField?.fieldType || collectionProperty?.propertyType;
-    if (fieldType === "CHOICE") return "choice";
-    if (fieldType === "DATE") return "date";
-    if (fieldType === "NUMBER") return "number";
-    
-    // Fallback to detection from field name for legacy data
-    const fieldName = validation.fieldName?.toLowerCase() || "";
-    const extractedValue = validation.extractedValue || "";
-    
-    if (fieldName.includes("date") || fieldName.includes("time")) return "date";
-    if (fieldName.includes("email")) return "email";
-    if (fieldName.includes("phone") || fieldName.includes("tel")) return "tel";
-    if (fieldName.includes("url") || fieldName.includes("website")) return "url";
-    if (fieldName.includes("description") || fieldName.includes("notes") || fieldName.includes("comment")) return "textarea";
-    
-    // Check if the extracted value is long enough to warrant a textarea
-    if (extractedValue.length > 50 || extractedValue.includes('\n')) return "textarea";
-    
-    return "text";
-  };
-
   if (!validation) return null;
 
   const fieldType = getFieldType(validation);
@@ -132,6 +159,12 @@ export function EditFieldValueDialog({
             <Label className="text-sm font-medium text-gray-700">
               Field: {displayName}
             </Label>
+            {/* Show formatted date preview for date fields */}
+            {fieldType === "date" && validation.extractedValue && (
+              <div className="mt-1 text-sm text-blue-600 font-medium">
+                Extracted date: {formatDateForDisplay(validation.extractedValue)}
+              </div>
+            )}
           </div>
 
           <div>
