@@ -207,7 +207,7 @@ export const fieldValidations = pgTable("field_validations", {
   originalExtractedValue: text("original_extracted_value"), // stores original AI extracted value for reverting
   originalConfidenceScore: integer("original_confidence_score").default(0), // original AI confidence score
   originalAiReasoning: text("original_ai_reasoning"), // original AI reasoning for reverting
-  validationStatus: text("validation_status", { enum: ["valid", "invalid", "pending", "manual", "verified", "unverified", "extracted"] }).default("pending").notNull(),
+  validationStatus: text("validation_status", { enum: ["valid", "pending", "manual", "verified"] }).default("pending").notNull(),
   aiReasoning: text("ai_reasoning"), // AI explanation for validation status
   manuallyVerified: boolean("manually_verified").default(false).notNull(),
   manuallyUpdated: boolean("manually_updated").default(false).notNull(), // true when user edits a field value
