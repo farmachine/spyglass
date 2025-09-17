@@ -535,27 +535,8 @@ export class ToolEngine {
     progressCallback?: (current: number, total: number, message?: string) => void,
     stepId?: string,
     orderIndex?: number,
-    sessionId?: string,
-    browserLogger?: (message: string, level?: string) => Promise<void>
+    sessionId?: string
   ): Promise<ToolResult[]> {
-    // Helper for truncating long content for browser console
-    const truncate = (str: string, maxLen: number = 500): string => {
-      if (!str) return '';
-      return str.length > maxLen ? str.substring(0, maxLen) + '...[truncated]' : str;
-    };
-    
-    // Browser logging wrapper
-    const logToBrowser = async (message: string, level = 'log') => {
-      console.log(message); // Keep server logging
-      if (browserLogger) {
-        try {
-          await browserLogger(message, level);
-        } catch (error) {
-          // Ignore browser logging errors
-        }
-      }
-    };
-    
     console.log(`\n🚀 TOOL ENGINE - testTool() called`);
     console.log(`   Tool Name: ${tool.name}`);
     console.log(`   Tool Type: ${tool.toolType}`);
@@ -564,42 +545,6 @@ export class ToolEngine {
     console.log(`   Input Keys:`, Object.keys(inputs));
     console.log(`   Step ID: ${stepId || 'not provided'}`);
     console.log(`   Order Index: ${orderIndex !== undefined ? orderIndex : 'not provided'}`);
-    
-    // Browser console logging - Tool Start
-    await logToBrowser(`\n🚀 ========== TOOL EXECUTION STARTED ==========`);
-    await logToBrowser(`📋 Tool: ${tool.name}`);
-    await logToBrowser(`🏷️ Type: ${tool.toolType}`);
-    await logToBrowser(`⚙️ Operation: ${tool.operationType || 'standard'}`);
-    
-    // Log inputs in a clean, readable format
-    await logToBrowser(`\n📥 INPUT PARAMETERS:`);
-    for (const [key, value] of Object.entries(inputs)) {
-      if (key === '__infoPageFields') {
-        await logToBrowser(`  ${key}: [Multi-field extraction] ${JSON.stringify(value)}`);
-      } else if (typeof value === 'string' && value.length > 500) {
-        await logToBrowser(`  ${key}: [String, ${value.length} chars] ${truncate(value, 200)}`);
-      } else if (Array.isArray(value)) {
-        await logToBrowser(`  ${key}: [Array, ${value.length} items]`);
-        if (value.length > 0 && value.length <= 3) {
-          value.forEach((item, idx) => {
-            const itemStr = typeof item === 'object' ? JSON.stringify(item) : String(item);
-            await logToBrowser(`    [${idx}]: ${truncate(itemStr, 200)}`);
-          });
-        } else if (value.length > 3) {
-          // Show first 2 items only
-          for (let i = 0; i < Math.min(2, value.length); i++) {
-            const itemStr = typeof value[i] === 'object' ? JSON.stringify(value[i]) : String(value[i]);
-            await logToBrowser(`    [${i}]: ${truncate(itemStr, 200)}`);
-          }
-          await logToBrowser(`    ... and ${value.length - 2} more items`);
-        }
-      } else if (typeof value === 'object' && value !== null) {
-        const objStr = JSON.stringify(value);
-        await logToBrowser(`  ${key}: ${truncate(objStr, 300)}`);
-      } else {
-        await logToBrowser(`  ${key}: ${value}`);
-      }
-    }
     
     // Check for multi-field extraction
     if (inputs.__infoPageFields) {
@@ -705,12 +650,10 @@ export class ToolEngine {
     // Route to appropriate handler
     if (tool.toolType === "AI_ONLY") {
       console.log(`   ✅ Routing to AI tool handler (testAITool)`);
-      await logToBrowser(`\n🤖 Routing to AI Tool Handler...`);
-      return this.testAITool(tool, preparedInputs, progressCallback, browserLogger);
+      return this.testAITool(tool, preparedInputs, progressCallback);
     } else {
       console.log(`   📦 Routing to CODE tool handler (testCodeTool)`);
-      await logToBrowser(`\n💻 Routing to CODE Tool Handler...`);
-      return this.testCodeTool(tool, preparedInputs, browserLogger);
+      return this.testCodeTool(tool, preparedInputs);
     }
   }
   
@@ -720,8 +663,7 @@ export class ToolEngine {
   private async testAITool(
     tool: Tool, 
     inputs: Record<string, any>,
-    progressCallback?: (current: number, total: number, message?: string) => void,
-    browserLogger?: (message: string, level?: string) => Promise<void>
+    progressCallback?: (current: number, total: number, message?: string) => void
   ): Promise<ToolResult[]> {
     console.log(`\n🤖 AI TOOL HANDLER - testAITool() called`);
     console.log(`   Tool: ${tool.name}`);
@@ -790,14 +732,6 @@ export class ToolEngine {
       // 3. Build prompt using tool's AI prompt template
       const prompt = this.buildAIPrompt(tool, inputs, inputArray);
       
-      // Browser logging wrapper
-      const logToBrowser = async (message: string, level = 'log') => {
-        console.log(message);
-        if (browserLogger) {
-          await browserLogger(message, level);
-        }
-      };
-      
       // 4. Log the prompt for debugging
       console.log('\n📝 FULL AI EXTRACTION PROMPT (for debugging multi-field issue):');
       console.log('='.repeat(80));
@@ -811,19 +745,6 @@ export class ToolEngine {
       console.log(prompt);
       console.log('='.repeat(80));
       console.log('END OF PROMPT');
-      
-      // Browser console logging for AI prompt
-      await logToBrowser(`\n📝 AI PROMPT:`);
-      await logToBrowser(`${'='.repeat(60)}`);
-      if (inputs.__infoPageFields) {
-        await logToBrowser(`Multi-field extraction: ${JSON.stringify(inputs.__infoPageFields)}`);
-      }
-      // Log full prompt for AI tools
-      const promptLines = prompt.split('\n');
-      for (const line of promptLines) {
-        await logToBrowser(line);
-      }
-      await logToBrowser(`${'='.repeat(60)}`);
       
       // 5. Call Gemini API
       if (progressCallback) {
@@ -862,17 +783,6 @@ export class ToolEngine {
       
       // Log the response size and content
       console.log(`📏 AI Response Size: ${rawResponse.length} characters`);
-      
-      // Browser logging for AI response
-      await logToBrowser(`\n📤 AI RESPONSE RECEIVED:`);
-      await logToBrowser(`Response size: ${rawResponse.length} characters`);
-      
-      // Log response preview to browser (truncated if too long)
-      if (rawResponse.length < 1000) {
-        await logToBrowser(`Full response: ${rawResponse}`);
-      } else {
-        await logToBrowser(`Response preview (first 500 chars): ${rawResponse.substring(0, 500)}...[truncated]`);
-      }
       
       // Always log the full response if it's under 2000 chars (to debug empty results)
       if (rawResponse.length < 2000) {
@@ -1585,41 +1495,10 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
   /**
    * Test code-based tool
    */
-  private async testCodeTool(tool: Tool, inputs: Record<string, any>, browserLogger?: (message: string, level?: string) => Promise<void>): Promise<ToolResult[]> {
-    // Browser logging wrapper
-    const logToBrowser = async (message: string, level = 'log') => {
-      console.log(message);
-      if (browserLogger) {
-        await browserLogger(message, level);
-      }
-    };
-    
+  private async testCodeTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
     try {
       if (!tool.functionCode) {
         throw new Error('Function code not found');
-      }
-      
-      // Browser logging for CODE tool
-      await logToBrowser(`\n💻 CODE FUNCTION EXECUTION:`);
-      await logToBrowser(`Function: ${tool.name}`);
-      
-      // Log the function code (truncated if too long)
-      const codeLines = tool.functionCode.split('\n');
-      if (codeLines.length <= 50) {
-        await logToBrowser(`\n📝 FUNCTION CODE:`);
-        await logToBrowser(`${'='.repeat(60)}`);
-        for (const line of codeLines) {
-          await logToBrowser(line);
-        }
-        await logToBrowser(`${'='.repeat(60)}`);
-      } else {
-        await logToBrowser(`\n📝 FUNCTION CODE (first 30 lines of ${codeLines.length}):`);
-        await logToBrowser(`${'='.repeat(60)}`);
-        for (let i = 0; i < 30; i++) {
-          await logToBrowser(codeLines[i]);
-        }
-        await logToBrowser(`...[${codeLines.length - 30} lines truncated]`);
-        await logToBrowser(`${'='.repeat(60)}`);
       }
       
       // Normalize parameter names to match what the Python function expects
@@ -1660,26 +1539,6 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
             console.log(`  ... total of ${result.length} items`);
           }
         }
-        
-        // Browser logging for CODE tool results
-        await logToBrowser(`\n✅ CODE EXECUTION RESULTS:`);
-        await logToBrowser(`Results count: ${result?.length || 0}`);
-        if (result && result.length > 0) {
-          // Log first few results
-          const maxResultsToShow = Math.min(3, result.length);
-          for (let i = 0; i < maxResultsToShow; i++) {
-            const resultStr = JSON.stringify(result[i]);
-            if (resultStr.length > 300) {
-              await logToBrowser(`Result [${i}]: ${resultStr.substring(0, 300)}...[truncated]`);
-            } else {
-              await logToBrowser(`Result [${i}]: ${resultStr}`);
-            }
-          }
-          if (result.length > maxResultsToShow) {
-            await logToBrowser(`... and ${result.length - maxResultsToShow} more results`);
-          }
-        }
-        
         await fs.unlink(tempFile); // Clean up
         return result;
       } catch (error) {
