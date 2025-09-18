@@ -126,7 +126,7 @@ export default function ExtractWizardModal({
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-800">
+      <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-800">
         <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
           <DialogTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-white">
             <Sparkles className="h-5 w-5" style={{ color: '#4F63A4' }} />
@@ -588,15 +588,9 @@ export default function ExtractWizardModal({
                                               <table className="w-full text-xs">
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
-                                                    <th className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[100px]">
-                                                      <div className="flex items-center gap-1">
-                                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                        <span>ID</span>
-                                                      </div>
-                                                    </th>
                                                     {columnHeaders.map(header => (
-                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[120px] max-w-[200px]">
-                                                        <div className="flex items-center gap-1">
+                                                      <th key={header} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[150px] max-w-[250px]">
+                                                        <div className="flex items-center gap-2">
                                                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                                           <span className="truncate" title={header}>{header}</span>
                                                         </div>
@@ -607,13 +601,8 @@ export default function ExtractWizardModal({
                                                 <tbody>
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
-                                                      <td className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[100px]">
-                                                        <span className="font-mono text-xs" title={row.identifierId}>
-                                                          {row.identifierId?.substring(0, 8)}...
-                                                        </span>
-                                                      </td>
                                                       {columnHeaders.map(header => (
-                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[120px] max-w-[200px]">
+                                                        <td key={header} className="px-3 py-2 text-gray-800 dark:text-gray-200 min-w-[150px] max-w-[250px]">
                                                           <div className="truncate" title={String(row[header] || '')}>
                                                             {row[header] === null || row[header] === undefined ? (
                                                               <span className="text-gray-400 italic">-</span>
