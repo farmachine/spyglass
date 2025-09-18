@@ -595,7 +595,13 @@ export default function ExtractWizardModal({
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => {
-                                                      const columnWidth = Math.max(120, Math.min(header.length * 8, 200));
+                                                      // Calculate more balanced column widths
+                                                      const baseWidth = 140; // Larger base width for better readability
+                                                      const charMultiplier = 6; // Smaller multiplier for more even distribution
+                                                      const maxWidth = 180; // Smaller max to allow more columns
+                                                      const minWidth = 130; // Ensure minimum readability
+                                                      
+                                                      const columnWidth = Math.max(minWidth, Math.min(baseWidth + (header.length * charMultiplier), maxWidth));
                                                       
                                                       return (
                                                         <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300" style={{
@@ -616,8 +622,14 @@ export default function ExtractWizardModal({
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map((header, index) => {
-                                                        const columnWidth = Math.max(120, Math.min(header.length * 8, 200));
-                                                        const maxChars = Math.floor((columnWidth - 30) / 6);
+                                                        // Match the same width calculation as headers
+                                                        const baseWidth = 140;
+                                                        const charMultiplier = 6;
+                                                        const maxWidth = 180;
+                                                        const minWidth = 130;
+                                                        
+                                                        const columnWidth = Math.max(minWidth, Math.min(baseWidth + (header.length * charMultiplier), maxWidth));
+                                                        const maxChars = Math.floor((columnWidth - 25) / 5.5); // Adjusted for better text fitting
                                                         
                                                         return (
                                                           <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200" style={{
