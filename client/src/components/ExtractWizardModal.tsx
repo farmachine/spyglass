@@ -591,70 +591,37 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="w-full text-xs table-fixed">
+                                              <table className="text-xs" style={{ minWidth: '100%' }}>
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
-                                                    {columnHeaders.map((header, index) => {
-                                                      // More aggressive column widths to ensure headers are readable
-                                                      const minWidth = 160; // Much larger minimum to show full headers
-                                                      const maxWidth = 220; // Allow wider columns for long headers  
-                                                      const charMultiplier = 4; // Reduced multiplier for more even sizing
-                                                      
-                                                      const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
-                                                      
-                                                      const isLastColumn = index === columnHeaders.length - 1;
-                                                      
-                                                      return (
-                                                        <th key={header} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300" style={
-                                                          isLastColumn ? {
-                                                            width: 'auto' // Last column expands to fill remaining space
-                                                          } : {
-                                                            width: '200px' // Fixed width for other columns
-                                                          }
-                                                        }>
-                                                          <div className="flex items-center gap-2">
-                                                            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                                                            <span className="block" title={header}>{header}</span>
-                                                          </div>
-                                                        </th>
-                                                      );
-                                                    })}
+                                                    {columnHeaders.map((header, index) => (
+                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap" style={{ 
+                                                        maxWidth: '250px' // Max width similar to first column size
+                                                      }}>
+                                                        <div className="flex items-center gap-1">
+                                                          <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                                                          <span title={header}>{header}</span>
+                                                        </div>
+                                                      </th>
+                                                    ))}
                                                   </tr>
                                                 </thead>
                                                 <tbody>
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
-                                                      {columnHeaders.map((header, index) => {
-                                                        // Match the same width calculation as headers
-                                                        const minWidth = 160; // Much larger minimum to show full headers
-                                                        const maxWidth = 220; // Allow wider columns for long headers  
-                                                        const charMultiplier = 4; // Reduced multiplier for more even sizing
-                                                        
-                                                        const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
-                                                        const maxChars = Math.floor((columnWidth - 25) / 5.5); // Adjusted for better text fitting
-                                                        
-                                                        const isLastColumn = index === columnHeaders.length - 1;
-                                                        
-                                                        return (
-                                                          <td key={header} className="px-3 py-2 text-gray-800 dark:text-gray-200" style={
-                                                            isLastColumn ? {
-                                                              width: 'auto' // Last column expands to fill remaining space
-                                                            } : {
-                                                              width: '200px' // Fixed width for other columns
-                                                            }
-                                                          }>
-                                                            <div className="overflow-hidden" title={String(row[header] || '')}>
-                                                              {row[header] === null || row[header] === undefined ? (
-                                                                <span className="text-gray-400 italic">-</span>
-                                                              ) : (
-                                                                <span className="block text-ellipsis overflow-hidden whitespace-nowrap">
-                                                                  {String(row[header])}
-                                                                </span>
-                                                              )}
-                                                            </div>
-                                                          </td>
-                                                        );
-                                                      })}
+                                                      {columnHeaders.map((header) => (
+                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 whitespace-nowrap" style={{ 
+                                                          maxWidth: '250px' // Max width to match headers
+                                                        }}>
+                                                          {row[header] === null || row[header] === undefined ? (
+                                                            <span className="text-gray-400 italic">-</span>
+                                                          ) : (
+                                                            <span className="truncate block" title={String(row[header])}>
+                                                              {String(row[header])}
+                                                            </span>
+                                                          )}
+                                                        </td>
+                                                      ))}
                                                     </tr>
                                                   ))}
                                                 </tbody>
