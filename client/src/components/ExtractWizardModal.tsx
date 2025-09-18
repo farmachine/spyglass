@@ -591,7 +591,7 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="text-xs table-auto" style={{ width: 'max-content', tableLayout: 'auto' }}>
+                                              <table className="w-full text-xs table-fixed">
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => {
@@ -602,11 +602,16 @@ export default function ExtractWizardModal({
                                                       
                                                       const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
                                                       
+                                                      const isLastColumn = index === columnHeaders.length - 1;
+                                                      
                                                       return (
-                                                        <th key={header} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300" style={{
-                                                          minWidth: '120px',
-                                                          maxWidth: '250px'
-                                                        }}>
+                                                        <th key={header} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300" style={
+                                                          isLastColumn ? {
+                                                            width: 'auto' // Last column expands to fill remaining space
+                                                          } : {
+                                                            width: '200px' // Fixed width for other columns
+                                                          }
+                                                        }>
                                                           <div className="flex items-center gap-2">
                                                             <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                                                             <span className="block" title={header}>{header}</span>
@@ -628,11 +633,16 @@ export default function ExtractWizardModal({
                                                         const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
                                                         const maxChars = Math.floor((columnWidth - 25) / 5.5); // Adjusted for better text fitting
                                                         
+                                                        const isLastColumn = index === columnHeaders.length - 1;
+                                                        
                                                         return (
-                                                          <td key={header} className="px-3 py-2 text-gray-800 dark:text-gray-200" style={{
-                                                            minWidth: '120px',
-                                                            maxWidth: '250px'
-                                                          }}>
+                                                          <td key={header} className="px-3 py-2 text-gray-800 dark:text-gray-200" style={
+                                                            isLastColumn ? {
+                                                              width: 'auto' // Last column expands to fill remaining space
+                                                            } : {
+                                                              width: '200px' // Fixed width for other columns
+                                                            }
+                                                          }>
                                                             <div className="overflow-hidden" title={String(row[header] || '')}>
                                                               {row[header] === null || row[header] === undefined ? (
                                                                 <span className="text-gray-400 italic">-</span>
