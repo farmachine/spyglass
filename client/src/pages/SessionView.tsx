@@ -6798,10 +6798,13 @@ Thank you for your assistance.`;
               
               console.log('Column extraction response:', response);
               
-              // Close the modal
-              setColumnExtractionModal(null);
+              // Check if the extraction actually failed even with a 200 response
+              if (response && response.resultsCount === 0) {
+                // Extraction failed - the response indicates no results were processed
+                throw new Error(`Extraction failed: ${response.message || 'No values were extracted'}`);
+              }
               
-              // Refresh validations to show the new extracted data
+              // Refresh validations to check the actual extraction results
               console.log('🔄 Invalidating validation queries...');
               
               // Small delay to ensure backend operations complete
@@ -6810,9 +6813,33 @@ Thank you for your assistance.`;
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
               await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] });
               
-              // Force refetch to ensure UI updates
-              await queryClient.refetchQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              // Force refetch to get the latest validation results
+              const validationResponse = await queryClient.refetchQueries({ queryKey: ['/api/validations/project', projectId] });
               console.log('✅ Validation queries refreshed');
+              
+              // Check if the extracted validations contain errors
+              const validationsData = validationResponse?.[0]?.data;
+              if (validationsData) {
+                // Look for validations with error indicators for this specific value
+                const recentValidations = validationsData.filter((v: any) => 
+                  v.valueId === valueId && 
+                  (v.validationStatus === 'invalid' || 
+                   v.documentSource === 'CODE_ERROR' || 
+                   v.documentSource === 'ENGINE_ERROR' ||
+                   (v.aiReasoning && v.aiReasoning.includes('failed')))
+                );
+                
+                if (recentValidations.length > 0) {
+                  const errorValidation = recentValidations[0];
+                  console.log('🚨 Found extraction error in validation results:', errorValidation);
+                  
+                  // Throw error with the actual extraction failure details
+                  throw new Error(errorValidation.aiReasoning || 'Extraction failed with unknown error');
+                }
+              }
+              
+              // Close the modal if successful
+              setColumnExtractionModal(null);
               
             } catch (error: any) {
               console.error('Error running column extraction:', error);
