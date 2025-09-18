@@ -126,7 +126,7 @@ export default function ExtractWizardModal({
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-800">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-gray-800">
         <DialogHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
           <DialogTitle className="flex items-center gap-2 text-xl text-gray-900 dark:text-white">
             <Sparkles className="h-5 w-5" style={{ color: '#4F63A4' }} />
@@ -591,11 +591,11 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="text-xs table-fixed" style={{ minWidth: 'max-content' }}>
+                                              <table className="w-full text-xs">
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map(header => (
-                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 w-[150px]" style={{ width: '150px' }}>
+                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">
                                                         <div className="flex items-center gap-1">
                                                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                                           <span className="truncate" title={header}>{header}</span>
@@ -608,12 +608,12 @@ export default function ExtractWizardModal({
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map(header => (
-                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 w-[150px]" style={{ width: '150px' }}>
+                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200">
                                                           <div className="truncate" title={String(row[header] || '')}>
                                                             {row[header] === null || row[header] === undefined ? (
                                                               <span className="text-gray-400 italic">-</span>
                                                             ) : (
-                                                              <span className="truncate block">{String(row[header]).length > 20 ? String(row[header]).substring(0, 20) + '...' : String(row[header])}</span>
+                                                              <span className="truncate block">{String(row[header]).length > 30 ? String(row[header]).substring(0, 30) + '...' : String(row[header])}</span>
                                                             )}
                                                           </div>
                                                         </td>
