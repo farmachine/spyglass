@@ -446,19 +446,36 @@ export default function ExtractWizardModal({
                                   }
                                   
                                   if (Array.isArray(displayValue)) {
+                                    // Display as a table with columns
                                     return (
-                                      <div className="space-y-1 max-h-48 overflow-y-auto">
-                                        {displayValue.map((item: any, idx: number) => (
-                                          <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
-                                            {typeof item === 'string' ? 
-                                              (item.length > 150 ? item.substring(0, 150) + '...' : item) : 
-                                              JSON.stringify(item)
-                                            }
-                                          </div>
-                                        ))}
+                                      <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                        <div className="overflow-x-auto max-h-48">
+                                          <table className="w-full text-xs table-fixed">
+                                            <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                                              <tr>
+                                                <th className="w-12 px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">#</th>
+                                                <th className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">Column Name</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {displayValue.map((item: any, idx: number) => (
+                                                <tr key={idx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                                  <td className="w-12 px-2 py-1.5 text-gray-500 dark:text-gray-400 font-mono text-center">
+                                                    {idx + 1}
+                                                  </td>
+                                                  <td className="px-2 py-1.5 text-gray-800 dark:text-gray-200">
+                                                    <div className="truncate" title={typeof item === 'string' ? item : JSON.stringify(item)}>
+                                                      {typeof item === 'string' ? item : JSON.stringify(item)}
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
                                         {displayValue.length > 0 && (
-                                          <div className="text-xs text-gray-500 italic px-2 pt-1 border-t border-gray-200 dark:border-gray-600">
-                                            {displayValue.length} total column{displayValue.length !== 1 ? 's' : ''} shown
+                                          <div className="px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600">
+                                            {displayValue.length} total column{displayValue.length !== 1 ? 's' : ''}
                                           </div>
                                         )}
                                       </div>
