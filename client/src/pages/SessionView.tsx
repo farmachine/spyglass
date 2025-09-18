@@ -1585,6 +1585,11 @@ export default function SessionView() {
     extractedCount?: number;
     totalAvailable?: number;
     isFirstColumn?: boolean; // Add flag to indicate if this is the first column
+    extractionError?: {
+      message: string;
+      inputJson: string;
+      outputJson: string;
+    };
   } | null>(null);
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
 
@@ -6812,6 +6817,22 @@ Thank you for your assistance.`;
             } catch (error: any) {
               console.error('Error running column extraction:', error);
               
+              // Capture input and output JSON for error display
+              const inputJson = JSON.stringify(requestPayload, null, 2);
+              const outputJson = error?.response ? 
+                JSON.stringify(error.response, null, 2) : 
+                error?.message || 'No response data available';
+              
+              // Update the modal state to include the error
+              setColumnExtractionModal(prev => prev ? {
+                ...prev,
+                extractionError: {
+                  message: error?.message || "Failed to extract column data. Please try again.",
+                  inputJson,
+                  outputJson
+                }
+              } : null);
+              
               // Handle 409 Conflict - missing anchor records
               if (error?.status === 409 || error?.message?.includes('base rows') || error?.message?.includes('anchor records')) {
                 toast({
@@ -6821,13 +6842,8 @@ Thank you for your assistance.`;
                   duration: 7000
                 });
               } else {
-                // General error handling
-                toast({
-                  title: "Extraction Failed",
-                  description: error?.message || "Failed to extract column data. Please try again.",
-                  variant: "destructive",
-                  duration: 5000
-                });
+                // General error handling - but don't show toast since error is displayed in modal
+                console.log('Error details captured and displayed in modal');
               }
             } finally {
               setIsColumnExtracting(false);
@@ -6847,6 +6863,7 @@ Thank you for your assistance.`;
           isLoading={isColumnExtracting}
           inputValues={columnExtractionModal.inputValues}
           knowledgeDocuments={columnExtractionModal.knowledgeDocuments || []}
+          extractionError={columnExtractionModal.extractionError}
         />
       )}
       {/* AI Extraction Modal */}

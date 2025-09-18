@@ -22,6 +22,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
+interface ExtractionError {
+  message: string;
+  inputJson: string;
+  outputJson: string;
+}
+
 interface ExtractWizardModalProps {
   open: boolean;
   onClose: () => void;
@@ -42,6 +48,7 @@ interface ExtractWizardModalProps {
   isFirstColumn?: boolean; // Flag to indicate if this is the first column
   referenceFieldNames?: Record<string, string>; // Map of field IDs to human-readable names
   validations?: any[]; // Validation records to resolve UUIDs to extracted values
+  extractionError?: ExtractionError; // Error details when extraction fails
 }
 
 export default function ExtractWizardModal({
@@ -63,7 +70,8 @@ export default function ExtractWizardModal({
   columnOrder,
   isFirstColumn = false,
   referenceFieldNames = {},
-  validations = []
+  validations = [],
+  extractionError
 }: ExtractWizardModalProps) {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -133,6 +141,45 @@ export default function ExtractWizardModal({
             Extract: {title.replace('Extract ', '')}
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Extraction Error Display */}
+        {extractionError && (
+          <div className="mx-6 mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Extraction Failed</h3>
+              </div>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-4">{extractionError.message}</p>
+              
+              <div className="space-y-3">
+                {/* RAW JSON Input Section */}
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">RAW JSON Input:</h4>
+                  <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 rounded p-3 text-xs font-mono max-h-32 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                      {extractionError.inputJson.length > 500 
+                        ? extractionError.inputJson.substring(0, 500) + '...'
+                        : extractionError.inputJson}
+                    </pre>
+                  </div>
+                </div>
+                
+                {/* RAW JSON Output Section */}
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">RAW JSON Output:</h4>
+                  <div className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 rounded p-3 text-xs font-mono max-h-32 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                      {extractionError.outputJson.length > 500 
+                        ? extractionError.outputJson.substring(0, 500) + '...'
+                        : extractionError.outputJson}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Loading overlay during extraction - same style as Info Page */}
         {isLoading && (
