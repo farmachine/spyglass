@@ -532,7 +532,20 @@ export default function ExtractWizardModal({
                                       const rowsMap: Record<string, any> = {};
                                       const columnHeaders: string[] = [];
 
-                                      // Build data rows from validations
+                                      // First, get all unique valueIds and create column headers
+                                      const valueIdToColumnName: Record<string, string> = {};
+                                      value.forEach((valueId: string) => {
+                                        if (referenceFieldNames && referenceFieldNames[valueId]) {
+                                          valueIdToColumnName[valueId] = referenceFieldNames[valueId];
+                                        } else {
+                                          // Find any validation for this valueId to get field name
+                                          const sampleValidation = validations.find(v => v.valueId === valueId);
+                                          valueIdToColumnName[valueId] = sampleValidation?.fieldName || sampleValidation?.columnName || `Column_${valueId}`;
+                                        }
+                                        columnHeaders.push(valueIdToColumnName[valueId]);
+                                      });
+
+                                      // Build data rows from validations, grouping by valueId
                                       validations.forEach(validation => {
                                         if (!validation.identifierId || !(Array.isArray(value) && value.includes(validation.valueId))) return;
                                         
@@ -541,16 +554,9 @@ export default function ExtractWizardModal({
                                           rowsMap[validation.identifierId] = { identifierId: validation.identifierId };
                                         }
 
-                                        // Get column name from referenceFieldNames or validation data
-                                        let columnName = validation.fieldName || validation.columnName || `Column_${validation.valueId}`;
-                                        if (referenceFieldNames && validation.valueId && referenceFieldNames[validation.valueId]) {
-                                          columnName = referenceFieldNames[validation.valueId];
-                                        }
+                                        // Get column name for this valueId
+                                        const columnName = valueIdToColumnName[validation.valueId];
                                         
-                                        if (!columnHeaders.includes(columnName)) {
-                                          columnHeaders.push(columnName);
-                                        }
-
                                         // Get best value with precedence
                                         let cellValue = validation.extractedValue;
                                         if (validation.validatedValue !== undefined && validation.validatedValue !== null) {
@@ -559,7 +565,18 @@ export default function ExtractWizardModal({
                                           cellValue = validation.normalizedValue;
                                         }
 
-                                        rowsMap[validation.identifierId][columnName] = cellValue;
+                                        // If we already have a value for this cell, combine them (shouldn't happen in normal cases)
+                                        if (rowsMap[validation.identifierId][columnName]) {
+                                          // Keep the first non-null/non-empty value, or combine if needed
+                                          if (!cellValue || cellValue === '') {
+                                            // Keep existing value
+                                          } else if (!rowsMap[validation.identifierId][columnName] || rowsMap[validation.identifierId][columnName] === '') {
+                                            rowsMap[validation.identifierId][columnName] = cellValue;
+                                          }
+                                          // If both have values, keep the existing one (first wins)
+                                        } else {
+                                          rowsMap[validation.identifierId][columnName] = cellValue;
+                                        }
                                       });
 
                                       const dataRows = Object.values(rowsMap).slice(0, 5); // Show first 5 rows
