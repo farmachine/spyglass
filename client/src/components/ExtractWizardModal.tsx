@@ -591,26 +591,18 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="w-full text-xs table-fixed"  style={{ minWidth: 'max-content' }}>
+                                              <table className="text-xs" style={{ width: 'max-content' }}>
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => {
-                                                      const isLastColumn = index === columnHeaders.length - 1;
-                                                      const columnWidth = Math.max(60, Math.min(header.length * 6, 150));
+                                                      const columnWidth = Math.max(120, Math.min(header.length * 8, 200));
                                                       
                                                       return (
-                                                        <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300" style={
-                                                          isLastColumn ? {
-                                                            // Last column: flexible width, fills remaining space
-                                                            minWidth: `${columnWidth}px`,
-                                                            width: 'auto'
-                                                          } : {
-                                                            // Other columns: fixed compact width
-                                                            minWidth: `${columnWidth}px`,
-                                                            maxWidth: `${columnWidth}px`,
-                                                            width: `${columnWidth}px`
-                                                          }
-                                                        }>
+                                                        <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300" style={{
+                                                          width: `${columnWidth}px`,
+                                                          minWidth: `${columnWidth}px`,
+                                                          maxWidth: `${columnWidth}px`
+                                                        }}>
                                                           <div className="flex items-center gap-1">
                                                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                                             <span className="truncate" title={header}>{header}</span>
@@ -624,23 +616,15 @@ export default function ExtractWizardModal({
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map((header, index) => {
-                                                        const isLastColumn = index === columnHeaders.length - 1;
-                                                        const columnWidth = Math.max(60, Math.min(header.length * 6, 150));
-                                                        const maxChars = isLastColumn ? 50 : Math.floor((columnWidth - 20) / 5);
+                                                        const columnWidth = Math.max(120, Math.min(header.length * 8, 200));
+                                                        const maxChars = Math.floor((columnWidth - 30) / 6);
                                                         
                                                         return (
-                                                          <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200" style={
-                                                            isLastColumn ? {
-                                                              // Last column: flexible width
-                                                              minWidth: `${columnWidth}px`,
-                                                              width: 'auto'
-                                                            } : {
-                                                              // Other columns: fixed compact width
-                                                              minWidth: `${columnWidth}px`,
-                                                              maxWidth: `${columnWidth}px`,
-                                                              width: `${columnWidth}px`
-                                                            }
-                                                          }>
+                                                          <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200" style={{
+                                                            width: `${columnWidth}px`,
+                                                            minWidth: `${columnWidth}px`,
+                                                            maxWidth: `${columnWidth}px`
+                                                          }}>
                                                             <div className="truncate" title={String(row[header] || '')}>
                                                               {row[header] === null || row[header] === undefined ? (
                                                                 <span className="text-gray-400 italic">-</span>
