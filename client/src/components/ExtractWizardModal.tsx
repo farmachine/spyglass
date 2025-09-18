@@ -535,14 +535,20 @@ export default function ExtractWizardModal({
                                       // First, get all unique valueIds and create column headers
                                       const valueIdToColumnName: Record<string, string> = {};
                                       value.forEach((valueId: string) => {
+                                        let columnName = '';
                                         if (referenceFieldNames && referenceFieldNames[valueId]) {
-                                          valueIdToColumnName[valueId] = referenceFieldNames[valueId];
+                                          columnName = referenceFieldNames[valueId];
                                         } else {
                                           // Find any validation for this valueId to get field name
                                           const sampleValidation = validations.find(v => v.valueId === valueId);
-                                          valueIdToColumnName[valueId] = sampleValidation?.fieldName || sampleValidation?.columnName || `Column_${valueId}`;
+                                          columnName = sampleValidation?.fieldName || sampleValidation?.columnName || `Column_${valueId}`;
                                         }
-                                        columnHeaders.push(valueIdToColumnName[valueId]);
+                                        
+                                        // Clean up column name by removing index numbers like [0], [1], [4], etc.
+                                        columnName = columnName.replace(/\[\d+\]$/, '');
+                                        
+                                        valueIdToColumnName[valueId] = columnName;
+                                        columnHeaders.push(columnName);
                                       });
 
                                       // Build data rows from validations, grouping by valueId
@@ -589,7 +595,7 @@ export default function ExtractWizardModal({
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map(header => (
-                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 w-[200px]" style={{ width: '200px' }}>
+                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 w-[150px]" style={{ width: '150px' }}>
                                                         <div className="flex items-center gap-1">
                                                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                                           <span className="truncate" title={header}>{header}</span>
@@ -602,12 +608,12 @@ export default function ExtractWizardModal({
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map(header => (
-                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 w-[200px]" style={{ width: '200px' }}>
+                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 w-[150px]" style={{ width: '150px' }}>
                                                           <div className="truncate" title={String(row[header] || '')}>
                                                             {row[header] === null || row[header] === undefined ? (
                                                               <span className="text-gray-400 italic">-</span>
                                                             ) : (
-                                                              String(row[header])
+                                                              <span className="truncate block">{String(row[header]).length > 20 ? String(row[header]).substring(0, 20) + '...' : String(row[header])}</span>
                                                             )}
                                                           </div>
                                                         </td>
