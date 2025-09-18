@@ -591,17 +591,16 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="text-xs" style={{ width: 'max-content' }}>
+                                              <table className="text-xs table-auto" style={{ width: 'max-content', tableLayout: 'auto' }}>
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => {
-                                                      // Calculate more balanced column widths
-                                                      const baseWidth = 140; // Larger base width for better readability
-                                                      const charMultiplier = 6; // Smaller multiplier for more even distribution
-                                                      const maxWidth = 180; // Smaller max to allow more columns
-                                                      const minWidth = 130; // Ensure minimum readability
+                                                      // More aggressive column widths to ensure headers are readable
+                                                      const minWidth = 160; // Much larger minimum to show full headers
+                                                      const maxWidth = 220; // Allow wider columns for long headers  
+                                                      const charMultiplier = 4; // Reduced multiplier for more even sizing
                                                       
-                                                      const columnWidth = Math.max(minWidth, Math.min(baseWidth + (header.length * charMultiplier), maxWidth));
+                                                      const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
                                                       
                                                       return (
                                                         <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300" style={{
@@ -623,12 +622,11 @@ export default function ExtractWizardModal({
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map((header, index) => {
                                                         // Match the same width calculation as headers
-                                                        const baseWidth = 140;
-                                                        const charMultiplier = 6;
-                                                        const maxWidth = 180;
-                                                        const minWidth = 130;
+                                                        const minWidth = 160; // Much larger minimum to show full headers
+                                                        const maxWidth = 220; // Allow wider columns for long headers  
+                                                        const charMultiplier = 4; // Reduced multiplier for more even sizing
                                                         
-                                                        const columnWidth = Math.max(minWidth, Math.min(baseWidth + (header.length * charMultiplier), maxWidth));
+                                                        const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
                                                         const maxChars = Math.floor((columnWidth - 25) / 5.5); // Adjusted for better text fitting
                                                         
                                                         return (
