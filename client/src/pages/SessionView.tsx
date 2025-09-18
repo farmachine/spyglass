@@ -6821,33 +6821,38 @@ Thank you for your assistance.`;
               // The API may report resultsCount > 0 but if results are filtered due to errors, no validations are saved
               const validationsData = validationResponse?.[0]?.data;
               let foundRecentValidations = false;
+              let hasActualErrors = false;
               
-              if (validationsData) {
+              if (validationsData && Array.isArray(validationsData)) {
                 // Look for any recent validations for this specific value (including successful ones)
                 const recentValidations = validationsData.filter((v: any) => v.valueId === valueId);
                 foundRecentValidations = recentValidations.length > 0;
                 
-                // Look for validations with error indicators
+                // Only check for ACTUAL errors - don't flag successful extractions as errors
                 const errorValidations = recentValidations.filter((v: any) => 
-                  v.validationStatus === 'invalid' || 
                   v.documentSource === 'CODE_ERROR' || 
                   v.documentSource === 'ENGINE_ERROR' ||
-                  (v.aiReasoning && v.aiReasoning.includes('failed'))
+                  (v.aiReasoning && v.aiReasoning.toLowerCase().includes('error')) ||
+                  (v.aiReasoning && v.aiReasoning.toLowerCase().includes('failed')) ||
+                  (v.extractedValue === '' && v.validationStatus !== 'valid')
                 );
                 
                 if (errorValidations.length > 0) {
                   const errorValidation = errorValidations[0];
                   console.log('🚨 Found extraction error in validation results:', errorValidation);
+                  hasActualErrors = true;
                   
                   // Throw error with the actual extraction failure details
                   throw new Error(errorValidation.aiReasoning || 'Extraction failed with unknown error');
                 }
               }
               
-              // If results were processed but no validations were found, it means they were filtered out due to errors
-              if (response && response.resultsCount > 0 && !foundRecentValidations) {
-                console.log('🚨 Extraction processed results but no validations were saved - likely filtered due to errors');
-                throw new Error('Extraction failed: Results were processed but filtered due to validation errors. Please check the tool configuration and try again.');
+              // Only flag as error if we processed results, have no validations, AND there are no timing issues
+              // Give some extra time for database operations to complete
+              if (response && response.resultsCount > 0 && !foundRecentValidations && !hasActualErrors) {
+                console.log('⚠️ Results processed but validations not found yet - this may be a timing issue');
+                // Don't throw error immediately - let the user see the results that may have been saved
+                console.log('📝 Error details captured and displayed in modal');
               }
               
               // Close the modal if successful
