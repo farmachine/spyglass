@@ -577,3 +577,49 @@ export type ValidatedCollectionRecord = {
   collectionName: string;
   properties: ValidatedField[];
 };
+
+// Rich Extraction Context Types for AI Function Inputs
+export interface ReferenceDocument {
+  id: string;
+  type: 'user' | 'knowledge';
+  name: string;
+  mime?: string;
+  contentTruncated: string; // Truncated content for AI processing
+  source: string; // Description of document source
+}
+
+export interface ReferenceDataItem {
+  [key: string]: any; // Flexible structure for extracted data
+  recordId?: string; // Optional record identifier
+}
+
+export interface RichExtractionContext {
+  'reference data': ReferenceDataItem[]; // All arrays as JSON objects within arrays as properties
+  'reference documents': ReferenceDocument[]; // All reference documents and content (type user and knowledge) as array of objects
+  'text': string[]; // Array of all text inputs
+}
+
+// Zod schemas for validation
+export const referenceDocumentSchema = z.object({
+  id: z.string(),
+  type: z.enum(['user', 'knowledge']),
+  name: z.string(),
+  mime: z.string().optional(),
+  contentTruncated: z.string(),
+  source: z.string(),
+});
+
+export const referenceDataItemSchema = z.record(z.any()).and(z.object({
+  recordId: z.string().optional(),
+}));
+
+export const richExtractionContextSchema = z.object({
+  'reference data': z.array(referenceDataItemSchema),
+  'reference documents': z.array(referenceDocumentSchema),
+  'text': z.array(z.string()),
+});
+
+// Types inferred from schemas
+export type RichExtractionContextValidated = z.infer<typeof richExtractionContextSchema>;
+export type ReferenceDocumentValidated = z.infer<typeof referenceDocumentSchema>;
+export type ReferenceDataItemValidated = z.infer<typeof referenceDataItemSchema>;

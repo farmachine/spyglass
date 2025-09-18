@@ -1493,9 +1493,19 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
   }
   
   /**
-   * Test code-based tool
+   * Test code-based tool with rich context support
    */
-  private async testCodeTool(tool: Tool, inputs: Record<string, any>): Promise<ToolResult[]> {
+  private async testCodeTool(
+    tool: Tool, 
+    inputs: Record<string, any>,
+    contextData?: {
+      projectId?: string;
+      sessionId?: string;
+      documentIds?: string[];
+      previousData?: any[];
+      stepId?: string;
+    }
+  ): Promise<ToolResult[]> {
     try {
       if (!tool.functionCode) {
         throw new Error('Function code not found');
@@ -1523,11 +1533,27 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       
       console.log('🐍 Normalized inputs for Python function:', Object.keys(normalizedInputs));
       
+      // Build rich context if context data is available
+      let richContext: import('@shared/schema').RichExtractionContext | undefined;
+      if (contextData?.projectId && contextData?.sessionId && contextData?.stepId) {
+        console.log('🎯 Building rich extraction context for CODE tool...');
+        richContext = await this.buildRichExtractionContext({
+          projectId: contextData.projectId,
+          sessionId: contextData.sessionId,
+          documentIds: contextData.documentIds || [],
+          inputValues: normalizedInputs,
+          previousData: contextData.previousData || [],
+          stepId: contextData.stepId
+        });
+      } else {
+        console.log('⚠️ Context data not available - using legacy format');
+      }
+      
       // Write function to temporary file to avoid string escaping issues
       const tempDir = '/tmp';
       const tempFile = path.join(tempDir, `test_function_${Date.now()}.py`);
       
-      const testScript = this.buildCodeTestScript(tool, normalizedInputs);
+      const testScript = this.buildCodeTestScript(tool, normalizedInputs, richContext);
       await fs.writeFile(tempFile, testScript);
       
       try {
@@ -2001,18 +2027,15 @@ ${formattedInputs}${arrayInstruction}`;
   /**
    * Build Python test script for CODE tools
    */
-  private buildCodeTestScript(tool: Tool, inputs: Record<string, any>): string {
-    // Convert JSON to Python-compatible format (false -> False, true -> True, null -> None)
-    const toPythonLiteral = (obj: any): string => {
-      const json = JSON.stringify(obj);
-      return json
-        .replace(/\bfalse\b/g, 'False')
-        .replace(/\btrue\b/g, 'True')
-        .replace(/\bnull\b/g, 'None');
-    };
-    
-    const inputsPython = toPythonLiteral(inputs);
-    const parametersPython = toPythonLiteral(tool.inputParameters);
+  private buildCodeTestScript(
+    tool: Tool, 
+    inputs: Record<string, any>,
+    richContext?: import('@shared/schema').RichExtractionContext
+  ): string {
+    // Safe JSON transport using base64 encoding to avoid any escaping issues
+    const inputsBase64 = Buffer.from(JSON.stringify(inputs)).toString('base64');
+    const parametersBase64 = Buffer.from(JSON.stringify(tool.inputParameters)).toString('base64');
+    const richContextBase64 = Buffer.from(JSON.stringify(richContext || {})).toString('base64');
     const outputType = tool.outputType || 'single';
     
     const functionCode = tool.functionCode || "";
@@ -2020,17 +2043,45 @@ ${formattedInputs}${arrayInstruction}`;
 import sys
 import traceback
 import inspect
+import base64
 
 # Generated function code
 ${functionCode}
 
 # Test harness
 try:
-    # Input data
-    inputs = ${inputsPython}
+    # Decode and parse JSON safely using base64 transport
+    inputs = json.loads(base64.b64decode('${inputsBase64}').decode('utf-8'))
+    parameters = json.loads(base64.b64decode('${parametersBase64}').decode('utf-8'))
+    rich_context = json.loads(base64.b64decode('${richContextBase64}').decode('utf-8'))
     
-    # Parameter definitions for reference
-    parameters = ${parametersPython}
+    # CRITICAL: Store rich context in namespaced key to avoid collisions
+    # Legacy inputs remain unchanged
+    combined_inputs = {**inputs}  # Start with legacy inputs
+    
+    if rich_context and any(rich_context.values()):
+        print("🎯 Rich context available - adding to namespaced key", file=sys.stderr)
+        print(f"  - Reference data items: {len(rich_context.get('reference data', []))}", file=sys.stderr)
+        print(f"  - Reference documents: {len(rich_context.get('reference documents', []))}", file=sys.stderr)  
+        print(f"  - Text inputs: {len(rich_context.get('text', []))}", file=sys.stderr)
+        
+        # Store rich context under namespaced key to avoid collisions
+        combined_inputs['rich_context'] = rich_context
+        
+        # Add snake_case aliases ONLY if they don't exist in legacy inputs
+        if 'reference_data' not in combined_inputs:
+            combined_inputs['reference_data'] = rich_context.get('reference data', [])
+        if 'reference_documents' not in combined_inputs:
+            combined_inputs['reference_documents'] = rich_context.get('reference documents', [])
+        if 'text' not in combined_inputs:
+            combined_inputs['text'] = rich_context.get('text', [])
+        
+        print(f"🔧 Combined inputs keys: {list(combined_inputs.keys())}", file=sys.stderr)
+    else:
+        print("⚠️ Using legacy input format only", file=sys.stderr)
+    
+    # Use combined inputs for function execution
+    inputs = combined_inputs
     
     # Extract the function name from the code
     import re
@@ -2230,6 +2281,179 @@ except Exception as e:
     } catch (error) {
       console.error(`   ❌ Error building incremental data:`, error);
       return [];
+    }
+  }
+
+  /**
+   * Build Rich Extraction Context for AI Functions
+   * Transforms basic API payload into rich contextual data format expected by AI functions
+   */
+  private async buildRichExtractionContext({
+    projectId,
+    sessionId,
+    documentIds,
+    inputValues,
+    previousData,
+    stepId
+  }: {
+    projectId: string;
+    sessionId: string;
+    documentIds: string[];
+    inputValues: Record<string, any>;
+    previousData: any[];
+    stepId: string;
+  }): Promise<import('@shared/schema').RichExtractionContext> {
+    
+    console.log(`🔧 Building rich extraction context...`);
+    console.log(`   Project: ${projectId}`);
+    console.log(`   Session: ${sessionId}`);
+    console.log(`   Documents: ${documentIds.length}`);
+    console.log(`   Previous data records: ${previousData.length}`);
+    
+    try {
+      const { loadReferenceDocuments } = await import('./referenceDocumentLoader');
+      const { db } = await import('./db');
+      const { knowledgeDocuments, sessionDocuments } = await import('@shared/schema');
+      const { inArray, eq } = await import('drizzle-orm');
+      
+      // 1. Build reference data arrays from previousData and inputValues
+      const referenceData: import('@shared/schema').ReferenceDataItem[] = [];
+      
+      // Add previous data with proper structure
+      if (previousData && previousData.length > 0) {
+        previousData.forEach((record, index) => {
+          // Convert each record to proper format with recordId
+          const dataItem: import('@shared/schema').ReferenceDataItem = {
+            ...record,
+            recordId: record.identifierId || `record_${index}`
+          };
+          referenceData.push(dataItem);
+        });
+        console.log(`   ✅ Added ${previousData.length} previous data records`);
+      }
+      
+      // Add input values as reference data if they contain arrays/objects
+      Object.entries(inputValues).forEach(([key, value]) => {
+        if (Array.isArray(value) && value.length > 0) {
+          // If it's an array of objects, add each as a reference data item
+          value.forEach((item, index) => {
+            if (typeof item === 'object' && item !== null) {
+              referenceData.push({
+                ...item,
+                recordId: `input_${key}_${index}`,
+                sourceField: key
+              });
+            }
+          });
+        } else if (typeof value === 'object' && value !== null) {
+          // If it's a single object, add it as reference data
+          referenceData.push({
+            ...value,
+            recordId: `input_${key}`,
+            sourceField: key
+          });
+        }
+      });
+      
+      // 2. Gather session documents and knowledge documents
+      const referenceDocuments: import('@shared/schema').ReferenceDocument[] = [];
+      const maxContentLength = 2000; // Truncate content to 2000 characters
+      
+      // Get session documents (user documents)
+      if (documentIds.length > 0) {
+        const sessionDocs = await db
+          .select()
+          .from(sessionDocuments)
+          .where(inArray(sessionDocuments.id, documentIds));
+          
+        sessionDocs.forEach(doc => {
+          referenceDocuments.push({
+            id: doc.id,
+            type: 'user',
+            name: doc.fileName,
+            mime: doc.mimeType || undefined,
+            contentTruncated: (doc.extractedContent || '').substring(0, maxContentLength),
+            source: `Session document: ${doc.fileName}`
+          });
+        });
+        console.log(`   ✅ Added ${sessionDocs.length} session documents`);
+      }
+      
+      // Get knowledge documents for the project
+      const knowledgeDocs = await db
+        .select()
+        .from(knowledgeDocuments)
+        .where(eq(knowledgeDocuments.projectId, projectId));
+        
+      knowledgeDocs.forEach(doc => {
+        referenceDocuments.push({
+          id: doc.id,
+          type: 'knowledge',
+          name: doc.displayName,
+          mime: doc.fileType,
+          contentTruncated: (doc.content || '').substring(0, maxContentLength),
+          source: `Knowledge document: ${doc.displayName} - ${doc.description}`
+        });
+      });
+      console.log(`   ✅ Added ${knowledgeDocs.length} knowledge documents`);
+      
+      // 3. Extract text inputs from user inputs and previous results
+      const textInputs: string[] = [];
+      
+      // Add text from inputValues (exclude placeholders and document handles)
+      Object.entries(inputValues).forEach(([key, value]) => {
+        if (typeof value === 'string' && value.trim().length > 0) {
+          // Skip placeholders and document identifiers
+          if (!value.startsWith('@') && 
+              !value.startsWith('user_document') &&
+              !value.includes('document_id:') &&
+              value.length < 1000) { // Reasonable text length
+            textInputs.push(`${key}: ${value}`);
+          }
+        }
+      });
+      
+      // Add textual fields from previous data
+      previousData.forEach((record, index) => {
+        Object.entries(record).forEach(([key, value]) => {
+          if (typeof value === 'string' && 
+              value.trim().length > 0 && 
+              key !== 'identifierId' &&
+              key !== 'recordId' &&
+              value.length < 500) { // Keep it concise
+            textInputs.push(`Record ${index + 1} ${key}: ${value}`);
+          }
+        });
+      });
+      
+      console.log(`   ✅ Extracted ${textInputs.length} text inputs`);
+      
+      // 4. Build and return the rich context
+      const richContext: import('@shared/schema').RichExtractionContext = {
+        'reference data': referenceData,
+        'reference documents': referenceDocuments,
+        'text': textInputs
+      };
+      
+      console.log(`🎯 Rich context built successfully:`);
+      console.log(`   - Reference data items: ${referenceData.length}`);
+      console.log(`   - Reference documents: ${referenceDocuments.length}`);
+      console.log(`   - Text inputs: ${textInputs.length}`);
+      
+      // Log size information for debugging
+      const contextSize = JSON.stringify(richContext).length;
+      console.log(`   - Total context size: ${contextSize} characters`);
+      
+      return richContext;
+      
+    } catch (error) {
+      console.error(`❌ Error building rich extraction context:`, error);
+      // Return minimal context on error
+      return {
+        'reference data': [],
+        'reference documents': [],
+        'text': []
+      };
     }
   }
   
