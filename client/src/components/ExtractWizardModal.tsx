@@ -447,18 +447,18 @@ export default function ExtractWizardModal({
                                   
                                   if (Array.isArray(displayValue)) {
                                     return (
-                                      <div className="space-y-1 max-h-24 overflow-y-auto">
-                                        {displayValue.slice(0, 3).map((item: any, idx: number) => (
+                                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                                        {displayValue.map((item: any, idx: number) => (
                                           <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
                                             {typeof item === 'string' ? 
-                                              (item.length > 100 ? item.substring(0, 100) + '...' : item) : 
+                                              (item.length > 150 ? item.substring(0, 150) + '...' : item) : 
                                               JSON.stringify(item)
                                             }
                                           </div>
                                         ))}
-                                        {displayValue.length > 3 && (
-                                          <div className="text-xs text-gray-500 italic px-2">
-                                            ... and {displayValue.length - 3} more
+                                        {displayValue.length > 0 && (
+                                          <div className="text-xs text-gray-500 italic px-2 pt-1 border-t border-gray-200 dark:border-gray-600">
+                                            {displayValue.length} total column{displayValue.length !== 1 ? 's' : ''} shown
                                           </div>
                                         )}
                                       </div>
