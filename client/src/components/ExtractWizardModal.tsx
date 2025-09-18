@@ -591,13 +591,11 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="text-xs" style={{ minWidth: '100%' }}>
+                                              <table className="text-xs table-auto" style={{ width: 'max-content', minWidth: '100%' }}>
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => (
-                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap" style={{ 
-                                                        maxWidth: '250px' // Max width similar to first column size
-                                                      }}>
+                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                                         <div className="flex items-center gap-1">
                                                           <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                                                           <span title={header}>{header}</span>
@@ -610,13 +608,11 @@ export default function ExtractWizardModal({
                                                   {dataRows.map((row, rowIdx) => (
                                                     <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                                                       {columnHeaders.map((header) => (
-                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 whitespace-nowrap" style={{ 
-                                                          maxWidth: '250px' // Max width to match headers
-                                                        }}>
+                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 whitespace-nowrap">
                                                           {row[header] === null || row[header] === undefined ? (
                                                             <span className="text-gray-400 italic">-</span>
                                                           ) : (
-                                                            <span className="truncate block" title={String(row[header])}>
+                                                            <span title={String(row[header])}>
                                                               {String(row[header])}
                                                             </span>
                                                           )}
