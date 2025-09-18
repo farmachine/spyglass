@@ -200,62 +200,140 @@ export default function ExtractWizardModal({
                 
                 {expandedSections.has('data') && (
                   <div className="px-4 pb-4">
-                    <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
-                      <div className="overflow-x-auto max-h-64">
-                        <table className="w-full text-sm">
-                          <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
-                            <tr>
-                              {(() => {
-                                if (inputData.length === 0) return <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">No Data</th>;
-                                const allKeys = Object.keys(inputData[0]).filter(k => k !== 'identifierId');
-                                const orderedKeys = columnOrder 
-                                  ? columnOrder.filter(col => allKeys.includes(col))
-                                  : allKeys;
-                                  
-                                return orderedKeys.map(key => (
-                                  <th key={key} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[150px] max-w-[250px]">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                      <span className="truncate" title={key}>{key}</span>
-                                    </div>
-                                  </th>
-                                ));
-                              })()}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {inputData.slice(0, 10).map((record, index) => (
-                              <tr key={index} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
-                                {(() => {
-                                  const allKeys = Object.keys(record).filter(k => k !== 'identifierId');
-                                  const orderedKeys = columnOrder 
-                                    ? columnOrder.filter(col => allKeys.includes(col))
-                                    : allKeys;
-                                    
-                                  return orderedKeys.map(key => (
-                                    <td key={key} className="px-3 py-2 text-gray-800 dark:text-gray-200 min-w-[150px] max-w-[250px]">
-                                      <div className="truncate" title={String(record[key])}>
-                                        {record[key] === null || record[key] === undefined ? (
-                                          <span className="text-gray-400 italic">-</span>
-                                        ) : (
-                                          String(record[key])
-                                        )}
-                                      </div>
-                                    </td>
-                                  ));
-                                })()}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center">
-                        <span>{inputData.length === 0 ? 'No data available' : `${Math.min(inputData.length, 10)} of ${inputData.length} records shown`}</span>
-                        {inputData.length > 0 && (
-                          <span className="text-xs">{Object.keys(inputData[0]).filter(k => k !== 'identifierId').length} columns</span>
-                        )}
-                      </div>
-                    </div>
+                    {(() => {
+                      // Build pivoted preview data grouped by identifierId
+                      const buildPivotPreview = () => {
+                        if (!validations || validations.length === 0) {
+                          // Fallback to inputData if no validations
+                          if (inputData.length === 0) return { columns: [], rows: [] };
+                          const allKeys = Object.keys(inputData[0]);
+                          const orderedKeys = columnOrder ? columnOrder.filter(col => allKeys.includes(col)) : allKeys;
+                          return {
+                            columns: orderedKeys,
+                            rows: inputData.slice(0, 10)
+                          };
+                        }
+
+                        // Group validations by identifierId and map across columns
+                        const rowsMap: Record<string, any> = {};
+                        const columnSet = new Set<string>();
+
+                        // Process validations to build pivot data
+                        validations.forEach(validation => {
+                          if (!validation.identifierId) return;
+                          
+                          // Initialize row if not exists
+                          if (!rowsMap[validation.identifierId]) {
+                            rowsMap[validation.identifierId] = { identifierId: validation.identifierId };
+                          }
+
+                          // Determine column key using referenceFieldNames or fallback
+                          let columnKey = validation.fieldName || validation.columnName || `Column_${validation.valueId}`;
+                          if (referenceFieldNames && validation.valueId && referenceFieldNames[validation.valueId]) {
+                            columnKey = referenceFieldNames[validation.valueId];
+                          }
+                          
+                          columnSet.add(columnKey);
+
+                          // Determine display value with precedence
+                          let displayValue = validation.extractedValue;
+                          if (validation.validatedValue !== undefined && validation.validatedValue !== null) {
+                            displayValue = validation.validatedValue;
+                          } else if (validation.normalizedValue !== undefined && validation.normalizedValue !== null) {
+                            displayValue = validation.normalizedValue;
+                          } else if (validation.rawValue !== undefined && validation.rawValue !== null) {
+                            displayValue = validation.rawValue;
+                          }
+
+                          // Set the value (handle duplicates by keeping latest or highest confidence)
+                          if (!rowsMap[validation.identifierId][columnKey] || 
+                              (validation.validationStatus === 'valid' && rowsMap[validation.identifierId][columnKey + '_status'] !== 'valid')) {
+                            rowsMap[validation.identifierId][columnKey] = displayValue;
+                            rowsMap[validation.identifierId][columnKey + '_status'] = validation.validationStatus;
+                          }
+                        });
+
+                        // Merge inputData to fill gaps
+                        inputData.forEach(record => {
+                          if (record.identifierId && rowsMap[record.identifierId]) {
+                            Object.keys(record).forEach(key => {
+                              if (key !== 'identifierId' && !rowsMap[record.identifierId][key]) {
+                                rowsMap[record.identifierId][key] = record[key];
+                                columnSet.add(key);
+                              }
+                            });
+                          }
+                        });
+
+                        // Build final columns array
+                        const allColumns = Array.from(columnSet);
+                        const finalColumns = columnOrder 
+                          ? ['identifierId', ...columnOrder.filter(col => allColumns.includes(col))]
+                          : ['identifierId', ...allColumns];
+
+                        // Convert rowsMap to array
+                        const finalRows = Object.values(rowsMap).slice(0, 10);
+
+                        return { columns: finalColumns, rows: finalRows };
+                      };
+
+                      const { columns, rows } = buildPivotPreview();
+
+                      return (
+                        <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="overflow-x-auto max-h-64">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
+                                <tr>
+                                  {columns.length === 0 ? (
+                                    <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">No Data</th>
+                                  ) : (
+                                    columns.map(columnKey => (
+                                      <th key={columnKey} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[150px] max-w-[250px]">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                          <span className="truncate" title={columnKey}>
+                                            {columnKey === 'identifierId' ? 'ID' : columnKey}
+                                          </span>
+                                        </div>
+                                      </th>
+                                    ))
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rows.map((row, index) => (
+                                  <tr key={row.identifierId || index} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                    {columns.map(columnKey => (
+                                      <td key={columnKey} className="px-3 py-2 text-gray-800 dark:text-gray-200 min-w-[150px] max-w-[250px]">
+                                        <div className="truncate" title={String(row[columnKey] || '')}>
+                                          {row[columnKey] === null || row[columnKey] === undefined ? (
+                                            <span className="text-gray-400 italic">-</span>
+                                          ) : columnKey === 'identifierId' ? (
+                                            <span className="font-mono text-xs">{String(row[columnKey]).substring(0, 8)}...</span>
+                                          ) : (
+                                            String(row[columnKey])
+                                          )}
+                                        </div>
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center">
+                            <span>
+                              {rows.length === 0 ? 'No data available' : `${rows.length} records shown`}
+                              {validations && validations.length > 0 && ` (from ${validations.length} validations)`}
+                            </span>
+                            {columns.length > 0 && (
+                              <span className="text-xs">{columns.length} columns</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
