@@ -6817,25 +6817,37 @@ Thank you for your assistance.`;
               const validationResponse = await queryClient.refetchQueries({ queryKey: ['/api/validations/project', projectId] });
               console.log('✅ Validation queries refreshed');
               
-              // Check if the extracted validations contain errors
+              // Check if the extraction actually produced results
+              // The API may report resultsCount > 0 but if results are filtered due to errors, no validations are saved
               const validationsData = validationResponse?.[0]?.data;
+              let foundRecentValidations = false;
+              
               if (validationsData) {
-                // Look for validations with error indicators for this specific value
-                const recentValidations = validationsData.filter((v: any) => 
-                  v.valueId === valueId && 
-                  (v.validationStatus === 'invalid' || 
-                   v.documentSource === 'CODE_ERROR' || 
-                   v.documentSource === 'ENGINE_ERROR' ||
-                   (v.aiReasoning && v.aiReasoning.includes('failed')))
+                // Look for any recent validations for this specific value (including successful ones)
+                const recentValidations = validationsData.filter((v: any) => v.valueId === valueId);
+                foundRecentValidations = recentValidations.length > 0;
+                
+                // Look for validations with error indicators
+                const errorValidations = recentValidations.filter((v: any) => 
+                  v.validationStatus === 'invalid' || 
+                  v.documentSource === 'CODE_ERROR' || 
+                  v.documentSource === 'ENGINE_ERROR' ||
+                  (v.aiReasoning && v.aiReasoning.includes('failed'))
                 );
                 
-                if (recentValidations.length > 0) {
-                  const errorValidation = recentValidations[0];
+                if (errorValidations.length > 0) {
+                  const errorValidation = errorValidations[0];
                   console.log('🚨 Found extraction error in validation results:', errorValidation);
                   
                   // Throw error with the actual extraction failure details
                   throw new Error(errorValidation.aiReasoning || 'Extraction failed with unknown error');
                 }
+              }
+              
+              // If results were processed but no validations were found, it means they were filtered out due to errors
+              if (response && response.resultsCount > 0 && !foundRecentValidations) {
+                console.log('🚨 Extraction processed results but no validations were saved - likely filtered due to errors');
+                throw new Error('Extraction failed: Results were processed but filtered due to validation errors. Please check the tool configuration and try again.');
               }
               
               // Close the modal if successful
