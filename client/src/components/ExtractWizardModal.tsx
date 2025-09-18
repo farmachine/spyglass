@@ -446,36 +446,86 @@ export default function ExtractWizardModal({
                                   }
                                   
                                   if (Array.isArray(displayValue)) {
-                                    // Display as a table with columns
+                                    // Check if this is column data that should show actual data preview
+                                    if (validations && validations.length > 0 && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
+                                      // This is an array of column UUIDs - show data preview like the actual data table
+                                      const previewData = [];
+                                      const maxRows = 5; // Show first 5 rows as preview
+                                      
+                                      // Get unique identifiers from validations
+                                      const uniqueIdentifiers = Array.from(new Set(
+                                        validations
+                                          .filter(v => value.includes(v.valueId) && v.identifierId)
+                                          .map(v => v.identifierId)
+                                      )).slice(0, maxRows);
+                                      
+                                      // Build preview data rows
+                                      for (const identifierId of uniqueIdentifiers) {
+                                        const row: any = {};
+                                        for (const columnUuid of value) {
+                                          const columnValidation = validations.find(v => 
+                                            v.valueId === columnUuid && v.identifierId === identifierId
+                                          );
+                                          // Use the validation's field name as column header, or a fallback
+                                          const columnName = columnValidation?.fieldName || `Column ${value.indexOf(columnUuid) + 1}`;
+                                          row[columnName] = columnValidation?.extractedValue || '-';
+                                        }
+                                        previewData.push(row);
+                                      }
+                                      
+                                      if (previewData.length > 0) {
+                                        const columnHeaders = Object.keys(previewData[0]);
+                                        
+                                        return (
+                                          <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                            <div className="overflow-x-auto max-h-48">
+                                              <table className="w-full text-xs">
+                                                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                                                  <tr>
+                                                    {columnHeaders.map((header, idx) => (
+                                                      <th key={idx} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
+                                                        {header}
+                                                      </th>
+                                                    ))}
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {previewData.map((row, rowIdx) => (
+                                                    <tr key={rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                                      {columnHeaders.map((header, colIdx) => (
+                                                        <td key={colIdx} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[120px]">
+                                                          <div className="truncate" title={String(row[header])}>
+                                                            {row[header]}
+                                                          </div>
+                                                        </td>
+                                                      ))}
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                            <div className="px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600">
+                                              {columnHeaders.length} columns, showing first {previewData.length} rows
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                    }
+                                    
+                                    // Fallback to list view for non-validation data
                                     return (
-                                      <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                        <div className="overflow-x-auto max-h-48">
-                                          <table className="w-full text-xs table-fixed">
-                                            <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                                              <tr>
-                                                <th className="w-12 px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">#</th>
-                                                <th className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">Column Name</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {displayValue.map((item: any, idx: number) => (
-                                                <tr key={idx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
-                                                  <td className="w-12 px-2 py-1.5 text-gray-500 dark:text-gray-400 font-mono text-center">
-                                                    {idx + 1}
-                                                  </td>
-                                                  <td className="px-2 py-1.5 text-gray-800 dark:text-gray-200">
-                                                    <div className="truncate" title={typeof item === 'string' ? item : JSON.stringify(item)}>
-                                                      {typeof item === 'string' ? item : JSON.stringify(item)}
-                                                    </div>
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
+                                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                                        {displayValue.map((item: any, idx: number) => (
+                                          <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+                                            {typeof item === 'string' ? 
+                                              (item.length > 150 ? item.substring(0, 150) + '...' : item) : 
+                                              JSON.stringify(item)
+                                            }
+                                          </div>
+                                        ))}
                                         {displayValue.length > 0 && (
-                                          <div className="px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600">
-                                            {displayValue.length} total column{displayValue.length !== 1 ? 's' : ''}
+                                          <div className="text-xs text-gray-500 italic px-2 pt-1 border-t border-gray-200 dark:border-gray-600">
+                                            {displayValue.length} total column{displayValue.length !== 1 ? 's' : ''} shown
                                           </div>
                                         )}
                                       </div>
