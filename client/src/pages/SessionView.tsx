@@ -6767,26 +6767,26 @@ Thank you for your assistance.`;
             console.log(`🎯 Document: ${documentId}`);
             console.log(`🎯 Previous data: ${previousData.length} records`);
             
+            // Get the workflow step
+            const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
+            if (!workflowStep) {
+              console.error('Workflow step not found:', stepName);
+              return;
+            }
+            
+            // CRITICAL: Send the complete unfiltered data for extraction
+            // The server needs all columns, especially the first column for context
+            const fullPreviousData = columnExtractionModal.previousData;
+            
+            const requestPayload = {
+              stepId: workflowStep.id,
+              valueId: valueId,
+              previousData: fullPreviousData, // Send FULL data, not filtered/display data
+              documentId: documentId
+            };
+            
             try {
               setIsColumnExtracting(true);
-              
-              // Get the workflow step
-              const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
-              if (!workflowStep) {
-                console.error('Workflow step not found:', stepName);
-                return;
-              }
-              
-              // CRITICAL: Send the complete unfiltered data for extraction
-              // The server needs all columns, especially the first column for context
-              const fullPreviousData = columnExtractionModal.previousData;
-              
-              const requestPayload = {
-                stepId: workflowStep.id,
-                valueId: valueId,
-                previousData: fullPreviousData, // Send FULL data, not filtered/display data
-                documentId: documentId
-              };
               
               console.log(`🎯 Sending extraction request for: ${valueName} (${valueId})`);
               
