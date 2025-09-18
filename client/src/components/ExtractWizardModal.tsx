@@ -322,8 +322,17 @@ export default function ExtractWizardModal({
                           >
                             {isDocumentInput ? 'document selection' : 
                              isKnowledgeDocInput ? `${knowledgeDocuments?.length || 0} reference${knowledgeDocuments?.length !== 1 ? 's' : ''}` :
-                             isArray ? `${valueCount} item${valueCount !== 1 ? 's' : ''}` : 'value'}
+                             isArray ? `${valueCount} columns` : 'value'}
                           </Badge>
+                          {/* Show record count for column arrays */}
+                          {isArray && stats.processing > 0 && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs ml-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                            >
+                              {stats.processing} records
+                            </Badge>
+                          )}
                         </div>
                         {expandedSections.has(key) ? (
                           <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
