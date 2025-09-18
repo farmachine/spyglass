@@ -591,7 +591,7 @@ export default function ExtractWizardModal({
                                         return (
                                           <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
                                             <div className="overflow-x-auto max-h-48">
-                                              <table className="text-xs table-auto" style={{ width: 'max-content', minWidth: '100%' }}>
+                                              <table className="text-xs table-auto" style={{ width: 'max-content' }}>
                                                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
                                                   <tr>
                                                     {columnHeaders.map((header, index) => (
