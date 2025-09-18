@@ -526,7 +526,101 @@ export default function ExtractWizardModal({
                                   }
                                   
                                   if (Array.isArray(displayValue)) {
-                                    // Show column names in a simple list
+                                    // Check if we have actual data to display in table format
+                                    if (validations && validations.length > 0 && Array.isArray(value) && value.every((v: any) => typeof v === 'string' && v.match(/^[a-f0-9-]{36}$/i))) {
+                                      // This is column UUIDs with validations - show data table
+                                      const rowsMap: Record<string, any> = {};
+                                      const columnHeaders: string[] = [];
+
+                                      // Build data rows from validations
+                                      validations.forEach(validation => {
+                                        if (!validation.identifierId || !(Array.isArray(value) && value.includes(validation.valueId))) return;
+                                        
+                                        // Initialize row if not exists
+                                        if (!rowsMap[validation.identifierId]) {
+                                          rowsMap[validation.identifierId] = { identifierId: validation.identifierId };
+                                        }
+
+                                        // Get column name from referenceFieldNames or validation data
+                                        let columnName = validation.fieldName || validation.columnName || `Column_${validation.valueId}`;
+                                        if (referenceFieldNames && validation.valueId && referenceFieldNames[validation.valueId]) {
+                                          columnName = referenceFieldNames[validation.valueId];
+                                        }
+                                        
+                                        if (!columnHeaders.includes(columnName)) {
+                                          columnHeaders.push(columnName);
+                                        }
+
+                                        // Get best value with precedence
+                                        let cellValue = validation.extractedValue;
+                                        if (validation.validatedValue !== undefined && validation.validatedValue !== null) {
+                                          cellValue = validation.validatedValue;
+                                        } else if (validation.normalizedValue !== undefined && validation.normalizedValue !== null) {
+                                          cellValue = validation.normalizedValue;
+                                        }
+
+                                        rowsMap[validation.identifierId][columnName] = cellValue;
+                                      });
+
+                                      const dataRows = Object.values(rowsMap).slice(0, 5); // Show first 5 rows
+
+                                      if (dataRows.length > 0 && columnHeaders.length > 0) {
+                                        return (
+                                          <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                            <div className="overflow-x-auto max-h-48">
+                                              <table className="w-full text-xs">
+                                                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600 sticky top-0">
+                                                  <tr>
+                                                    <th className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[100px]">
+                                                      <div className="flex items-center gap-1">
+                                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                        <span>ID</span>
+                                                      </div>
+                                                    </th>
+                                                    {columnHeaders.map(header => (
+                                                      <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300 min-w-[120px] max-w-[200px]">
+                                                        <div className="flex items-center gap-1">
+                                                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                          <span className="truncate" title={header}>{header}</span>
+                                                        </div>
+                                                      </th>
+                                                    ))}
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {dataRows.map((row, rowIdx) => (
+                                                    <tr key={row.identifierId || rowIdx} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
+                                                      <td className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[100px]">
+                                                        <span className="font-mono text-xs" title={row.identifierId}>
+                                                          {row.identifierId?.substring(0, 8)}...
+                                                        </span>
+                                                      </td>
+                                                      {columnHeaders.map(header => (
+                                                        <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200 min-w-[120px] max-w-[200px]">
+                                                          <div className="truncate" title={String(row[header] || '')}>
+                                                            {row[header] === null || row[header] === undefined ? (
+                                                              <span className="text-gray-400 italic">-</span>
+                                                            ) : (
+                                                              String(row[header])
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      ))}
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                            <div className="px-2 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center">
+                                              <span>{dataRows.length} of {Object.keys(rowsMap).length} records shown</span>
+                                              <span>{columnHeaders.length} columns</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                    }
+                                    
+                                    // Fallback to simple list if no table data available
                                     return (
                                       <div className="space-y-1 max-h-48 overflow-y-auto">
                                         {displayValue.map((item: any, idx: number) => (
