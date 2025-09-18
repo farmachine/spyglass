@@ -603,14 +603,13 @@ export default function ExtractWizardModal({
                                                       const columnWidth = Math.max(minWidth, Math.min(minWidth + (header.length * charMultiplier), maxWidth));
                                                       
                                                       return (
-                                                        <th key={header} className="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300" style={{
-                                                          width: `${columnWidth}px`,
-                                                          minWidth: `${columnWidth}px`,
-                                                          maxWidth: `${columnWidth}px`
+                                                        <th key={header} className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300" style={{
+                                                          minWidth: '120px',
+                                                          maxWidth: '250px'
                                                         }}>
-                                                          <div className="flex items-center gap-1">
-                                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                            <span className="truncate" title={header}>{header}</span>
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                                                            <span className="block" title={header}>{header}</span>
                                                           </div>
                                                         </th>
                                                       );
@@ -630,20 +629,16 @@ export default function ExtractWizardModal({
                                                         const maxChars = Math.floor((columnWidth - 25) / 5.5); // Adjusted for better text fitting
                                                         
                                                         return (
-                                                          <td key={header} className="px-2 py-1.5 text-gray-800 dark:text-gray-200" style={{
-                                                            width: `${columnWidth}px`,
-                                                            minWidth: `${columnWidth}px`,
-                                                            maxWidth: `${columnWidth}px`
+                                                          <td key={header} className="px-3 py-2 text-gray-800 dark:text-gray-200" style={{
+                                                            minWidth: '120px',
+                                                            maxWidth: '250px'
                                                           }}>
-                                                            <div className="truncate" title={String(row[header] || '')}>
+                                                            <div className="overflow-hidden" title={String(row[header] || '')}>
                                                               {row[header] === null || row[header] === undefined ? (
                                                                 <span className="text-gray-400 italic">-</span>
                                                               ) : (
-                                                                <span className="truncate block">
-                                                                  {String(row[header]).length > maxChars ? 
-                                                                    String(row[header]).substring(0, maxChars) + '...' : 
-                                                                    String(row[header])
-                                                                  }
+                                                                <span className="block text-ellipsis overflow-hidden whitespace-nowrap">
+                                                                  {String(row[header])}
                                                                 </span>
                                                               )}
                                                             </div>
