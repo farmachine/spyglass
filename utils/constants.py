@@ -3,7 +3,7 @@ Global constants for the application
 """
 
 # Content and Text Processing
-MAX_CONTENT_LENGTH = 2000  # Maximum length for text content
+MAX_CONTENT_LENGTH = 5000000  # Maximum length for text content (5MB to handle large Excel files)
 MAX_TOKEN_LIMIT = 8192     # Token limit for AI models
 DEFAULT_BATCH_SIZE = 10    # Default batch size for processing
 MAX_BATCH_SIZE_COLUMN_NAME = 10  # Maximum batch size for column name extraction

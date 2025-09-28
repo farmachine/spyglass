@@ -62,8 +62,15 @@ class DocumentFetcher:
         documents = []
         for doc in results:
             content = doc.get('extracted_content', '')
-            # Truncate content if too long
-            if len(content) > MAX_CONTENT_LENGTH:
+            
+            # For Excel files, don't truncate content to preserve all column data
+            file_name = doc.get('file_name', '').lower()
+            mime_type = doc.get('mime_type', '')
+            is_excel = (mime_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] or 
+                       file_name.endswith(('.xlsx', '.xls')))
+            
+            # Only truncate non-Excel content if too long
+            if not is_excel and len(content) > MAX_CONTENT_LENGTH:
                 content = content[:MAX_CONTENT_LENGTH] + "..."
             
             documents.append({
