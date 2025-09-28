@@ -71,11 +71,10 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 
                 # Extract ALL rows, not just a sample
                 for row in worksheet.iter_rows(values_only=True):
-                    row_text = []
-                    for cell in row:
-                        if cell is not None:
-                            row_text.append(str(cell))
-                    if row_text:  # Only add non-empty rows
+                    # Preserve ALL columns including empty cells to maintain column positions
+                    row_text = [str(cell) if cell is not None else "" for cell in row]
+                    # Only skip completely empty rows
+                    if any(cell.strip() for cell in row_text):
                         text_parts.append("\t".join(row_text))
             
             os.unlink(tmp_file.name)
@@ -97,8 +96,10 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     # Extract ALL rows, not just a sample
                     for row_index in range(sheet.nrows):
                         row_values = sheet.row_values(row_index)
-                        row_text = [str(val) for val in row_values if val]
-                        if row_text:
+                        # Preserve ALL columns including empty cells to maintain column positions
+                        row_text = [str(val) if val else "" for val in row_values]
+                        # Only skip completely empty rows
+                        if any(cell.strip() for cell in row_text):
                             text_parts.append("\t".join(row_text))
                 
                 os.unlink(tmp_file.name)
@@ -118,8 +119,10 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     
                     # Include ALL data rows, not just a sample
                     for _, row in df.iterrows():
-                        row_text = [str(val) for val in row.values if pd.notna(val)]
-                        if row_text:
+                        # Preserve ALL columns including empty cells to maintain column positions
+                        row_text = [str(val) if pd.notna(val) else "" for val in row.values]
+                        # Only skip completely empty rows
+                        if any(cell.strip() for cell in row_text):
                             text_parts.append("\t".join(row_text))
                 
                 return "\n".join(text_parts)
