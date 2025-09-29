@@ -4857,6 +4857,13 @@ except Exception as e:
         documents: convertedFiles
       };
       
+      console.log('📋 EXCEL DEBUG: About to call document_extractor.py with data:', JSON.stringify({
+        step: extractionData.step,
+        documentCount: extractionData.documents.length,
+        firstDocType: extractionData.documents[0]?.mime_type,
+        firstDocName: extractionData.documents[0]?.file_name
+      }));
+      
       const python = spawn('python3', ['services/document_extractor.py']);
       
       python.stdin.write(JSON.stringify(extractionData));
@@ -4898,7 +4905,21 @@ except Exception as e:
             result.extracted_texts.forEach((extractedText: any, index: number) => {
               console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: ${extractedText.file_name} - content length: ${extractedText.text_content?.length || 0}, word count: ${extractedText.word_count || 0}`);
               if (extractedText.text_content && extractedText.text_content.length > 0) {
-                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1} preview: ${extractedText.text_content.substring(0, 100)}...`);
+                console.log(`DOCUMENT UPLOAD DEBUG ${index + 1} preview: ${extractedText.text_content.substring(0, 200)}...`);
+                // Excel-specific debugging
+                if (extractedText.file_name?.endsWith('.xlsx') || extractedText.file_name?.endsWith('.xls')) {
+                  const content = extractedText.text_content;
+                  console.log('📊 EXCEL CONTENT DEBUG:');
+                  console.log('  Content includes Sheet markers:', content.includes('=== Sheet:'));
+                  console.log('  First 300 chars:', content.substring(0, 300));
+                  
+                  // Check for grid structure issues
+                  const lines = content.split('\n').slice(0, 10); // First 10 lines
+                  lines.forEach((line, i) => {
+                    const tabCount = (line.match(/\t/g) || []).length;
+                    console.log(`  Line ${i + 1}: ${tabCount} tabs - "${line.substring(0, 50)}..."`);
+                  });
+                }
               } else {
                 console.log(`DOCUMENT UPLOAD DEBUG ${index + 1}: NO CONTENT EXTRACTED`);
               }
