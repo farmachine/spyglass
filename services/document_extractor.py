@@ -72,7 +72,7 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 # Extract ALL rows, not just a sample
                 for row in worksheet.iter_rows(values_only=True):
                     # Preserve ALL columns including empty cells to maintain column positions
-                    row_text = [str(cell) if cell is not None else "blank" for cell in row]
+                    row_text = [str(cell) if cell is not None and str(cell).strip() else "blank" for cell in row]
                     # Only skip completely empty rows
                     if any(cell.strip() for cell in row_text):
                         text_parts.append("\t".join(row_text))
