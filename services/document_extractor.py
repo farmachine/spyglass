@@ -201,9 +201,20 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 worksheet = workbook[sheet_name]
                 text_parts.append(f"=== Sheet: {sheet_name} ===")
                 
-                # Get the actual dimensions to preserve grid structure
+                # Get the actual dimensions - use robust column detection
                 max_row = worksheet.max_row
-                max_col = worksheet.max_column
+                
+                # Find ACTUAL maximum column by scanning first few rows extensively
+                # Don't trust worksheet.max_column as it can miss columns with formatting/empty cells
+                actual_max_col = 0
+                for row_num in range(1, min(10, max_row + 1)):  # Check first 10 rows
+                    for col_num in range(1, 100):  # Check up to column 100
+                        cell_value = worksheet.cell(row=row_num, column=col_num).value
+                        if cell_value is not None and str(cell_value).strip():
+                            actual_max_col = max(actual_max_col, col_num)
+                
+                # Use the detected column count or minimum of 50 columns to be safe
+                max_col = max(actual_max_col, worksheet.max_column, 50)
                 
                 # Smart header detection and multi-row header merging
                 all_rows = []
@@ -242,8 +253,20 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     sheet = workbook.sheet_by_index(sheet_index)
                     text_parts.append(f"=== Sheet: {sheet.name} ===")
                     
-                    # Get consistent column count for grid structure
-                    max_cols = sheet.ncols
+                    # Find ACTUAL maximum column by scanning extensively
+                    # Don't trust sheet.ncols as it can miss columns with formatting/empty cells
+                    actual_max_cols = 0
+                    for row_index in range(min(10, sheet.nrows)):  # Check first 10 rows
+                        for col_index in range(100):  # Check up to column 100
+                            try:
+                                cell_value = sheet.cell_value(row_index, col_index)
+                                if cell_value is not None and str(cell_value).strip():
+                                    actual_max_cols = max(actual_max_cols, col_index + 1)  # +1 because col_index is 0-based
+                            except:
+                                break  # xlrd will throw exception when past actual columns
+                    
+                    # Use the detected column count or minimum of 50 columns to be safe
+                    max_cols = max(actual_max_cols, sheet.ncols, 50)
                     
                     # Smart header detection and multi-row header merging
                     all_rows = []
