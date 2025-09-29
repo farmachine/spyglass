@@ -23,6 +23,121 @@ except ImportError as e:
     print(f"Error: Missing required library: {e}", file=sys.stderr)
     sys.exit(1)
 
+def merge_multirow_headers(rows):
+    """
+    Intelligently merge multi-row headers in Excel data.
+    
+    Detects header rows and combines them into a single header row,
+    then returns the merged header plus all data rows.
+    """
+    if not rows:
+        return rows
+    
+    # Determine header boundary - look for the first row that looks like data
+    header_end_index = find_header_boundary(rows)
+    
+    if header_end_index <= 1:
+        # Single header row or no headers detected, return as-is
+        return rows
+    
+    # Extract header rows and data rows
+    header_rows = rows[:header_end_index]
+    data_rows = rows[header_end_index:]
+    
+    # Merge header rows into a single header
+    merged_header = merge_header_rows(header_rows)
+    
+    # Return merged header + data rows
+    return [merged_header] + data_rows
+
+def find_header_boundary(rows):
+    """
+    Find where header rows end and data rows begin.
+    
+    Logic: Header rows typically have fewer non-blank cells per row
+    and often contain descriptive text. Data rows are more uniform.
+    """
+    if len(rows) <= 1:
+        return len(rows)
+    
+    # Analyze first few rows to detect patterns
+    max_check_rows = min(5, len(rows))
+    
+    for i in range(1, max_check_rows):
+        current_row = rows[i]
+        prev_row = rows[i-1]
+        
+        # Count non-blank cells in each row
+        current_non_blank = sum(1 for cell in current_row if cell != "blank")
+        prev_non_blank = sum(1 for cell in prev_row if cell != "blank")
+        
+        # If current row has significantly more data than previous rows,
+        # it's likely the start of data rows
+        if current_non_blank > prev_non_blank * 1.5 and current_non_blank > len(current_row) * 0.7:
+            return i
+        
+        # If we find a row where most columns have non-blank, consistent-looking data
+        # (not header-like text), it's likely data
+        if is_data_row(current_row):
+            return i
+    
+    # Default: assume first row is header
+    return 1
+
+def is_data_row(row):
+    """
+    Check if a row looks like a data row rather than a header row.
+    
+    Data rows typically have:
+    - Higher proportion of non-blank cells
+    - Shorter cell values (not long descriptive text)
+    - More uniform cell types
+    """
+    non_blank_cells = [cell for cell in row if cell != "blank"]
+    
+    if len(non_blank_cells) < len(row) * 0.5:
+        return False  # Too many blanks for a data row
+    
+    # Check for typical data patterns (numbers, dates, short codes)
+    data_like_count = 0
+    for cell in non_blank_cells:
+        if (cell.isdigit() or 
+            len(cell) <= 20 or  # Short values are more data-like
+            any(char.isdigit() for char in cell)):  # Contains numbers
+            data_like_count += 1
+    
+    # If most cells look data-like, it's probably a data row
+    return data_like_count >= len(non_blank_cells) * 0.6
+
+def merge_header_rows(header_rows):
+    """
+    Merge multiple header rows into a single header row.
+    
+    For each column position, combine text from all header rows
+    where that column has non-blank values.
+    """
+    if not header_rows:
+        return []
+    
+    num_columns = max(len(row) for row in header_rows)
+    merged_header = []
+    
+    for col_index in range(num_columns):
+        # Collect all non-blank values from this column across header rows
+        column_parts = []
+        
+        for row in header_rows:
+            if col_index < len(row) and row[col_index] != "blank":
+                column_parts.append(row[col_index])
+        
+        # Combine the parts with spaces
+        if column_parts:
+            merged_header.append(" ".join(column_parts))
+        else:
+            merged_header.append("blank")
+    
+    return merged_header
+
 def extract_pdf_text(file_content: bytes) -> str:
     """Extract text from PDF file."""
     try:
@@ -73,7 +188,8 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 max_row = worksheet.max_row
                 max_col = worksheet.max_column
                 
-                # Extract ALL rows with consistent column count
+                # Smart header detection and multi-row header merging
+                all_rows = []
                 for row_num in range(1, max_row + 1):
                     row_data = []
                     for col_num in range(1, max_col + 1):
@@ -83,9 +199,15 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                         else:
                             row_data.append("blank")
                     
-                    # Only skip completely empty rows (all blanks)
+                    # Only include non-empty rows
                     if any(cell != "blank" for cell in row_data):
-                        text_parts.append("\t".join(row_data))
+                        all_rows.append(row_data)
+                
+                if all_rows:
+                    # Detect header rows and merge multi-row headers
+                    merged_rows = merge_multirow_headers(all_rows)
+                    for row in merged_rows:
+                        text_parts.append("\t".join(row))
             
             os.unlink(tmp_file.name)
             return "\n".join(text_parts)
@@ -106,7 +228,8 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     # Get consistent column count for grid structure
                     max_cols = sheet.ncols
                     
-                    # Extract ALL rows with consistent column count
+                    # Smart header detection and multi-row header merging
+                    all_rows = []
                     for row_index in range(sheet.nrows):
                         row_data = []
                         for col_index in range(max_cols):
@@ -119,9 +242,15 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                             except:
                                 row_data.append("blank")
                         
-                        # Only skip completely empty rows (all blanks)
+                        # Only include non-empty rows
                         if any(cell != "blank" for cell in row_data):
-                            text_parts.append("\t".join(row_data))
+                            all_rows.append(row_data)
+                    
+                    if all_rows:
+                        # Detect header rows and merge multi-row headers
+                        merged_rows = merge_multirow_headers(all_rows)
+                        for row in merged_rows:
+                            text_parts.append("\t".join(row))
                 
                 os.unlink(tmp_file.name)
                 return "\n".join(text_parts)
