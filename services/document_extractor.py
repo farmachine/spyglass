@@ -232,10 +232,10 @@ def main():
         step = request.get('step', '')
         documents = request.get('documents', [])
         
-        if step != 'extract_text_only':
+        if step not in ['extract_text_only', 'extract']:
             print(json.dumps({
                 'success': False,
-                'error': f'Unsupported step: {step}. Only "extract_text_only" is supported.'
+                'error': f'Unsupported step: {step}. Only "extract_text_only" and "extract" are supported.'
             }))
             return
         
