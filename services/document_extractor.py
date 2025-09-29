@@ -72,7 +72,7 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 # Extract ALL rows, not just a sample
                 for row in worksheet.iter_rows(values_only=True):
                     # Preserve ALL columns including empty cells to maintain column positions
-                    row_text = [str(cell) if cell is not None else "" for cell in row]
+                    row_text = [str(cell) if cell is not None else "blank" for cell in row]
                     # Only skip completely empty rows
                     if any(cell.strip() for cell in row_text):
                         text_parts.append("\t".join(row_text))
@@ -97,7 +97,7 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     for row_index in range(sheet.nrows):
                         row_values = sheet.row_values(row_index)
                         # Preserve ALL columns including empty cells to maintain column positions
-                        row_text = [str(val) if val else "" for val in row_values]
+                        row_text = [str(val) if val else "blank" for val in row_values]
                         # Only skip completely empty rows
                         if any(cell.strip() for cell in row_text):
                             text_parts.append("\t".join(row_text))
@@ -120,7 +120,7 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     # Include ALL data rows, not just a sample
                     for _, row in df.iterrows():
                         # Preserve ALL columns including empty cells to maintain column positions
-                        row_text = [str(val) if pd.notna(val) else "" for val in row.values]
+                        row_text = [str(val) if pd.notna(val) else "blank" for val in row.values]
                         # Only skip completely empty rows
                         if any(cell.strip() for cell in row_text):
                             text_parts.append("\t".join(row_text))
