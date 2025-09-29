@@ -91,6 +91,56 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, count, sql, and, or, inArray, isNull, isNotNull, desc, like } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+// Excel grid normalization guard - ensures consistent column structure before database save
+function normalizeExcelContent(content: string): string {
+  if (!content || !content.includes('=== Sheet:')) {
+    return content; // Not Excel content, return as-is
+  }
+  
+  try {
+    const sections = content.split('=== Sheet:');
+    const normalizedSections = sections.map((section, index) => {
+      if (index === 0) return section; // First section is before any sheet marker
+      
+      const lines = section.split('\n');
+      if (lines.length < 2) return section; // No actual data lines
+      
+      // Find the sheet name line
+      const sheetNameLine = lines[0];
+      const dataLines = lines.slice(1); // Include all lines, even empty ones
+      
+      if (dataLines.length === 0) return section;
+      
+      // Split all lines into cells and find maximum column count
+      const cellRows = dataLines.map(line => line.split('\t'));
+      const maxColumns = Math.max(...cellRows.map(row => row.length));
+      
+      // Normalize each row: replace empty cells with 'blank' and pad to maxColumns
+      const normalizedLines = cellRows.map(cells => {
+        // Fill missing cells up to maxColumns
+        const paddedCells = [...cells];
+        while (paddedCells.length < maxColumns) {
+          paddedCells.push('');
+        }
+        
+        // Replace empty/whitespace-only cells with 'blank'
+        const normalizedCells = paddedCells.map(cell => 
+          (cell.trim() === '') ? 'blank' : cell
+        );
+        
+        return normalizedCells.join('\t');
+      });
+      
+      return sheetNameLine + '\n' + normalizedLines.join('\n');
+    });
+    
+    return normalizedSections.join('=== Sheet:');
+  } catch (error) {
+    console.warn('Excel normalization failed, returning original content:', error);
+    return content;
+  }
+}
+
 export interface IStorage {
   // Organizations
   getOrganizations(): Promise<(Organization & { userCount: number })[]>;
@@ -1525,6 +1575,7 @@ export class MemStorage implements IStorage {
       ...insertDocument,
       id,
       extractedAt: new Date(),
+      extractedContent: normalizeExcelContent(insertDocument.extractedContent || ''),
     };
     this.sessionDocuments.set(id, document);
     return document;
@@ -1534,7 +1585,12 @@ export class MemStorage implements IStorage {
     const document = this.sessionDocuments.get(id);
     if (!document) return undefined;
 
-    const updatedDocument = { ...document, ...updateData };
+    // Apply Excel normalization if extractedContent is being updated
+    const normalizedUpdateData = updateData.extractedContent !== undefined 
+      ? { ...updateData, extractedContent: normalizeExcelContent(updateData.extractedContent || '') }
+      : updateData;
+
+    const updatedDocument = { ...document, ...normalizedUpdateData };
     this.sessionDocuments.set(id, updatedDocument);
     return updatedDocument;
   }
@@ -3583,14 +3639,23 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
-    const result = await this.db.insert(sessionDocuments).values(document).returning();
+    const normalizedDocument = {
+      ...document,
+      extractedContent: normalizeExcelContent(document.extractedContent || ''),
+    };
+    const result = await this.db.insert(sessionDocuments).values(normalizedDocument).returning();
     return result[0];
   }
 
   async updateSessionDocument(id: string, document: Partial<InsertSessionDocument>): Promise<SessionDocument | undefined> {
+    // Apply Excel normalization if extractedContent is being updated
+    const normalizedDocument = document.extractedContent !== undefined 
+      ? { ...document, extractedContent: normalizeExcelContent(document.extractedContent || '') }
+      : document;
+
     const result = await this.db
       .update(sessionDocuments)
-      .set(document)
+      .set(normalizedDocument)
       .where(eq(sessionDocuments.id, id))
       .returning();
     return result[0];
