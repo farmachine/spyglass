@@ -54,60 +54,77 @@ def find_header_boundary(rows):
     """
     Find where header rows end and data rows begin.
     
-    Logic: Header rows typically have fewer non-blank cells per row
-    and often contain descriptive text. Data rows are more uniform.
+    Excel-specific logic: Look for patterns that indicate data vs header rows.
+    Header rows typically have long descriptive text and many blanks.
     """
     if len(rows) <= 1:
         return len(rows)
     
-    # Analyze first few rows to detect patterns
-    max_check_rows = min(5, len(rows))
+    # For Excel files, check first several rows for header patterns
+    max_check_rows = min(10, len(rows))
     
-    for i in range(1, max_check_rows):
+    # Look for first row that has characteristics of actual data
+    for i in range(max_check_rows):
         current_row = rows[i]
-        prev_row = rows[i-1]
         
-        # Count non-blank cells in each row
-        current_non_blank = sum(1 for cell in current_row if cell != "blank")
-        prev_non_blank = sum(1 for cell in prev_row if cell != "blank")
-        
-        # If current row has significantly more data than previous rows,
-        # it's likely the start of data rows
-        if current_non_blank > prev_non_blank * 1.5 and current_non_blank > len(current_row) * 0.7:
-            return i
-        
-        # If we find a row where most columns have non-blank, consistent-looking data
-        # (not header-like text), it's likely data
-        if is_data_row(current_row):
+        # Skip if row is mostly blank (likely continuation of headers)
+        non_blank_count = sum(1 for cell in current_row if cell != "blank")
+        if non_blank_count < 3:
+            continue
+            
+        # Check if this looks like a data row vs header row
+        if is_clear_data_row(current_row):
             return i
     
-    # Default: assume first row is header
-    return 1
+    # If no clear data rows found in first 10 rows, assume they're all headers
+    # This handles cases with many header rows
+    return max_check_rows
 
-def is_data_row(row):
+def is_clear_data_row(row):
     """
-    Check if a row looks like a data row rather than a header row.
+    Check if a row is clearly a data row (not header) using Excel-specific patterns.
     
-    Data rows typically have:
-    - Higher proportion of non-blank cells
-    - Shorter cell values (not long descriptive text)
-    - More uniform cell types
+    Data rows in Excel typically have:
+    - Many non-blank values (more than headers)
+    - Short, structured values (codes, numbers, dates)
+    - Consistent patterns across columns
     """
     non_blank_cells = [cell for cell in row if cell != "blank"]
     
-    if len(non_blank_cells) < len(row) * 0.5:
-        return False  # Too many blanks for a data row
+    # Must have substantial data to be considered a data row
+    if len(non_blank_cells) < len(row) * 0.4:
+        return False
     
-    # Check for typical data patterns (numbers, dates, short codes)
-    data_like_count = 0
+    # Look for clear data indicators
+    data_indicators = 0
+    header_indicators = 0
+    
     for cell in non_blank_cells:
-        if (cell.isdigit() or 
-            len(cell) <= 20 or  # Short values are more data-like
-            any(char.isdigit() for char in cell)):  # Contains numbers
-            data_like_count += 1
+        cell_str = str(cell).strip()
+        
+        # Strong data indicators
+        if (cell_str.isdigit() or                          # Pure numbers
+            len(cell_str) <= 15 or                         # Short values
+            any(char.isdigit() for char in cell_str[:5]) or # Starts with numbers
+            '/' in cell_str or '-' in cell_str):           # Date-like patterns
+            data_indicators += 1
+        
+        # Strong header indicators  
+        elif (len(cell_str) > 40 or                        # Very long text
+              ' At Date ' in cell_str or                   # Typical Excel header phrases
+              ' Component ' in cell_str or
+              ' Subject To ' in cell_str or
+              ' Revaluation ' in cell_str):
+            header_indicators += 1
     
-    # If most cells look data-like, it's probably a data row
-    return data_like_count >= len(non_blank_cells) * 0.6
+    # If we see clear data patterns and few header patterns, it's data
+    return data_indicators >= len(non_blank_cells) * 0.6 and header_indicators < len(non_blank_cells) * 0.3
+
+def is_data_row(row):
+    """
+    Legacy function - kept for compatibility but uses new logic.
+    """
+    return is_clear_data_row(row)
 
 def merge_header_rows(header_rows):
     """
