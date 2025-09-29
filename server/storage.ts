@@ -3639,11 +3639,20 @@ class PostgreSQLStorage implements IStorage {
   }
 
   async createSessionDocument(document: InsertSessionDocument): Promise<SessionDocument> {
+    console.log(`🔥 NORMALIZATION DEBUG: createSessionDocument called for ${document.fileName}`);
+    console.log(`🔥 NORMALIZATION DEBUG: Original content length: ${document.extractedContent?.length || 0}`);
+    console.log(`🔥 NORMALIZATION DEBUG: Original content preview: ${document.extractedContent?.substring(0, 100) || 'NO CONTENT'}...`);
+    
     const normalizedDocument = {
       ...document,
       extractedContent: normalizeExcelContent(document.extractedContent || ''),
     };
+    
+    console.log(`🔥 NORMALIZATION DEBUG: Normalized content length: ${normalizedDocument.extractedContent?.length || 0}`);
+    console.log(`🔥 NORMALIZATION DEBUG: Normalized content preview: ${normalizedDocument.extractedContent?.substring(0, 100) || 'NO CONTENT'}...`);
+    
     const result = await this.db.insert(sessionDocuments).values(normalizedDocument).returning();
+    console.log(`🔥 NORMALIZATION DEBUG: Document ${document.fileName} saved with ID: ${result[0].id}`);
     return result[0];
   }
 
