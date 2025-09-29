@@ -69,13 +69,23 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 worksheet = workbook[sheet_name]
                 text_parts.append(f"=== Sheet: {sheet_name} ===")
                 
-                # Extract ALL rows, not just a sample
-                for row in worksheet.iter_rows(values_only=True):
-                    # Preserve ALL columns including empty cells to maintain column positions
-                    row_text = [str(cell) if cell is not None and str(cell).strip() else "blank" for cell in row]
-                    # Only skip completely empty rows
-                    if any(cell.strip() for cell in row_text):
-                        text_parts.append("\t".join(row_text))
+                # Get the actual dimensions to preserve grid structure
+                max_row = worksheet.max_row
+                max_col = worksheet.max_column
+                
+                # Extract ALL rows with consistent column count
+                for row_num in range(1, max_row + 1):
+                    row_data = []
+                    for col_num in range(1, max_col + 1):
+                        cell_value = worksheet.cell(row=row_num, column=col_num).value
+                        if cell_value is not None and str(cell_value).strip():
+                            row_data.append(str(cell_value))
+                        else:
+                            row_data.append("blank")
+                    
+                    # Only skip completely empty rows (all blanks)
+                    if any(cell != "blank" for cell in row_data):
+                        text_parts.append("\t".join(row_data))
             
             os.unlink(tmp_file.name)
             return "\n".join(text_parts)
@@ -93,14 +103,25 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     sheet = workbook.sheet_by_index(sheet_index)
                     text_parts.append(f"=== Sheet: {sheet.name} ===")
                     
-                    # Extract ALL rows, not just a sample
+                    # Get consistent column count for grid structure
+                    max_cols = sheet.ncols
+                    
+                    # Extract ALL rows with consistent column count
                     for row_index in range(sheet.nrows):
-                        row_values = sheet.row_values(row_index)
-                        # Preserve ALL columns including empty cells to maintain column positions
-                        row_text = [str(val) if val else "blank" for val in row_values]
-                        # Only skip completely empty rows
-                        if any(cell.strip() for cell in row_text):
-                            text_parts.append("\t".join(row_text))
+                        row_data = []
+                        for col_index in range(max_cols):
+                            try:
+                                cell_value = sheet.cell_value(row_index, col_index)
+                                if cell_value is not None and str(cell_value).strip():
+                                    row_data.append(str(cell_value))
+                                else:
+                                    row_data.append("blank")
+                            except:
+                                row_data.append("blank")
+                        
+                        # Only skip completely empty rows (all blanks)
+                        if any(cell != "blank" for cell in row_data):
+                            text_parts.append("\t".join(row_data))
                 
                 os.unlink(tmp_file.name)
                 return "\n".join(text_parts)
@@ -113,17 +134,23 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 for sheet_name, df in excel_data.items():
                     text_parts.append(f"=== Sheet: {sheet_name} ===")
                     
-                    # Include headers
+                    # Include headers with consistent column count
                     headers = df.columns.tolist()
                     text_parts.append("\t".join(str(h) for h in headers))
                     
-                    # Include ALL data rows, not just a sample
+                    # Include ALL data rows with consistent column count
                     for _, row in df.iterrows():
-                        # Preserve ALL columns including empty cells to maintain column positions
-                        row_text = [str(val) if pd.notna(val) else "blank" for val in row.values]
-                        # Only skip completely empty rows
-                        if any(cell.strip() for cell in row_text):
-                            text_parts.append("\t".join(row_text))
+                        # Ensure every row has same number of columns as headers
+                        row_data = []
+                        for val in row.values:
+                            if pd.notna(val) and str(val).strip():
+                                row_data.append(str(val))
+                            else:
+                                row_data.append("blank")
+                        
+                        # Only skip completely empty rows (all blanks)
+                        if any(cell != "blank" for cell in row_data):
+                            text_parts.append("\t".join(row_data))
                 
                 return "\n".join(text_parts)
                 
