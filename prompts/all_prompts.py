@@ -121,12 +121,60 @@ dataA2[TAB]dataB2[TAB]dataC2
 
 Note: [TAB] represents the tab character (\\t)
 
+EXCEL GRID STRUCTURE NORMALIZATION (MANDATORY):
+ALL Excel extraction functions MUST normalize grid structure before processing:
+
+1. **Consistent Column Count**: Every row must have the same number of columns per sheet
+2. **Empty Cell Handling**: Convert all empty/whitespace-only cells to 'blank'
+3. **Row Preservation**: Maintain all rows, even if they appear shorter
+
+Example Normalization Pattern:
+```python
+def normalize_excel_content(content):
+    if not content or "=== Sheet:" not in content:
+        return content
+    
+    sections = content.split('=== Sheet:')
+    normalized_sections = sections.copy()
+    
+    for i, section in enumerate(sections[1:], 1):  # Skip first empty section
+        lines = section.split('\n')
+        if len(lines) < 2:
+            continue
+            
+        sheet_name_line = lines[0]
+        data_lines = lines[1:]
+        
+        if not data_lines:
+            continue
+            
+        # Find maximum column count
+        cell_rows = [line.split('\t') for line in data_lines]
+        max_columns = max(len(row) for row in cell_rows) if cell_rows else 0
+        
+        # Normalize each row
+        normalized_lines = []
+        for cells in cell_rows:
+            # Pad to max columns
+            while len(cells) < max_columns:
+                cells.append('')
+            
+            # Convert empty cells to 'blank'
+            normalized_cells = ['blank' if cell.strip() == '' else cell for cell in cells]
+            normalized_lines.append('\t'.join(normalized_cells))
+        
+        normalized_sections[i] = sheet_name_line + '\n' + '\n'.join(normalized_lines)
+    
+    return '=== Sheet:'.join(normalized_sections)
+```
+
 MANDATORY PARSING RULES:
 1. NEVER use pandas.ExcelFile() or pd.read_excel() - the input is a TEXT STRING
-2. Parse sheets using: `=== Sheet: SheetName ===`
-3. Split rows by newlines (\n)
-4. Split columns by TAB character (\t)
-5. First row after sheet delimiter contains headers
+2. **ALWAYS normalize Excel content first** using the pattern above
+3. Parse sheets using: `=== Sheet: SheetName ===`
+4. Split rows by newlines (\n)
+5. Split columns by TAB character (\t)
+6. First row after sheet delimiter contains headers
 
 CRITICAL INPUT PARAMETER HANDLING:
 Functions MUST handle multiple parameter name variations:
@@ -214,6 +262,9 @@ EXCEL PARSING HELPER FUNCTION:
 
 Example Pattern:
 def parse_excel_sheets(excel_text):
+    # MANDATORY: Normalize Excel content first
+    excel_text = normalize_excel_content(excel_text)
+    
     # Parse Excel text format into sheets dictionary
     sheets = {}
     
@@ -231,7 +282,7 @@ def parse_excel_sheets(excel_text):
                 if lines:
                     # First line is headers
                     headers = [h.strip() for h in lines[0].split('\t')]
-                    # Rest are data rows
+                    # Rest are data rows (already normalized to consistent column count)
                     rows = []
                     for line in lines[1:]:
                         row = [cell.strip() for cell in line.split('\t')]
@@ -243,6 +294,44 @@ def parse_excel_sheets(excel_text):
                     }
     
     return sheets
+
+def normalize_excel_content(content):
+    # MANDATORY normalization function - include in all generated functions
+    if not content or "=== Sheet:" not in content:
+        return content
+    
+    sections = content.split('=== Sheet:')
+    normalized_sections = sections.copy()
+    
+    for i, section in enumerate(sections[1:], 1):  # Skip first empty section
+        lines = section.split('\n')
+        if len(lines) < 2:
+            continue
+            
+        sheet_name_line = lines[0]
+        data_lines = lines[1:]
+        
+        if not data_lines:
+            continue
+            
+        # Find maximum column count
+        cell_rows = [line.split('\t') for line in data_lines]
+        max_columns = max(len(row) for row in cell_rows) if cell_rows else 0
+        
+        # Normalize each row
+        normalized_lines = []
+        for cells in cell_rows:
+            # Pad to max columns
+            while len(cells) < max_columns:
+                cells.append('')
+            
+            # Convert empty cells to 'blank'
+            normalized_cells = ['blank' if cell.strip() == '' else cell for cell in cells]
+            normalized_lines.append('\t'.join(normalized_cells))
+        
+        normalized_sections[i] = sheet_name_line + '\n' + '\n'.join(normalized_lines)
+    
+    return '=== Sheet:'.join(normalized_sections)
 
 TWO OPERATION TYPES:
 1. **updateMultiple** - Updates existing records with identifierId matching:
@@ -284,7 +373,7 @@ import json
 import re
 
 def extract_function(*args, **kwargs):
-    # Example function following all production patterns
+    # Example function following all production patterns including normalization
     
     # 1. Handle flexible input parameters
     document = None
@@ -309,19 +398,22 @@ def extract_function(*args, **kwargs):
             "documentSource": "N/A"
         }]
     
-    # 3. Parse JSON if needed
+    # 3. MANDATORY: Normalize Excel content first
+    document = normalize_excel_content(document)
+    
+    # 4. Parse JSON if needed
     if isinstance(data_input, str):
         try:
             data_input = json.loads(data_input)
         except:
             pass
     
-    # 4. Handle array with identifierId
+    # 5. Handle array with identifierId
     if isinstance(data_input, list) and len(data_input) > 0:
         if isinstance(data_input[0], dict) and 'identifierId' in data_input[0]:
             results = []
             
-            # Parse Excel sheets
+            # Parse Excel sheets (content already normalized)
             sheets = parse_excel_sheets(document)
             
             # Process each item
@@ -350,7 +442,7 @@ def extract_function(*args, **kwargs):
             
             return results
     
-    # 5. Handle single value
+    # 6. Handle single value
     return [{
         "extractedValue": "Single value result",
         "validationStatus": "valid",
