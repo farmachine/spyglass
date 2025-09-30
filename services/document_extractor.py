@@ -25,106 +25,64 @@ except ImportError as e:
 
 def merge_multirow_headers(rows):
     """
-    Intelligently merge multi-row headers in Excel data.
+    Conservatively detect and merge multi-row headers in Excel data.
     
-    Detects header rows and combines them into a single header row,
-    then returns the merged header plus all data rows.
+    Only merges if we're confident rows are headers (not data).
+    Returns rows unchanged unless multiple consecutive sparse long-text 
+    header rows are found starting from row 0.
+    
+    Merge criteria:
+    - Rows must have ≤5 non-blank cells (sparse, like multi-row headers)
+    - At least one cell must have long text (>25 chars)
+    - Rows must be consecutive starting from row 0
+    
+    This prevents data rows from being merged into headers.
     """
-    if not rows:
+    if not rows or len(rows) <= 1:
         return rows
     
-    # Determine header boundary - look for the first row that looks like data
-    header_end_index = find_header_boundary(rows)
+    # Check if we even have multi-row headers
+    # Look for pattern: rows with mostly blanks and long text in some columns
+    header_candidate_rows = []
     
-    if header_end_index <= 1:
-        # Single header row or no headers detected, return as-is
-        return rows
-    
-    # Extract header rows and data rows
-    header_rows = rows[:header_end_index]
-    data_rows = rows[header_end_index:]
-    
-    # Merge header rows into a single header
-    merged_header = merge_header_rows(header_rows)
-    
-    # Return merged header + data rows
-    return [merged_header] + data_rows
-
-def find_header_boundary(rows):
-    """
-    Find where header rows end and data rows begin.
-    
-    Excel-specific logic: Look for patterns that indicate data vs header rows.
-    Header rows typically have long descriptive text and many blanks.
-    """
-    if len(rows) <= 1:
-        return len(rows)
-    
-    # For Excel files, check first several rows for header patterns
-    max_check_rows = min(10, len(rows))
-    
-    # Look for first row that has characteristics of actual data
-    for i in range(max_check_rows):
-        current_row = rows[i]
+    for i, row in enumerate(rows[:5]):  # Check first 5 rows only
+        non_blank_count = sum(1 for cell in row if cell != "blank")
         
-        # Skip if row is mostly blank (likely continuation of headers)
-        non_blank_count = sum(1 for cell in current_row if cell != "blank")
-        if non_blank_count < 3:
-            continue
+        # Header rows typically have FEW non-blank cells with LONG descriptive text
+        if non_blank_count <= 5:  # Very few non-blank cells
+            # Check if the non-blank cells have long header-like text
+            has_header_text = False
+            for cell in row:
+                if cell != "blank" and len(cell) > 25:  # Long descriptive text
+                    has_header_text = True
+                    break
             
-        # Check if this looks like a data row vs header row
-        if is_clear_data_row(current_row):
-            return i
+            if has_header_text:
+                header_candidate_rows.append(i)
+        else:
+            # Many non-blank cells = likely data row, stop looking
+            break
     
-    # If no clear data rows found in first 10 rows, assume they're all headers
-    # This handles cases with many header rows
-    return max_check_rows
-
-def is_clear_data_row(row):
-    """
-    Check if a row is clearly a data row (not header) using Excel-specific patterns.
-    
-    Data rows in Excel typically have:
-    - Many non-blank values (more than headers)
-    - Short, structured values (codes, numbers, dates)
-    - Consistent patterns across columns
-    """
-    non_blank_cells = [cell for cell in row if cell != "blank"]
-    
-    # Must have substantial data to be considered a data row
-    if len(non_blank_cells) < len(row) * 0.4:
-        return False
-    
-    # Look for clear data indicators
-    data_indicators = 0
-    header_indicators = 0
-    
-    for cell in non_blank_cells:
-        cell_str = str(cell).strip()
+    # If we found multiple consecutive header rows starting from row 0
+    if len(header_candidate_rows) > 1 and header_candidate_rows[0] == 0:
+        # Check if they're actually consecutive
+        is_consecutive = all(
+            header_candidate_rows[i] == header_candidate_rows[i-1] + 1 
+            for i in range(1, len(header_candidate_rows))
+        )
         
-        # Strong data indicators
-        if (cell_str.isdigit() or                          # Pure numbers
-            len(cell_str) <= 15 or                         # Short values
-            any(char.isdigit() for char in cell_str[:5]) or # Starts with numbers
-            '/' in cell_str or '-' in cell_str):           # Date-like patterns
-            data_indicators += 1
-        
-        # Strong header indicators  
-        elif (len(cell_str) > 40 or                        # Very long text
-              ' At Date ' in cell_str or                   # Typical Excel header phrases
-              ' Component ' in cell_str or
-              ' Subject To ' in cell_str or
-              ' Revaluation ' in cell_str):
-            header_indicators += 1
+        if is_consecutive:
+            header_end_index = header_candidate_rows[-1] + 1
+            header_rows = rows[:header_end_index]
+            data_rows = rows[header_end_index:]
+            
+            # Merge header rows
+            merged_header = merge_header_rows(header_rows)
+            return [merged_header] + data_rows
     
-    # If we see clear data patterns and few header patterns, it's data
-    return data_indicators >= len(non_blank_cells) * 0.6 and header_indicators < len(non_blank_cells) * 0.3
+    # Default: return rows unchanged (no merging detected)
+    return rows
 
-def is_data_row(row):
-    """
-    Legacy function - kept for compatibility but uses new logic.
-    """
-    return is_clear_data_row(row)
 
 def merge_header_rows(header_rows):
     """
