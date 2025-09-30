@@ -165,14 +165,14 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                 # Find ACTUAL maximum column by scanning first few rows extensively
                 # Don't trust worksheet.max_column as it can miss columns with formatting/empty cells
                 actual_max_col = 0
-                for row_num in range(1, min(10, max_row + 1)):  # Check first 10 rows
-                    for col_num in range(1, 100):  # Check up to column 100
+                for row_num in range(1, min(15, max_row + 1)):  # Check first 15 rows
+                    for col_num in range(1, 200):  # Check up to column 200 to handle wide sheets
                         cell_value = worksheet.cell(row=row_num, column=col_num).value
                         if cell_value is not None and str(cell_value).strip():
                             actual_max_col = max(actual_max_col, col_num)
                 
-                # Use the detected column count or minimum of 50 columns to be safe
-                max_col = max(actual_max_col, worksheet.max_column, 50)
+                # Use the detected column count or minimum of 150 columns for wide sheets
+                max_col = max(actual_max_col, worksheet.max_column, 150)
                 
                 # Smart header detection and multi-row header merging
                 all_rows = []
@@ -214,8 +214,8 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                     # Find ACTUAL maximum column by scanning extensively
                     # Don't trust sheet.ncols as it can miss columns with formatting/empty cells
                     actual_max_cols = 0
-                    for row_index in range(min(10, sheet.nrows)):  # Check first 10 rows
-                        for col_index in range(100):  # Check up to column 100
+                    for row_index in range(min(15, sheet.nrows)):  # Check first 15 rows
+                        for col_index in range(200):  # Check up to column 200 to handle wide sheets
                             try:
                                 cell_value = sheet.cell_value(row_index, col_index)
                                 if cell_value is not None and str(cell_value).strip():
@@ -223,8 +223,8 @@ def extract_excel_text(file_content: bytes, file_name: str) -> str:
                             except:
                                 break  # xlrd will throw exception when past actual columns
                     
-                    # Use the detected column count or minimum of 50 columns to be safe
-                    max_cols = max(actual_max_cols, sheet.ncols, 50)
+                    # Use the detected column count or minimum of 150 columns for wide sheets
+                    max_cols = max(actual_max_cols, sheet.ncols, 150)
                     
                     # Smart header detection and multi-row header merging
                     all_rows = []
