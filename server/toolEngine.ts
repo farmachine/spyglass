@@ -1769,8 +1769,8 @@ CRITICAL RULES for Input Data:
    - Previous column values in Input Data = REFERENCE DATA (use for context, don't copy to output)
    - Input Data parameter = UPDATE DATA (extract NEW values, preserve identifierId)
 
-2. Processing pattern:
-   ```python
+2. Processing pattern (Python pseudocode):
+   
    input_data = kwargs.get('Input Data') or kwargs.get('input_data')
    if isinstance(input_data, list) and input_data[0].get('identifierId'):
        results = []
@@ -1796,7 +1796,6 @@ CRITICAL RULES for Input Data:
                # NO prev_col1, prev_col2 in output!
            })
        return results
-   ```
 
 3. KEY PRINCIPLE: Previous column properties are CONTEXT, not part of the extraction result. Only return identifierId + new extracted data.
 
