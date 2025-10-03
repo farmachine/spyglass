@@ -1757,47 +1757,82 @@ ${paramList}
 ${excelTraining}
 
 INPUT DATA PARAMETER HANDLING (for UPDATE operations):
-If your function has an "Input Data" parameter (type: data), it will receive an identifier array like:
+If your function has an "Input Data" parameter (type: data), it will receive an identifier array where each object contains:
+- identifierId: UUID to preserve
+- Previous column names as properties with their extracted values
+
+Example Input Data:
 [
-  {"identifierId": "uuid-1", "Column 1": "value1", "Column 2": "value2"},
-  {"identifierId": "uuid-2", "Column 1": "value3", "Column 2": "value4"}
+  {"identifierId": "uuid-1", "Excel Column": "Sex Code", "Other Column": "value2"},
+  {"identifierId": "uuid-2", "Excel Column": "Date Of Birth", "Other Column": "value4"}
 ]
 
-CRITICAL RULES for Input Data:
-1. REFERENCE vs UPDATE data distinction:
-   - Excel/Document parameters = REFERENCE DATA (read-only context for lookups/comparisons)
-   - Previous column values in Input Data = REFERENCE DATA (use for context, don't copy to output)
-   - Input Data parameter = UPDATE DATA (extract NEW values, preserve identifierId)
+CRITICAL: How to Use Previous Column Data
+The previous column properties (like "Excel Column", "Other Column") contain VALUES that you use for your extraction logic:
 
-2. Processing pattern (Python pseudocode):
-   
-   input_data = kwargs.get('Input Data') or kwargs.get('input_data')
-   if isinstance(input_data, list) and input_data[0].get('identifierId'):
-       results = []
-       for item in input_data:
-           # Get identifier (REQUIRED in output)
-           identifier = item['identifierId']
-           
-           # Access previous columns for CONTEXT (reference data)
-           prev_col1 = item.get('Column 1')  # Use for lookup
-           prev_col2 = item.get('Column 2')  # Use for comparison
-           
-           # Extract NEW value using reference data
-           new_value = your_extraction_logic(excel_content, prev_col1, prev_col2)
-           
-           # Return ONLY identifier + new extraction
-           results.append({
-               "identifierId": identifier,  # MUST preserve
-               "extractedValue": new_value,  # NEW data only
-               "validationStatus": "valid",
-               "aiReasoning": f"Extracted using {prev_col1}",
-               "confidenceScore": 95,
-               "documentSource": "Sheet: Data"
-               # NO prev_col1, prev_col2 in output!
-           })
-       return results
+CORRECT APPROACH:
+```
+for item in input_data:
+    identifier = item['identifierId']
+    
+    # Extract the VALUE from the previous column property
+    column_to_find = item.get('Excel Column')  # Gets "Sex Code", "Date Of Birth", etc.
+    
+    # Use that VALUE in your extraction logic
+    worksheet = search_excel_for_column(excel_content, column_to_find)
+    
+    results.append({
+        "identifierId": identifier,
+        "extractedValue": worksheet,  # The worksheet where column_to_find was found
+        ...
+    })
+```
 
-3. KEY PRINCIPLE: Previous column properties are CONTEXT, not part of the extraction result. Only return identifierId + new extracted data.
+WRONG APPROACH (common mistake):
+```
+# DON'T search for the literal string "Excel Column" - that's a property name!
+worksheet = search_excel_for_column(excel_content, "Excel Column")  # ❌ WRONG
+```
+
+STEP-BY-STEP PROCESSING:
+1. Loop through each item in input_data
+2. Extract identifierId (MUST preserve in output)
+3. Extract VALUES from previous column properties (e.g., item['Excel Column'] gives you "Sex Code")
+4. Use those VALUES in your extraction logic (search for "Sex Code" in Excel)
+5. Return new extracted value with identifierId
+
+Example for finding worksheet containing a column:
+```
+input_data = kwargs.get('Input Data') or kwargs.get('input_data')
+excel_file = kwargs.get('Excel File') or kwargs.get('excel_file')
+
+if isinstance(input_data, list) and input_data[0].get('identifierId'):
+    results = []
+    for item in input_data:
+        identifier = item['identifierId']
+        
+        # Get the column name VALUE from previous extraction
+        column_name = item.get('Excel Column')  # e.g., "Sex Code"
+        
+        # Search for that column in Excel worksheets
+        found_worksheet = None
+        for sheet_name, sheet_data in parse_sheets(excel_file).items():
+            if column_name in sheet_data['headers']:
+                found_worksheet = sheet_name
+                break
+        
+        results.append({
+            "identifierId": identifier,
+            "extractedValue": found_worksheet,
+            "validationStatus": "valid" if found_worksheet else "invalid",
+            "aiReasoning": f"Searched for column '{column_name}'",
+            "confidenceScore": 100 if found_worksheet else 0,
+            "documentSource": found_worksheet or "Not found"
+        })
+    return results
+```
+
+KEY PRINCIPLE: Property names are HOW you access data. Property VALUES are WHAT you use in your logic.
 
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
