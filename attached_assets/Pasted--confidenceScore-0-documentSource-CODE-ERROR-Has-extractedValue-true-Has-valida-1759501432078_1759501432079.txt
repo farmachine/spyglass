@@ -1,0 +1,35 @@
+"confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Building index map from 115 records in previousData
+  Record index 0 -> identifierId: 88948c62-27d9-48c6-a484-d0bab52146fb
+  Record index 1 -> identifierId: 955cfbdf-d41e-4626-a82a-284e95dc5deb
+  Record index 2 -> identifierId: c8ccff23-0956-42b5-8b01-efa0b60075db
+  Record index 3 -> identifierId: f3c62244-c975-451b-8090-6628db7cce4a
+  Record index 4 -> identifierId: bba0353c-37ba-4a2c-8e11-a1aca585acfc
+📊 Mapped 115 identifierIds to their array indices
+🔍 Validating 115 identifierIds from previousData against existing database records...
+📊 Found 115 existing identifierIds in database for this step
+✅ 115 out of 115 identifierIds from previousData exist in database
+📊 Processing 1 actual AI results (not creating validations for unprocessed records)
+⚠️ AI didn't return identifierId for position 0 - generating new one
+⏭️ Skipping validation creation for Provider Data.Get Worksheet[0] - no meaningful value ("null")
+💾 Saved 1 validation records
+2:23:22 PM [express] POST /api/sessions/4ccab8b7-c5e9-47d9-9fca-5e46615e38cc/extract-column 200 in 815ms :: {"success":true,"message":"Ext…
+2:23:22 PM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Get Worksheet","resultsCount":1}
+2:23:22 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:23:22 PM [browser] 📝 🔄 Invalidating validation queries...
+2:23:22 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:23:23 PM [express] GET /api/validations/project/96686700-b036-4b9d-ae69-167abfc8e29a 200 in 11ms
+2:23:23 PM [express] GET /api/validations/project/96686700-b036-4b9d-ae69-167abfc8e29a 200 in 6ms
+2:23:23 PM [browser] 📝 ✅ Validation queries refreshed
+2:23:23 PM [express] POST /api/dev/console 200 in 2ms :: {"success":true}
+2:23:23 PM [browser] 📝 ⚠️ Results processed but validations not found yet - this may be a timing issue
+2:23:23 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:23:23 PM [browser] 📝 📝 Error details captured and displayed in modal
+2:23:23 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}

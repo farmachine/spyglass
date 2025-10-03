@@ -1756,6 +1756,19 @@ Input Parameters:
 ${paramList}
 ${excelTraining}
 
+PARAMETER ACCESS PATTERN:
+Your function will receive parameters via **kwargs. Parameters may have multiple name variations (e.g., 'Excel File', 'excel_file', 'document'). Use this helper pattern to find parameters:
+
+    def get_param(kwargs, *names):
+        for name in names:
+            if name in kwargs and kwargs[name] is not None:
+                return kwargs[name]
+        return None
+
+Then access your parameters like:
+    excel_file = get_param(kwargs, 'Excel File', 'excel_file', 'document', 'excel_content')
+    input_data = get_param(kwargs, 'Input Data', 'input_data', 'data')
+
 INPUT DATA PARAMETER HANDLING (for UPDATE operations):
 Your function receives an "Input Data" parameter containing an array of objects. Each object has:
 - identifierId: A UUID that MUST be included in your output
@@ -1763,26 +1776,30 @@ Your function receives an "Input Data" parameter containing an array of objects.
 
 Example:
     [
-      {"identifierId": "abc-123", "Column Name": "First Name", "Another Column": "value2"},
-      {"identifierId": "def-456", "Column Name": "Last Name", "Another Column": "value4"}
+      {"identifierId": "abc-123", "Column Name": "First Name"},
+      {"identifierId": "def-456", "Column Name": "Last Name"}
     ]
 
-Your task: Extract new data using the previous column values as input, then return results with identifierId preserved.
-
-Simple Processing Pattern:
+Processing Pattern:
+    def get_param(kwargs, *names):
+        for name in names:
+            if name in kwargs and kwargs[name] is not None:
+                return kwargs[name]
+        return None
+    
+    excel_file = get_param(kwargs, 'Excel File', 'excel_file', 'document', 'excel_content')
+    input_data = get_param(kwargs, 'Input Data', 'input_data', 'data')
+    
     results = []
     for item in input_data:
         identifier = item['identifierId']
         
-        # Get values from previous columns (skip 'identifierId')
+        # Get the previous column value (skip 'identifierId' key)
         prev_keys = [k for k in item.keys() if k != 'identifierId']
-        prev_values = {k: item[k] for k in prev_keys}
+        column_value = item[prev_keys[0]] if prev_keys else None
         
-        # Use those values to extract new data from your document
-        # For example, if prev_values = {"Column Name": "First Name"}
-        # then item["Column Name"] gives you "First Name" to search for
-        
-        new_value = extract_from_document(document, prev_values)
+        # Use that value to extract new data
+        new_value = search_document(excel_file, column_value)
         
         results.append({
             "identifierId": identifier,
@@ -1794,8 +1811,6 @@ Simple Processing Pattern:
         })
     
     return json.dumps(results)
-
-Key Point: Previous column properties contain VALUES to use in your search logic. For instance, if you have {"Column Name": "First Name"}, use "First Name" (the value) to search the document, not "Column Name" (the property name).
 
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
