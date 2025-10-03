@@ -1765,51 +1765,41 @@ If your function has an "Input Data" parameter (type: data), it will receive an 
 
 CRITICAL PATTERN: Property VALUES (not names) are used in your extraction logic
 
-How Input Data works:
-```
-input_data = [
-  {"identifierId": "abc-123", "Previous Column A": "extracted_value_1", "Previous Column B": "extracted_value_2"},
-  {"identifierId": "def-456", "Previous Column A": "extracted_value_3", "Previous Column B": "extracted_value_4"}
-]
-```
+Example Input Data structure:
+    input_data = [
+      {"identifierId": "abc-123", "Previous Column A": "extracted_value_1", "Previous Column B": "extracted_value_2"},
+      {"identifierId": "def-456", "Previous Column A": "extracted_value_3", "Previous Column B": "extracted_value_4"}
+    ]
 
 Processing Pattern:
-```
-for item in input_data:
-    # 1. Get identifier (REQUIRED in output)
-    identifier = item['identifierId']
-    
-    # 2. Access previous column VALUES (not property names!)
-    # If you need data from "Previous Column A", get its VALUE:
-    value_from_col_a = item.get('Previous Column A')
-    
-    # 3. Use those VALUES in your extraction logic
-    new_extracted_value = your_logic(document, value_from_col_a)
-    
-    # 4. Return result with identifierId
-    results.append({
-        "identifierId": identifier,
-        "extractedValue": new_extracted_value,
-        "validationStatus": "valid",
-        "aiReasoning": "explanation",
-        "confidenceScore": 95,
-        "documentSource": "source"
-    })
-```
+    for item in input_data:
+        # 1. Get identifier (REQUIRED in output)
+        identifier = item['identifierId']
+        
+        # 2. Access previous column VALUES (not property names!)
+        # If you need data from "Previous Column A", get its VALUE:
+        value_from_col_a = item.get('Previous Column A')
+        
+        # 3. Use those VALUES in your extraction logic
+        new_extracted_value = your_logic(document, value_from_col_a)
+        
+        # 4. Return result with identifierId
+        results.append({
+            "identifierId": identifier,
+            "extractedValue": new_extracted_value,
+            "validationStatus": "valid",
+            "aiReasoning": "explanation",
+            "confidenceScore": 95,
+            "documentSource": "source"
+        })
 
 Common Mistake to Avoid:
 ❌ WRONG: Using property name as a literal value
-```
-# This searches for the literal string "Column Name" - WRONG!
-search_for("Column Name")
-```
+    search_for("Column Name")  # This searches for literal string "Column Name" - WRONG!
 
 ✅ CORRECT: Using property value
-```
-# This gets the VALUE from that property and uses it
-column_value = item.get('Column Name')
-search_for(column_value)
-```
+    column_value = item.get('Column Name')  # Get the VALUE from the property
+    search_for(column_value)  # Use that value in your logic
 
 Remember: Previous columns are CONTEXT data - extract their values to use in your logic, but DON'T copy them to output.
 

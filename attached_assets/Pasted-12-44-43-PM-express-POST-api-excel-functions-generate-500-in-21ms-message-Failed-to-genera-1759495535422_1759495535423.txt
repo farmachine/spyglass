@@ -1,0 +1,47 @@
+12:44:43 PM [express] POST /api/excel-functions/generate 500 in 21ms :: {"message":"Failed to generate Excel wizardry function"}
+12:44:43 PM [browser] ❌ ❌ Clean code generation failed: {}
+12:44:43 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+12:44:48 PM [browser] 📝 🎯 Using NEW CLEAN CODE GENERATION pathway
+12:44:48 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+12:44:48 PM [browser] 📝 🚀 NEW CLEAN CODE GENERATION - Using current form data
+12:44:48 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+12:44:48 PM [browser] 📝 📋 Sending form data to new endpoint: {
+  "projectId": "96686700-b036-4b9d-ae69-167abfc8e29a",
+  "name": "Get Worksheet from Column",
+  "descriptio...
+12:44:48 PM [express] POST /api/dev/console 200 in 0ms :: {"success":true}
+🤖 Generating tool content with input: {
+  "projectId": "96686700-b036-4b9d-ae69-167abfc8e29a",
+  "name": "Get Worksheet from Column",
+  "description": "Retrieves the worksheet for each column in a list of columns including duplicate columns (i.e if a column has already been found in one worksheet, but exists in another, then the next containing worksheet will be output).",
+  "inputParameters": [
+    {
+      "id": "0.7nmfm3pp388",
+      "name": "Excel File",
+      "type": "document",
+      "multiline": false,
+      "description": "The excel file containing the columns and worksheets.",
+      "documentType": "all"
+    }
+  ],
+  "toolType": "CODE",
+  "outputType": "multiple",
+  "operationType": "updateMultiple",
+  "aiAssistancePrompt": ""
+}
+🔄 Detected UPDATE operation - checking for Input Data parameter...
+➕ Adding Input Data parameter for UPDATE operation (identifier array - architecturally required)
+✅ Final input parameters for UPDATE operation: [ 'Excel File', 'Input Data' ]
+Error generating Excel wizardry function: Error [TransformError]: Transform failed with 1 error:
+/home/runner/workspace/server/toolEngine.ts:1778:4: ERROR: Expected "(" but found "item"
+    at failureErrorWithLog (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:1476:15)
+    at /home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/runner/workspace/node_modules/tsx/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+12:44:48 PM [express] POST /api/excel-functions/generate 500 in 3ms :: {"message":"Failed to generate Excel wizardry function"}
