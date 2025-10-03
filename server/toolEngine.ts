@@ -1757,61 +1757,45 @@ ${paramList}
 ${excelTraining}
 
 INPUT DATA PARAMETER HANDLING (for UPDATE operations):
-If your function has an "Input Data" parameter (type: data), it will receive an identifier array where:
-- Each object has an 'identifierId' field (UUID that MUST be preserved in output)
-- Each object contains properties from PREVIOUS columns with their extracted values
-- The property names are the previous column names
-- The property values are what was extracted for that column
+Your function receives an "Input Data" parameter containing an array of objects. Each object has:
+- identifierId: A UUID that MUST be included in your output
+- One or more properties with values from previous columns
 
-Example Input Data structure:
-    input_data = [
-      {"identifierId": "abc-123", "Previous Column A": "extracted_value_1", "Previous Column B": "extracted_value_2"},
-      {"identifierId": "def-456", "Previous Column A": "extracted_value_3", "Previous Column B": "extracted_value_4"}
+Example:
+    [
+      {"identifierId": "abc-123", "Column Name": "First Name", "Another Column": "value2"},
+      {"identifierId": "def-456", "Column Name": "Last Name", "Another Column": "value4"}
     ]
 
-CRITICAL: How to Extract Property Names and Values
-Each item has identifierId PLUS one or more previous column properties. Use this deterministic algorithm:
+Your task: Extract new data using the previous column values as input, then return results with identifierId preserved.
 
+Simple Processing Pattern:
+    results = []
     for item in input_data:
-        # 1. Extract identifierId (REQUIRED in output)
         identifier = item['identifierId']
         
-        # 2. Get all keys and filter out 'identifierId' to find previous column names
-        all_keys = list(item.keys())
-        previous_columns = [k for k in all_keys if k != 'identifierId']
+        # Get values from previous columns (skip 'identifierId')
+        prev_keys = [k for k in item.keys() if k != 'identifierId']
+        prev_values = {k: item[k] for k in prev_keys}
         
-        # 3. Extract VALUES from previous columns
-        # Example: If previous_columns = ['Column A', 'Column B']
-        value_from_col_a = item.get('Column A')  # Gets the extracted value
-        value_from_col_b = item.get('Column B')  # Gets the extracted value
+        # Use those values to extract new data from your document
+        # For example, if prev_values = {"Column Name": "First Name"}
+        # then item["Column Name"] gives you "First Name" to search for
         
-        # 4. Use those VALUES in your extraction logic
-        new_extracted_value = your_logic(document, value_from_col_a, value_from_col_b)
+        new_value = extract_from_document(document, prev_values)
         
-        # 5. Return result with identifierId
         results.append({
             "identifierId": identifier,
-            "extractedValue": new_extracted_value,
+            "extractedValue": new_value,
             "validationStatus": "valid",
-            "aiReasoning": "explanation",
-            "confidenceScore": 95,
-            "documentSource": "source"
+            "aiReasoning": "Found result",
+            "confidenceScore": 100,
+            "documentSource": "Document"
         })
+    
+    return json.dumps(results)
 
-Common Mistakes to Avoid:
-❌ WRONG: Using property name as a literal value
-    search_for("Column Name")  # Searches for literal string "Column Name"
-
-❌ WRONG: Reusing iterator that returns same key
-    key1 = next(iter(item.keys()))  # Returns 'identifierId'
-    key2 = next(iter(item.keys()))  # Returns 'identifierId' again - SAME KEY!
-
-✅ CORRECT: Filter keys, then access values
-    prev_cols = [k for k in item.keys() if k != 'identifierId']
-    column_value = item.get(prev_cols[0])  # Get VALUE from first previous column
-    search_for(column_value)  # Use that value in logic
-
-Remember: identifierId is special - skip it when looking for previous column data.
+Key Point: Previous column properties contain VALUES to use in your search logic. For instance, if you have {"Column Name": "First Name"}, use "First Name" (the value) to search the document, not "Column Name" (the property name).
 
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
