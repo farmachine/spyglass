@@ -1757,82 +1757,61 @@ ${paramList}
 ${excelTraining}
 
 INPUT DATA PARAMETER HANDLING (for UPDATE operations):
-If your function has an "Input Data" parameter (type: data), it will receive an identifier array where each object contains:
-- identifierId: UUID to preserve
-- Previous column names as properties with their extracted values
+If your function has an "Input Data" parameter (type: data), it will receive an identifier array where:
+- Each object has an 'identifierId' field (UUID that MUST be preserved in output)
+- Each object contains properties from PREVIOUS columns with their extracted values
+- The property names are the previous column names
+- The property values are what was extracted for that column
 
-Example Input Data:
-[
-  {"identifierId": "uuid-1", "Excel Column": "Sex Code", "Other Column": "value2"},
-  {"identifierId": "uuid-2", "Excel Column": "Date Of Birth", "Other Column": "value4"}
+CRITICAL PATTERN: Property VALUES (not names) are used in your extraction logic
+
+How Input Data works:
+```
+input_data = [
+  {"identifierId": "abc-123", "Previous Column A": "extracted_value_1", "Previous Column B": "extracted_value_2"},
+  {"identifierId": "def-456", "Previous Column A": "extracted_value_3", "Previous Column B": "extracted_value_4"}
 ]
+```
 
-CRITICAL: How to Use Previous Column Data
-The previous column properties (like "Excel Column", "Other Column") contain VALUES that you use for your extraction logic:
-
-CORRECT APPROACH:
+Processing Pattern:
 ```
 for item in input_data:
+    # 1. Get identifier (REQUIRED in output)
     identifier = item['identifierId']
     
-    # Extract the VALUE from the previous column property
-    column_to_find = item.get('Excel Column')  # Gets "Sex Code", "Date Of Birth", etc.
+    # 2. Access previous column VALUES (not property names!)
+    # If you need data from "Previous Column A", get its VALUE:
+    value_from_col_a = item.get('Previous Column A')
     
-    # Use that VALUE in your extraction logic
-    worksheet = search_excel_for_column(excel_content, column_to_find)
+    # 3. Use those VALUES in your extraction logic
+    new_extracted_value = your_logic(document, value_from_col_a)
     
+    # 4. Return result with identifierId
     results.append({
         "identifierId": identifier,
-        "extractedValue": worksheet,  # The worksheet where column_to_find was found
-        ...
+        "extractedValue": new_extracted_value,
+        "validationStatus": "valid",
+        "aiReasoning": "explanation",
+        "confidenceScore": 95,
+        "documentSource": "source"
     })
 ```
 
-WRONG APPROACH (common mistake):
+Common Mistake to Avoid:
+❌ WRONG: Using property name as a literal value
 ```
-# DON'T search for the literal string "Excel Column" - that's a property name!
-worksheet = search_excel_for_column(excel_content, "Excel Column")  # ❌ WRONG
-```
-
-STEP-BY-STEP PROCESSING:
-1. Loop through each item in input_data
-2. Extract identifierId (MUST preserve in output)
-3. Extract VALUES from previous column properties (e.g., item['Excel Column'] gives you "Sex Code")
-4. Use those VALUES in your extraction logic (search for "Sex Code" in Excel)
-5. Return new extracted value with identifierId
-
-Example for finding worksheet containing a column:
-```
-input_data = kwargs.get('Input Data') or kwargs.get('input_data')
-excel_file = kwargs.get('Excel File') or kwargs.get('excel_file')
-
-if isinstance(input_data, list) and input_data[0].get('identifierId'):
-    results = []
-    for item in input_data:
-        identifier = item['identifierId']
-        
-        # Get the column name VALUE from previous extraction
-        column_name = item.get('Excel Column')  # e.g., "Sex Code"
-        
-        # Search for that column in Excel worksheets
-        found_worksheet = None
-        for sheet_name, sheet_data in parse_sheets(excel_file).items():
-            if column_name in sheet_data['headers']:
-                found_worksheet = sheet_name
-                break
-        
-        results.append({
-            "identifierId": identifier,
-            "extractedValue": found_worksheet,
-            "validationStatus": "valid" if found_worksheet else "invalid",
-            "aiReasoning": f"Searched for column '{column_name}'",
-            "confidenceScore": 100 if found_worksheet else 0,
-            "documentSource": found_worksheet or "Not found"
-        })
-    return results
+# This searches for the literal string "Column Name" - WRONG!
+search_for("Column Name")
 ```
 
-KEY PRINCIPLE: Property names are HOW you access data. Property VALUES are WHAT you use in your logic.
+✅ CORRECT: Using property value
+```
+# This gets the VALUE from that property and uses it
+column_value = item.get('Column Name')
+search_for(column_value)
+```
+
+Remember: Previous columns are CONTEXT data - extract their values to use in your logic, but DON'T copy them to output.
 
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
