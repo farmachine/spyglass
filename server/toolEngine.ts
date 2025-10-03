@@ -1605,16 +1605,13 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
     console.log('📊 Fields provided:', fields?.length || 0);
     
     // If fields are provided (Info Page multi-field extraction), modify inputs to include fields info
-    // ALWAYS add fields for AI extraction tools regardless of exact type
-    if (fields && fields.length > 0 && (tool.toolType === 'AI_ONLY' || tool.toolType === 'AI' || tool.toolType?.includes('AI'))) {
+    // CRITICAL: Add fields for BOTH AI and CODE tools to support identifier mapping
+    if (fields && fields.length > 0) {
       inputs.__infoPageFields = fields;
-      console.log('📋 Multi-field Info Page extraction with identifierIds:');
+      console.log('📋 Multi-field Info Page extraction with identifierIds for', tool.toolType, 'tool:');
       fields.forEach((f, idx) => {
         console.log(`  Field ${idx + 1}: ${f.name} (ID: ${f.identifierId})`);
       });
-    } else if (fields && fields.length > 0) {
-      // Log why fields weren't added
-      console.log(`⚠️ Fields not added - tool type '${tool.toolType}' doesn't match AI types`);
     }
     
     // Execute the tool
