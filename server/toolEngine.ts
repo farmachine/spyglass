@@ -1763,27 +1763,32 @@ If your function has an "Input Data" parameter (type: data), it will receive an 
 - The property names are the previous column names
 - The property values are what was extracted for that column
 
-CRITICAL PATTERN: Property VALUES (not names) are used in your extraction logic
-
 Example Input Data structure:
     input_data = [
       {"identifierId": "abc-123", "Previous Column A": "extracted_value_1", "Previous Column B": "extracted_value_2"},
       {"identifierId": "def-456", "Previous Column A": "extracted_value_3", "Previous Column B": "extracted_value_4"}
     ]
 
-Processing Pattern:
+CRITICAL: How to Extract Property Names and Values
+Each item has identifierId PLUS one or more previous column properties. Use this deterministic algorithm:
+
     for item in input_data:
-        # 1. Get identifier (REQUIRED in output)
+        # 1. Extract identifierId (REQUIRED in output)
         identifier = item['identifierId']
         
-        # 2. Access previous column VALUES (not property names!)
-        # If you need data from "Previous Column A", get its VALUE:
-        value_from_col_a = item.get('Previous Column A')
+        # 2. Get all keys and filter out 'identifierId' to find previous column names
+        all_keys = list(item.keys())
+        previous_columns = [k for k in all_keys if k != 'identifierId']
         
-        # 3. Use those VALUES in your extraction logic
-        new_extracted_value = your_logic(document, value_from_col_a)
+        # 3. Extract VALUES from previous columns
+        # Example: If previous_columns = ['Column A', 'Column B']
+        value_from_col_a = item.get('Column A')  # Gets the extracted value
+        value_from_col_b = item.get('Column B')  # Gets the extracted value
         
-        # 4. Return result with identifierId
+        # 4. Use those VALUES in your extraction logic
+        new_extracted_value = your_logic(document, value_from_col_a, value_from_col_b)
+        
+        # 5. Return result with identifierId
         results.append({
             "identifierId": identifier,
             "extractedValue": new_extracted_value,
@@ -1793,15 +1798,20 @@ Processing Pattern:
             "documentSource": "source"
         })
 
-Common Mistake to Avoid:
+Common Mistakes to Avoid:
 ❌ WRONG: Using property name as a literal value
-    search_for("Column Name")  # This searches for literal string "Column Name" - WRONG!
+    search_for("Column Name")  # Searches for literal string "Column Name"
 
-✅ CORRECT: Using property value
-    column_value = item.get('Column Name')  # Get the VALUE from the property
-    search_for(column_value)  # Use that value in your logic
+❌ WRONG: Reusing iterator that returns same key
+    key1 = next(iter(item.keys()))  # Returns 'identifierId'
+    key2 = next(iter(item.keys()))  # Returns 'identifierId' again - SAME KEY!
 
-Remember: Previous columns are CONTEXT data - extract their values to use in your logic, but DON'T copy them to output.
+✅ CORRECT: Filter keys, then access values
+    prev_cols = [k for k in item.keys() if k != 'identifierId']
+    column_value = item.get(prev_cols[0])  # Get VALUE from first previous column
+    search_for(column_value)  # Use that value in logic
+
+Remember: identifierId is special - skip it when looking for previous column data.
 
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
