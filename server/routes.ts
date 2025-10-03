@@ -6010,6 +6010,24 @@ print(json.dumps(results))
           });
         }
         
+        // 🎯 CRITICAL: Auto-add Input Data parameter for UPDATE operations
+        // This parameter will receive the identifier array with previous column data
+        const hasInputData = inputParameters.some(p => 
+          p.type === 'data' || (p.name && p.name.toLowerCase().includes('input data'))
+        );
+        
+        if (!hasInputData) {
+          console.log('➕ Adding automatic Input Data parameter for UPDATE operation (identifier array)');
+          inputParameters.push({
+            id: `auto-inputdata-${Date.now()}`,
+            name: 'Input Data',
+            type: 'data',
+            multiline: false,
+            description: 'Array of existing records with identifierId and previous column values. Use previous columns for CONTEXT/LOOKUP, extract NEW values and return with identifierId preserved.',
+            sampleData: []
+          });
+        }
+        
         console.log('✅ Optimized input parameters for UPDATE operation:', inputParameters.map(p => p.name));
       }
       

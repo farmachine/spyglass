@@ -1,0 +1,67 @@
+def extract_data(ai_instructions, excel_file):
+    import json
+    
+    columns_to_find = [col.strip().lower() for col in ai_instructions.split(',')] if ai_instructions else []
+    
+    results = []
+    
+    sheets = {}
+    current_sheet_name = None
+    current_headers = None
+    
+    for line in excel_file.splitlines():
+        line = line.strip()
+        if line.startswith("==="):
+            current_sheet_name = line.split(":")[1].strip()
+            sheets[current_sheet_name] = {"headers": None, "data": []}
+            current_headers = None
+        elif current_sheet_name and current_headers is None:
+            current_headers = [header.strip() for header in line.split("\t")]
+            sheets[current_sheet_name]["headers"] = current_headers
+        elif current_sheet_name:
+            sheets[current_sheet_name]["data"].append([value.strip() for value in line.split("\t")])
+    
+    found_columns = {}
+    
+    for column_name in columns_to_find:
+        found = False
+        for sheet_name, sheet_data in sheets.items():
+            if column_name in found_columns and sheet_name in found_columns[column_name]:
+                continue
+            
+            if sheet_data["headers"]:
+                for col_index, header in enumerate(sheet_data["headers"]):
+                    if str(header).strip().lower() == column_name:
+                        extracted_value = sheet_name
+                        validation_status = "valid"
+                        ai_reasoning = f"Found column '{column_name}' in sheet '{sheet_name}'"
+                        confidence_score = 100
+                        document_source = f"{sheet_name}, Column {col_index + 1}"
+                        
+                        results.append({
+                            "extractedValue": extracted_value,
+                            "validationStatus": validation_status,
+                            "aiReasoning": ai_reasoning,
+                            "confidenceScore": confidence_score,
+                            "documentSource": document_source
+                        })
+                        
+                        found = True
+                        
+                        if column_name not in found_columns:
+                            found_columns[column_name] = []
+                        found_columns[column_name].append(sheet_name)
+                        
+                        break
+            if found:
+                break
+        if not found:
+            results.append({
+                "extractedValue": None,
+                "validationStatus": "invalid",
+                "aiReasoning": f"Column '{column_name}' not found in any sheet.",
+                "confidenceScore": 0,
+                "documentSource": None
+            })
+    
+    return json.dumps(results)

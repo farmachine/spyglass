@@ -1756,14 +1756,59 @@ Input Parameters:
 ${paramList}
 ${excelTraining}
 
+INPUT DATA PARAMETER HANDLING (for UPDATE operations):
+If your function has an "Input Data" parameter (type: data), it will receive an identifier array like:
+[
+  {"identifierId": "uuid-1", "Column 1": "value1", "Column 2": "value2"},
+  {"identifierId": "uuid-2", "Column 1": "value3", "Column 2": "value4"}
+]
+
+CRITICAL RULES for Input Data:
+1. REFERENCE vs UPDATE data distinction:
+   - Excel/Document parameters = REFERENCE DATA (read-only context for lookups/comparisons)
+   - Previous column values in Input Data = REFERENCE DATA (use for context, don't copy to output)
+   - Input Data parameter = UPDATE DATA (extract NEW values, preserve identifierId)
+
+2. Processing pattern:
+   ```python
+   input_data = kwargs.get('Input Data') or kwargs.get('input_data')
+   if isinstance(input_data, list) and input_data[0].get('identifierId'):
+       results = []
+       for item in input_data:
+           # Get identifier (REQUIRED in output)
+           identifier = item['identifierId']
+           
+           # Access previous columns for CONTEXT (reference data)
+           prev_col1 = item.get('Column 1')  # Use for lookup
+           prev_col2 = item.get('Column 2')  # Use for comparison
+           
+           # Extract NEW value using reference data
+           new_value = your_extraction_logic(excel_content, prev_col1, prev_col2)
+           
+           # Return ONLY identifier + new extraction
+           results.append({
+               "identifierId": identifier,  # MUST preserve
+               "extractedValue": new_value,  # NEW data only
+               "validationStatus": "valid",
+               "aiReasoning": f"Extracted using {prev_col1}",
+               "confidenceScore": 95,
+               "documentSource": "Sheet: Data"
+               # NO prev_col1, prev_col2 in output!
+           })
+       return results
+   ```
+
+3. KEY PRINCIPLE: Previous column properties are CONTEXT, not part of the extraction result. Only return identifierId + new extracted data.
+
 CRITICAL INSTRUCTIONS:
 You MUST return actual Python code - a complete function definition, NOT JSON data.
 
 The function should:
 - Be named 'extract_data'
-- Accept parameters matching the input parameters above
+- Accept parameters matching the input parameters above using *args, **kwargs for flexibility
 - Use standard Python libraries (NO openpyxl - Excel content is already extracted as text)
 - Process the input data according to the task description
+- For UPDATE operations: preserve identifierId, use previous columns as context only
 - Return a JSON array of field validation objects
 
 Example function structure:
