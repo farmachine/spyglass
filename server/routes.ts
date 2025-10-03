@@ -5972,52 +5972,19 @@ print(json.dumps(results))
       
       let { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType } = req.body;
       
-      // 🎯 OPTIMIZE FOR UPDATE OPERATIONS: Auto-configure default parameters
+      // 🎯 CRITICAL: For UPDATE operations, automatically add Input Data parameter (ONLY)
+      // This is architecturally required for identifier array handling
       if (operationType && operationType.includes('update')) {
-        console.log('🔄 Detected UPDATE operation - optimizing input parameters...');
+        console.log('🔄 Detected UPDATE operation - checking for Input Data parameter...');
         
-        // Auto-add AI Instructions parameter if not present
-        const hasAiInstructions = inputParameters.some(p => 
-          p.name && p.name.toLowerCase().includes('instruction')
-        );
-        
-        if (!hasAiInstructions) {
-          console.log('➕ Adding automatic AI Instructions parameter for UPDATE operation');
-          inputParameters.unshift({
-            id: `auto-instructions-${Date.now()}`,
-            name: 'AI Instructions',
-            type: 'text',
-            multiline: true,
-            description: 'Instructions for the AI to extract/update data',
-            defaultValue: `Extract and update the following information: ${description}\n\nFor each record, analyze the document content and update the relevant data field based on the existing record information.`
-          });
-        }
-        
-        // Auto-add Document parameter if not present
-        const hasDocument = inputParameters.some(p => 
-          p.name && (p.name.toLowerCase().includes('document') || p.type === 'document')
-        );
-        
-        if (!hasDocument) {
-          console.log('➕ Adding automatic Document parameter for UPDATE operation');
-          inputParameters.push({
-            id: `auto-document-${Date.now()}`,
-            name: 'Document',
-            type: 'document',
-            multiline: false,
-            description: 'Document containing content for extraction.',
-            documentType: 'all'
-          });
-        }
-        
-        // 🎯 CRITICAL: Auto-add Input Data parameter for UPDATE operations
+        // Auto-add ONLY Input Data parameter for UPDATE operations
         // This parameter will receive the identifier array with previous column data
         const hasInputData = inputParameters.some(p => 
           p.type === 'data' || (p.name && p.name.toLowerCase().includes('input data'))
         );
         
         if (!hasInputData) {
-          console.log('➕ Adding automatic Input Data parameter for UPDATE operation (identifier array)');
+          console.log('➕ Adding Input Data parameter for UPDATE operation (identifier array - architecturally required)');
           inputParameters.push({
             id: `auto-inputdata-${Date.now()}`,
             name: 'Input Data',
@@ -6028,7 +5995,7 @@ print(json.dumps(results))
           });
         }
         
-        console.log('✅ Optimized input parameters for UPDATE operation:', inputParameters.map(p => p.name));
+        console.log('✅ Final input parameters for UPDATE operation:', inputParameters.map(p => p.name));
       }
       
       if (!name || !description || !inputParameters || !Array.isArray(inputParameters)) {
