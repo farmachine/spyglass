@@ -344,6 +344,58 @@ TWO OPERATION TYPES:
    - Generate new data from documents
    - Used for initial data extraction
 
+CRITICAL: REFERENCE DATA vs UPDATE DATA DISTINCTION:
+
+For UPDATE operations, input parameters serve TWO distinct purposes:
+
+1. **REFERENCE DATA (Read-Only Context)**:
+   - Excel document content, reference documents, text inputs
+   - Previous column values embedded in identifier objects (e.g., "Column 1", "Column 2")
+   - Used for LOOKUP, COMPARISON, or CONTEXT only
+   - NEVER modify or include these in extraction results
+
+2. **UPDATE DATA (To Be Modified)**:
+   - The data array parameter containing identifier objects
+   - Each object has: {"identifierId": "uuid", "Column 1": "value1", "Column 2": "value2"}
+   - Your function EXTRACTS NEW DATA and returns it with the identifierId
+   - DO NOT copy reference properties (previous columns) to output
+   - ONLY return: identifierId + new extractedValue + validation fields
+
+Example UPDATE Function Pattern:
+```python
+def update_function(*args, **kwargs):
+    # 1. Get Excel content (REFERENCE - read only)
+    document = kwargs.get('excel_content') or kwargs.get('Excel File')
+    
+    # 2. Get identifier array (UPDATE DATA - to be modified)
+    data_input = kwargs.get('Input Data') or kwargs.get('data')
+    
+    if isinstance(data_input, list) and data_input[0].get('identifierId'):
+        results = []
+        for item in data_input:
+            # Access previous columns for CONTEXT (reference data)
+            identifier = item['identifierId']
+            prev_col1 = item.get('Column 1')  # Use for lookup
+            prev_col2 = item.get('Column 2')  # Use for comparison
+            
+            # Extract NEW value using reference data
+            new_value = extract_from_excel(document, prev_col1, prev_col2)
+            
+            # Return ONLY new extraction + identifier
+            results.append({
+                "identifierId": identifier,  # MUST preserve
+                "extractedValue": new_value,  # NEW data only
+                "validationStatus": "valid",
+                "aiReasoning": f"Extracted using {prev_col1} and {prev_col2}",
+                "confidenceScore": 95,
+                "documentSource": "Sheet: Data"
+                # NO prev_col1, prev_col2 in output!
+            })
+        return results
+```
+
+KEY PRINCIPLE: Input properties are CONTEXT, not part of the extraction result. Only return identifierId + new extracted data.
+
 ERROR HANDLING PATTERN:
 
 # Always return proper error structure
