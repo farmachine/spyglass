@@ -1,0 +1,202 @@
+🔧 EXECUTING TOOL: Get Worksheet from Column
+   Tool ID: 1be9a3a1-1d52-4263-a886-e8bb4f311643
+   Tool Type: CODE
+   Operation Type: updateMultiple
+   Output Type: multiple
+   Has AI Prompt: false
+   Has Function Code: true
+   LLM Model: gemini-2.0-flash
+   🔄 Is UPDATE Operation: true
+🔄 🎯 ADDING AUTOMATIC DATA FLOW to tool inputs:
+   previousData records: 115
+   Will be available to extraction processor as inputArray
+   Sample record structure: [ 'identifierId', 'Excel Column' ]
+   First record: {
+  identifierId: '88948c62-27d9-48c6-a484-d0bab52146fb',
+  'Excel Column': 'Sex Code'
+}
+📝 FINAL TOOL INPUTS being passed to toolEngine:
+   Keys: Excel File,projectId,valueConfiguration,sessionDocumentContent,AI Query,previousData,Input Data,List Item
+   ✅ previousData included: 115 records
+   ✅ 'Input Data' included: 115 records
+   ✅ 'List Item' included: 115 records
+🚨 SIMPLE DEBUG - About to call toolEngine with keys: [
+  'Excel File',
+  'projectId',
+  'valueConfiguration',
+  'sessionDocumentContent',
+  'AI Query',
+  'previousData',
+  'Input Data',
+  'List Item'
+]
+🚨 SIMPLE DEBUG - previousData exists with 115 records
+🚨 SIMPLE DEBUG - Input Data exists with 115 records
+Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+
+🚀 TOOL ENGINE - testTool() called
+   Tool Name: Get Worksheet from Column
+   Tool Type: CODE
+   Tool ID: 1be9a3a1-1d52-4263-a886-e8bb4f311643
+   Operation Type: updateMultiple
+   Input Keys: [
+  'Excel File',
+  'projectId',
+  'valueConfiguration',
+  'sessionDocumentContent',
+  'AI Query',
+  'previousData',
+  'Input Data',
+  'List Item'
+]
+   Step ID: 5df32805-2f2e-466b-993c-2e94e3353db6
+   Order Index: 1
+
+🔄 AUTO-INJECTING INCREMENTAL DATA FOR UPDATE OPERATION
+   Step ID: 5df32805-2f2e-466b-993c-2e94e3353db6
+   Value ID: undefined
+   Order Index: 1
+   Session ID: 4ccab8b7-c5e9-47d9-9fca-5e46615e38cc
+   Tool operationType: updateMultiple
+
+🔄 Building incremental data for UPDATE operation
+   Step ID: 5df32805-2f2e-466b-993c-2e94e3353db6
+   Session ID: 4ccab8b7-c5e9-47d9-9fca-5e46615e38cc
+   Current Value Order: 1
+   Total values in step: 2
+   Previous values to include: 1
+   Total validations in step for this session: 115
+   Unique rows (identifierIds): 115
+   ✅ Built incremental data for 115 rows
+   Sample row data (first row): {
+  identifierId: '88948c62-27d9-48c6-a484-d0bab52146fb',
+  'Excel Column': 'Sex Code'
+}
+   ✅ Injecting 115 rows of incremental data
+   ⚠️ PRESERVING EXISTING DATA: "Input Data" already has 115 items from routes
+   📊 NOT replacing with incremental data (would have been 115 rows)
+   🗑️ Clearing test data from "List Item" parameter (was 115 items)
+   Sample incremental data (first row): {
+  identifierId: '88948c62-27d9-48c6-a484-d0bab52146fb',
+  'Excel Column': 'Sex Code'
+}
+   For AI: false
+📝 Set Excel File (0.7nmfm3pp388) = 41930 chars
+📊 Preserved sessionDocumentContent (41930 chars)
+📊 Preserved critical data field: Input Data (115 records)
+📊 Preserved critical data field: previousData (115 records)
+📊 DETAILED RAW INPUTS being sent to tool:
+================================================================================
+📄 Excel File: String (41930 chars)
+   Preview: "=== Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits Scale Code   Sex Code    Date Of Birth   Date Pensionable Service Commenced  Date Became Active Deferred Memb..."
+📄 0.7nmfm3pp388: String (41930 chars)
+   Preview: "=== Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits Scale Code   Sex Code    Date Of Birth   Date Pensionable Service Commenced  Date Became Active Deferred Memb..."
+📄 sessionDocumentContent: String (41930 chars)
+   Preview: "=== Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits Scale Code   Sex Code    Date Of Birth   Date Pensionable Service Commenced  Date Became Active Deferred Memb..."
+📋 Input Data: Array with 115 items
+   [0]: {"identifierId":"88948c62-27d9-48c6-a484-d0bab52146fb","Excel Column":"Sex Code"}
+   [1]: {"identifierId":"955cfbdf-d41e-4626-a82a-284e95dc5deb","Excel Column":"Employer Code"}
+   [2]: {"identifierId":"c8ccff23-0956-42b5-8b01-efa0b60075db","Excel Column":"Benefits Scale Code"}
+   ... and 112 more items
+📋 previousData: Array with 115 items
+   [0]: {"identifierId":"88948c62-27d9-48c6-a484-d0bab52146fb","Excel Column":"Sex Code"}
+   [1]: {"identifierId":"955cfbdf-d41e-4626-a82a-284e95dc5deb","Excel Column":"Employer Code"}
+   [2]: {"identifierId":"c8ccff23-0956-42b5-8b01-efa0b60075db","Excel Column":"Benefits Scale Code"}
+   ... and 112 more items
+================================================================================
+   📦 Routing to CODE tool handler (testCodeTool)
+🔄 Also adding excel_content for document parameter
+🐍 Normalized inputs for Python function: [
+  'excel_file',
+  'excel_content',
+  'Excel File',
+  '0.7nmfm3pp388',
+  'sessiondocumentcontent',
+  'sessionDocumentContent',
+  'input_data',
+  'Input Data',
+  'previousdata',
+  'previousData'
+]
+⚠️ Context data not available - using legacy format
+Python debug output: ⚠️ Using legacy input format only
+DEBUG: Received inputs keys: ['excel_file', 'excel_content', 'Excel File', '0.7nmfm3pp388', 'sessiondocumentcontent', 'sessionDocumentContent', 'input_data', 'Input Data', 'previousdata', 'previousData']
+DEBUG: Input 'excel_file' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'excel_content' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'Excel File' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input '0.7nmfm3pp388' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessiondocumentcontent' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'sessionDocumentContent' is string (41930 chars): === Sheet: Active deferreds ===
+Valuation Record Type   Member's Reference No   Employer Code   Benefits S...
+DEBUG: Input 'input_data' is array with 115 items
+DEBUG: First item of 'input_data': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}
+DEBUG: Input 'Input Data' is array with 115 items
+DEBUG: First item of 'Input Data': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}
+DEBUG: Input 'previousdata' is array with 115 items
+DEBUG: First item of 'previousdata': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}
+DEBUG: Input 'previousData' is array with 115 items
+DEBUG: First item of 'previousData': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}
+🔧 Function uses *args/**kwargs pattern, passing all inputs as kwargs
+Error: 'NoneType' object has no attribute 'strip'
+Traceback (most recent call last):
+  File "/tmp/test_function_1759933608897.py", line 226, in <module>
+    result = func(**inputs)
+             ^^^^^^^^^^^^^^
+  File "/tmp/test_function_1759933608897.py", line 31, in extract_data
+    worksheets = parse_excel_content(excel_file)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/test_function_1759933608897.py", line 17, in parse_excel_content
+    lines = excel_content.strip().split('\n')
+            ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'strip'
+
+
+✅ Tool execution completed. Results count: 1
+📊 Verifying tool results contain all validation fields:
+  First result: {
+  "extractedValue": null,
+  "validationStatus": "invalid",
+  "aiReasoning": "Code execution failed: Python process exited with code 1: ⚠️ Using legacy input format only\nDEBUG: Received inputs keys: ['excel_file', 'excel_content', 'Excel File', '0.7nmfm3pp388', 'sessiondocumentcontent', 'sessionDocumentContent', 'input_data', 'Input Data', 'previousdata', 'previousData']\nDEBUG: Input 'excel_file' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'excel_content' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'Excel File' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input '0.7nmfm3pp388' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessiondocumentcontent' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'sessionDocumentContent' is string (41930 chars): === Sheet: Active deferreds ===\nValuation Record Type\tMember's Reference No\tEmployer Code\tBenefits S...\nDEBUG: Input 'input_data' is array with 115 items\nDEBUG: First item of 'input_data': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}\nDEBUG: Input 'Input Data' is array with 115 items\nDEBUG: First item of 'Input Data': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}\nDEBUG: Input 'previousdata' is array with 115 items\nDEBUG: First item of 'previousdata': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}\nDEBUG: Input 'previousData' is array with 115 items\nDEBUG: First item of 'previousData': {'identifierId': '88948c62-27d9-48c6-a484-d0bab52146fb', 'Excel Column': 'Sex Code'}\n🔧 Function uses *args/**kwargs pattern, passing all inputs as kwargs\nError: 'NoneType' object has no attribute 'strip'\nTraceback (most recent call last):\n  File \"/tmp/test_function_1759933608897.py\", line 226, in <module>\n    result = func(**inputs)\n             ^^^^^^^^^^^^^^\n  File \"/tmp/test_function_1759933608897.py\", line 31, in extract_data\n    worksheets = parse_excel_content(excel_file)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/test_function_1759933608897.py\", line 17, in parse_excel_content\n    lines = excel_content.strip().split('\\n')\n            ^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'strip'\n\n",
+  "confidenceScore": 0,
+  "documentSource": "CODE_ERROR"
+}
+  ✓ Has extractedValue: true
+  ✓ Has validationStatus: true
+  ✓ Has aiReasoning: true
+  ✓ Has confidenceScore: true
+  ✓ Has documentSource: true
+📊 Building index map from 115 records in previousData
+  Record index 0 -> identifierId: 88948c62-27d9-48c6-a484-d0bab52146fb
+  Record index 1 -> identifierId: 955cfbdf-d41e-4626-a82a-284e95dc5deb
+  Record index 2 -> identifierId: c8ccff23-0956-42b5-8b01-efa0b60075db
+  Record index 3 -> identifierId: f3c62244-c975-451b-8090-6628db7cce4a
+  Record index 4 -> identifierId: bba0353c-37ba-4a2c-8e11-a1aca585acfc
+📊 Mapped 115 identifierIds to their array indices
+🔍 Validating 115 identifierIds from previousData against existing database records...
+📊 Found 115 existing identifierIds in database for this step
+✅ 115 out of 115 identifierIds from previousData exist in database
+📊 Processing 1 actual AI results (not creating validations for unprocessed records)
+⚠️ AI didn't return identifierId for position 0 - generating new one
+⏭️ Skipping validation creation for Provider Data.Get Worksheet[0] - no meaningful value ("null")
+💾 Saved 1 validation records
+2:26:49 PM [express] POST /api/sessions/4ccab8b7-c5e9-47d9-9fca-5e46615e38cc/extract-column 200 in 1131ms :: {"success":true,"message":"Ex…
+2:26:49 PM [browser] 📝 Column extraction response: {"success":true,"message":"Extracted 1 values for Get Worksheet","resultsCount":1}
+2:26:49 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:26:49 PM [browser] 📝 🔄 Invalidating validation queries...
+2:26:49 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:26:49 PM [express] GET /api/validations/project/96686700-b036-4b9d-ae69-167abfc8e29a 200 in 8ms
+2:26:50 PM [express] GET /api/validations/project/96686700-b036-4b9d-ae69-167abfc8e29a 200 in 7ms
+2:26:50 PM [browser] 📝 ✅ Validation queries refreshed
+2:26:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:26:50 PM [browser] 📝 ⚠️ Results processed but validations not found yet - this may be a timing issue
+2:26:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
+2:26:50 PM [browser] 📝 📝 Error details captured and displayed in modal
+2:26:50 PM [express] POST /api/dev/console 200 in 1ms :: {"success":true}
