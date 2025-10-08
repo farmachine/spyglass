@@ -1757,7 +1757,7 @@ ${paramList}
 ${excelTraining}
 
 PARAMETER ACCESS PATTERN:
-Your function will receive parameters via **kwargs. Parameters may have multiple name variations (e.g., 'Excel File', 'excel_file', 'document'). Use this helper pattern to find parameters:
+Your function will receive parameters via **kwargs. Parameters may have multiple name variations. Use this helper to find parameters:
 
     def get_param(kwargs, *names):
         for name in names:
@@ -1765,22 +1765,26 @@ Your function will receive parameters via **kwargs. Parameters may have multiple
                 return kwargs[name]
         return None
 
-Then access your parameters like:
     excel_file = get_param(kwargs, 'Excel File', 'excel_file', 'document', 'excel_content')
     input_data = get_param(kwargs, 'Input Data', 'input_data', 'data')
 
-INPUT DATA PARAMETER HANDLING (for UPDATE operations):
-Your function receives an "Input Data" parameter containing an array of objects. Each object has:
-- identifierId: A UUID that MUST be included in your output
-- One or more properties with values from previous columns
+EXCEL PARSING - Sheet Name Extraction:
+When parsing Excel content with sheet markers like "=== Sheet: Active deferreds ===", extract ONLY the sheet name:
 
-Example:
+    if line.startswith('=== Sheet:'):
+        # Extract and clean the sheet name
+        sheet_name = line.replace('=== Sheet:', '').replace('===', '').strip()
+        # Result: "Active deferreds" (clean, no === markers)
+
+INPUT DATA PARAMETER HANDLING (for UPDATE operations):
+Your function receives "Input Data" with objects containing identifierId + previous column values:
+
     [
       {"identifierId": "abc-123", "Column Name": "First Name"},
       {"identifierId": "def-456", "Column Name": "Last Name"}
     ]
 
-Processing Pattern:
+Complete Processing Pattern:
     def get_param(kwargs, *names):
         for name in names:
             if name in kwargs and kwargs[name] is not None:
@@ -1790,24 +1794,38 @@ Processing Pattern:
     excel_file = get_param(kwargs, 'Excel File', 'excel_file', 'document', 'excel_content')
     input_data = get_param(kwargs, 'Input Data', 'input_data', 'data')
     
+    # Parse Excel to extract all worksheets
+    worksheets = {}
+    current_sheet = None
+    for line in excel_file.split('\n'):
+        if line.startswith('=== Sheet:'):
+            sheet_name = line.replace('=== Sheet:', '').replace('===', '').strip()
+            worksheets[sheet_name] = {'headers': [], 'data': []}
+            current_sheet = sheet_name
+        elif current_sheet and not worksheets[current_sheet]['headers']:
+            worksheets[current_sheet]['headers'] = [h.strip() for h in line.split('\t')]
+    
+    # Process each item from Input Data
     results = []
     for item in input_data:
         identifier = item['identifierId']
-        
-        # Get the previous column value (skip 'identifierId' key)
         prev_keys = [k for k in item.keys() if k != 'identifierId']
         column_value = item[prev_keys[0]] if prev_keys else None
         
-        # Use that value to extract new data
-        new_value = search_document(excel_file, column_value)
+        # Search ALL worksheets for the column
+        found_sheet = None
+        for sheet_name, sheet_data in worksheets.items():
+            if column_value in sheet_data['headers']:
+                found_sheet = sheet_name
+                break
         
         results.append({
             "identifierId": identifier,
-            "extractedValue": new_value,
-            "validationStatus": "valid",
-            "aiReasoning": "Found result",
-            "confidenceScore": 100,
-            "documentSource": "Document"
+            "extractedValue": found_sheet,
+            "validationStatus": "valid" if found_sheet else "invalid",
+            "aiReasoning": f"Found in {found_sheet}" if found_sheet else "Not found",
+            "confidenceScore": 100 if found_sheet else 0,
+            "documentSource": found_sheet or "None"
         })
     
     return json.dumps(results)
