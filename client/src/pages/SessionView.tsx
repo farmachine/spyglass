@@ -2953,27 +2953,31 @@ export default function SessionView() {
       });
     }
     
-    // Check how many records have already been extracted for this specific value
-    // Validations use fieldId, not valueId, and we need to filter by collection name too
-    // IMPORTANT: Only count validations that have actual extracted values, not empty placeholders
-    const existingValidationsForValue = validations.filter(v => 
-      v.fieldId === valueId && 
-      v.collectionName === stepName &&
-      v.extractedValue !== null && 
-      v.extractedValue !== undefined && 
-      v.extractedValue !== '' &&
-      v.extractedValue !== 'Not Found'  // Don't count "Not Found" as extracted
+    // Check how many records have already been validated for this specific value
+    // Get all identifierIds that already have valid/verified validations
+    const validatedIdentifierIds = new Set(
+      validations
+        .filter(v => 
+          v.fieldId === valueId && 
+          v.collectionName === stepName &&
+          (v.validationStatus === 'valid' || v.validationStatus === 'verified')
+        )
+        .map(v => v.identifierId)
+        .filter(id => id !== null) as string[]
     );
-    const extractedCount = existingValidationsForValue.length;
     
-    console.log(`🔢 Found ${extractedCount} existing validations for value: ${valueName} in collection: ${stepName}`);
+    const extractedCount = validatedIdentifierIds.size;
+    
+    console.log(`🔢 Found ${extractedCount} validated records for value: ${valueName} in collection: ${stepName}`);
     console.log(`📊 Total available records: ${previousColumnsData.length}`);
     
-    // Filter out already extracted records
-    const remainingData = previousColumnsData.slice(extractedCount);
+    // Filter out records that already have validated validations
+    const remainingData = previousColumnsData.filter(record => 
+      !validatedIdentifierIds.has(record.identifierId)
+    );
     
-    console.log(`📊 Remaining records to extract: ${remainingData.length}`);
-    console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + remainingData.length, extractedCount + 50)} of ${previousColumnsData.length}`);
+    console.log(`📊 Remaining unvalidated records to extract: ${remainingData.length}`);
+    console.log(`📊 Will extract records ${extractedCount + 1}-${Math.min(extractedCount + Math.min(remainingData.length, 50), previousColumnsData.length)} of ${previousColumnsData.length}`);
     
     // Parse inputValues to find which columns are actually needed for this tool
     const neededColumns = new Set<string>();
