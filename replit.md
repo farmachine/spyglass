@@ -40,6 +40,13 @@ The system maintains data chain integrity for multi-column extraction:
 *   **Python extraction processor** receives the full data context for UPDATE operations
 *   This ensures each column receives all previous column data in the extraction pipeline
 
+### Batch Processing System (Oct 2025)
+**Batch Extraction Workflow**: AI tools now properly process large datasets in 50-record batches:
+- **Frontend (`SessionView.tsx:3171`)**: Slices `remainingData` from `extractedCount` and passes ONLY unextracted records to the extraction modal
+- **Backend (`routes.ts:7502-7512`)**: Filters records where `validationStatus !== 'valid'` and limits to 50 records per batch
+- **User Workflow**: Extract 50 → Validate → Extract next 50 unvalidated → Validate → Extract remaining → Complete
+- **Key Fix**: Changed from sending all records to sending only remaining unextracted records
+
 ### Tool Architecture: Identifier Array Handling
 **UPDATE (Oct 2025)**: Unified identifier array support for both AI and Code tools.
 

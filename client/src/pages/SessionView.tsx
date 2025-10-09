@@ -3165,8 +3165,8 @@ export default function SessionView() {
       stepName: stepName,
       valueId: valueId,
       valueName: valueName,
-      previousData: previousColumnsData, // Send FULL data to server for proper extraction
-      displayData: filteredPreviousData, // Show filtered columns in modal UI
+      previousData: remainingData, // Send only remaining unextracted records to batch properly
+      displayData: filteredPreviousData.slice(extractedCount), // Show filtered columns in modal UI for remaining records
       columnOrder: columnOrder, // Pass the column order
       needsDocument: needsDocument,
       toolType: 'extraction',
