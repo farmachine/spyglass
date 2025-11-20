@@ -3032,10 +3032,27 @@ export default function SessionView() {
     
     // Filter the display data to only show referenced columns plus identifierId
     let filteredPreviousData = previousColumnsData;
+    let filteredRemainingData = remainingData;
     
     if (neededColumns.size > 0) {
       // Filter each record to only include identifierId and needed columns
       filteredPreviousData = previousColumnsData.map(record => {
+        const filteredRecord: any = {
+          identifierId: record.identifierId
+        };
+        
+        // Add only the columns that are referenced in inputValues
+        neededColumns.forEach(columnName => {
+          if (columnName in record) {
+            filteredRecord[columnName] = record[columnName];
+          }
+        });
+        
+        return filteredRecord;
+      });
+      
+      // Apply the same filtering to remainingData for display
+      filteredRemainingData = remainingData.map(record => {
         const filteredRecord: any = {
           identifierId: record.identifierId
         };
@@ -3169,8 +3186,8 @@ export default function SessionView() {
       stepName: stepName,
       valueId: valueId,
       valueName: valueName,
-      previousData: remainingData, // Send only remaining unextracted records to batch properly
-      displayData: filteredPreviousData.slice(extractedCount), // Show filtered columns in modal UI for remaining records
+      previousData: remainingData, // Send only remaining unvalidated records to batch properly
+      displayData: filteredRemainingData, // Show filtered columns for remaining unvalidated records
       columnOrder: columnOrder, // Pass the column order
       needsDocument: needsDocument,
       toolType: 'extraction',
