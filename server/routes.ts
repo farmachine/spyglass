@@ -7483,8 +7483,8 @@ def extract_function(Column_Name, Excel_File):
             } else if (validation.validationStatus === 'pending') {
               // Already extracted but pending validation - second priority
               pendingRecords.push(record);
-            } else if (validation.validationStatus === 'valid') {
-              // Already validated - do not include in extraction
+            } else if (validation.validationStatus === 'valid' || validation.validationStatus === 'verified') {
+              // Already validated or verified - do not include in extraction
               validatedRecords.push(record);
             } else {
               // Unknown status - treat as pending
@@ -7495,7 +7495,11 @@ def extract_function(Column_Name, Excel_File):
           console.log(`📊 Record prioritization for extraction:`);
           console.log(`  🔴 Not extracted: ${notExtractedRecords.length} records`);
           console.log(`  🟡 Pending: ${pendingRecords.length} records`);
-          console.log(`  🟢 Validated: ${validatedRecords.length} records (will NOT be extracted)`);
+          console.log(`  🟢 Validated/Verified: ${validatedRecords.length} records (will NOT be extracted)`);
+          if (validatedRecords.length > 0) {
+            const sampleIds = validatedRecords.slice(0, 3).map(r => r.identifierId);
+            console.log(`  📋 Sample validated identifierIds: ${sampleIds.join(', ')}`);
+          }
           
           // Build the batch maintaining original order but excluding validated records
           // CRITICAL: Maintain the original order from previousData to ensure correct mapping
@@ -7503,8 +7507,8 @@ def extract_function(Column_Name, Excel_File):
             const identifierId = record.identifierId;
             const validation = identifierId ? valueValidations.find(v => v.identifierId === identifierId) : null;
             
-            // Include if not validated (pending or not extracted)
-            return !validation || validation.validationStatus !== 'valid';
+            // Include if not validated/verified (pending or not extracted)
+            return !validation || (validation.validationStatus !== 'valid' && validation.validationStatus !== 'verified');
           });
           
           // Apply 50-record limit for AI tools to prevent excessive processing
