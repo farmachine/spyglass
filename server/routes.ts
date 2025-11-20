@@ -8483,10 +8483,10 @@ def extract_function(Column_Name, Excel_File):
           }
           
           if (existingValidation) {
-            // Check if the field is already validated
-            if (existingValidation.validationStatus === 'valid') {
-              // DO NOT overwrite validated fields
-              console.log(`✅ Skipping ${fieldName} - already validated`);
+            // Check if the field is already validated or verified
+            if (existingValidation.validationStatus === 'valid' || existingValidation.validationStatus === 'verified') {
+              // DO NOT overwrite validated/verified fields
+              console.log(`✅ Skipping ${fieldName} - already validated/verified`);
               continue; // Skip to next result
             }
             
