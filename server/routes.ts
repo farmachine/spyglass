@@ -8401,6 +8401,60 @@ def extract_function(Column_Name, Excel_File):
           }
         }
         
+        // CRITICAL: Initialize ALL validation records upfront when extracting the first column
+        // This ensures all rows have validation records for all columns, even if we only extract 50 at a time
+        if ((!previousData || previousData.length === 0) && processedResults.length > 0) {
+          console.log(`🚀 FIRST COLUMN EXTRACTION DETECTED - Initializing ALL validation records upfront`);
+          console.log(`   ValueId: ${valueId}, StepId: ${stepId}`);
+          console.log(`   Processing ${processedResults.length} results in this batch`);
+          
+          // Check if this is the identifier field (first column)
+          const stepValue = await storage.getStepValue(valueId);
+          if (stepValue?.isIdentifier) {
+            console.log(`✅ Confirmed this is the IDENTIFIER column: ${stepValue.valueName}`);
+            
+            // Check if validation records already exist for other columns in this step
+            const existingStepValidations = existingValidations.filter(v => v.stepId === stepId);
+            const uniqueIdentifiers = new Set(existingStepValidations.map(v => v.identifierId).filter(id => id));
+            
+            if (uniqueIdentifiers.size === 0 || uniqueIdentifiers.size < processedResults.length) {
+              console.log(`🔍 Current state: ${uniqueIdentifiers.size} unique identifierIds exist in database`);
+              console.log(`🔍 New extraction: ${processedResults.length} results to process`);
+              console.log(`📊 ACTION: Will initialize ALL validation records for complete dataset`);
+              
+              // Extract ALL identifierIds from the results
+              const allIdentifierIds: string[] = [];
+              for (let i = 0; i < processedResults.length; i++) {
+                const result = processedResults[i];
+                // Use AI's identifierId if provided, otherwise generate one
+                const identifierId = result.identifierId || crypto.randomUUID();
+                allIdentifierIds.push(identifierId);
+                
+                // Update the result with the identifierId so it's used in the save loop below
+                processedResults[i].identifierId = identifierId;
+              }
+              
+              console.log(`📋 Collected ${allIdentifierIds.length} identifierIds from extraction results`);
+              console.log(`   First 5 identifierIds: ${allIdentifierIds.slice(0, 5).join(', ')}`);
+              
+              // Initialize ALL validation records for ALL columns in this step
+              try {
+                await storage.initializeAllValidationRecords(sessionId, stepId, allIdentifierIds);
+                console.log(`✅ Successfully initialized ${allIdentifierIds.length} complete rows with all columns`);
+              } catch (error) {
+                console.error(`❌ Failed to initialize validation records:`, error);
+                // Don't fail the extraction, continue and let individual saves happen
+              }
+            } else {
+              console.log(`ℹ️ Validation records already exist (${uniqueIdentifiers.size} identifiers) - skipping initialization`);
+            }
+          } else {
+            console.log(`ℹ️ This is NOT the identifier column (isIdentifier=${stepValue?.isIdentifier}) - skipping upfront initialization`);
+          }
+        } else if (previousData && previousData.length > 0) {
+          console.log(`ℹ️ Subsequent column extraction (previousData provided) - validation records should already exist`);
+        }
+        
         // Create new validations ONLY for the actual AI results returned
         // Important: processedResults contains only the records that AI actually processed
         console.log(`📊 Processing ${processedResults.length} actual AI results (not creating validations for unprocessed records)`);
