@@ -238,6 +238,7 @@ export interface IStorage {
   getValidationsByStep(stepId: string, sessionId?: string): Promise<FieldValidation[]>;
   populateMissingCollectionIds(): Promise<void>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
+  initializeAllValidationRecords(sessionId: string, stepId: string, identifierIds: string[]): Promise<void>;
 
   // Project Publishing
   getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
@@ -1800,6 +1801,81 @@ export class MemStorage implements IStorage {
       }
     } catch (error) {
       console.error(`Error creating complete row for identifier ${identifierId}:`, error);
+    }
+  }
+
+  async initializeAllValidationRecords(sessionId: string, stepId: string, identifierIds: string[]): Promise<void> {
+    try {
+      console.log(`🚀 Initializing ALL validation records for step ${stepId}`);
+      console.log(`   Session: ${sessionId}`);
+      console.log(`   Total rows to initialize: ${identifierIds.length}`);
+      
+      // Get all step values for this step
+      const allStepValues = Array.from(this.stepValues.values())
+        .filter(value => value.stepId === stepId)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+
+      if (allStepValues.length === 0) {
+        console.log(`❌ No step values found for step ${stepId}`);
+        return;
+      }
+
+      console.log(`   Columns to initialize: ${allStepValues.length}`);
+      console.log(`   Total records to create: ${identifierIds.length * allStepValues.length}`);
+      
+      let createdCount = 0;
+      let skippedCount = 0;
+
+      // Create validation records for ALL rows and ALL columns
+      for (const identifierId of identifierIds) {
+        for (const stepValue of allStepValues) {
+          // Check if field validation already exists
+          const existingValidation = Array.from(this.fieldValidations.values())
+            .find(v => 
+              v.sessionId === sessionId &&
+              v.stepId === stepId &&
+              v.valueId === stepValue.id &&
+              v.identifierId === identifierId
+            );
+
+          if (!existingValidation) {
+            const fieldValidationData: InsertFieldValidation = {
+              sessionId,
+              stepId,
+              valueId: stepValue.id,
+              identifierId,
+              validationType: 'step_value',
+              dataType: stepValue.dataType,
+              fieldId: stepValue.id,
+              extractedValue: null,
+              validationStatus: 'pending' as const,
+              aiReasoning: null,
+              manuallyVerified: false,
+              manuallyUpdated: false,
+              confidenceScore: 0
+            };
+
+            const newFieldValidation: FieldValidation = {
+              ...fieldValidationData,
+              id: this.generateUUID(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+
+            this.fieldValidations.set(newFieldValidation.id, newFieldValidation);
+            createdCount++;
+          } else {
+            skippedCount++;
+          }
+        }
+      }
+      
+      console.log(`✅ Initialization complete:`);
+      console.log(`   Created: ${createdCount} new validation records`);
+      console.log(`   Skipped: ${skippedCount} existing records`);
+    } catch (error) {
+      console.error(`❌ Error initializing all validation records:`, error);
+      throw error;
     }
   }
 
