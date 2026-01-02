@@ -300,6 +300,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     },
     onError: (error: any) => {
       console.error('❌ Clean code generation failed:', error);
+      toast({
+        title: "Generation Failed",
+        description: error?.message?.includes("429") || error?.message?.includes("quota") 
+          ? "AI service rate limit exceeded. Please wait a minute and try again, or enter the prompt manually."
+          : "Failed to generate content. Please try again or enter manually.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -363,6 +370,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       console.error('Code generation failed:', error);
       setLoadingProgress(0);
       setLoadingMessage("");
+      toast({
+        title: "Generation Failed",
+        description: error?.message?.includes("429") || error?.message?.includes("quota") 
+          ? "AI service rate limit exceeded. Please wait a minute and try again, or enter the prompt manually."
+          : "Failed to generate content. Please try again or enter manually.",
+        variant: "destructive"
+      });
     }
   });
 
