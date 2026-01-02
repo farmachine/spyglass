@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 
 interface SampleDataRow {
@@ -71,6 +72,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [currentEditingFunctionId, setCurrentEditingFunctionId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
 
   const resetForm = () => {
@@ -884,6 +886,17 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const handleSubmit = () => {
     if (!formData.name || !formData.description || !toolType || inputParameters.length === 0) {
+      const missingFields = [];
+      if (!formData.name) missingFields.push("Tool Name");
+      if (!formData.description) missingFields.push("Description");
+      if (!toolType) missingFields.push("Tool Type");
+      if (inputParameters.length === 0) missingFields.push("Input Parameters");
+      
+      toast({
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(", ")}`,
+        variant: "destructive"
+      });
       console.error("Validation Error: Please fill in all required fields, select a tool type, and add at least one input.");
       return;
     }
@@ -891,17 +904,32 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     // Validate input parameters
     const invalidParams = inputParameters.filter(p => !p.name || !p.description);
     if (invalidParams.length > 0) {
+      toast({
+        title: "Incomplete Input Parameters",
+        description: "All inputs must have a name and description.",
+        variant: "destructive"
+      });
       console.error("Validation Error: All inputs must have a name and description.");
       return;
     }
 
     // Add validation for required content based on tool type
     if (toolType === 'AI_ONLY' && !formData.aiPrompt) {
+      toast({
+        title: "Prompt Required",
+        description: "Please click 'Generate Prompt' first, or enter a prompt manually.",
+        variant: "destructive"
+      });
       console.error("Validation Error: AI_ONLY tools require an AI prompt. Please generate or enter a prompt.");
       return;
     }
     
     if (toolType === 'CODE' && !formData.functionCode) {
+      toast({
+        title: "Code Required",
+        description: "Please click 'Generate Code' first, or enter code manually.",
+        variant: "destructive"
+      });
       console.error("Validation Error: CODE tools require function code. Please generate or enter code.");
       return;
     }
