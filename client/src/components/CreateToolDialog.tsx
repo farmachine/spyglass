@@ -58,7 +58,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     aiAssistancePrompt: "",
     functionCode: "",
     aiPrompt: "",
-    llmModel: "gemini-2.0-flash"
+    llmModel: "gemini-2.5-flash"
   });
 
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -1080,10 +1080,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     <SelectValue placeholder="Select AI model" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
                     <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                    <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental</SelectItem>
-                    <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
-                    <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
