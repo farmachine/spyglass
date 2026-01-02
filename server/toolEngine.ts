@@ -455,7 +455,7 @@ export class ToolEngine {
    */
   async generateToolContent(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'> & { llmModel?: string }): Promise<{ content: string }> {
     const prompt = this.buildGenerationPrompt(tool);
-    const modelToUse = tool.llmModel || "gemini-2.0-flash";
+    const modelToUse = tool.llmModel || "gemini-1.5-flash";
     
     console.log('🤖 GEMINI AI PROMPT FOR TOOL GENERATION');
     console.log('='.repeat(80));

@@ -6024,7 +6024,7 @@ print(json.dumps(results))
         operationType: operationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
         outputType: outputType as "single" | "multiple",
         inputParameters,
-        llmModel: llmModel || "gemini-2.0-flash"
+        llmModel: llmModel || "gemini-1.5-flash"
       });
       
       console.log('🤖 TOOL GENERATION COMPLETED');
