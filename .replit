@@ -19,6 +19,10 @@ externalPort = 80
 localPort = 24678
 externalPort = 3000
 
+[[ports]]
+localPort = 46029
+externalPort = 3001
+
 [workflows]
 runButton = "Project"
 
@@ -42,4 +46,4 @@ waitForPort = 5000
 
 [agent]
 expertMode = true
-integrations = ["javascript_gemini:1.0.0"]
+integrations = ["javascript_gemini==1.0.0"]
