@@ -46,4 +46,4 @@ waitForPort = 5000
 
 [agent]
 expertMode = true
-integrations = ["javascript_gemini==1.0.0"]
+integrations = ["javascript_gemini:1.0.0"]
