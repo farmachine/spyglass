@@ -1564,6 +1564,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                         inputParameters,
                         aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
                         aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
+                        llmModel: formData.llmModel || "gemini-2.0-flash",
                       };
                       generateToolCode.mutate(toolData);
                     }}

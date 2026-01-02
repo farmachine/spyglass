@@ -453,8 +453,9 @@ export class ToolEngine {
   /**
    * Generate tool content (AI prompt or Python code)
    */
-  async generateToolContent(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'>): Promise<{ content: string }> {
+  async generateToolContent(tool: Omit<Tool, 'id' | 'functionCode' | 'aiPrompt'> & { llmModel?: string }): Promise<{ content: string }> {
     const prompt = this.buildGenerationPrompt(tool);
+    const modelToUse = tool.llmModel || "gemini-2.0-flash";
     
     console.log('🤖 GEMINI AI PROMPT FOR TOOL GENERATION');
     console.log('='.repeat(80));
@@ -462,6 +463,7 @@ export class ToolEngine {
     console.log('📝 Tool Name:', tool.name);
     console.log('📝 Tool Description:', tool.description);
     console.log('📝 Input Parameters:', tool.inputParameters.map(p => `${p.name} (${p.type})`).join(', '));
+    console.log('📝 Model:', modelToUse);
     console.log('');
     console.log('🎯 FULL PROMPT SENT TO GEMINI:');
     console.log('-'.repeat(80));
@@ -482,7 +484,7 @@ export class ToolEngine {
         };
     
     const response = await genAI.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: modelToUse,
       config,
       contents: [
         {

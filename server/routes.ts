@@ -5970,7 +5970,7 @@ print(json.dumps(results))
     try {
       console.log('🤖 Generating tool content with input:', JSON.stringify(req.body, null, 2));
       
-      let { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType } = req.body;
+      let { projectId, name, description, toolType, inputParameters, aiAssistanceRequired, aiAssistancePrompt, tags, outputType, operationType, llmModel } = req.body;
       
       // 🎯 CRITICAL: For UPDATE operations, automatically add Input Data parameter (ONLY)
       // This is architecturally required for identifier array handling
@@ -6023,7 +6023,8 @@ print(json.dumps(results))
         toolType: toolType as "AI_ONLY" | "CODE",
         operationType: operationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
         outputType: outputType as "single" | "multiple",
-        inputParameters
+        inputParameters,
+        llmModel: llmModel || "gemini-2.0-flash"
       });
       
       console.log('🤖 TOOL GENERATION COMPLETED');
