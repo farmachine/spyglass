@@ -2534,6 +2534,10 @@ except Exception as e:
         
         // Process configured input values
         if (workflowValue.inputValues) {
+          // First, get existing validations for reference resolution
+          const existingValidations = sessionId ? await storage.getFieldValidations(sessionId) : [];
+          console.log(`📊 Retrieved ${existingValidations.length} existing validations for reference resolution`);
+          
           for (const [key, value] of Object.entries(workflowValue.inputValues)) {
             if (typeof value === 'string' && value === '@user_document') {
               // Replace @user_document with combined document content from ALL selected documents
@@ -2544,6 +2548,65 @@ except Exception as e:
             } else if (typeof value === 'string' && !value.startsWith('@')) {
               // Add literal string values
               toolInputs[key] = value;
+            } else if (Array.isArray(value)) {
+              // Handle array of references (UUIDs pointing to step values)
+              console.log(`📊 Processing array input for ${key} with ${value.length} items`);
+              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+              
+              // Check if array contains UUIDs (references to step values)
+              const hasUuidReferences = value.some((item: any) => 
+                typeof item === 'string' && uuidRegex.test(item)
+              );
+              
+              if (hasUuidReferences && existingValidations.length > 0) {
+                console.log(`📊 Resolving UUID references in ${key}`);
+                
+                // Get step values for these UUIDs
+                const resolvedValues = await Promise.all(
+                  value.filter((item: any) => typeof item === 'string' && uuidRegex.test(item))
+                    .map((uuid: string) => storage.getStepValueById(uuid))
+                );
+                
+                // Group validations by identifierId to build row-based data
+                const validationsByIdentifier = new Map<string, any>();
+                
+                for (const stepValue of resolvedValues) {
+                  if (!stepValue) continue;
+                  
+                  console.log(`📊 Found step value: ${stepValue.valueName} (ID: ${stepValue.id})`);
+                  
+                  // Get validations for this step value
+                  const valueValidations = existingValidations.filter((v: any) => 
+                    v.valueId === stepValue.id
+                  );
+                  
+                  console.log(`📊 Found ${valueValidations.length} validations for ${stepValue.valueName}`);
+                  
+                  // Add each validation to the appropriate identifier record
+                  for (const validation of valueValidations) {
+                    const identifierId = validation.identifierId || `record-${validation.recordIndex}`;
+                    
+                    if (!validationsByIdentifier.has(identifierId)) {
+                      validationsByIdentifier.set(identifierId, { identifierId });
+                    }
+                    
+                    // Add this column's value to the record
+                    validationsByIdentifier.get(identifierId)[stepValue.valueName] = validation.extractedValue || '';
+                  }
+                }
+                
+                // Convert map to array
+                const resolvedData = Array.from(validationsByIdentifier.values());
+                toolInputs[key] = resolvedData;
+                
+                console.log(`📊 Resolved ${key} to ${resolvedData.length} records with columns: ${resolvedData.length > 0 ? Object.keys(resolvedData[0]).join(', ') : 'none'}`);
+                if (resolvedData.length > 0) {
+                  console.log(`📊 Sample record:`, JSON.stringify(resolvedData[0]).substring(0, 200));
+                }
+              } else if (!hasUuidReferences) {
+                // Pass array as-is if not UUID references
+                toolInputs[key] = value;
+              }
             }
           }
         }
