@@ -2625,7 +2625,34 @@ except Exception as e:
               };
               
               console.log(`📝 Saving validation for field: ${field.fieldName || field.valueName} (ID: ${field.identifierId})`);
-              await storage.createFieldValidation(validationRecord);
+              
+              // Use upsert pattern: try create, if duplicate exists then update
+              try {
+                await storage.createFieldValidation(validationRecord);
+              } catch (err: any) {
+                if (err.code === '23505') {
+                  // Duplicate key - find existing record and update it
+                  console.log(`⚠️ Validation already exists for field ${field.identifierId}, updating instead`);
+                  const existingValidations = await storage.getFieldValidations(sessionId);
+                  const existing = existingValidations.find(v => 
+                    v.stepId === step_id && 
+                    v.valueId === value_id && 
+                    v.identifierId === field.identifierId
+                  );
+                  if (existing) {
+                    await storage.updateFieldValidation(existing.id, {
+                      extractedValue: validationRecord.extractedValue,
+                      validationStatus: validationRecord.validationStatus as any,
+                      aiReasoning: validationRecord.aiReasoning,
+                      confidenceScore: validationRecord.confidenceScore,
+                      documentSource: validationRecord.documentSource,
+                      updatedAt: new Date()
+                    });
+                  }
+                } else {
+                  throw err; // Re-throw other errors
+                }
+              }
             }
           }
         }
