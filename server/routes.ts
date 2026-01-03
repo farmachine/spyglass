@@ -2353,16 +2353,37 @@ except Exception as e:
       let shouldUseToolEngine = false;
       let workflowValue: any = null;
       
+      console.log(`🔍 /extract endpoint - Checking tool assignment conditions:`);
+      console.log(`   is_workflow_step: ${is_workflow_step}`);
+      console.log(`   step_id: ${step_id}`);
+      console.log(`   value_id: ${value_id}`);
+      
       if (is_workflow_step && step_id && value_id) {
         // Get the workflow step and value details to check for tool assignment
         const workflowStep = project_data?.workflowSteps?.find((s: any) => s.id === step_id);
+        console.log(`   workflowStep found: ${!!workflowStep}`);
+        
         workflowValue = workflowStep?.values?.find((v: any) => v.id === value_id);
+        console.log(`   workflowValue found: ${!!workflowValue}`);
+        console.log(`   workflowValue.toolId: ${workflowValue?.toolId || 'NOT SET'}`);
+        
+        // If workflowValue not found in project_data, fetch from database directly
+        if (!workflowValue || !workflowValue.toolId) {
+          console.log(`   ⚠️ WorkflowValue not found in project_data, fetching from database...`);
+          const dbWorkflowValue = await storage.getStepValue(value_id);
+          if (dbWorkflowValue) {
+            workflowValue = dbWorkflowValue;
+            console.log(`   ✅ Found workflowValue in database: ${workflowValue.valueName}`);
+            console.log(`   ✅ Database toolId: ${workflowValue.toolId}`);
+            console.log(`   ✅ Database inputValues:`, JSON.stringify(workflowValue.inputValues || {}).substring(0, 200));
+          }
+        }
         
         if (workflowValue?.toolId) {
           console.log(`🎯 TOOL DETECTED for workflow value: ${workflowValue.valueName}`);
           console.log(`   Tool ID: ${workflowValue.toolId}`);
-          console.log(`   Step Type: ${workflowStep.stepType}`);
-          console.log(`   Is Info Page: ${workflowStep.stepType === 'info_page'}`);
+          console.log(`   Step Type: ${workflowStep?.stepType || 'unknown'}`);
+          console.log(`   Is Info Page: ${workflowStep?.stepType === 'info_page'}`);
           shouldUseToolEngine = true;
         }
       }
