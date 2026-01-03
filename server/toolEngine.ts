@@ -1239,20 +1239,27 @@ Example response format:
         prompt += `=== IMPORTANT: DATA TO ANALYZE ===
 The List Items below contain the actual data records you MUST analyze to calculate/derive values for each field above.
 
-🎯 YOUR TASK:
-1. COUNT the records in the List Items that have "Risk Name" or similar risk data fields
-2. CALCULATE values like totals, averages, weighted scores based on the numeric fields (Risk Score, Severity Score, Probability Score)
-3. ANALYZE the risk data to determine ratings, decisions, and recommendations
-4. USE the scoring methodology and decision matrix from the reference document to interpret the calculated values
+🎯 UNDERSTAND THE DATA STRUCTURE:
+- The List Items contain records from one or more data sources (tables/info pages)
+- Each record has an "identifierId" and various data fields
+- Records may come from different sources and contain different field types
 
-⚠️ DO NOT just extract template descriptions from the reference document!
-✅ DO calculate actual values from the List Items data below.
+🎯 COMMON OPERATIONS TO PERFORM:
+1. **COUNTING**: Count records that match certain criteria (e.g., records with specific field names, non-empty values)
+2. **CALCULATIONS**: Compute sums, averages, weighted averages, percentages from numeric fields
+3. **AGGREGATIONS**: Combine multiple values into summaries (min, max, totals, distributions)
+4. **LOOKUPS**: Find specific values that match criteria from the data
+5. **DERIVATIONS**: Apply formulas, rules, or decision matrices from reference documents to the data
+6. **CLASSIFICATIONS**: Determine categories, ratings, or status based on calculated values and reference criteria
 
-For example:
-- "Total Number of Risks Identified" = Count how many records have Risk data (not tender information)
-- "Overall Risk Score" = Calculate the weighted average of all Risk Score values
-- "Risk Rating" = Determine Low/Medium/High/Critical based on the calculated Overall Risk Score
-- "Recommended Decision" = Determine GO/CONDITIONAL GO/ESCALATE/NO GO based on the decision matrix
+⚠️ CRITICAL DISTINCTION:
+- **Reference Documents** (PDF/text content above) = Guidelines, rules, formulas, decision criteria, templates
+- **List Items** (data below) = The actual records to analyze and calculate from
+
+✅ DO: Calculate actual values from the List Items data
+✅ DO: Use reference documents for interpretation rules and decision criteria
+❌ DO NOT: Just extract template descriptions or placeholder text from reference documents
+❌ DO NOT: Return generic field descriptions instead of calculated values
 
 `;
       } else if (hasMultipleColumns && valueName && !infoPageFields) {
