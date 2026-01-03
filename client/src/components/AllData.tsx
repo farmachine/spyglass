@@ -376,7 +376,7 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName" className="py-3 w-2/5">Session Name</SortableHeader>
+                    <SortableHeader field="sessionName" className="py-3 w-2/5">{project.mainObjectName || 'Session'} Name</SortableHeader>
                     <SortableHeader field="documentCount" className="py-3 w-1/12 text-center">Docs</SortableHeader>
                     <SortableHeader field="progress" className="py-3 w-1/4">Progress</SortableHeader>
                     <SortableHeader field="status" className="py-3 w-1/12 text-center">
