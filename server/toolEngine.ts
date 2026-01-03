@@ -31,7 +31,7 @@ import path from 'path';
 import { storage } from './storage';
 
 const genAI = new GoogleGenAI({ 
-  apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || "" 
+  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "" 
 });
 
 export interface ToolResult {

@@ -20,9 +20,9 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Simple AI client setup
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const genAI = new GoogleGenAI(apiKey);
+// Simple AI client setup - must pass apiKey as object property
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+const genAI = new GoogleGenAI({ apiKey });
 
 export async function testAIOnlyTool(
   toolDescription: string,
