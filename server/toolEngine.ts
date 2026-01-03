@@ -30,8 +30,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { storage } from './storage';
 
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+console.log(`🔑 Gemini API Key loaded: ${geminiApiKey ? `${geminiApiKey.substring(0,8)}...` : 'MISSING'}`);
 const genAI = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "" 
+  apiKey: geminiApiKey 
 });
 
 export interface ToolResult {
