@@ -414,6 +414,32 @@ export default function DefineData({
     properties: collection.properties || []
   })) || [];
 
+  const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || 'Session');
+  const [isEditingMainObject, setIsEditingMainObject] = useState(false);
+  const [tempMainObjectName, setTempMainObjectName] = useState(mainObjectName);
+
+  const handleSaveMainObjectName = async () => {
+    try {
+      await apiRequest(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ mainObjectName: tempMainObjectName }),
+      });
+      setMainObjectName(tempMainObjectName);
+      setIsEditingMainObject(false);
+      toast({
+        title: "Saved",
+        description: "Main object name updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating main object name:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update main object name",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Heading */}
@@ -421,7 +447,7 @@ export default function DefineData({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              <span style={{ color: '#4F63A4' }}>•</span> Extraction Steps
+              <span style={{ color: '#4F63A4' }}>•</span> Extraction
             </h1>
             <p className="text-gray-600 dark:text-gray-100 mt-1">
               Design your data extraction workflow
@@ -437,9 +463,63 @@ export default function DefineData({
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white border border-gray-600"
             >
-              Save Extraction Steps
+              Save Extraction
             </Button>
           </div>
+        </div>
+
+        {/* Main Object Name Field */}
+        <div className="mt-4 flex items-center gap-3">
+          <Label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            Main Object Name:
+          </Label>
+          {isEditingMainObject ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={tempMainObjectName}
+                onChange={(e) => setTempMainObjectName(e.target.value)}
+                className="w-48 h-8 text-sm"
+                placeholder="e.g., Session, Document, Record"
+                autoFocus
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleSaveMainObjectName}
+                className="h-8 px-2"
+              >
+                <Check className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setTempMainObjectName(mainObjectName);
+                  setIsEditingMainObject(false);
+                }}
+                className="h-8 px-2"
+              >
+                <X className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                {mainObjectName}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setTempMainObjectName(mainObjectName);
+                  setIsEditingMainObject(true);
+                }}
+                className="h-6 px-1"
+              >
+                <Pencil className="h-3 w-3 text-gray-500" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
