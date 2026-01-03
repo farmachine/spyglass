@@ -2580,28 +2580,36 @@ except Exception as e:
               const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
               
               // Check if array contains UUIDs (references to step values)
-              const hasUuidReferences = value.some((item: any) => 
+              const uuidReferences = value.filter((item: any) => 
                 typeof item === 'string' && uuidRegex.test(item)
               );
+              const hasUuidReferences = uuidReferences.length > 0;
               
-              if (hasUuidReferences && existingValidations.length > 0) {
+              console.log(`📊 Found ${uuidReferences.length} UUID references in ${key}`);
+              console.log(`📊 existingValidations.length: ${existingValidations.length}`);
+              
+              if (hasUuidReferences) {
                 console.log(`📊 Resolving UUID references in ${key}`);
                 
-                // Get step values for these UUIDs
-                const resolvedValues = await Promise.all(
-                  value.filter((item: any) => typeof item === 'string' && uuidRegex.test(item))
-                    .map((uuid: string) => storage.getStepValueById(uuid))
+                // Get step values for these UUIDs - store the UUID with the result
+                const resolvedValuesWithUuids = await Promise.all(
+                  uuidReferences.map(async (uuid: string) => {
+                    const stepValue = await storage.getStepValueById(uuid);
+                    return stepValue ? { ...stepValue, id: uuid } : null;
+                  })
                 );
+                
+                console.log(`📊 Resolved ${resolvedValuesWithUuids.filter(v => v !== null).length} step values`);
                 
                 // Group validations by identifierId to build row-based data
                 const validationsByIdentifier = new Map<string, any>();
                 
-                for (const stepValue of resolvedValues) {
+                for (const stepValue of resolvedValuesWithUuids) {
                   if (!stepValue) continue;
                   
                   console.log(`📊 Found step value: ${stepValue.valueName} (ID: ${stepValue.id})`);
                   
-                  // Get validations for this step value
+                  // Get validations for this step value - match by valueId
                   const valueValidations = existingValidations.filter((v: any) => 
                     v.valueId === stepValue.id
                   );
@@ -2629,7 +2637,14 @@ except Exception as e:
                 if (resolvedData.length > 0) {
                   console.log(`📊 Sample record:`, JSON.stringify(resolvedData[0]).substring(0, 200));
                 }
-              } else if (!hasUuidReferences) {
+                
+                // If no data was resolved but we had UUID references, log warning
+                if (resolvedData.length === 0) {
+                  console.log(`⚠️ WARNING: UUID references found but no validations matched. This may indicate data is in a different session.`);
+                  // Initialize empty array to avoid undefined
+                  toolInputs[key] = [];
+                }
+              } else {
                 // Pass array as-is if not UUID references
                 toolInputs[key] = value;
               }
