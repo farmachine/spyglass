@@ -8122,6 +8122,18 @@ def extract_function(Column_Name, Excel_File):
       // CRITICAL: Check for UPDATE operation FIRST
       const isUpdateOperation = tool.operationType?.toLowerCase().includes('update') && value.orderIndex && value.orderIndex > 0;
       
+      // Parse inputParameters early if it's a string - REQUIRED for UUID resolution to work
+      let parsedToolParams = tool.inputParameters || [];
+      if (typeof parsedToolParams === 'string') {
+        try {
+          parsedToolParams = JSON.parse(parsedToolParams);
+          console.log(`📊 Early-parsed inputParameters from string:`, parsedToolParams.map((p: any) => `${p.name} (${p.type}, id: ${p.id})`));
+        } catch (e) {
+          console.error('Failed to early-parse inputParameters:', e);
+          parsedToolParams = [];
+        }
+      }
+      
       // Execute the tool using the tool engine
       console.log(`\n🔧 EXECUTING TOOL: ${tool.name}`);
       console.log(`   Tool ID: ${tool.id}`);
@@ -8132,14 +8144,16 @@ def extract_function(Column_Name, Excel_File):
       console.log(`   Has Function Code: ${!!tool.functionCode}`);
       console.log(`   LLM Model: ${tool.llmModel || 'default'}`);
       console.log(`   🔄 Is UPDATE Operation: ${isUpdateOperation}`);
+      console.log(`   📋 Parsed inputParameters: ${parsedToolParams.length} params`);
       
       // Map inputValues ONLY for non-UPDATE operations
       // For UPDATE operations, skip parameter mapping entirely - incremental builder will provide data
-      if (!isUpdateOperation && value.inputValues && Object.keys(value.inputValues).length > 0 && tool.inputParameters) {
+      if (!isUpdateOperation && value.inputValues && Object.keys(value.inputValues).length > 0 && parsedToolParams.length > 0) {
         console.log(`📐 Mapping inputValues to tool parameters using IDs...`);
+        console.log(`📐 Available inputValues keys: ${Object.keys(value.inputValues)}`);
         
         // For each tool parameter, check if there's a corresponding inputValue by parameter ID
-        for (const param of tool.inputParameters || []) {
+        for (const param of parsedToolParams) {
           // Use param.id to find the configured value
           if (param.id && value.inputValues[param.id] !== undefined) {
             const configuredValue = value.inputValues[param.id];
@@ -8357,24 +8371,15 @@ def extract_function(Column_Name, Excel_File):
       
       const { toolEngine } = await import("./toolEngine");
       
-      // Parse inputParameters if it's a string
-      let parsedInputParameters = tool.inputParameters || [];
-      if (typeof parsedInputParameters === 'string') {
-        try {
-          parsedInputParameters = JSON.parse(parsedInputParameters);
-          console.log(`📊 Parsed inputParameters from string:`, parsedInputParameters.map((p: any) => `${p.name} (${p.type})`));
-        } catch (e) {
-          console.error('Failed to parse inputParameters:', e);
-          parsedInputParameters = [];
-        }
-      }
+      // Use already-parsed inputParameters from earlier (line 8128-8138)
+      // parsedToolParams was already parsed before UUID resolution
       
       const results = await toolEngine.testTool({
         id: tool.id,
         name: tool.name,
         description: tool.description,
         toolType: tool.toolType,
-        inputParameters: parsedInputParameters,
+        inputParameters: parsedToolParams,
         functionCode: tool.functionCode,
         aiPrompt: tool.aiPrompt || tool.description,
         outputType: tool.outputType,
