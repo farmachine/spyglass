@@ -846,9 +846,12 @@ export class ToolEngine {
       console.log(`   - isCreateOperation: ${isCreateOperation}`);
       
       // Check for multi-field extraction (Info Page fields)
-      if (inputs.__infoPageFields && inputArray.length === 0) {
+      // This takes priority over CREATE operation because Info Page extractions need identifierIds
+      if (inputs.__infoPageFields) {
         // Multi-field extraction: AI returns results with identifierIds from __infoPageFields
+        // This works whether or not there's reference data in inputArray
         console.log(`📋 Multi-field extraction: processing ${parsedResults.length} field results`);
+        console.log(`📋 Reference data provided: ${inputArray.length} items (for context only)`);
         results = parsedResults.map((item: any) => ({
           identifierId: item.identifierId, // CRITICAL: Preserve the identifierId from AI response
           extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
