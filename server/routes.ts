@@ -2499,26 +2499,47 @@ except Exception as e:
           console.log('📋 Multi-field definitions:', toolInputs.__infoPageFields);
         }
         
+        // Build combined document content from ALL selected documents
+        let combinedDocumentContent = '';
+        if (documentsForExtraction && documentsForExtraction.length > 0) {
+          console.log(`📄 Combining content from ${documentsForExtraction.length} selected document(s)`);
+          combinedDocumentContent = documentsForExtraction
+            .map((doc, index) => {
+              const docContent = doc.file_content || '';
+              if (documentsForExtraction.length > 1) {
+                return `=== Document ${index + 1}: ${doc.file_name} ===\n${docContent}`;
+              }
+              return docContent;
+            })
+            .join('\n\n');
+          console.log(`📄 Combined document content: ${combinedDocumentContent.length} chars from ${documentsForExtraction.length} document(s)`);
+        }
+        
         // Add document content if needed
         if (tool.inputParameters?.some((p: any) => p.type === 'document')) {
           console.log('📄 Tool requires document content');
-          const documentFile = documentsForExtraction[0]; // Use first document
-          if (documentFile) {
-            toolInputs['document'] = documentFile.file_content || '';
-            toolInputs['Document'] = documentFile.file_content || '';
-            console.log(`📄 Added document content (${documentFile.file_content?.length || 0} chars)`);
+          if (combinedDocumentContent) {
+            toolInputs['document'] = combinedDocumentContent;
+            toolInputs['Document'] = combinedDocumentContent;
+            toolInputs.sessionDocumentContent = combinedDocumentContent;
+            console.log(`📄 Added document content (${combinedDocumentContent.length} chars) to document, Document, and sessionDocumentContent`);
           }
+        }
+        
+        // CRITICAL: Always set sessionDocumentContent for user_document placeholder resolution
+        if (combinedDocumentContent) {
+          toolInputs.sessionDocumentContent = combinedDocumentContent;
+          console.log(`📄 Set sessionDocumentContent for user_document placeholder resolution (${combinedDocumentContent.length} chars)`);
         }
         
         // Process configured input values
         if (workflowValue.inputValues) {
           for (const [key, value] of Object.entries(workflowValue.inputValues)) {
             if (typeof value === 'string' && value === '@user_document') {
-              // Replace @user_document with actual document content
-              const documentFile = documentsForExtraction[0];
-              if (documentFile) {
-                toolInputs[key] = documentFile.file_content || '';
-                console.log(`📄 Replaced @user_document for ${key}`);
+              // Replace @user_document with combined document content from ALL selected documents
+              if (combinedDocumentContent) {
+                toolInputs[key] = combinedDocumentContent;
+                console.log(`📄 Replaced @user_document for ${key} with combined content (${combinedDocumentContent.length} chars)`);
               }
             } else if (typeof value === 'string' && !value.startsWith('@')) {
               // Add literal string values

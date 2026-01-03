@@ -1,0 +1,46 @@
+queryClient.ts:22 
+            
+            
+           POST https://7922c286-15ff-43b3-832a-e2fb112d4d67-00-128def8aw39kp.kirk.replit.dev/api/sessions/667e6900-e96a-4fc9-bf19-7cf8d9e427cb/extract 500 (Internal Server Error)
+apiRequest @ queryClient.ts:22
+handleExtractSelectedFields @ SessionView.tsx:4250
+handleExtract @ SessionView.tsx:292
+callCallback2 @ chunk-RPCDYKBN.js?v=83cfa429:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=83cfa429:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=83cfa429:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=83cfa429:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=83cfa429:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=83cfa429:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=83cfa429:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=83cfa429:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=83cfa429:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=83cfa429:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=83cfa429:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=83cfa429:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=83cfa429:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=83cfa429:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=83cfa429:5449Understand this error
+main.tsx:17 Extraction error: Error: 500: {"message":"Failed to start extraction process"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:43:5)
+    at async handleExtractSelectedFields (SessionView.tsx:4250:9)
+forwardToServer @ main.tsx:17
+console.error @ main.tsx:36
+handleExtractSelectedFields @ SessionView.tsx:4269
+await in handleExtractSelectedFields
+handleExtract @ SessionView.tsx:292
+callCallback2 @ chunk-RPCDYKBN.js?v=83cfa429:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=83cfa429:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=83cfa429:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=83cfa429:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=83cfa429:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=83cfa429:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=83cfa429:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=83cfa429:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=83cfa429:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=83cfa429:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=83cfa429:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=83cfa429:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=83cfa429:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=83cfa429:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=83cfa429:5449Understand this error
