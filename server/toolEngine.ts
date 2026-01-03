@@ -171,7 +171,10 @@ export class ToolEngine {
         preparedInputs[paramId] = inputValue;
       }
       
-      console.log(`📝 Set ${param.name} (${paramId}) = ${typeof inputValue === 'string' ? `${inputValue.length} chars` : JSON.stringify(inputValue).substring(0, 100)}`);
+      const inputValueLog = inputValue === undefined ? 'undefined' : 
+                           typeof inputValue === 'string' ? `${inputValue.length} chars` : 
+                           (JSON.stringify(inputValue) || 'null').substring(0, 100);
+      console.log(`📝 Set ${param.name} (${paramId}) = ${inputValueLog}`);
       
       // Special handling for Reference Document parameter
       if (param.name === 'Reference Document' || paramId === '0.4uir69thnel' || paramId === 'Reference Document') {
