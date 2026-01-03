@@ -2640,6 +2640,23 @@ except Exception as e:
         // Log what we're passing to the tool
         console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
         
+        // CRITICAL DEBUG: Log the actual toolInputs being passed to toolEngine
+        console.log(`🚨 CRITICAL DEBUG - toolInputs before toolEngine call:`);
+        for (const [key, value] of Object.entries(toolInputs)) {
+          if (key.startsWith('__')) {
+            console.log(`   ${key}: [${Array.isArray(value) ? value.length + ' items' : typeof value}]`);
+          } else if (Array.isArray(value)) {
+            console.log(`   ${key}: Array with ${value.length} items`);
+            if (value.length > 0) {
+              console.log(`     First item: ${JSON.stringify(value[0]).substring(0, 100)}`);
+            }
+          } else if (typeof value === 'string') {
+            console.log(`   ${key}: String (${value.length} chars)`);
+          } else {
+            console.log(`   ${key}: ${typeof value}`);
+          }
+        }
+        
         // Run the tool  
         const toolResults = await toolEngine.runToolForExtraction(
           workflowValue.toolId,
