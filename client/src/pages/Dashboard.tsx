@@ -19,7 +19,7 @@
  * Navigation:
  * - Links to individual project views
  * - Admin panel access for admin users
- * - Session management and organization settings
+ * - Session management and team settings
  */
 
 import { Plus, Settings, Search, LayoutDashboard, Shield, Database, AlertTriangle, CheckCircle2, CheckCircle, TrendingUp } from "lucide-react";

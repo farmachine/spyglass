@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Organization, InsertOrganization, User, InsertUser } from "@shared/schema";
 
 const organizationSchema = z.object({
-  name: z.string().min(1, "Organization name is required"),
+  name: z.string().min(1, "Team name is required"),
   description: z.string().optional(),
 });
 
@@ -87,13 +87,13 @@ export default function OrganizationManager() {
       orgForm.reset();
       toast({
         title: "Success",
-        description: "Organization created successfully",
+        description: "Team created successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create organization",
+        description: error.message || "Failed to create team",
         variant: "destructive",
       });
     },
@@ -137,26 +137,26 @@ export default function OrganizationManager() {
   };
 
   if (orgsLoading) {
-    return <div className="p-6">Loading organizations...</div>;
+    return <div className="p-6">Loading teams...</div>;
   }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Organization Management</h1>
-          <p className="text-muted-foreground">Manage organizations and users</p>
+          <h1 className="text-3xl font-bold">Team Management</h1>
+          <p className="text-muted-foreground">Manage teams and users</p>
         </div>
         <Dialog open={showOrgDialog} onOpenChange={setShowOrgDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Organization
+              New Team
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Organization</DialogTitle>
+              <DialogTitle>Create New Team</DialogTitle>
             </DialogHeader>
             <Form {...orgForm}>
               <form onSubmit={orgForm.handleSubmit(onCreateOrganization)} className="space-y-4">
@@ -165,9 +165,9 @@ export default function OrganizationManager() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Organization Name</FormLabel>
+                      <FormLabel>Team Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter organization name" {...field} />
+                        <Input placeholder="Enter team name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -195,7 +195,7 @@ export default function OrganizationManager() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={createOrgMutation.isPending}>
-                    {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
+                    {createOrgMutation.isPending ? "Creating..." : "Create Team"}
                   </Button>
                 </div>
               </form>
@@ -206,7 +206,7 @@ export default function OrganizationManager() {
 
       <Tabs defaultValue="organizations" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="organizations">Organizations</TabsTrigger>
+          <TabsTrigger value="organizations">Teams</TabsTrigger>
           <TabsTrigger value="users" disabled={!selectedOrganization}>
             Users {selectedOrganization && `(${selectedOrganization.name})`}
           </TabsTrigger>
@@ -253,7 +253,7 @@ export default function OrganizationManager() {
                     Users in {selectedOrganization.name}
                   </h2>
                   <p className="text-muted-foreground">
-                    Manage users for this organization
+                    Manage users for this team
                   </p>
                 </div>
                 <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>

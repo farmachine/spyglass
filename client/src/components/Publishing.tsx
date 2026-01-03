@@ -43,13 +43,13 @@ export default function Publishing({ project }: PublishingProps) {
       setSelectedOrganizationId("");
       toast({
         title: "Project published",
-        description: "Project has been successfully published to the organization.",
+        description: "Project has been successfully published to the team.",
       });
     },
     onError: () => {
       toast({
         title: "Failed to publish",
-        description: "Could not publish project to organization. Please try again.",
+        description: "Could not publish project to team. Please try again.",
         variant: "destructive",
       });
     },
@@ -67,13 +67,13 @@ export default function Publishing({ project }: PublishingProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] }); // Invalidate dashboard projects cache
       toast({
         title: "Project unpublished",
-        description: "Project has been removed from the organization.",
+        description: "Project has been removed from the team.",
       });
     },
     onError: () => {
       toast({
         title: "Failed to unpublish",
-        description: "Could not remove project from organization. Please try again.",
+        description: "Could not remove project from team. Please try again.",
         variant: "destructive",
       });
     },
@@ -112,7 +112,7 @@ export default function Publishing({ project }: PublishingProps) {
           <span style={{ color: '#4F63A4' }}>•</span> Publish
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage which organizations have access to this project
+          Manage which teams have access to this project
         </p>
       </div>
 
@@ -121,16 +121,16 @@ export default function Publishing({ project }: PublishingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-blue-600" />
-            Publish to Organization
+            Publish to Team
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="organization-select">Select Organization</Label>
+            <Label htmlFor="organization-select">Select Team</Label>
             <div className="flex gap-3 mt-2">
               <Select value={selectedOrganizationId} onValueChange={setSelectedOrganizationId}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Choose an organization..." />
+                  <SelectValue placeholder="Choose a team..." />
                 </SelectTrigger>
                 <SelectContent>
                   {availableOrganizations.map((org: Organization) => (
@@ -152,7 +152,7 @@ export default function Publishing({ project }: PublishingProps) {
           
           {availableOrganizations.length === 0 && (
             <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-3 rounded">
-              All organizations already have access to this project.
+              All teams already have access to this project.
             </div>
           )}
         </CardContent>
@@ -163,16 +163,16 @@ export default function Publishing({ project }: PublishingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building className="h-5 w-5 text-green-600" />
-            Published Organizations
+            Published Teams
           </CardTitle>
         </CardHeader>
         <CardContent>
           {publishedOrganizations.length === 0 ? (
             <div className="text-center py-8">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No organizations</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No teams</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                This project hasn't been published to any organizations yet.
+                This project hasn't been published to any teams yet.
               </p>
             </div>
           ) : (
@@ -233,9 +233,9 @@ export default function Publishing({ project }: PublishingProps) {
             <div className="text-sm text-blue-800 dark:text-blue-300">
               <p className="font-medium mb-1">Access Rules</p>
               <ul className="space-y-1 text-blue-700 dark:text-blue-400">
-                <li>• Users from published organizations can view and work with this project</li>
-                <li>• Users from your primary organization (Internal) always have access</li>
-                <li>• Project data remains secure within authorized organizations only</li>
+                <li>• Users from published teams can view and work with this project</li>
+                <li>• Users from your primary team (Internal) always have access</li>
+                <li>• Project data remains secure within authorized teams only</li>
               </ul>
             </div>
           </div>

@@ -66,8 +66,8 @@ export default function ProjectCard({
   // Use published organizations from project data
   const publishedOrganizations = project.publishedOrganizations || [];
   
-  // Check if user is admin from primary organization
-  const canSeeOrganizationBadges = user?.role === 'admin' && user?.organization?.type === 'primary';
+  // Check if user is admin from primary team
+  const canSeeTeamBadges = user?.role === 'admin' && user?.organization?.type === 'primary';
 
   // Fetch project details with sessions
   const { data: projectDetails } = useQuery<ProjectWithDetails>({
@@ -301,7 +301,7 @@ export default function ProjectCard({
           {/* Created date - positioned above stats */}
           <div className="text-xs font-medium text-black/60 dark:text-gray-400 mb-2 space-y-0.5 italic">
             <div><span className="font-bold">Author:</span> {project.creatorName || 'Unknown'}</div>
-            <div><span className="font-bold">Organization:</span> {project.creatorOrganizationName || 'Unknown'}</div>
+            <div><span className="font-bold">Team:</span> {project.creatorOrganizationName || 'Unknown'}</div>
             <div><span className="font-bold">Created:</span> {formatDate(project.createdAt)}</div>
           </div>
           
@@ -335,9 +335,9 @@ export default function ProjectCard({
 
           </div>
           
-          {/* Organizations column - positioned absolutely in right side */}
+          {/* Teams column - positioned absolutely in right side */}
           <div className="absolute bottom-4 right-6 flex flex-col items-end justify-end gap-1 min-h-[32px]">
-            {canSeeOrganizationBadges && (
+            {canSeeTeamBadges && (
               publishedOrganizations.length > 0 ? (
                 publishedOrganizations
                   .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {

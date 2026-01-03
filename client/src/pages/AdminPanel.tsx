@@ -97,13 +97,13 @@ export default function AdminPanel() {
           {/* Organizations Overview */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Organizations</CardTitle>
+              <CardTitle className="text-sm font-medium">Teams</CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{organizations?.length || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Total organizations
+                Total teams
               </p>
             </CardContent>
           </Card>
@@ -117,28 +117,28 @@ export default function AdminPanel() {
             <CardContent>
               <div className="text-2xl font-bold">{totalUsers}</div>
               <p className="text-xs text-muted-foreground">
-                Total users across all organizations
+                Total users across all teams
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Organizations List */}
+        {/* Teams List */}
         <Card className="mt-8">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Organizations</CardTitle>
+            <CardTitle>Teams</CardTitle>
             <Dialog open={createOrgOpen} onOpenChange={setCreateOrgOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   <Building2 className="h-4 w-4 mr-2" />
-                  Add Organization
+                  Add Team
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Add New Organization</DialogTitle>
+                  <DialogTitle>Add New Team</DialogTitle>
                   <DialogDescription>
-                    Create a new organization to manage users and projects.
+                    Create a new team to manage users and projects.
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...orgForm}>
@@ -148,7 +148,7 @@ export default function AdminPanel() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Organization Name</FormLabel>
+                          <FormLabel>Team Name</FormLabel>
                           <FormControl>
                             <Input placeholder="ACME Corporation" {...field} />
                           </FormControl>
@@ -163,7 +163,7 @@ export default function AdminPanel() {
                         <FormItem>
                           <FormLabel>Description (Optional)</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Brief description of the organization" {...field} />
+                            <Textarea placeholder="Brief description of the team" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -174,7 +174,7 @@ export default function AdminPanel() {
                         Cancel
                       </Button>
                       <Button type="submit" disabled={createOrgMutation.isPending}>
-                        {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
+                        {createOrgMutation.isPending ? "Creating..." : "Create Team"}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -189,7 +189,7 @@ export default function AdminPanel() {
               <div className="space-y-4">
                 {organizations
                   ?.sort((a: any, b: any) => {
-                    // Primary organizations first
+                    // Primary teams first
                     if (a.type === 'primary' && b.type !== 'primary') return -1;
                     if (b.type === 'primary' && a.type !== 'primary') return 1;
                     return 0;

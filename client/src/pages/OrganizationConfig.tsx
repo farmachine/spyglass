@@ -33,7 +33,7 @@ const userSchema = z.object({
 });
 
 const organizationSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Team name must be at least 2 characters"),
   description: z.string().optional(),
 });
 
@@ -67,7 +67,7 @@ export default function OrganizationConfig() {
   });
 
   // Set dynamic page title
-  usePageTitle(organization?.name ? `Admin - ${organization.name}` : "Organization Admin");
+  usePageTitle(organization?.name ? `Admin - ${organization.name}` : "Team Admin");
 
   const { data: organizations } = useQuery<any[]>({
     queryKey: ["/api/organizations"],
@@ -237,8 +237,8 @@ export default function OrganizationConfig() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Organization not found</h2>
-          <p className="text-gray-500 dark:text-gray-400">The organization you're looking for doesn't exist.</p>
+          <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Team not found</h2>
+          <p className="text-gray-500 dark:text-gray-400">The team you're looking for doesn't exist.</p>
           <Button 
             onClick={() => navigate("/admin")} 
             className="mt-4"
@@ -272,15 +272,15 @@ export default function OrganizationConfig() {
             <Breadcrumb 
               items={[
                 { label: "Admin Panel", href: "/admin", icon: <Settings className="h-4 w-4" /> },
-                { label: selectedOrg?.name || "Organization" }
+                { label: selectedOrg?.name || "Team" }
               ]} 
             />
             <div>
               <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {selectedOrg?.name || "Organization"}
+                {selectedOrg?.name || "Team"}
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Organization configuration
+                Team configuration
               </p>
             </div>
           </div>
@@ -304,7 +304,7 @@ export default function OrganizationConfig() {
           <TabsContent value="settings">
             <Card>
               <CardHeader>
-                <CardTitle>Organization Settings</CardTitle>
+                <CardTitle>Team Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Form {...orgForm}>
@@ -314,7 +314,7 @@ export default function OrganizationConfig() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Organization Name</FormLabel>
+                          <FormLabel>Team Name</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -346,22 +346,22 @@ export default function OrganizationConfig() {
                   {organization?.type === "primary" ? (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="default">Primary Organization</Badge>
+                        <Badge variant="default">Primary Team</Badge>
                       </div>
                       <p className="text-sm text-yellow-700">
-                        Primary organizations cannot be deleted. You can only modify the name, description, and manage users.
+                        Primary teams cannot be deleted. You can only modify the name, description, and manage users.
                       </p>
                     </div>
                   ) : (
                     <>
                       <p className="text-sm text-gray-600 mb-4">
-                        Deleting this organization will permanently remove all associated users and data.
+                        Deleting this team will permanently remove all associated users and data.
                       </p>
                       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
                         <DialogTrigger asChild>
                           <Button variant="destructive">
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Organization
+                            Delete Team
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -370,7 +370,7 @@ export default function OrganizationConfig() {
                           </DialogHeader>
                           <div className="space-y-4">
                             <p className="text-sm text-gray-600">
-                              This action cannot be undone. This will permanently delete the organization "{organization?.name}" and all associated users.
+                              This action cannot be undone. This will permanently delete the team "{organization?.name}" and all associated users.
                             </p>
                             <div className="flex justify-end space-x-2">
                               <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
@@ -407,9 +407,9 @@ export default function OrganizationConfig() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add User to {organization?.name || "Organization"}</DialogTitle>
+                      <DialogTitle>Add User to {organization?.name || "Team"}</DialogTitle>
                       <DialogDescription>
-                        Create a new user account for this organization.
+                        Create a new user account for this team.
                       </DialogDescription>
                     </DialogHeader>
                     <Form {...userForm}>
