@@ -27,7 +27,7 @@
  * 5. Export data → Excel files generated with proper structure
  */
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -74,6 +74,112 @@ import type {
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateForDisplay } from "@/lib/dateUtils";
+
+// Multi-Select Session Document Component
+const MultiSelectSessionDocument = ({
+  value = [],
+  onChange,
+  placeholder,
+  sessionDocuments,
+  disabled
+}: {
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+  sessionDocuments: any[];
+  disabled?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  
+  // Handle click outside to close dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+  
+  const selectedDocs = sessionDocuments?.filter(doc => value.includes(doc.id)) || [];
+  
+  const handleDocumentToggle = (docId: string) => {
+    const newValue = value.includes(docId) 
+      ? value.filter(id => id !== docId)
+      : [...value, docId];
+    onChange(newValue);
+  };
+  
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div 
+        className={`min-h-9 p-2 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer bg-white dark:bg-gray-800 flex items-center justify-between hover:border-gray-300 dark:hover:border-gray-600 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <div className="flex flex-wrap gap-1 min-h-5 flex-1">
+          {selectedDocs.length > 0 ? (
+            selectedDocs.map(doc => (
+              <Badge key={doc.id} variant="outline" className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 border-gray-400 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-xs">
+                <FileText className="h-3 w-3" />
+                {(doc.fileName || doc.name || 'Untitled').length > 20 
+                  ? (doc.fileName || doc.name || 'Untitled').substring(0, 20) + '...'
+                  : (doc.fileName || doc.name || 'Untitled')}
+                {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
+                <X 
+                  className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDocumentToggle(doc.id);
+                  }}
+                />
+              </Badge>
+            ))
+          ) : (
+            <span className="text-gray-500 dark:text-gray-400 text-xs">{placeholder || "Select documents..."}</span>
+          )}
+        </div>
+        <ChevronDown className={`h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+      
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          {sessionDocuments?.map((doc) => {
+            const isSelected = value.includes(doc.id);
+            return (
+              <div
+                key={doc.id}
+                className={`px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 ${
+                  isSelected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : ''
+                }`}
+                onClick={() => handleDocumentToggle(doc.id)}
+              >
+                <div className={`w-4 h-4 border rounded flex-shrink-0 flex items-center justify-center ${
+                  isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-600'
+                }`}>
+                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                </div>
+                <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm flex-1 truncate">{doc.fileName || doc.name || 'Untitled'}</span>
+                {doc.isPrimary && <span className="text-xs text-blue-500">(Primary)</span>}
+              </div>
+            );
+          })}
+          {(!sessionDocuments || sessionDocuments.length === 0) && (
+            <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">No documents available</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Field Selection Modal Content Component
 const FieldSelectionModalContent = ({
@@ -190,14 +296,14 @@ const FieldSelectionModalContent = ({
   const handleInputChange = (fieldId: string, inputKey: string, value: any) => {
     console.log(`📝 User selected ${inputKey} for ${fieldId}:`, value);
     
-    if (inputKey === 'document') {
-      const selectedDoc = sessionDocuments?.find(d => d.id === value);
-      console.log(`📄 Selected document details:`, {
-        id: value,
-        fileName: selectedDoc?.fileName,
-        hasContent: !!selectedDoc?.extractedContent,
-        contentLength: selectedDoc?.extractedContent?.length || 0
-      });
+    if (inputKey === 'documents' && Array.isArray(value)) {
+      const selectedDocs = sessionDocuments?.filter(d => value.includes(d.id)) || [];
+      console.log(`📄 Selected documents:`, selectedDocs.map(d => ({
+        id: d.id,
+        fileName: d.fileName,
+        hasContent: !!d.extractedContent,
+        contentLength: d.extractedContent?.length || 0
+      })));
     }
     
     setFieldInputs(prev => ({
@@ -286,29 +392,21 @@ const FieldSelectionModalContent = ({
                 <div className="p-3 rounded-lg border bg-gray-50 dark:bg-gray-800">
                   <div className="font-medium text-sm mb-2">{stepValue.valueName}</div>
                   
-                  {/* Single document selection for all fields in this value */}
+                  {/* Multi-select document selection for all fields in this value */}
                   {needsDocumentSelection && (
                     <div className="mt-3">
                       <Label className="text-xs text-gray-600 dark:text-gray-400">
                         Document Source:
                       </Label>
-                      <Select
-                        value={fieldInputs[stepValue.id]?.document || ''}
-                        onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
-                        disabled={!anyFieldSelected}
-                      >
-                        <SelectTrigger className="text-xs h-9 mt-1">
-                          <SelectValue placeholder="Choose a document..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sessionDocuments?.map((doc) => (
-                            <SelectItem key={doc.id} value={doc.id} className="text-xs">
-                              {doc.fileName || doc.name || 'Untitled'}
-                              {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="mt-1">
+                        <MultiSelectSessionDocument
+                          value={fieldInputs[stepValue.id]?.documents || []}
+                          onChange={(docs) => handleInputChange(stepValue.id, 'documents', docs)}
+                          placeholder="Select documents..."
+                          sessionDocuments={sessionDocuments || []}
+                          disabled={!anyFieldSelected}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -369,29 +467,21 @@ const FieldSelectionModalContent = ({
                     )}
                   </div>
 
-                  {/* Show document selection if needed */}
+                  {/* Show multi-select document selection if needed */}
                   {needsDocumentSelection && (
                     <div className="mt-3">
                       <Label className="text-xs text-gray-600 dark:text-gray-400">
                         Document Source:
                       </Label>
-                      <Select
-                        value={fieldInputs[stepValue.id]?.document || ''}
-                        onValueChange={(value) => handleInputChange(stepValue.id, 'document', value)}
-                        disabled={!selectedFields.has(stepValue.id)}
-                      >
-                        <SelectTrigger className="text-xs h-9 mt-1">
-                          <SelectValue placeholder="Choose a document..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sessionDocuments?.map((doc) => (
-                            <SelectItem key={doc.id} value={doc.id} className="text-xs">
-                              {doc.fileName || doc.name || 'Untitled'}
-                              {doc.isPrimary && <span className="text-blue-500 ml-1">(Primary)</span>}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="mt-1">
+                        <MultiSelectSessionDocument
+                          value={fieldInputs[stepValue.id]?.documents || []}
+                          onChange={(docs) => handleInputChange(stepValue.id, 'documents', docs)}
+                          placeholder="Select documents..."
+                          sessionDocuments={sessionDocuments || []}
+                          disabled={!selectedFields.has(stepValue.id)}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -4066,26 +4156,6 @@ Thank you for your assistance.`;
       console.log('📋 Field inputs from modal:', fieldInputs);
       console.log('🔍 Fields to extract:', fieldsToExtract.length);
       
-      // Get the document ID selected by the user for this value
-      let selectedDocumentId = null;
-      
-      // For multi-field values like "Report Info", check the value ID for document selection
-      fieldsToExtract.forEach(field => {
-        const valueId = field.id;
-        if (fieldInputs[valueId]?.document) {
-          selectedDocumentId = fieldInputs[valueId].document;
-          console.log(`✅ Using document ${selectedDocumentId} selected for value ${valueId}`);
-        }
-      });
-      
-      // If no document selected, use the first available document as fallback
-      if (!selectedDocumentId && sessionDocuments?.length > 0) {
-        selectedDocumentId = sessionDocuments[0].id;
-        console.log(`⚠️ No document selected, using first document: ${selectedDocumentId}`);
-      }
-      
-      console.log(`📄 Document ID to pass to backend: ${selectedDocumentId}`);
-      
       // Group fields by value ID for multi-field extraction
       const fieldsByValue = new Map<string, any>();
       fieldsToExtract.forEach(field => {
@@ -4099,11 +4169,33 @@ Thank you for your assistance.`;
       // Process each value  
       for (const [valueId, value] of fieldsByValue) {
         console.log(`🎯 Processing value ${valueId}`);
-        console.log(`📄 Passing document ID to backend: ${selectedDocumentId}`);
+        
+        // Get document IDs for this specific value (per-value document selection)
+        // The valueId here is field.id which is stepValue.id (a UUID, the parent value ID)
+        // Documents are stored at fieldInputs[stepValue.id].documents
+        let valueDocumentIds: string[] = [];
+        
+        // Support both new 'documents' array and legacy 'document' single value
+        if (fieldInputs[valueId]?.documents && Array.isArray(fieldInputs[valueId].documents)) {
+          valueDocumentIds = fieldInputs[valueId].documents;
+          console.log(`✅ Using ${valueDocumentIds.length} documents selected for value ${valueId}:`, valueDocumentIds);
+        } else if (fieldInputs[valueId]?.document) {
+          valueDocumentIds = [fieldInputs[valueId].document];
+          console.log(`✅ Using single document ${valueDocumentIds[0]} selected for value ${valueId}`);
+        }
+        
+        // If no document selected for this value, use the first available document as fallback
+        if (valueDocumentIds.length === 0 && sessionDocuments?.length > 0) {
+          valueDocumentIds = [sessionDocuments[0].id];
+          console.log(`⚠️ No documents selected for value ${valueId}, using first document: ${valueDocumentIds[0]}`);
+        }
+        
+        console.log(`📄 Passing document IDs to backend for value ${valueId}:`, valueDocumentIds);
         
         const requestData = {
-          documentId: selectedDocumentId,  // PASS DOCUMENT ID LIKE DATA TABLE EXTRACTION
-          files: [],  // Empty files array - backend will retrieve content using documentId
+          documentIds: valueDocumentIds,  // PASS ARRAY OF DOCUMENT IDs for multi-document extraction
+          documentId: valueDocumentIds[0],  // Keep for backward compatibility
+          files: [],  // Empty files array - backend will retrieve content using documentIds
           project_data: {
             id: project?.id,
             projectId: project?.id,
