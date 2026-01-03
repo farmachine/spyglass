@@ -619,6 +619,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const result = insertProjectSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
+      }
+      
+      const project = await storage.updateProject(id, result.data, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Update project error:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
   app.put("/api/projects/:id/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;

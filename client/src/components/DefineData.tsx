@@ -426,6 +426,11 @@ export default function DefineData({
       });
       setMainObjectName(tempMainObjectName);
       setIsEditingMainObject(false);
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects-with-orgs'] });
+      
       toast({
         title: "Saved",
         description: "Main object name updated successfully",
