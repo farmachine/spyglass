@@ -1234,7 +1234,28 @@ Example response format:
       // Check if this is a column extraction with existing data
       const hasMultipleColumns = dataArray.length > 0 && dataArray[0] && Object.keys(dataArray[0]).length > 2; // More than just identifierId
       
-      if (hasMultipleColumns && valueName && !infoPageFields) {
+      // For Info Page multi-field extraction with reference data, add explicit instructions
+      if (infoPageFields && infoPageFields.length > 0) {
+        prompt += `=== IMPORTANT: DATA TO ANALYZE ===
+The List Items below contain the actual data records you MUST analyze to calculate/derive values for each field above.
+
+🎯 YOUR TASK:
+1. COUNT the records in the List Items that have "Risk Name" or similar risk data fields
+2. CALCULATE values like totals, averages, weighted scores based on the numeric fields (Risk Score, Severity Score, Probability Score)
+3. ANALYZE the risk data to determine ratings, decisions, and recommendations
+4. USE the scoring methodology and decision matrix from the reference document to interpret the calculated values
+
+⚠️ DO NOT just extract template descriptions from the reference document!
+✅ DO calculate actual values from the List Items data below.
+
+For example:
+- "Total Number of Risks Identified" = Count how many records have Risk data (not tender information)
+- "Overall Risk Score" = Calculate the weighted average of all Risk Score values
+- "Risk Rating" = Determine Low/Medium/High/Critical based on the calculated Overall Risk Score
+- "Recommended Decision" = Determine GO/CONDITIONAL GO/ESCALATE/NO GO based on the decision matrix
+
+`;
+      } else if (hasMultipleColumns && valueName && !infoPageFields) {
         prompt += `**CONTEXT**: The following data shows existing records with other columns already extracted.
 
 🎯 YOUR SPECIFIC TASK: Extract ONLY the "${valueName}" value for each record.
