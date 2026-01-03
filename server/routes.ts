@@ -2533,12 +2533,17 @@ except Exception as e:
         }
         
         // Process configured input values
+        console.log(`🔍 DEBUG /extract - workflowValue.inputValues exists: ${!!workflowValue.inputValues}`);
+        console.log(`🔍 DEBUG /extract - workflowValue.inputValues:`, JSON.stringify(workflowValue.inputValues, null, 2));
+        
         if (workflowValue.inputValues) {
           // First, get existing validations for reference resolution
           const existingValidations = sessionId ? await storage.getFieldValidations(sessionId) : [];
           console.log(`📊 Retrieved ${existingValidations.length} existing validations for reference resolution`);
           
           for (const [key, value] of Object.entries(workflowValue.inputValues)) {
+            console.log(`🔍 DEBUG - Processing inputValue key: ${key}, type: ${typeof value}, isArray: ${Array.isArray(value)}, value: ${JSON.stringify(value).substring(0, 200)}`);
+
             if (typeof value === 'string' && value === '@user_document') {
               // Replace @user_document with combined document content from ALL selected documents
               if (combinedDocumentContent) {
