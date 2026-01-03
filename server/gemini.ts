@@ -58,7 +58,7 @@ export async function testAIOnlyTool(
     prompt += `\nRespond with JSON array: [{"extractedValue": "result", "validationStatus": "valid", "aiReasoning": "explanation", "confidenceScore": 95, "documentSource": "doc"}]`;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: [
         {
           role: "user",
@@ -116,7 +116,7 @@ Generate a Python function that:
 Return only the Python function code, no explanations.`;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: [
         {
           role: "user",
