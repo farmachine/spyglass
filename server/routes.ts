@@ -6607,8 +6607,11 @@ def extract_function(Column_Name, Excel_File):
   app.post("/api/sessions/:sessionId/extract-column", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { sessionId } = req.params;
-      const { stepId, valueId, documentId, customInputs } = req.body;
+      const { stepId, valueId, documentId, documentIds, customInputs } = req.body;
       let { previousData } = req.body;
+      
+      // Support both single documentId (legacy) and documentIds array (new)
+      const selectedDocumentIds: string[] = documentIds || (documentId ? [documentId] : []);
       
       console.log(`📊 Running SINGLE column extraction for session ${sessionId}`);
       console.log(`   Step ID: ${stepId}, Value ID: ${valueId}`);
@@ -6771,29 +6774,57 @@ def extract_function(Column_Name, Excel_File):
       
       const sessionDocuments = await storage.getSessionDocuments(sessionId);
       
-      // Use the specified document ID if provided, otherwise use primary or first document
-      let documentToUse;
-      if (documentId) {
-        documentToUse = sessionDocuments.find(d => d.id === documentId);
-        if (!documentToUse) {
-          console.warn(`Document with ID ${documentId} not found, falling back to primary document`);
+      // Build combined document content from all selected documents (multi-document support)
+      let documentContent = '';
+      let documentsUsed: any[] = [];
+      
+      if (selectedDocumentIds.length > 0) {
+        console.log(`📄 Multi-document selection: ${selectedDocumentIds.length} documents selected`);
+        
+        for (const docId of selectedDocumentIds) {
+          const doc = sessionDocuments.find(d => d.id === docId);
+          if (doc) {
+            const content = doc.extractedContent || doc.documentContent || '';
+            if (content) {
+              documentsUsed.push(doc);
+              if (selectedDocumentIds.length > 1) {
+                documentContent += `\n\n=== Document ${documentsUsed.length}: ${doc.documentName} ===\n${content}`;
+              } else {
+                documentContent = content;
+              }
+            } else {
+              console.warn(`Document ${docId} (${doc.documentName}) has no content`);
+            }
+          } else {
+            console.warn(`Document with ID ${docId} not found in session`);
+          }
+        }
+        
+        console.log(`📄 Combined content from ${documentsUsed.length} document(s): ${documentContent.length} chars`);
+      }
+      
+      // CRITICAL: Fall back to primary/first document if no content gathered
+      // This handles both: (1) no documents selected, and (2) selected documents yielded no content
+      if (!documentContent || documentsUsed.length === 0) {
+        console.log(`📄 Fallback: No usable content from selected documents, trying primary/first document`);
+        const primaryDoc = sessionDocuments.find(d => d.isPrimary);
+        const documentToUse = primaryDoc || sessionDocuments[0];
+        
+        if (documentToUse) {
+          const fallbackContent = documentToUse.extractedContent || documentToUse.documentContent || '';
+          if (fallbackContent) {
+            documentContent = fallbackContent;
+            documentsUsed = [documentToUse];
+            console.log(`📄 Using fallback document: ${documentToUse.documentName} (${documentContent.length} chars)`);
+          }
         }
       }
       
-      // Fall back to primary or first document if specified document not found
-      if (!documentToUse) {
-        const primaryDoc = sessionDocuments.find(d => d.isPrimary);
-        documentToUse = primaryDoc || sessionDocuments[0];
-      }
-      
-      // If no extracted content, try to get it from the document content field
-      let documentContent = documentToUse?.extractedContent || documentToUse?.documentContent;
-      
-      if (!documentToUse || !documentContent) {
-        console.log('No document found or no content available:', {
-          hasDoc: !!documentToUse,
-          hasExtracted: !!documentToUse?.extractedContent,
-          hasContent: !!documentToUse?.documentContent
+      if (!documentContent) {
+        console.log('No document content available:', {
+          selectedIds: selectedDocumentIds,
+          docsUsed: documentsUsed.length,
+          sessionDocsCount: sessionDocuments.length
         });
         // Fall back to empty document for tools that don't need document content
         documentContent = ""; 

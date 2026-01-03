@@ -31,7 +31,7 @@ interface ExtractionError {
 interface ExtractWizardModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (documentId: string) => void;
+  onConfirm: (documentIds: string[]) => void;
   title: string;
   toolType?: string;
   toolDescription?: string;
@@ -73,12 +73,12 @@ export default function ExtractWizardModal({
   validations = [],
   extractionError
 }: ExtractWizardModalProps) {
-  const [selectedDocument, setSelectedDocument] = useState<string>('');
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   
   useEffect(() => {
     if (documents.length === 1) {
-      setSelectedDocument(documents[0].id);
+      setSelectedDocuments([documents[0].id]);
     }
   }, [documents]);
   
@@ -94,11 +94,21 @@ export default function ExtractWizardModal({
     });
   };
   
+  const toggleDocumentSelection = (docId: string) => {
+    setSelectedDocuments(prev => {
+      if (prev.includes(docId)) {
+        return prev.filter(id => id !== docId);
+      } else {
+        return [...prev, docId];
+      }
+    });
+  };
+  
   const handleConfirm = () => {
-    if (needsDocument && !selectedDocument) {
+    if (needsDocument && selectedDocuments.length === 0) {
       return;
     }
-    onConfirm(selectedDocument || '');
+    onConfirm(selectedDocuments);
   };
   
   // Calculate extraction statistics
@@ -470,35 +480,45 @@ export default function ExtractWizardModal({
                       
                       {expandedSections.has(key) && (
                         <div className="px-4 pb-4">
-                          {/* Document dropdown for user document inputs */}
+                          {/* Document multi-select for user document inputs */}
                           {isDocumentInput && (
                             <div className="space-y-2">
-                              <Label htmlFor={`document-select-${key}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Select document
+                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Select documents ({selectedDocuments.length} selected)
                               </Label>
-                              <Select
-                                value={selectedDocument}
-                                onValueChange={setSelectedDocument}
-                              >
-                                <SelectTrigger id={`document-select-${key}`} className="w-full">
-                                  <SelectValue placeholder="Choose your document..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {documents.map((doc) => (
-                                    <SelectItem key={doc.id} value={doc.id}>
-                                      <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-gray-500" />
-                                        <span>{doc.name}</span>
-                                        <Badge variant="outline" className="text-xs ml-2">
-                                          {doc.type}
-                                        </Badge>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {!selectedDocument && documents.length === 0 && (
+                              <div className="space-y-2 max-h-[200px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+                                {documents.map((doc) => (
+                                  <div 
+                                    key={doc.id} 
+                                    className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                                      selectedDocuments.includes(doc.id) 
+                                        ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' 
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent'
+                                    }`}
+                                    onClick={() => toggleDocumentSelection(doc.id)}
+                                  >
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                      selectedDocuments.includes(doc.id)
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-gray-300 dark:border-gray-600'
+                                    }`}>
+                                      {selectedDocuments.includes(doc.id) && (
+                                        <CheckCircle className="h-3 w-3 text-white" />
+                                      )}
+                                    </div>
+                                    <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">{doc.name}</span>
+                                    <Badge variant="outline" className="text-xs ml-auto">
+                                      {doc.type}
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                              {documents.length === 0 && (
                                 <p className="text-xs text-red-500">No documents available in session</p>
+                              )}
+                              {selectedDocuments.length === 0 && documents.length > 0 && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">Please select at least one document</p>
                               )}
                             </div>
                           )}
@@ -765,7 +785,7 @@ export default function ExtractWizardModal({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={isLoading || (needsDocument && !selectedDocument)}
+            disabled={isLoading || (needsDocument && selectedDocuments.length === 0)}
             style={{ backgroundColor: '#4F63A4' }}
             className="text-white hover:opacity-90"
           >

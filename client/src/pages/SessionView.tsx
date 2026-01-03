@@ -6871,13 +6871,13 @@ Thank you for your assistance.`;
           isFirstColumn={columnExtractionModal.isFirstColumn}
           referenceFieldNames={columnExtractionModal.referenceFieldNames}
           validations={validations}
-          onConfirm={async (documentId) => {
+          onConfirm={async (documentIds) => {
             if (!columnExtractionModal) return;
             
             const { stepName, valueId, valueName, previousData } = columnExtractionModal;
             
             console.log(`🎯 Running extraction for ${valueName}`);
-            console.log(`🎯 Document: ${documentId}`);
+            console.log(`🎯 Documents: ${documentIds.length} selected`);
             console.log(`🎯 Previous data: ${previousData.length} records`);
             
             // Get the workflow step
@@ -6895,7 +6895,7 @@ Thank you for your assistance.`;
               stepId: workflowStep.id,
               valueId: valueId,
               previousData: fullPreviousData, // Send FULL data, not filtered/display data
-              documentId: documentId
+              documentIds: documentIds // Array of selected document IDs
             };
             
             try {
