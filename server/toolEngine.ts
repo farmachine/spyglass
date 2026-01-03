@@ -1288,9 +1288,16 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
 - Look at the context data for each record to extract the appropriate value
 
 `;
-      } else if (isCreateOperation) {
-        // For CREATE operations, clarify that identifierIds in input are for reference only
+      } else if (isCreateOperation && !infoPageFields) {
+        // For CREATE operations (but NOT Info Page multi-field extractions), 
+        // clarify that identifierIds in input are for reference only
+        // Info Page extractions NEED identifierIds to match results to fields
         prompt += `**Note**: This is a CREATE operation. The identifierIds in the input data are for reference only. You will generate NEW records based on the instructions provided. Do NOT include identifierIds in your response.
+
+`;
+      } else if (isCreateOperation && infoPageFields) {
+        // For Info Page multi-field CREATE operations, remind AI to use the identifierIds from the field definitions
+        prompt += `**Note**: This is a CREATE operation. You will generate new records based on the document and instructions provided.
 
 `;
       }
