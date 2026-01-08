@@ -111,14 +111,6 @@ export default function ExtractWizardModal({
     onConfirm(selectedDocuments);
   };
   
-  const selectAllDocuments = () => {
-    setSelectedDocuments(documents.map(doc => doc.id));
-  };
-  
-  const deselectAllDocuments = () => {
-    setSelectedDocuments([]);
-  };
-  
   // Calculate extraction statistics
   const getExtractionStats = () => {
     const remainingToExtract = Math.max(0, (totalAvailable || inputData.length) - (extractedCount || 0));
@@ -491,33 +483,9 @@ export default function ExtractWizardModal({
                           {/* Document multi-select for user document inputs */}
                           {isDocumentInput && (
                             <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Select documents ({selectedDocuments.length} of {documents.length} selected)
-                                </Label>
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={selectAllDocuments}
-                                    disabled={selectedDocuments.length === documents.length}
-                                    className="text-xs h-7"
-                                  >
-                                    Select All
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={deselectAllDocuments}
-                                    disabled={selectedDocuments.length === 0}
-                                    className="text-xs h-7"
-                                  >
-                                    Deselect All
-                                  </Button>
-                                </div>
-                              </div>
+                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Select documents ({selectedDocuments.length} selected)
+                              </Label>
                               <div className="space-y-2 max-h-[200px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
                                 {documents.map((doc) => (
                                   <div 
