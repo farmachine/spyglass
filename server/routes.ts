@@ -10339,6 +10339,217 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // ============================================
+  // SESSION TEMPLATES AND SIMILAR SESSION DETECTION (Phase 2)
+  // ============================================
+
+  // Get session templates for a project
+  app.get("/api/projects/:projectId/templates", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const templates = await storage.getSessionTemplates(projectId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error getting session templates:", error);
+      res.status(500).json({ message: "Failed to get session templates" });
+    }
+  });
+
+  // Create session template from existing session
+  app.post("/api/projects/:projectId/templates", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { name, description, sourceSessionId, isDefault } = req.body;
+
+      // Get current workflow steps and values to create schema snapshot
+      const steps = await storage.getWorkflowSteps(projectId);
+      const schemaSnapshot: any[] = [];
+      
+      for (const step of steps) {
+        const values = await storage.getStepValues(step.id);
+        schemaSnapshot.push({
+          ...step,
+          values: values
+        });
+      }
+
+      const template = await storage.createSessionTemplate({
+        projectId,
+        name,
+        description,
+        sourceSessionId,
+        schemaSnapshot,
+        isDefault: isDefault || false
+      });
+
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating session template:", error);
+      res.status(500).json({ message: "Failed to create session template" });
+    }
+  });
+
+  // Update session template
+  app.patch("/api/templates/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.updateSessionTemplate(id, req.body);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating session template:", error);
+      res.status(500).json({ message: "Failed to update session template" });
+    }
+  });
+
+  // Delete session template
+  app.delete("/api/templates/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSessionTemplate(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json({ message: "Template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting session template:", error);
+      res.status(500).json({ message: "Failed to delete session template" });
+    }
+  });
+
+  // Find similar sessions based on document content
+  app.post("/api/projects/:projectId/find-similar-sessions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { documentContent, threshold = 0.7 } = req.body;
+
+      if (!documentContent) {
+        return res.status(400).json({ message: "Document content is required" });
+      }
+
+      // Get existing embeddings for this project
+      const existingEmbeddings = await storage.getDocumentEmbeddings(projectId);
+      
+      if (existingEmbeddings.length === 0) {
+        return res.json({ similarSessions: [], message: "No existing sessions to compare against" });
+      }
+
+      // Import embedding functions
+      const { findSimilarSessions } = await import('./gemini');
+
+      const similarResults = await findSimilarSessions(
+        documentContent,
+        existingEmbeddings.map(e => ({
+          sessionId: e.sessionId,
+          embedding: e.embedding as number[]
+        })),
+        threshold
+      );
+
+      // Get session details for similar sessions
+      const similarSessions = await Promise.all(
+        similarResults.slice(0, 5).map(async (result) => {
+          const session = await storage.getExtractionSession(result.sessionId);
+          return {
+            ...result,
+            sessionName: session?.sessionName,
+            sessionStatus: session?.status
+          };
+        })
+      );
+
+      res.json({ similarSessions });
+    } catch (error) {
+      console.error("Error finding similar sessions:", error);
+      res.status(500).json({ message: "Failed to find similar sessions" });
+    }
+  });
+
+  // Generate AI schema suggestion from document content
+  app.post("/api/projects/:projectId/suggest-schema", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { documentContent } = req.body;
+
+      if (!documentContent) {
+        return res.status(400).json({ message: "Document content is required" });
+      }
+
+      const { analyzeDocumentForSchema } = await import('./gemini');
+      const suggestion = await analyzeDocumentForSchema(documentContent);
+
+      res.json(suggestion);
+    } catch (error) {
+      console.error("Error generating schema suggestion:", error);
+      res.status(500).json({ message: "Failed to generate schema suggestion" });
+    }
+  });
+
+  // Create document embedding after upload
+  app.post("/api/sessions/:sessionId/embeddings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { documentContent, documentId } = req.body;
+
+      if (!documentContent) {
+        return res.status(400).json({ message: "Document content is required" });
+      }
+
+      const { generateDocumentEmbedding } = await import('./gemini');
+      const { embedding, contentHash } = await generateDocumentEmbedding(documentContent);
+
+      const embeddingRecord = await storage.createDocumentEmbedding({
+        sessionId,
+        documentId,
+        embedding,
+        embeddingModel: "text-embedding-004",
+        contentHash
+      });
+
+      res.json(embeddingRecord);
+    } catch (error) {
+      console.error("Error creating document embedding:", error);
+      res.status(500).json({ message: "Failed to create document embedding" });
+    }
+  });
+
+  // Apply template to session (copy schema from template)
+  app.post("/api/sessions/:sessionId/apply-template", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { templateId } = req.body;
+
+      const template = await storage.getSessionTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // The schemaSnapshot contains the workflow steps and values
+      // For now, we just return the template snapshot for the frontend to use
+      // The actual schema creation would be done by the existing workflow builder
+
+      // Increment template usage count
+      await storage.updateSessionTemplate(templateId, {
+        usageCount: (template.usageCount || 0) + 1
+      });
+
+      res.json({ 
+        success: true, 
+        schemaSnapshot: template.schemaSnapshot,
+        message: "Template schema retrieved successfully"
+      });
+    } catch (error) {
+      console.error("Error applying template:", error);
+      res.status(500).json({ message: "Failed to apply template" });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
