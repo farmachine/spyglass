@@ -5115,11 +5115,16 @@ except Exception as e:
           }
           
           let documentsAdded = 0;
+          let allExtractedContent = "";
           
           // Save each document with its extracted content to session documents table
           if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
             for (const extractedText of result.extracted_texts) {
               try {
+                // Accumulate content for embedding generation
+                if (extractedText.text_content) {
+                  allExtractedContent += extractedText.text_content + "\n\n";
+                }
                 // Find the original file to get size and MIME type
                 const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
                 
@@ -5162,6 +5167,23 @@ except Exception as e:
             documentCount: (session.documentCount || 0) + documentsAdded,
             status: documentsAdded > 0 ? "documents_uploaded" : session.status
           });
+          
+          // Generate document embedding for similar session detection (async, non-blocking)
+          if (documentsAdded > 0 && allExtractedContent) {
+            try {
+              const { generateDocumentEmbedding } = await import('./gemini');
+              const { embedding, contentHash } = await generateDocumentEmbedding(allExtractedContent);
+              await storage.createDocumentEmbedding({
+                sessionId,
+                embedding,
+                embeddingModel: "text-embedding-004",
+                contentHash
+              });
+              console.log(`DOCUMENT UPLOAD: Created embedding for session ${sessionId}`);
+            } catch (embeddingError) {
+              console.error("Failed to create document embedding (non-critical):", embeddingError);
+            }
+          }
           
           res.json({ 
             success: true,
@@ -10530,10 +10552,6 @@ def extract_function(Column_Name, Excel_File):
         return res.status(404).json({ message: "Session not found" });
       }
 
-      // The schemaSnapshot contains the workflow steps and values
-      // For now, we just return the template snapshot for the frontend to use
-      // The actual schema creation would be done by the existing workflow builder
-
       // Increment template usage count
       await storage.updateSessionTemplate(templateId, {
         usageCount: (template.usageCount || 0) + 1
@@ -10547,6 +10565,41 @@ def extract_function(Column_Name, Excel_File):
     } catch (error) {
       console.error("Error applying template:", error);
       res.status(500).json({ message: "Failed to apply template" });
+    }
+  });
+
+  // Copy schema from a source session (for similar session detection)
+  app.post("/api/sessions/:sessionId/copy-schema", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params; // This is the SOURCE session
+      const { targetSessionId } = req.body;
+
+      const sourceSession = await storage.getExtractionSession(sessionId);
+      if (!sourceSession) {
+        return res.status(404).json({ message: "Source session not found" });
+      }
+
+      // Get the workflow steps and values from the source session's project
+      const steps = await storage.getWorkflowSteps(sourceSession.projectId);
+      const schemaSnapshot: any[] = [];
+      
+      for (const step of steps) {
+        const values = await storage.getStepValues(step.id);
+        schemaSnapshot.push({
+          ...step,
+          values: values
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        schemaSnapshot,
+        sourceSessionName: sourceSession.sessionName,
+        message: "Schema copied from similar session"
+      });
+    } catch (error) {
+      console.error("Error copying schema from session:", error);
+      res.status(500).json({ message: "Failed to copy schema from session" });
     }
   });
 

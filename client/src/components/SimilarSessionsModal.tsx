@@ -56,11 +56,10 @@ export function SimilarSessionsModal({
     queryKey: ["/api/projects", projectId, "find-similar-sessions", documentContent?.slice(0, 100)],
     queryFn: async () => {
       if (!documentContent) return { similarSessions: [] };
-      const response = await apiRequest("POST", `/api/projects/${projectId}/find-similar-sessions`, {
-        documentContent,
-        threshold: 0.6,
+      return await apiRequest(`/api/projects/${projectId}/find-similar-sessions`, {
+        method: "POST",
+        body: JSON.stringify({ documentContent, threshold: 0.6 }),
       });
-      return response.json();
     },
     enabled: open && !!documentContent && !!projectId,
   });
@@ -68,30 +67,35 @@ export function SimilarSessionsModal({
   const { data: aiSuggestion, isLoading: loadingAi, refetch: generateAiSuggestion } = useQuery({
     queryKey: ["/api/projects", projectId, "suggest-schema", documentContent?.slice(0, 100)],
     queryFn: async () => {
-      const response = await apiRequest("POST", `/api/projects/${projectId}/suggest-schema`, {
-        documentContent,
-      });
-      return response.json() as Promise<SchemaSuggestion>;
+      return await apiRequest(`/api/projects/${projectId}/suggest-schema`, {
+        method: "POST",
+        body: JSON.stringify({ documentContent }),
+      }) as SchemaSuggestion;
     },
     enabled: false,
   });
 
-  const applyTemplateMutation = useMutation({
-    mutationFn: async (templateId: string) => {
-      const response = await apiRequest("POST", `/api/sessions/${sessionId}/apply-template`, {
-        templateId,
+  const copySchemaFromSessionMutation = useMutation({
+    mutationFn: async (sourceSessionId: string) => {
+      return await apiRequest(`/api/sessions/${sourceSessionId}/copy-schema`, {
+        method: "POST",
+        body: JSON.stringify({ targetSessionId: sessionId }),
       });
-      return response.json();
     },
     onSuccess: (data) => {
-      onApplyTemplate(data.schemaSnapshot);
+      if (data?.schemaSnapshot) {
+        onApplyTemplate(data.schemaSnapshot);
+      }
       onOpenChange(false);
     },
   });
 
   const handleUseTemplate = async (session: SimilarSession) => {
     setSelectedOption("template");
+    copySchemaFromSessionMutation.mutate(session.sessionId);
   };
+
+  const isApplyingTemplate = copySchemaFromSessionMutation.isPending;
 
   const handleGenerateAi = () => {
     setSelectedOption("ai");
@@ -163,8 +167,13 @@ export function SimilarSessionsModal({
                           size="sm"
                           variant="outline"
                           onClick={() => handleUseTemplate(session)}
+                          disabled={isApplyingTemplate}
                         >
-                          Use Schema
+                          {isApplyingTemplate && selectedOption === "template" ? (
+                            <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Copying...</>
+                          ) : (
+                            "Use Schema"
+                          )}
                         </Button>
                       </div>
                     ))}

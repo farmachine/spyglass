@@ -88,6 +88,17 @@ Projects can define custom workflow status options for their sessions:
 - **UI**: Admins configure options in DefineData.tsx; users select status via dropdown in AllData.tsx
 - **Case-insensitive duplicate prevention**: Status entries are validated to avoid duplicates
 
+### Dynamic Schema & Session Templates (Jan 2026 - Phase 2)
+The platform now supports intelligent schema suggestion and template reuse:
+- **Document Embeddings**: Documents are vectorized using Gemini's text-embedding-004 model after upload
+- **Similar Session Detection**: New sessions can find similar past sessions based on document similarity
+- **Session Templates**: Reusable extraction schemas can be saved as templates and applied to new sessions
+- **AI Schema Generation**: AI can analyze document content and suggest extraction steps automatically
+- **Key Components**:
+  - `server/gemini.ts`: Added `generateDocumentEmbedding()`, `findSimilarSessions()`, `analyzeDocumentForSchema()`
+  - `SimilarSessionsModal.tsx`: Frontend component for template selection and AI schema generation
+  - API endpoints: `/api/projects/:projectId/templates`, `/api/projects/:projectId/find-similar-sessions`, `/api/projects/:projectId/suggest-schema`
+
 ### Database Schema
 Core tables include:
 *   `projects`: Added `session_status_options` (JSONB) for configurable workflow status options.
@@ -95,6 +106,8 @@ Core tables include:
 *   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, and `identifier_id`.
 *   `step_values`: Defines columns/fields within steps with `id`, `step_id`, `value_name`, `tool_id`, `order_index`, `input_values` (JSONB), and `fields` (JSONB for multi-field support).
 *   `field_validations`: Stores extracted data with `id`, `field_id`, `identifier_id`, `extracted_value`, `validation_status`, `ai_reasoning`, and `confidence_score`.
+*   `session_templates` (Phase 2): Stores reusable extraction schemas with `id`, `project_id`, `name`, `schema_snapshot` (JSONB), `usage_count`, `is_default`.
+*   `document_embeddings` (Phase 2): Stores vector embeddings with `id`, `session_id`, `document_id`, `embedding` (JSONB), `embedding_model`, `content_hash`.
 
 ## External Dependencies
 *   **Database**: PostgreSQL (specifically Neon for hosting)
