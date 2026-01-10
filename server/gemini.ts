@@ -19,10 +19,110 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import crypto from "crypto";
 
 // Simple AI client setup - must pass apiKey as object property
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
 const genAI = new GoogleGenAI({ apiKey });
+
+const EMBEDDING_MODEL = "text-embedding-004";
+
+export async function generateDocumentEmbedding(content: string): Promise<{ embedding: number[]; contentHash: string }> {
+  try {
+    const contentHash = crypto.createHash("sha256").update(content).digest("hex");
+    const truncatedContent = content.slice(0, 8000);
+    
+    const response = await genAI.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: truncatedContent,
+    });
+    
+    const embedding = response.embeddings?.[0]?.values;
+    if (!embedding) {
+      throw new Error("No embedding returned from Gemini");
+    }
+    
+    return { embedding, contentHash };
+  } catch (error) {
+    console.error("Embedding generation error:", error);
+    throw error;
+  }
+}
+
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+export async function findSimilarSessions(
+  newDocumentContent: string,
+  existingEmbeddings: Array<{ sessionId: string; embedding: number[] }>,
+  threshold: number = 0.7
+): Promise<Array<{ sessionId: string; similarity: number }>> {
+  const { embedding: newEmbedding } = await generateDocumentEmbedding(newDocumentContent);
+  
+  const similarities = existingEmbeddings.map(({ sessionId, embedding }) => ({
+    sessionId,
+    similarity: cosineSimilarity(newEmbedding, embedding),
+  }));
+  
+  return similarities
+    .filter(s => s.similarity >= threshold)
+    .sort((a, b) => b.similarity - a.similarity);
+}
+
+export async function analyzeDocumentForSchema(documentContent: string): Promise<{
+  suggestedSteps: Array<{
+    stepName: string;
+    stepType: "page" | "list";
+    description: string;
+    values: Array<{ valueName: string; dataType: string; description: string }>;
+  }>;
+}> {
+  const prompt = `Analyze the following document and suggest an extraction schema.
+Identify key data points that should be extracted from similar documents.
+
+Document content:
+${documentContent.slice(0, 10000)}
+
+Respond with JSON:
+{
+  "suggestedSteps": [
+    {
+      "stepName": "Info Page or Table name",
+      "stepType": "page" or "list",
+      "description": "Description of what this step extracts",
+      "values": [
+        {"valueName": "Field name", "dataType": "TEXT|NUMBER|DATE|CHOICE", "description": "Field description"}
+      ]
+    }
+  ]
+}
+
+Guidelines:
+- Use "page" for single-value data (header info, summary fields)
+- Use "list" for repeated/tabular data (line items, schedules)
+- Keep field names clear and concise
+- Include 3-10 values per step`;
+
+  const response = await genAI.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  });
+
+  let text = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
+  
+  return JSON.parse(text);
+}
 
 export async function testAIOnlyTool(
   toolDescription: string,

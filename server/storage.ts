@@ -42,6 +42,8 @@ import {
   excelWizardryFunctions,
   extractionIdentifierReferences,
   sampleDocuments,
+  sessionTemplates,
+  documentEmbeddings,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -82,6 +84,10 @@ import {
   type InsertExtractionIdentifierReference,
   type SampleDocument,
   type InsertSampleDocument,
+  type SessionTemplate,
+  type InsertSessionTemplate,
+  type DocumentEmbedding,
+  type InsertDocumentEmbedding,
   testDocuments,
   type TestDocument,
   type InsertTestDocument
@@ -293,6 +299,21 @@ export interface IStorage {
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
   deleteStepValue(id: string): Promise<boolean>;
+
+  // Session Templates
+  getSessionTemplates(projectId: string): Promise<SessionTemplate[]>;
+  getSessionTemplate(id: string): Promise<SessionTemplate | undefined>;
+  createSessionTemplate(template: InsertSessionTemplate): Promise<SessionTemplate>;
+  updateSessionTemplate(id: string, template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined>;
+  deleteSessionTemplate(id: string): Promise<boolean>;
+  getDefaultTemplate(projectId: string): Promise<SessionTemplate | undefined>;
+
+  // Document Embeddings
+  getDocumentEmbeddings(projectId: string): Promise<DocumentEmbedding[]>;
+  getDocumentEmbedding(id: string): Promise<DocumentEmbedding | undefined>;
+  getEmbeddingBySessionId(sessionId: string): Promise<DocumentEmbedding | undefined>;
+  createDocumentEmbedding(embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding>;
+  deleteDocumentEmbedding(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2258,6 +2279,43 @@ export class MemStorage implements IStorage {
       }
     }
     return deletedCount > 0;
+  }
+
+  // Session Templates (stub implementations - MemStorage is for testing only)
+  async getSessionTemplates(_projectId: string): Promise<SessionTemplate[]> {
+    return [];
+  }
+  async getSessionTemplate(_id: string): Promise<SessionTemplate | undefined> {
+    return undefined;
+  }
+  async createSessionTemplate(_template: InsertSessionTemplate): Promise<SessionTemplate> {
+    throw new Error("MemStorage does not support session templates");
+  }
+  async updateSessionTemplate(_id: string, _template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined> {
+    return undefined;
+  }
+  async deleteSessionTemplate(_id: string): Promise<boolean> {
+    return false;
+  }
+  async getDefaultTemplate(_projectId: string): Promise<SessionTemplate | undefined> {
+    return undefined;
+  }
+
+  // Document Embeddings (stub implementations)
+  async getDocumentEmbeddings(_projectId: string): Promise<DocumentEmbedding[]> {
+    return [];
+  }
+  async getDocumentEmbedding(_id: string): Promise<DocumentEmbedding | undefined> {
+    return undefined;
+  }
+  async getEmbeddingBySessionId(_sessionId: string): Promise<DocumentEmbedding | undefined> {
+    return undefined;
+  }
+  async createDocumentEmbedding(_embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding> {
+    throw new Error("MemStorage does not support document embeddings");
+  }
+  async deleteDocumentEmbedding(_id: string): Promise<boolean> {
+    return false;
   }
 }
 
@@ -4267,6 +4325,96 @@ class PostgreSQLStorage implements IStorage {
   async deleteStepValue(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Session Templates
+  async getSessionTemplates(projectId: string): Promise<SessionTemplate[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(sessionTemplates).where(eq(sessionTemplates.projectId, projectId));
+    });
+  }
+
+  async getSessionTemplate(id: string): Promise<SessionTemplate | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(sessionTemplates).where(eq(sessionTemplates.id, id));
+      return result;
+    });
+  }
+
+  async createSessionTemplate(template: InsertSessionTemplate): Promise<SessionTemplate> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(sessionTemplates).values(template).returning();
+      return result;
+    });
+  }
+
+  async updateSessionTemplate(id: string, template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(sessionTemplates)
+        .set({ ...template, updatedAt: new Date() })
+        .where(eq(sessionTemplates.id, id))
+        .returning();
+      return result;
+    });
+  }
+
+  async deleteSessionTemplate(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(sessionTemplates).where(eq(sessionTemplates.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  async getDefaultTemplate(projectId: string): Promise<SessionTemplate | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(sessionTemplates)
+        .where(and(eq(sessionTemplates.projectId, projectId), eq(sessionTemplates.isDefault, true)));
+      return result;
+    });
+  }
+
+  // Document Embeddings
+  async getDocumentEmbeddings(projectId: string): Promise<DocumentEmbedding[]> {
+    return this.retryOperation(async () => {
+      const sessions = await this.db.select({ id: extractionSessions.id })
+        .from(extractionSessions)
+        .where(eq(extractionSessions.projectId, projectId));
+      
+      if (sessions.length === 0) return [];
+      
+      const sessionIds = sessions.map(s => s.id);
+      return await this.db.select().from(documentEmbeddings)
+        .where(inArray(documentEmbeddings.sessionId, sessionIds));
+    });
+  }
+
+  async getDocumentEmbedding(id: string): Promise<DocumentEmbedding | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(documentEmbeddings).where(eq(documentEmbeddings.id, id));
+      return result;
+    });
+  }
+
+  async getEmbeddingBySessionId(sessionId: string): Promise<DocumentEmbedding | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(documentEmbeddings)
+        .where(eq(documentEmbeddings.sessionId, sessionId));
+      return result;
+    });
+  }
+
+  async createDocumentEmbedding(embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(documentEmbeddings).values(embedding).returning();
+      return result;
+    });
+  }
+
+  async deleteDocumentEmbedding(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(documentEmbeddings).where(eq(documentEmbeddings.id, id));
       return result.rowCount > 0;
     });
   }
