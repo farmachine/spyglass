@@ -6905,13 +6905,29 @@ Thank you for your assistance.`;
             description: "The extraction schema has been copied from a similar session.",
           });
         }}
-        onApplyAiSuggestion={(suggestion) => {
+        onApplyAiSuggestion={async (suggestion) => {
           console.log('AI schema suggestion:', suggestion);
-          // TODO: Apply the AI-suggested schema to create workflow steps
-          toast({
-            title: "AI Schema Suggested",
-            description: "Review the suggested schema and customize as needed.",
-          });
+          try {
+            const result = await apiRequest(`/api/projects/${projectId}/apply-ai-schema`, {
+              method: "POST",
+              body: JSON.stringify({ suggestedSteps: suggestion.suggestedSteps }),
+            });
+            
+            if (result?.success) {
+              queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+              toast({
+                title: "Schema Created",
+                description: `Created ${result.createdSteps?.length || 0} workflow steps from AI suggestion. Configure tools for each step to start extracting.`,
+              });
+            }
+          } catch (error) {
+            console.error('Failed to apply AI schema:', error);
+            toast({
+              title: "Error",
+              description: "Failed to create workflow steps from AI suggestion.",
+              variant: "destructive",
+            });
+          }
         }}
       />
       {/* Column Extraction Modal for Workflow Step Values */}

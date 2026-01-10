@@ -10508,6 +10508,60 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // Apply AI-suggested schema to create workflow steps
+  app.post("/api/projects/:projectId/apply-ai-schema", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { suggestedSteps } = req.body;
+
+      if (!suggestedSteps || !Array.isArray(suggestedSteps)) {
+        return res.status(400).json({ message: "suggestedSteps array is required" });
+      }
+
+      const createdSteps: any[] = [];
+
+      for (const step of suggestedSteps) {
+        // Create the workflow step
+        const workflowStep = await storage.createWorkflowStep({
+          projectId,
+          stepName: step.stepName,
+          stepType: step.stepType === 'list' ? 'data_table' : 'info_page',
+          valueCount: step.values?.length || 0,
+        });
+
+        // Create the step values (columns/fields)
+        const createdValues: any[] = [];
+        if (step.values && Array.isArray(step.values)) {
+          for (let i = 0; i < step.values.length; i++) {
+            const value = step.values[i];
+            const stepValue = await storage.createStepValue({
+              stepId: workflowStep.id,
+              valueName: value.name || value,
+              orderIndex: i,
+              toolId: null, // Will be configured later
+              inputValues: {},
+            });
+            createdValues.push(stepValue);
+          }
+        }
+
+        createdSteps.push({
+          ...workflowStep,
+          values: createdValues
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        createdSteps,
+        message: `Created ${createdSteps.length} workflow steps from AI suggestion`
+      });
+    } catch (error) {
+      console.error("Error applying AI schema:", error);
+      res.status(500).json({ message: "Failed to apply AI schema" });
+    }
+  });
+
   // Create document embedding after upload
   app.post("/api/sessions/:sessionId/embeddings", authenticateToken, async (req: AuthRequest, res) => {
     try {
