@@ -10548,6 +10548,13 @@ def extract_function(Column_Name, Excel_File):
           Object.values(DEFAULT_TOOLS)
         );
         console.log(`Cloned ${toolMapping.size} tools to project ${projectId}:`, Object.fromEntries(toolMapping));
+        
+        // Safeguard: warn if any required tool is missing
+        for (const [key, toolName] of Object.entries(DEFAULT_TOOLS)) {
+          if (!toolMapping.has(toolName)) {
+            console.error(`CRITICAL: Required tool "${toolName}" (${key}) was not cloned - check reference project`);
+          }
+        }
       } catch (err) {
         console.warn("Could not clone default tools:", err);
       }
