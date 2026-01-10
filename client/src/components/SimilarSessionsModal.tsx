@@ -235,3 +235,5 @@ export function SimilarSessionsModal({
     </Dialog>
   );
 }
+
+export default SimilarSessionsModal;

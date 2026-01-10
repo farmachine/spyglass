@@ -64,6 +64,7 @@ import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
+import SimilarSessionsModal from "@/components/SimilarSessionsModal";
 
 import type { 
   ExtractionSession, 
@@ -1647,6 +1648,10 @@ export default function SessionView() {
   
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
+  
+  // Similar sessions modal state (for template detection after upload)
+  const [similarSessionsModalOpen, setSimilarSessionsModalOpen] = useState(false);
+  const [uploadedDocumentContent, setUploadedDocumentContent] = useState<string>("");
   
   
   // AI extraction modal state
@@ -6854,10 +6859,59 @@ Thank you for your assistance.`;
         onClose={() => setDocumentUploadModalOpen(false)}
         sessionId={sessionId!}
         projectId={projectId!}
-        onSuccess={() => {
+        onSuccess={async () => {
           // Refresh session documents after successful upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+          
+          // Check if there are any workflow steps defined - if not, show the similar sessions modal
+          const hasWorkflowSteps = project?.workflowSteps && project.workflowSteps.length > 0;
+          if (!hasWorkflowSteps) {
+            // Fetch the latest documents to get content for similarity detection
+            try {
+              const docsResponse = await apiRequest(`/api/sessions/${sessionId}/documents`);
+              if (docsResponse && docsResponse.length > 0) {
+                // Get the combined content of all documents
+                const combinedContent = docsResponse
+                  .map((doc: any) => doc.extractedContent || '')
+                  .filter((content: string) => content.length > 0)
+                  .join('\n\n');
+                
+                if (combinedContent.length > 0) {
+                  setUploadedDocumentContent(combinedContent);
+                  setSimilarSessionsModalOpen(true);
+                }
+              }
+            } catch (error) {
+              console.error('Failed to fetch documents for similarity detection:', error);
+            }
+          }
+        }}
+      />
+      
+      {/* Similar Sessions Modal (template detection after upload) */}
+      <SimilarSessionsModal
+        open={similarSessionsModalOpen}
+        onOpenChange={setSimilarSessionsModalOpen}
+        sessionId={sessionId!}
+        projectId={projectId!}
+        documentContent={uploadedDocumentContent}
+        onApplyTemplate={(schemaSnapshot) => {
+          console.log('Template schema applied:', schemaSnapshot);
+          // Refresh project data to show the new schema
+          queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+          toast({
+            title: "Schema Applied",
+            description: "The extraction schema has been copied from a similar session.",
+          });
+        }}
+        onApplyAiSuggestion={(suggestion) => {
+          console.log('AI schema suggestion:', suggestion);
+          // TODO: Apply the AI-suggested schema to create workflow steps
+          toast({
+            title: "AI Schema Suggested",
+            description: "Review the suggested schema and customize as needed.",
+          });
         }}
       />
       {/* Column Extraction Modal for Workflow Step Values */}
