@@ -10522,7 +10522,7 @@ def extract_function(Column_Name, Excel_File):
   });
 
   // Apply AI-suggested schema to create workflow steps
-  // Matches generated fields to reference project tools for automatic tool assignment
+  // Clones default tools from reference project and assigns based on value position
   app.post("/api/projects/:projectId/apply-ai-schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
@@ -10532,47 +10532,25 @@ def extract_function(Column_Name, Excel_File):
         return res.status(400).json({ message: "suggestedSteps array is required" });
       }
 
-      // Fetch reference project tools for field matching
-      let referenceTools: any[] = [];
-      try {
-        referenceTools = await storage.getReferenceProjectTools(REFERENCE_PROJECT_ID);
-        console.log(`Loaded ${referenceTools.length} reference tools for schema application`);
-      } catch (err) {
-        console.warn("Could not load reference project tools:", err);
-      }
-
-      // Build lookup map for fuzzy field matching
-      const normalizeFieldName = (name: string): string => 
-        name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
-      
-      const toolLookup = new Map<string, typeof referenceTools[0]>();
-      for (const tool of referenceTools) {
-        const normalized = normalizeFieldName(tool.valueName);
-        if (!toolLookup.has(normalized)) {
-          toolLookup.set(normalized, tool);
-        }
-      }
-
-      // Find matching reference tool for a field name
-      const findMatchingTool = (fieldName: string): typeof referenceTools[0] | null => {
-        const normalized = normalizeFieldName(fieldName);
-        
-        // Exact match
-        if (toolLookup.has(normalized)) {
-          console.log(`  Exact match: "${fieldName}" -> "${toolLookup.get(normalized)!.valueName}"`);
-          return toolLookup.get(normalized)!;
-        }
-        
-        // Partial match (field name contains or is contained by reference name)
-        for (const [refNormalized, tool] of toolLookup.entries()) {
-          if (normalized.includes(refNormalized) || refNormalized.includes(normalized)) {
-            console.log(`  Partial match: "${fieldName}" -> "${tool.valueName}"`);
-            return tool;
-          }
-        }
-        
-        return null;
+      // Define the 3 default tools to clone
+      const DEFAULT_TOOLS = {
+        INFO_PAGE: "AI Data Point Extraction",
+        DATA_TABLE_FIRST: "Create a list of items using AI",
+        DATA_TABLE_SUBSEQUENT: "AI Extraction for a List of Data Records"
       };
+
+      // Clone default tools from reference project to target project
+      let toolMapping = new Map<string, string>();
+      try {
+        toolMapping = await storage.cloneDefaultToolsToProject(
+          REFERENCE_PROJECT_ID,
+          projectId,
+          Object.values(DEFAULT_TOOLS)
+        );
+        console.log(`Cloned ${toolMapping.size} tools to project ${projectId}:`, Object.fromEntries(toolMapping));
+      } catch (err) {
+        console.warn("Could not clone default tools:", err);
+      }
 
       const createdSteps: any[] = [];
 
@@ -10634,35 +10612,33 @@ def extract_function(Column_Name, Excel_File):
               isIdentifier = false; // Only first can be identifier
             }
             
-            // Find matching reference tool
+            // Assign tool based on step type and position
             let toolId: string | null = null;
             let inputValues: any = {};
             
-            // First check if AI provided a toolKey match
-            if (typeof value === 'object' && value?.toolKey) {
-              const matchedTool = findMatchingTool(value.toolKey);
-              if (matchedTool) {
-                toolId = matchedTool.toolId;
-                inputValues = matchedTool.inputValues || {};
-                if (matchedTool.dataType) {
-                  dataType = matchedTool.dataType;
-                }
+            if (mappedStepType === 'info_page') {
+              // All Info Page values use "AI Data Point Extraction"
+              toolId = toolMapping.get(DEFAULT_TOOLS.INFO_PAGE) || null;
+              inputValues = {
+                instructions: description || `Extract the ${valueName} from the document.`
+              };
+            } else if (mappedStepType === 'data_table') {
+              if (i === 0) {
+                // First column (identifier) uses "Create a list of items using AI"
+                toolId = toolMapping.get(DEFAULT_TOOLS.DATA_TABLE_FIRST) || null;
+                inputValues = {
+                  instructions: description || `Create a list of ${valueName} identifiers from the document.`
+                };
+              } else {
+                // Subsequent columns use "AI Extraction for a List of Data Records"
+                toolId = toolMapping.get(DEFAULT_TOOLS.DATA_TABLE_SUBSEQUENT) || null;
+                inputValues = {
+                  instructions: description || `Extract the ${valueName} for each record in the table.`
+                };
               }
             }
             
-            // If no toolKey match, try matching by field name
-            if (!toolId) {
-              const matchedTool = findMatchingTool(valueName);
-              if (matchedTool) {
-                toolId = matchedTool.toolId;
-                inputValues = matchedTool.inputValues || {};
-                if (matchedTool.dataType) {
-                  dataType = matchedTool.dataType;
-                }
-              }
-            }
-            
-            console.log(`  Creating value "${valueName}" (${dataType})${toolId ? ` with tool ${toolId}` : ''}`);
+            console.log(`  Creating value "${valueName}" (${dataType})${toolId ? ` with tool ${toolId}` : ' (no tool)'}`);
             
             const stepValue = await storage.createStepValue({
               stepId: workflowStep.id,

@@ -311,6 +311,10 @@ export interface IStorage {
     isIdentifier: boolean;
     description: string | null;
   }>>;
+  
+  // Clone default tools from reference project to target project
+  // Returns mapping of tool names to newly created tool IDs
+  cloneDefaultToolsToProject(referenceProjectId: string, targetProjectId: string, toolNames: string[]): Promise<Map<string, string>>;
 
   // Session Templates
   getSessionTemplates(projectId: string): Promise<SessionTemplate[]>;
@@ -2311,6 +2315,25 @@ export class MemStorage implements IStorage {
   }
   async getDefaultTemplate(_projectId: string): Promise<SessionTemplate | undefined> {
     return undefined;
+  }
+
+  // Reference Project Tools (stub implementations)
+  async getReferenceProjectTools(_projectId: string): Promise<Array<{
+    valueName: string;
+    stepName: string;
+    stepType: string;
+    toolId: string | null;
+    inputValues: any;
+    dataType: string;
+    isIdentifier: boolean;
+    description: string | null;
+  }>> {
+    return [];
+  }
+
+  async cloneDefaultToolsToProject(_referenceProjectId: string, _targetProjectId: string, _toolNames: string[]): Promise<Map<string, string>> {
+    console.warn("MemStorage does not support cloneDefaultToolsToProject");
+    return new Map();
   }
 
   // Document Embeddings (stub implementations)
@@ -4390,6 +4413,67 @@ class PostgreSQLStorage implements IStorage {
       }
       
       return results;
+    });
+  }
+
+  async cloneDefaultToolsToProject(referenceProjectId: string, targetProjectId: string, toolNames: string[]): Promise<Map<string, string>> {
+    return this.retryOperation(async () => {
+      const toolMapping = new Map<string, string>();
+      
+      // Get all tools from reference project
+      const referenceTools = await this.db.select().from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.projectId, referenceProjectId));
+      
+      // Check if target project already has these tools
+      const existingTools = await this.db.select().from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.projectId, targetProjectId));
+      
+      const existingToolNames = new Set(existingTools.map(t => t.name.toLowerCase().trim()));
+      
+      for (const toolName of toolNames) {
+        const normalizedName = toolName.toLowerCase().trim();
+        
+        // Check if tool already exists in target project
+        const existingTool = existingTools.find(t => t.name.toLowerCase().trim() === normalizedName);
+        if (existingTool) {
+          toolMapping.set(toolName, existingTool.id);
+          console.log(`Tool "${toolName}" already exists in target project with ID ${existingTool.id}`);
+          continue;
+        }
+        
+        // Find the reference tool
+        const refTool = referenceTools.find(t => t.name.toLowerCase().trim() === normalizedName);
+        if (!refTool) {
+          console.warn(`Reference tool "${toolName}" not found in reference project`);
+          continue;
+        }
+        
+        // Clone the tool to target project
+        const [newTool] = await this.db.insert(excelWizardryFunctions).values({
+          projectId: targetProjectId,
+          name: refTool.name,
+          description: refTool.description,
+          functionCode: refTool.functionCode,
+          aiPrompt: refTool.aiPrompt,
+          toolType: refTool.toolType,
+          outputType: refTool.outputType,
+          operationType: refTool.operationType,
+          inputParameters: refTool.inputParameters,
+          aiAssistanceRequired: refTool.aiAssistanceRequired,
+          aiAssistancePrompt: refTool.aiAssistancePrompt,
+          llmModel: refTool.llmModel,
+          metadata: refTool.metadata,
+          inputSchema: refTool.inputSchema,
+          outputSchema: refTool.outputSchema,
+          tags: refTool.tags,
+          usageCount: 0
+        }).returning();
+        
+        toolMapping.set(toolName, newTool.id);
+        console.log(`Cloned tool "${toolName}" to target project with new ID ${newTool.id}`);
+      }
+      
+      return toolMapping;
     });
   }
 
