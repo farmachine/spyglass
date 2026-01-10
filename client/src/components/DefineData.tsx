@@ -417,6 +417,12 @@ export default function DefineData({
   const [mainObjectName, setMainObjectName] = useState(project.mainObjectName || 'Session');
   const [isEditingMainObject, setIsEditingMainObject] = useState(false);
   const [tempMainObjectName, setTempMainObjectName] = useState(mainObjectName);
+  
+  const [sessionStatusOptions, setSessionStatusOptions] = useState<string[]>(
+    (project.sessionStatusOptions as string[]) || []
+  );
+  const [isEditingStatuses, setIsEditingStatuses] = useState(false);
+  const [newStatusInput, setNewStatusInput] = useState('');
 
   const handleSaveMainObjectName = async () => {
     try {
@@ -440,6 +446,46 @@ export default function DefineData({
       toast({
         title: "Error",
         description: "Failed to update main object name",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddStatus = () => {
+    const trimmed = newStatusInput.trim();
+    const lowerTrimmed = trimmed.toLowerCase();
+    const isDuplicate = sessionStatusOptions.some(s => s.toLowerCase() === lowerTrimmed);
+    if (trimmed && !isDuplicate) {
+      setSessionStatusOptions([...sessionStatusOptions, trimmed]);
+      setNewStatusInput('');
+    }
+  };
+
+  const handleRemoveStatus = (status: string) => {
+    setSessionStatusOptions(sessionStatusOptions.filter(s => s !== status));
+  };
+
+  const handleSaveStatuses = async () => {
+    try {
+      await apiRequest(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sessionStatusOptions }),
+      });
+      setIsEditingStatuses(false);
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects-with-orgs'] });
+      
+      toast({
+        title: "Saved",
+        description: "Status options updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating status options:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update status options",
         variant: "destructive",
       });
     }
@@ -513,6 +559,115 @@ export default function DefineData({
           </div>
         </div>
       </div>
+
+      {/* Session Status Configuration */}
+      <Card className="border border-gray-200 dark:border-gray-700">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              {mainObjectName} Status Options
+            </CardTitle>
+            {!isEditingStatuses ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditingStatuses(true)}
+                className="h-8 px-3 text-xs"
+              >
+                <Pencil className="h-3 w-3 mr-1" />
+                Configure
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSaveStatuses}
+                  className="h-8 px-3 text-xs"
+                >
+                  <Check className="h-3 w-3 mr-1 text-green-600" />
+                  Save
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSessionStatusOptions((project.sessionStatusOptions as string[]) || []);
+                    setIsEditingStatuses(false);
+                  }}
+                  className="h-8 px-3 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1 text-red-500" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {isEditingStatuses ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {sessionStatusOptions.map((status, idx) => (
+                  <Badge 
+                    key={idx} 
+                    variant="secondary" 
+                    className="px-3 py-1 text-sm flex items-center gap-1.5"
+                  >
+                    {status}
+                    <button
+                      onClick={() => handleRemoveStatus(status)}
+                      className="ml-1 hover:text-red-500 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newStatusInput}
+                  onChange={(e) => setNewStatusInput(e.target.value)}
+                  placeholder="Add new status (e.g., In Progress)"
+                  className="h-9 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddStatus();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleAddStatus}
+                  size="sm"
+                  className="h-9 px-3"
+                  disabled={!newStatusInput.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Define status options like "In Progress", "Responded", "Won", "Lost" for your {mainObjectName.toLowerCase()}s
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sessionStatusOptions.length > 0 ? (
+                sessionStatusOptions.map((status, idx) => (
+                  <Badge key={idx} variant="outline" className="px-3 py-1 text-sm">
+                    {status}
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No status options configured. Click "Configure" to add status options for your {mainObjectName.toLowerCase()}s.
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Workflow Builder View */}
       <WorkflowBuilder

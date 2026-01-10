@@ -81,8 +81,17 @@ The design system uses Slate Blue (#4F63A4) as the primary color and features co
 *   **Backend**: Node.js with Express, TypeScript (ESM modules), PostgreSQL with Drizzle ORM, Google Gemini API for AI integration, Python services for document processing, `connect-pg-simple` for session management.
 *   **Infrastructure**: Deployed on Replit, database hosted on Neon (PostgreSQL), NixOS distribution, npm/pip for package management.
 
+### Configurable Session Status (Jan 2026)
+Projects can define custom workflow status options for their sessions:
+- **Project-level configuration**: `sessionStatusOptions` JSON array on projects table (e.g., ["In Progress", "Responded", "Won", "Lost"])
+- **Session-level status**: `workflowStatus` text field on extraction_sessions table
+- **UI**: Admins configure options in DefineData.tsx; users select status via dropdown in AllData.tsx
+- **Case-insensitive duplicate prevention**: Status entries are validated to avoid duplicates
+
 ### Database Schema
 Core tables include:
+*   `projects`: Added `session_status_options` (JSONB) for configurable workflow status options.
+*   `extraction_sessions`: Added `workflow_status` (TEXT) for user-defined session status.
 *   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, and `identifier_id`.
 *   `step_values`: Defines columns/fields within steps with `id`, `step_id`, `value_name`, `tool_id`, `order_index`, `input_values` (JSONB), and `fields` (JSONB for multi-field support).
 *   `field_validations`: Stores extracted data with `id`, `field_id`, `identifier_id`, `extracted_value`, `validation_status`, `ai_reasoning`, and `confidence_score`.

@@ -66,6 +66,7 @@ export const projects = pgTable("projects", {
   mainObjectDescription: text("main_object_description"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
+  sessionStatusOptions: jsonb("session_status_options"), // Configurable status options for sessions e.g. ["In Progress", "Responded", "Won", "Lost"]
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -167,7 +168,8 @@ export const extractionSessions = pgTable("extraction_sessions", {
   sessionName: text("session_name").notNull(),
   description: text("description"),
   documentCount: integer("document_count").notNull().default(0),
-  status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error
+  status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error (system status)
+  workflowStatus: text("workflow_status"), // User-defined workflow status from project's sessionStatusOptions
   extractedData: text("extracted_data"), // Store AI extraction results as JSON string
   extractionPrompt: text("extraction_prompt"), // Store the complete AI prompt used for extraction
   aiResponse: text("ai_response"), // Store the raw AI response before parsing

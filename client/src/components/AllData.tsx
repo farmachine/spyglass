@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,7 +18,7 @@ interface AllDataProps {
   project: ProjectWithDetails;
 }
 
-type SortField = 'sessionName' | 'documentCount' | 'progress' | 'status' | 'createdAt';
+type SortField = 'sessionName' | 'documentCount' | 'progress' | 'status' | 'workflowStatus' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
 
 export default function AllData({ project }: AllDataProps) {
@@ -28,6 +29,25 @@ export default function AllData({ project }: AllDataProps) {
   const [sessionName, setSessionName] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const sessionStatusOptions = (project.sessionStatusOptions as string[]) || [];
+
+  const updateWorkflowStatusMutation = useMutation({
+    mutationFn: async ({ sessionId, workflowStatus }: { sessionId: string; workflowStatus: string | null }) => {
+      return apiRequest(`/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ workflowStatus }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}`] });
+      toast({ title: "Status updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    },
+  });
 
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -225,6 +245,10 @@ export default function AllData({ project }: AllDataProps) {
           aValue = statusOrder[getVerificationStatus(a.id)];
           bValue = statusOrder[getVerificationStatus(b.id)];
           break;
+        case 'workflowStatus':
+          aValue = (a.workflowStatus || '').toLowerCase();
+          bValue = (b.workflowStatus || '').toLowerCase();
+          break;
         case 'createdAt':
           aValue = new Date(a.createdAt).getTime();
           bValue = new Date(b.createdAt).getTime();
@@ -376,14 +400,17 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName" className="py-3 w-2/5">{project.mainObjectName || 'Session'} Name</SortableHeader>
-                    <SortableHeader field="documentCount" className="py-3 w-1/12 text-center">Docs</SortableHeader>
-                    <SortableHeader field="progress" className="py-3 w-1/4">Progress</SortableHeader>
-                    <SortableHeader field="status" className="py-3 w-1/12 text-center">
+                    <SortableHeader field="sessionName" className="py-3 w-1/4">{project.mainObjectName || 'Session'} Name</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 w-[60px] text-center">Docs</SortableHeader>
+                    <SortableHeader field="progress" className="py-3 w-1/6">Progress</SortableHeader>
+                    <SortableHeader field="status" className="py-3 w-[60px] text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </SortableHeader>
+                    {sessionStatusOptions.length > 0 && (
+                      <SortableHeader field="workflowStatus" className="py-3 w-1/6">Status</SortableHeader>
+                    )}
                     <SortableHeader field="createdAt" className="py-3 w-1/6">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
@@ -435,6 +462,33 @@ export default function AllData({ project }: AllDataProps) {
                           )}
                         </div>
                       </TableCell>
+                      {sessionStatusOptions.length > 0 && (
+                        <TableCell className="py-3">
+                          <Select
+                            value={session.workflowStatus || '__none__'}
+                            onValueChange={(value) => {
+                              updateWorkflowStatusMutation.mutate({
+                                sessionId: session.id,
+                                workflowStatus: value === '__none__' ? null : value,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">
+                                <span className="text-gray-400">No status</span>
+                              </SelectItem>
+                              {sessionStatusOptions.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
                       <TableCell className="py-3">
                         <div className="text-xs text-gray-800 dark:text-gray-400">
                           {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
