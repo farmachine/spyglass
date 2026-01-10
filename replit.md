@@ -99,6 +99,23 @@ The platform now supports intelligent schema suggestion and template reuse:
   - `SimilarSessionsModal.tsx`: Frontend component for template selection and AI schema generation
   - API endpoints: `/api/projects/:projectId/templates`, `/api/projects/:projectId/find-similar-sessions`, `/api/projects/:projectId/suggest-schema`
 
+### Reference Project Tools & Enhanced Schema Generation (Jan 2026 - Phase 2.1)
+AI schema generation now uses tools from a reference project for consistent field matching:
+- **Reference Project**: Project `3005ce6d-79f2-4cd3-892e-4482d4534ca4` serves as the source for default tool configurations
+- **Automatic Tool Assignment**: When AI suggests fields, matching reference tools are automatically assigned based on:
+  - Exact field name match (case-insensitive, normalized)
+  - Partial field name match (contains/contained-by logic)
+- **Enhanced AI Prompt**: Schema generation now creates:
+  - Info Pages for document metadata (title, dates, parties)
+  - Data Tables with proper identifiers for repeating data (risks, deliverables, line items)
+  - Cross-step references for derived calculations (e.g., Risk Scoring referencing Risks)
+- **Key Components**:
+  - `storage.getReferenceProjectTools()`: Fetches all step values with tool configs from reference project
+  - `analyzeDocumentForSchema()` now accepts reference tools and generates `data_table`/`page` step types
+  - `/api/projects/:projectId/apply-ai-schema`: Applies reference tools to generated schema fields
+- **Data Types**: TEXT, TEXTAREA, NUMBER, DATE, BOOLEAN, CHOICE
+- **Step Types**: `page` (Info Page), `data_table` (Data Table with identifier column)
+
 ### Database Schema
 Core tables include:
 *   `projects`: Added `session_status_options` (JSONB) for configurable workflow status options.

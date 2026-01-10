@@ -10490,6 +10490,9 @@ def extract_function(Column_Name, Excel_File):
   });
 
   // Generate AI schema suggestion from document content
+  // Uses reference project tools for better field matching and tool assignment
+  const REFERENCE_PROJECT_ID = "3005ce6d-79f2-4cd3-892e-4482d4534ca4";
+  
   app.post("/api/projects/:projectId/suggest-schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { documentContent } = req.body;
@@ -10498,10 +10501,20 @@ def extract_function(Column_Name, Excel_File):
         return res.status(400).json({ message: "Document content is required" });
       }
 
-      const { analyzeDocumentForSchema } = await import('./gemini');
-      const suggestion = await analyzeDocumentForSchema(documentContent);
+      // Fetch reference project tools for AI context
+      let referenceTools: any[] = [];
+      try {
+        referenceTools = await storage.getReferenceProjectTools(REFERENCE_PROJECT_ID);
+        console.log(`Loaded ${referenceTools.length} reference tools from project ${REFERENCE_PROJECT_ID}`);
+      } catch (err) {
+        console.warn("Could not load reference project tools:", err);
+      }
 
-      res.json(suggestion);
+      const { analyzeDocumentForSchema } = await import('./gemini');
+      const suggestion = await analyzeDocumentForSchema(documentContent, referenceTools);
+
+      // Include reference tools in response for apply-ai-schema to use
+      res.json({ ...suggestion, referenceTools });
     } catch (error) {
       console.error("Error generating schema suggestion:", error);
       res.status(500).json({ message: "Failed to generate schema suggestion" });
@@ -10509,6 +10522,7 @@ def extract_function(Column_Name, Excel_File):
   });
 
   // Apply AI-suggested schema to create workflow steps
+  // Matches generated fields to reference project tools for automatic tool assignment
   app.post("/api/projects/:projectId/apply-ai-schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
@@ -10518,14 +10532,70 @@ def extract_function(Column_Name, Excel_File):
         return res.status(400).json({ message: "suggestedSteps array is required" });
       }
 
+      // Fetch reference project tools for field matching
+      let referenceTools: any[] = [];
+      try {
+        referenceTools = await storage.getReferenceProjectTools(REFERENCE_PROJECT_ID);
+        console.log(`Loaded ${referenceTools.length} reference tools for schema application`);
+      } catch (err) {
+        console.warn("Could not load reference project tools:", err);
+      }
+
+      // Build lookup map for fuzzy field matching
+      const normalizeFieldName = (name: string): string => 
+        name.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+      
+      const toolLookup = new Map<string, typeof referenceTools[0]>();
+      for (const tool of referenceTools) {
+        const normalized = normalizeFieldName(tool.valueName);
+        if (!toolLookup.has(normalized)) {
+          toolLookup.set(normalized, tool);
+        }
+      }
+
+      // Find matching reference tool for a field name
+      const findMatchingTool = (fieldName: string): typeof referenceTools[0] | null => {
+        const normalized = normalizeFieldName(fieldName);
+        
+        // Exact match
+        if (toolLookup.has(normalized)) {
+          console.log(`  Exact match: "${fieldName}" -> "${toolLookup.get(normalized)!.valueName}"`);
+          return toolLookup.get(normalized)!;
+        }
+        
+        // Partial match (field name contains or is contained by reference name)
+        for (const [refNormalized, tool] of toolLookup.entries()) {
+          if (normalized.includes(refNormalized) || refNormalized.includes(normalized)) {
+            console.log(`  Partial match: "${fieldName}" -> "${tool.valueName}"`);
+            return tool;
+          }
+        }
+        
+        return null;
+      };
+
       const createdSteps: any[] = [];
 
       for (const step of suggestedSteps) {
+        // Map stepType correctly: AI uses "data_table"/"page", DB uses "data_table"/"info_page"
+        // Also handle legacy "list" type for backwards compatibility
+        let mappedStepType: string;
+        if (step.stepType === 'data_table' || step.stepType === 'list') {
+          mappedStepType = 'data_table';
+        } else if (step.stepType === 'page' || step.stepType === 'info_page') {
+          mappedStepType = 'info_page'; // DB uses "info_page" not "page"
+        } else {
+          mappedStepType = 'info_page'; // Default to info_page for unknown types
+        }
+        
+        console.log(`Creating step "${step.stepName}" with type "${mappedStepType}"`);
+        
         // Create the workflow step
         const workflowStep = await storage.createWorkflowStep({
           projectId,
           stepName: step.stepName,
-          stepType: step.stepType === 'list' ? 'data_table' : 'info_page',
+          stepType: mappedStepType,
+          description: step.description || null,
           valueCount: step.values?.length || 0,
         });
 
@@ -10534,25 +10604,75 @@ def extract_function(Column_Name, Excel_File):
         if (step.values && Array.isArray(step.values)) {
           for (let i = 0; i < step.values.length; i++) {
             const value = step.values[i];
-            // Handle different value formats from AI (string, object with name, object with valueName)
+            
+            // Handle different value formats from AI
             let valueName: string;
+            let dataType: string = "TEXT";
+            let description: string | null = null;
+            let isIdentifier: boolean = false;
+            let referenceConfig: any = null;
+            
             if (typeof value === 'string') {
               valueName = value;
-            } else if (value?.name) {
-              valueName = value.name;
-            } else if (value?.valueName) {
-              valueName = value.valueName;
             } else {
-              valueName = `Field ${i + 1}`;
+              valueName = value?.valueName || value?.name || `Field ${i + 1}`;
+              dataType = value?.dataType || "TEXT";
+              description = value?.description || null;
+              isIdentifier = value?.isIdentifier === true;
+              
+              // Store cross-step reference configuration if present
+              if (value?.reference) {
+                referenceConfig = value.reference;
+              }
             }
+            
+            // For data tables, ensure first field marked as identifier is actually first
+            // and only one identifier per table
+            if (mappedStepType === 'data_table' && i === 0) {
+              isIdentifier = true; // First column is always identifier for data tables
+            } else if (mappedStepType === 'data_table' && i > 0) {
+              isIdentifier = false; // Only first can be identifier
+            }
+            
+            // Find matching reference tool
+            let toolId: string | null = null;
+            let inputValues: any = {};
+            
+            // First check if AI provided a toolKey match
+            if (typeof value === 'object' && value?.toolKey) {
+              const matchedTool = findMatchingTool(value.toolKey);
+              if (matchedTool) {
+                toolId = matchedTool.toolId;
+                inputValues = matchedTool.inputValues || {};
+                if (matchedTool.dataType) {
+                  dataType = matchedTool.dataType;
+                }
+              }
+            }
+            
+            // If no toolKey match, try matching by field name
+            if (!toolId) {
+              const matchedTool = findMatchingTool(valueName);
+              if (matchedTool) {
+                toolId = matchedTool.toolId;
+                inputValues = matchedTool.inputValues || {};
+                if (matchedTool.dataType) {
+                  dataType = matchedTool.dataType;
+                }
+              }
+            }
+            
+            console.log(`  Creating value "${valueName}" (${dataType})${toolId ? ` with tool ${toolId}` : ''}`);
             
             const stepValue = await storage.createStepValue({
               stepId: workflowStep.id,
               valueName,
-              dataType: "TEXT", // Default to TEXT, user can change later
+              dataType,
+              description,
+              isIdentifier,
               orderIndex: i,
-              toolId: null, // Will be configured later
-              inputValues: {},
+              toolId,
+              inputValues,
             });
             createdValues.push(stepValue);
           }

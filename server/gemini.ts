@@ -79,39 +79,132 @@ export async function findSimilarSessions(
     .sort((a, b) => b.similarity - a.similarity);
 }
 
-export async function analyzeDocumentForSchema(documentContent: string): Promise<{
-  suggestedSteps: Array<{
-    stepName: string;
-    stepType: "page" | "list";
+export interface ReferenceToolMapping {
+  valueName: string;
+  stepName: string;
+  stepType: string;
+  toolId: string | null;
+  inputValues: any;
+  dataType: string;
+  isIdentifier: boolean;
+  description: string | null;
+}
+
+export interface SuggestedStep {
+  stepName: string;
+  stepType: "page" | "data_table";
+  description: string;
+  values: Array<{
+    valueName: string;
+    dataType: string;
     description: string;
-    values: Array<{ valueName: string; dataType: string; description: string }>;
+    isIdentifier?: boolean;
+    toolKey?: string;
+    reference?: {
+      stepName: string;
+      valueName: string;
+      relationship: "lookup" | "aggregate" | "transform";
+    };
   }>;
+}
+
+export async function analyzeDocumentForSchema(
+  documentContent: string,
+  referenceTools?: ReferenceToolMapping[]
+): Promise<{
+  suggestedSteps: SuggestedStep[];
 }> {
-  const prompt = `Analyze the following document and suggest an extraction schema.
-Identify key data points that should be extracted from similar documents.
+  // Build reference tool context for the AI
+  let referenceToolsContext = "";
+  if (referenceTools && referenceTools.length > 0) {
+    const toolsByCategory = new Map<string, ReferenceToolMapping[]>();
+    for (const tool of referenceTools) {
+      // Normalize step types: DB uses "info_page"/"data_table", AI uses "page"/"data_table"
+      const isInfoPage = tool.stepType === 'page' || tool.stepType === 'info_page' || tool.stepType === 'infoPage';
+      const category = isInfoPage ? 'Info Page Fields' : 'Data Table Columns';
+      if (!toolsByCategory.has(category)) {
+        toolsByCategory.set(category, []);
+      }
+      toolsByCategory.get(category)!.push(tool);
+    }
+    
+    referenceToolsContext = `\n\nAVAILABLE REFERENCE TOOLS (use these field names and configurations when applicable):
+${Array.from(toolsByCategory.entries()).map(([category, tools]) => 
+  `${category}:\n${tools.map(t => `  - "${t.valueName}" (${t.dataType})${t.toolId ? ` [has tool]` : ''}`).join('\n')}`
+).join('\n\n')}
 
-Document content:
-${documentContent.slice(0, 10000)}
+IMPORTANT: When suggesting fields, try to match field names to reference tools above. Set "toolKey" to the exact reference field name if it matches (case-insensitive).`;
+  }
 
-Respond with JSON:
+  const prompt = `You are an expert document analysis AI that designs extraction schemas for legal and business documents.
+
+Analyze the following document and create a comprehensive extraction schema with properly structured workflow steps.
+${referenceToolsContext}
+
+DOCUMENT CONTENT:
+${documentContent.slice(0, 15000)}
+
+RESPOND WITH JSON (no markdown):
 {
   "suggestedSteps": [
     {
-      "stepName": "Info Page or Table name",
-      "stepType": "page" or "list",
-      "description": "Description of what this step extracts",
+      "stepName": "Step name (e.g., 'Project Info', 'Risks', 'Deliverables')",
+      "stepType": "page" or "data_table",
+      "description": "What this step extracts",
       "values": [
-        {"valueName": "Field name", "dataType": "TEXT|NUMBER|DATE|CHOICE", "description": "Field description"}
+        {
+          "valueName": "Field name",
+          "dataType": "TEXT|NUMBER|DATE|BOOLEAN|TEXTAREA|CHOICE",
+          "description": "Field purpose",
+          "isIdentifier": true/false,
+          "toolKey": "matching reference tool name if applicable",
+          "reference": {
+            "stepName": "Referenced step name",
+            "valueName": "Referenced field name", 
+            "relationship": "lookup|aggregate|transform"
+          }
+        }
       ]
     }
   ]
 }
 
-Guidelines:
-- Use "page" for single-value data (header info, summary fields)
-- Use "list" for repeated/tabular data (line items, schedules)
-- Keep field names clear and concise
-- Include 3-10 values per step`;
+SCHEMA DESIGN GUIDELINES:
+
+1. STEP TYPES:
+   - "page" (Info Page): Single-value extraction for document metadata, summary info, key dates, parties involved
+   - "data_table" (Data Table): Multi-row extraction for repeating items like line items, risks, requirements, deliverables
+
+2. STEP ORGANIZATION:
+   - Start with an Info Page for document-level metadata (title, date, parties, reference numbers)
+   - Add Data Tables for each distinct type of repeating data found in the document
+   - Consider adding analysis/scoring tables that reference primary data tables
+
+3. DATA TABLE IDENTIFIERS:
+   - Every data_table MUST have exactly ONE field with "isIdentifier": true as the first value
+   - This identifier field uniquely identifies each row (e.g., "Risk ID", "Item Number", "Deliverable ID")
+
+4. CROSS-STEP REFERENCES:
+   - Use "reference" to link fields between steps for derived calculations
+   - Example: A "Risk Score" table can reference a "Risks" table
+   - Relationships:
+     * "lookup": Pull value from another step based on identifier
+     * "aggregate": Calculate based on multiple values (sum, count, average)
+     * "transform": Apply calculation/logic to referenced value
+
+5. FIELD NAMING:
+   - Use clear, concise field names (e.g., "Project Name", "Start Date", "Risk Level")
+   - Match reference tool names when available for automatic tool assignment
+
+6. DATA TYPES:
+   - TEXT: Short text values (names, IDs, categories)
+   - TEXTAREA: Long text (descriptions, summaries, notes)
+   - NUMBER: Numeric values (amounts, quantities, scores)
+   - DATE: Date values
+   - BOOLEAN: Yes/No values
+   - CHOICE: Categorical with limited options
+
+Create a schema that comprehensively captures all extractable information from this document type.`;
 
   const response = await genAI.models.generateContent({
     model: "gemini-2.0-flash",
@@ -121,7 +214,22 @@ Guidelines:
   let text = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
   text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "").trim();
   
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Failed to parse AI schema response:", text);
+    return {
+      suggestedSteps: [{
+        stepName: "Document Info",
+        stepType: "page",
+        description: "Basic document information",
+        values: [
+          { valueName: "Document Title", dataType: "TEXT", description: "Title of the document" },
+          { valueName: "Document Date", dataType: "DATE", description: "Date of the document" }
+        ]
+      }]
+    };
+  }
 }
 
 export async function testAIOnlyTool(

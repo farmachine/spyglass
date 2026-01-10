@@ -299,6 +299,18 @@ export interface IStorage {
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
   deleteStepValue(id: string): Promise<boolean>;
+  
+  // Reference Project Tools - fetches all step values with tool configs from a reference project
+  getReferenceProjectTools(projectId: string): Promise<Array<{
+    valueName: string;
+    stepName: string;
+    stepType: string;
+    toolId: string | null;
+    inputValues: any;
+    dataType: string;
+    isIdentifier: boolean;
+    description: string | null;
+  }>>;
 
   // Session Templates
   getSessionTemplates(projectId: string): Promise<SessionTemplate[]>;
@@ -4326,6 +4338,58 @@ class PostgreSQLStorage implements IStorage {
     return this.retryOperation(async () => {
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
       return result.rowCount > 0;
+    });
+  }
+
+  async getReferenceProjectTools(projectId: string): Promise<Array<{
+    valueName: string;
+    stepName: string;
+    stepType: string;
+    toolId: string | null;
+    inputValues: any;
+    dataType: string;
+    isIdentifier: boolean;
+    description: string | null;
+  }>> {
+    return this.retryOperation(async () => {
+      // Get all workflow steps for the project
+      const steps = await this.db.select().from(workflowSteps)
+        .where(eq(workflowSteps.projectId, projectId));
+      
+      if (steps.length === 0) return [];
+      
+      // Get all step values for each step
+      const results: Array<{
+        valueName: string;
+        stepName: string;
+        stepType: string;
+        toolId: string | null;
+        inputValues: any;
+        dataType: string;
+        isIdentifier: boolean;
+        description: string | null;
+      }> = [];
+      
+      for (const step of steps) {
+        const values = await this.db.select().from(stepValues)
+          .where(eq(stepValues.stepId, step.id))
+          .orderBy(stepValues.orderIndex);
+        
+        for (const value of values) {
+          results.push({
+            valueName: value.valueName,
+            stepName: step.stepName,
+            stepType: step.stepType,
+            toolId: value.toolId,
+            inputValues: value.inputValues,
+            dataType: value.dataType,
+            isIdentifier: value.isIdentifier || false,
+            description: value.description
+          });
+        }
+      }
+      
+      return results;
     });
   }
 
