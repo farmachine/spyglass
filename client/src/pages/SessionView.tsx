@@ -6915,9 +6915,11 @@ Thank you for your assistance.`;
             
             if (result?.success) {
               queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/workflow`] });
               toast({
                 title: "Schema Created",
-                description: `Created ${result.createdSteps?.length || 0} workflow steps from AI suggestion. Configure tools for each step to start extracting.`,
+                description: `Created ${result.createdSteps?.length || 0} workflow steps from AI suggestion. Tools have been automatically assigned.`,
               });
             }
           } catch (error) {

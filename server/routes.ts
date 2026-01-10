@@ -5581,6 +5581,12 @@ print(json.dumps(results))
     try {
       const { projectId } = req.params;
       const functions = await storage.getExcelWizardryFunctionsByProject(projectId);
+      console.log(`📦 Returning ${functions.length} excel functions for project ${projectId}:`, 
+        functions.map(f => ({ id: f.id, name: f.name, toolType: f.toolType })));
+      // Disable caching to ensure fresh tool list is always returned
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.json(functions);
     } catch (error) {
       console.error("Error getting Excel wizardry functions by project:", error);
