@@ -10549,6 +10549,7 @@ def extract_function(Column_Name, Excel_File):
             const stepValue = await storage.createStepValue({
               stepId: workflowStep.id,
               valueName,
+              dataType: "TEXT", // Default to TEXT, user can change later
               orderIndex: i,
               toolId: null, // Will be configured later
               inputValues: {},
