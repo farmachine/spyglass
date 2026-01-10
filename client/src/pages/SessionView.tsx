@@ -1595,9 +1595,9 @@ const AIExtractionModal = ({
 const convertStepsToCollections = (workflowSteps: any[]) => {
   if (!workflowSteps) return [];
   
-  // Filter for list-type steps (data tables)
+  // Filter for list-type and data_table-type steps (data tables)
   return workflowSteps
-    .filter(step => step.stepType === 'list')
+    .filter(step => step.stepType === 'list' || step.stepType === 'data_table')
     .map(step => ({
       id: step.id,
       collectionName: step.stepName,
@@ -3989,7 +3989,7 @@ Thank you for your assistance.`;
               ['Field Name', 'Value'],
               ...step.data.map((item: any) => [item.fieldName, item.value])
             ];
-          } else if (step.stepType === 'data' || step.stepType === 'list') {
+          } else if (step.stepType === 'data' || step.stepType === 'list' || step.stepType === 'data_table') {
             // Data table format: normal table with headers as columns
             worksheetData = [
               step.data.headers,
@@ -6012,7 +6012,7 @@ Thank you for your assistance.`;
                 // Add workflow steps that aren't in collections
                 if (project.workflowSteps) {
                   project.workflowSteps
-                    .filter(step => step.stepType === 'list')
+                    .filter(step => step.stepType === 'list' || step.stepType === 'data_table')
                     .forEach(step => {
                       // Only add if not already in collections
                       const alreadyExists = allListItems.some(item => item.itemName === step.stepName);
