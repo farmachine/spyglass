@@ -10534,9 +10534,21 @@ def extract_function(Column_Name, Excel_File):
         if (step.values && Array.isArray(step.values)) {
           for (let i = 0; i < step.values.length; i++) {
             const value = step.values[i];
+            // Handle different value formats from AI (string, object with name, object with valueName)
+            let valueName: string;
+            if (typeof value === 'string') {
+              valueName = value;
+            } else if (value?.name) {
+              valueName = value.name;
+            } else if (value?.valueName) {
+              valueName = value.valueName;
+            } else {
+              valueName = `Field ${i + 1}`;
+            }
+            
             const stepValue = await storage.createStepValue({
               stepId: workflowStep.id,
-              valueName: value.name || value,
+              valueName,
               orderIndex: i,
               toolId: null, // Will be configured later
               inputValues: {},
