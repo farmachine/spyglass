@@ -10529,14 +10529,18 @@ def extract_function(Column_Name, Excel_File):
 
   // Apply AI-suggested schema to create workflow steps
   // Clones default tools from reference project and assigns based on value position
+  // If sessionId is provided, creates session-specific steps; otherwise creates project-level steps
   app.post("/api/projects/:projectId/apply-ai-schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
-      const { suggestedSteps } = req.body;
+      const { suggestedSteps, sessionId } = req.body;
 
       if (!suggestedSteps || !Array.isArray(suggestedSteps)) {
         return res.status(400).json({ message: "suggestedSteps array is required" });
       }
+      
+      const isSessionSpecific = !!sessionId;
+      console.log(`Applying AI schema to project ${projectId}${isSessionSpecific ? ` (session-specific: ${sessionId})` : ' (project-level)'}`);
 
       // Define the 3 default tools to clone
       const DEFAULT_TOOLS = {
@@ -10579,11 +10583,12 @@ def extract_function(Column_Name, Excel_File):
           mappedStepType = 'info_page'; // Default to info_page for unknown types
         }
         
-        console.log(`Creating step "${step.stepName}" with type "${mappedStepType}"`);
+        console.log(`Creating step "${step.stepName}" with type "${mappedStepType}"${isSessionSpecific ? ' (session-specific)' : ''}`);
         
-        // Create the workflow step
+        // Create the workflow step (session-specific if sessionId provided)
         const workflowStep = await storage.createWorkflowStep({
           projectId,
+          sessionId: isSessionSpecific ? sessionId : null,
           stepName: step.stepName,
           stepType: mappedStepType,
           description: step.description || null,

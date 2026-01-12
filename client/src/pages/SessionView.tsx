@@ -6907,18 +6907,23 @@ Thank you for your assistance.`;
         onApplyAiSuggestion={async (suggestion) => {
           console.log('AI schema suggestion:', suggestion);
           try {
+            // Pass sessionId to create session-specific workflow steps
             const result = await apiRequest(`/api/projects/${projectId}/apply-ai-schema`, {
               method: "POST",
-              body: JSON.stringify({ suggestedSteps: suggestion.suggestedSteps }),
+              body: JSON.stringify({ 
+                suggestedSteps: suggestion.suggestedSteps,
+                sessionId: sessionId // Creates session-specific steps
+              }),
             });
             
             if (result?.success) {
               queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
               queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
               queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/workflow`] });
+              queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
               toast({
-                title: "Schema Created",
-                description: `Created ${result.createdSteps?.length || 0} workflow steps from AI suggestion. Tools have been automatically assigned.`,
+                title: "Session Schema Created",
+                description: `Created ${result.createdSteps?.length || 0} session-specific workflow steps from AI suggestion.`,
               });
             }
           } catch (error) {
