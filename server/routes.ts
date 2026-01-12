@@ -568,6 +568,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const project = await storage.createProject(projectData);
       
+      // Clone default tools from reference project to new project
+      const REFERENCE_PROJECT_ID = '3005ce6d-79f2-4cd3-892e-4482d4534ca4';
+      try {
+        const clonedToolsCount = await storage.cloneAllToolsFromReferenceProject(project.id, REFERENCE_PROJECT_ID);
+        console.log(`Cloned ${clonedToolsCount} tools from reference project to new project ${project.id}`);
+      } catch (toolCloneError) {
+        console.warn("Failed to clone default tools:", toolCloneError);
+        // Continue without failing the project creation
+      }
+      
       // Auto-publish logic: publish to primary organization and user's organization if different
       try {
         const primaryOrg = await storage.getPrimaryOrganization();

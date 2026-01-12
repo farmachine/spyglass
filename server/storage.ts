@@ -4511,6 +4511,63 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
+  // Clone all tools from reference project to a new project
+  async cloneAllToolsFromReferenceProject(targetProjectId: string, referenceProjectId: string = '3005ce6d-79f2-4cd3-892e-4482d4534ca4'): Promise<number> {
+    return this.retryOperation(async () => {
+      // Get all tools from reference project
+      const referenceTools = await this.db.select().from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.projectId, referenceProjectId));
+      
+      if (referenceTools.length === 0) {
+        console.log(`No tools found in reference project ${referenceProjectId}`);
+        return 0;
+      }
+      
+      // Check if target project already has tools
+      const existingTools = await this.db.select().from(excelWizardryFunctions)
+        .where(eq(excelWizardryFunctions.projectId, targetProjectId));
+      
+      const existingToolNames = new Set(existingTools.map(t => t.name.toLowerCase().trim()));
+      
+      let clonedCount = 0;
+      
+      for (const refTool of referenceTools) {
+        // Skip if tool already exists in target project
+        if (existingToolNames.has(refTool.name.toLowerCase().trim())) {
+          console.log(`Tool "${refTool.name}" already exists in target project, skipping`);
+          continue;
+        }
+        
+        // Clone the tool to target project
+        await this.db.insert(excelWizardryFunctions).values({
+          projectId: targetProjectId,
+          name: refTool.name,
+          description: refTool.description,
+          functionCode: refTool.functionCode,
+          aiPrompt: refTool.aiPrompt,
+          toolType: refTool.toolType,
+          outputType: refTool.outputType,
+          operationType: refTool.operationType,
+          inputParameters: refTool.inputParameters,
+          aiAssistanceRequired: refTool.aiAssistanceRequired,
+          aiAssistancePrompt: refTool.aiAssistancePrompt,
+          llmModel: refTool.llmModel,
+          metadata: refTool.metadata,
+          inputSchema: refTool.inputSchema,
+          outputSchema: refTool.outputSchema,
+          tags: refTool.tags,
+          usageCount: 0
+        });
+        
+        clonedCount++;
+        console.log(`Cloned tool "${refTool.name}" to project ${targetProjectId}`);
+      }
+      
+      console.log(`Cloned ${clonedCount} tools from reference project to ${targetProjectId}`);
+      return clonedCount;
+    });
+  }
+
   // Session Templates
   async getSessionTemplates(projectId: string): Promise<SessionTemplate[]> {
     return this.retryOperation(async () => {

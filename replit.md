@@ -102,6 +102,9 @@ The platform now supports intelligent schema suggestion and template reuse:
 ### Reference Project Tools & Enhanced Schema Generation (Jan 2026 - Phase 2.1)
 AI schema generation now uses tools from a reference project for consistent field matching:
 - **Reference Project**: Project `3005ce6d-79f2-4cd3-892e-4482d4534ca4` serves as the source for default tool configurations
+- **Default Tools for New Projects**: When a new project is created, all tools from the reference project are automatically cloned to it
+  - `storage.cloneAllToolsFromReferenceProject()`: Clones all tools, skipping any that already exist by name
+  - Called automatically during project creation in `POST /api/projects`
 - **Automatic Tool Assignment**: When AI suggests fields, matching reference tools are automatically assigned based on:
   - Exact field name match (case-insensitive, normalized)
   - Partial field name match (contains/contained-by logic)
