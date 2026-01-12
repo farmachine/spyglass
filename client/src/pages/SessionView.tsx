@@ -6864,27 +6864,25 @@ Thank you for your assistance.`;
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
           
-          // Check if there are any workflow steps defined - if not, show the similar sessions modal
-          const hasWorkflowSteps = project?.workflowSteps && project.workflowSteps.length > 0;
-          if (!hasWorkflowSteps) {
-            // Fetch the latest documents to get content for similarity detection
-            try {
-              const docsResponse = await apiRequest(`/api/sessions/${sessionId}/documents`);
-              if (docsResponse && docsResponse.length > 0) {
-                // Get the combined content of all documents
-                const combinedContent = docsResponse
-                  .map((doc: any) => doc.extractedContent || '')
-                  .filter((content: string) => content.length > 0)
-                  .join('\n\n');
-                
-                if (combinedContent.length > 0) {
-                  setUploadedDocumentContent(combinedContent);
-                  setSimilarSessionsModalOpen(true);
-                }
+          // Always show the similar sessions modal after document upload
+          // This allows AI to suggest session-specific schema additions even if project has base schema
+          // Fetch the latest documents to get content for similarity detection
+          try {
+            const docsResponse = await apiRequest(`/api/sessions/${sessionId}/documents`);
+            if (docsResponse && docsResponse.length > 0) {
+              // Get the combined content of all documents
+              const combinedContent = docsResponse
+                .map((doc: any) => doc.extractedContent || '')
+                .filter((content: string) => content.length > 0)
+                .join('\n\n');
+              
+              if (combinedContent.length > 0) {
+                setUploadedDocumentContent(combinedContent);
+                setSimilarSessionsModalOpen(true);
               }
-            } catch (error) {
-              console.error('Failed to fetch documents for similarity detection:', error);
             }
+          } catch (error) {
+            console.error('Failed to fetch documents for similarity detection:', error);
           }
         }}
       />
