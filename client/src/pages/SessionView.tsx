@@ -6905,6 +6905,7 @@ Thank you for your assistance.`;
             description: "The extraction schema has been copied from a similar session.",
           });
         }}
+        mainObjectName={project?.mainObjectName}
         onApplyAiSuggestion={async (suggestion) => {
           console.log('AI schema suggestion:', suggestion);
           try {
@@ -6931,6 +6932,7 @@ Thank you for your assistance.`;
             });
           }
         }}
+        onSkip={() => setSimilarSessionsModalOpen(false)}
       />
       {/* Column Extraction Modal for Workflow Step Values */}
       {columnExtractionModal && (

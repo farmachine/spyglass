@@ -35,6 +35,7 @@ interface SimilarSessionsModalProps {
   projectId: string;
   documentContent: string;
   sessionId: string;
+  mainObjectName?: string;
   onApplyTemplate: (schemaSnapshot: any) => void;
   onApplyAiSuggestion: (suggestion: SchemaSuggestion) => void;
   onSkip: () => void;
@@ -46,6 +47,7 @@ export function SimilarSessionsModal({
   projectId,
   documentContent,
   sessionId,
+  mainObjectName,
   onApplyTemplate,
   onApplyAiSuggestion,
   onSkip,
@@ -136,10 +138,13 @@ export function SimilarSessionsModal({
                 <div className="space-y-3">
                   <h3 className="text-sm font-medium flex items-center gap-2">
                     <Copy className="h-4 w-4" />
-                    Similar Sessions Found
+                    Similar {mainObjectName ? mainObjectName + 's' : 'Sessions'} Found
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    These sessions had similar documents. You can use their extraction schema as a starting point.
+                    {mainObjectName 
+                      ? `These ${mainObjectName.toLowerCase()}s had similar documents. You can re-use their extraction schema.`
+                      : "These sessions had similar documents. You can use their extraction schema as a starting point."
+                    }
                   </p>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {similarSessions.similarSessions.map((session: SimilarSession) => (
@@ -172,7 +177,7 @@ export function SimilarSessionsModal({
                           {isApplyingTemplate && selectedOption === "template" ? (
                             <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Copying...</>
                           ) : (
-                            "Use Schema"
+                            "Re-use Schema"
                           )}
                         </Button>
                       </div>
