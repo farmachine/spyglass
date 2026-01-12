@@ -79,9 +79,11 @@ export const projectPublishing = pgTable("project_publishing", {
 });
 
 // New unified structure for both schema fields and collections as "steps"
+// Steps can be project-level (sessionId = null) or session-specific (sessionId = session's id)
 export const workflowSteps = pgTable("workflow_steps", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id").references(() => extractionSessions.id, { onDelete: "cascade" }), // null = project-level, set = session-specific
   stepName: text("step_name").notNull(),
   stepType: text("step_type", { enum: ["page", "list"] }).notNull(), // page = single values (schema), list = multiple records (collection)
   description: text("description"),
