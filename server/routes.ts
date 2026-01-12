@@ -2023,6 +2023,45 @@ except Exception as e:
     }
   });
 
+  // Get combined workflow steps for a session (project-level + session-specific)
+  app.get("/api/sessions/:sessionId/workflow-steps", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      // Get the session to find the project ID
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get combined workflow steps with values in one call (uses getProjectWithDetails pattern)
+      const project = await storage.getProjectWithDetails(session.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get session-specific steps
+      const sessionSteps = await storage.getSessionWorkflowSteps(sessionId);
+      const sessionStepValues = await Promise.all(
+        sessionSteps.map(async (step) => {
+          const values = await storage.getStepValues(step.id);
+          return { ...step, values, isSessionSpecific: true };
+        })
+      );
+      
+      // Combine: project steps (with values already loaded) + session steps
+      const combinedSteps = [
+        ...(project.workflowSteps || []).map(step => ({ ...step, isSessionSpecific: false })),
+        ...sessionStepValues
+      ];
+      
+      res.json(combinedSteps);
+    } catch (error) {
+      console.error("Get session workflow steps error:", error);
+      res.status(500).json({ message: "Failed to fetch session workflow steps" });
+    }
+  });
+
   // Delete a session document
   app.delete("/api/sessions/documents/:documentId", authenticateToken, async (req: AuthRequest, res) => {
     try {

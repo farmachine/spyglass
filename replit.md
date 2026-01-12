@@ -116,11 +116,36 @@ AI schema generation now uses tools from a reference project for consistent fiel
 - **Data Types**: TEXT, TEXTAREA, NUMBER, DATE, BOOLEAN, CHOICE
 - **Step Types**: `page` (Info Page), `data_table` (Data Table with identifier column)
 
+### Session-Specific Workflow Steps (Jan 2026 - Phase 2.2)
+The platform now supports both project-level and session-specific workflow steps:
+
+**Architecture:**
+- **Project-Level Steps** (`sessionId = null`): Admin-configured baseline schema shared across all sessions
+- **Session-Specific Steps** (`sessionId = UUID`): AI-generated additional steps unique to each session based on document content
+- **Combined Steps**: Sessions display both project + session-specific steps together
+
+**Data Flow:**
+1. Admin configures project-level schema (shared for all tenders/sessions)
+2. User uploads document to new session → Similar Sessions modal appears
+3. AI analyzes document and suggests session-specific additions
+4. Session-specific steps are created with `sessionId` set to the current session
+
+**Key Components:**
+- `workflow_steps.session_id`: Nullable FK to extraction_sessions - null = project-level, set = session-specific
+- `storage.getSessionWorkflowSteps(sessionId)`: Returns only session-specific steps
+- `storage.getCombinedWorkflowSteps(projectId, sessionId)`: Returns project + session steps combined
+- `/api/sessions/:sessionId/workflow-steps`: Returns combined steps with `isSessionSpecific` flag
+- `SimilarSessionsModal.tsx`: Now always appears after document upload to suggest session-specific schema
+
+**Frontend:**
+- `combinedWorkflowSteps` useMemo merges project and session steps
+- `collections` memo uses combined steps for backward compatibility
+
 ### Database Schema
 Core tables include:
 *   `projects`: Added `session_status_options` (JSONB) for configurable workflow status options.
 *   `extraction_sessions`: Added `workflow_status` (TEXT) for user-defined session status.
-*   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, and `identifier_id`.
+*   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables) with `id`, `project_id`, `session_id` (null = project-level), `step_name`, `step_type`, `value_count`, and `identifier_id`.
 *   `step_values`: Defines columns/fields within steps with `id`, `step_id`, `value_name`, `tool_id`, `order_index`, `input_values` (JSONB), and `fields` (JSONB for multi-field support).
 *   `field_validations`: Stores extracted data with `id`, `field_id`, `identifier_id`, `extracted_value`, `validation_status`, `ai_reasoning`, and `confidence_score`.
 *   `session_templates` (Phase 2): Stores reusable extraction schemas with `id`, `project_id`, `name`, `schema_snapshot` (JSONB), `usage_count`, `is_default`.
