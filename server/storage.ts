@@ -286,7 +286,9 @@ export interface IStorage {
   deleteTestDocument(id: string): Promise<boolean>;
 
   // Workflow Steps
-  getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>;
+  getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>; // Project-level steps only
+  getSessionWorkflowSteps(sessionId: string): Promise<WorkflowStep[]>; // Session-specific steps only
+  getCombinedWorkflowSteps(projectId: string, sessionId: string): Promise<WorkflowStep[]>; // Project + session steps
   getWorkflowStep(id: string): Promise<WorkflowStep | undefined>;
   createWorkflowStep(step: InsertWorkflowStep): Promise<WorkflowStep>;
   updateWorkflowStep(id: string, step: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined>;
@@ -4136,11 +4138,43 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Workflow Steps
+  // Get project-level workflow steps only (sessionId is null)
   async getWorkflowSteps(projectId: string): Promise<WorkflowStep[]> {
     return this.retryOperation(async () => {
       return await this.db.select().from(workflowSteps)
-        .where(eq(workflowSteps.projectId, projectId))
+        .where(and(
+          eq(workflowSteps.projectId, projectId),
+          isNull(workflowSteps.sessionId)
+        ))
         .orderBy(workflowSteps.orderIndex);
+    });
+  }
+
+  // Get session-specific workflow steps only
+  async getSessionWorkflowSteps(sessionId: string): Promise<WorkflowStep[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(workflowSteps)
+        .where(eq(workflowSteps.sessionId, sessionId))
+        .orderBy(workflowSteps.orderIndex);
+    });
+  }
+
+  // Get combined workflow steps for a session (project-level + session-specific)
+  async getCombinedWorkflowSteps(projectId: string, sessionId: string): Promise<WorkflowStep[]> {
+    return this.retryOperation(async () => {
+      const projectSteps = await this.db.select().from(workflowSteps)
+        .where(and(
+          eq(workflowSteps.projectId, projectId),
+          isNull(workflowSteps.sessionId)
+        ))
+        .orderBy(workflowSteps.orderIndex);
+      
+      const sessionSteps = await this.db.select().from(workflowSteps)
+        .where(eq(workflowSteps.sessionId, sessionId))
+        .orderBy(workflowSteps.orderIndex);
+      
+      // Combine: project steps first, then session-specific steps
+      return [...projectSteps, ...sessionSteps];
     });
   }
 
