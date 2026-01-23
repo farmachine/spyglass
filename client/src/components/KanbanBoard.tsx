@@ -548,31 +548,43 @@ export function KanbanBoard({
 
       {/* Card Detail Dialog - Trello-like Workspace */}
       <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader className="pb-2">
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+          {/* Card Header */}
+          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] p-6 text-white">
+            <div className="flex items-start gap-3">
               {selectedCard?.aiGenerated && (
-                <Sparkles className="h-4 w-4 text-purple-500" />
+                <div className="bg-white/20 rounded-lg p-2 mt-1">
+                  <Sparkles className="h-5 w-5" />
+                </div>
               )}
-              <Input
-                value={selectedCard?.title || ''}
-                onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
-                className="text-lg font-semibold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent"
-                placeholder="Task title"
-              />
-            </DialogTitle>
-          </DialogHeader>
+              <div className="flex-1">
+                <Input
+                  value={selectedCard?.title || ''}
+                  onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
+                  className="text-xl font-semibold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60"
+                  placeholder="Task title"
+                />
+                {selectedCard?.aiGenerated && (
+                  <p className="text-sm text-white/70 mt-1 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> AI Generated Task
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
           
           {selectedCard && (
-            <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full pr-4">
-                <div className="grid grid-cols-3 gap-6">
+            <div className="flex-1 overflow-hidden p-6">
+              <ScrollArea className="h-full">
+                <div className="grid grid-cols-3 gap-8">
                   {/* Main Content - Left 2 columns */}
-                  <div className="col-span-2 space-y-6">
-                    {/* Description */}
-                    <div>
-                      <label className="text-sm font-medium flex items-center gap-2 mb-2">
-                        <FileText className="h-4 w-4" />
+                  <div className="col-span-2 space-y-5">
+                    {/* Description Section */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
+                        <div className="bg-[#4F63A4]/10 rounded-lg p-1.5">
+                          <FileText className="h-4 w-4 text-[#4F63A4]" />
+                        </div>
                         Description
                       </label>
                       <Textarea
@@ -580,34 +592,52 @@ export function KanbanBoard({
                         onChange={(e) => setSelectedCard({ ...selectedCard, description: e.target.value })}
                         rows={3}
                         placeholder="Add a more detailed description..."
-                        className="resize-none"
+                        className="resize-none bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
                       />
                     </div>
 
                     {/* AI Reasoning */}
                     {selectedCard.aiReasoning && (
-                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-                        <p className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1 flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" />
-                          AI Reasoning
-                        </p>
-                        <p className="text-sm text-purple-600 dark:text-purple-400">
+                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="bg-purple-500/20 rounded-lg p-1.5">
+                            <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">AI Reasoning</span>
+                        </div>
+                        <p className="text-sm text-purple-600 dark:text-purple-400 leading-relaxed">
                           {selectedCard.aiReasoning}
                         </p>
                       </div>
                     )}
 
                     {/* Checklist */}
-                    <div>
-                      <label className="text-sm font-medium flex items-center gap-2 mb-2">
-                        <CheckSquare className="h-4 w-4" />
-                        Checklist
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <div className="bg-green-500/10 rounded-lg p-1.5">
+                            <CheckSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          </div>
+                          Checklist
+                        </label>
                         {checklistItems.length > 0 && (
-                          <span className="text-xs text-gray-500">
-                            ({checklistItems.filter(i => i.isCompleted).length}/{checklistItems.length})
+                          <span className="text-xs font-medium text-gray-500 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                            {checklistItems.filter(i => i.isCompleted).length}/{checklistItems.length}
                           </span>
                         )}
-                      </label>
+                      </div>
+                      
+                      {/* Progress bar */}
+                      {checklistItems.length > 0 && (
+                        <div className="mb-3">
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 transition-all duration-300 rounded-full"
+                              style={{ width: `${(checklistItems.filter(i => i.isCompleted).length / checklistItems.length) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                       
                       {checklistLoading ? (
                         <div className="flex justify-center py-4">
@@ -616,7 +646,7 @@ export function KanbanBoard({
                       ) : (
                         <div className="space-y-2">
                           {checklistItems.map((item) => (
-                            <div key={item.id} className="flex items-center gap-2 group">
+                            <div key={item.id} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
                               <Checkbox
                                 checked={item.isCompleted}
                                 onCheckedChange={(checked) => {
@@ -625,14 +655,15 @@ export function KanbanBoard({
                                     isCompleted: !!checked
                                   });
                                 }}
+                                className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                               />
-                              <span className={`flex-1 text-sm ${item.isCompleted ? 'line-through text-gray-400' : ''}`}>
+                              <span className={`flex-1 text-sm ${item.isCompleted ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
                                 {item.title}
                               </span>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
                                 onClick={() => deleteChecklistItemMutation.mutate(item.id)}
                               >
                                 <X className="h-3 w-3" />
@@ -641,12 +672,12 @@ export function KanbanBoard({
                           ))}
                           
                           {/* Add checklist item */}
-                          <div className="flex gap-2 mt-2">
+                          <div className="flex gap-2 mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
                             <Input
                               value={newChecklistItem}
                               onChange={(e) => setNewChecklistItem(e.target.value)}
                               placeholder="Add an item..."
-                              className="h-8 text-sm"
+                              className="h-9 text-sm bg-white dark:bg-gray-900"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && newChecklistItem.trim()) {
                                   addChecklistItemMutation.mutate(newChecklistItem);
@@ -657,7 +688,7 @@ export function KanbanBoard({
                               size="sm"
                               onClick={() => newChecklistItem.trim() && addChecklistItemMutation.mutate(newChecklistItem)}
                               disabled={!newChecklistItem.trim() || addChecklistItemMutation.isPending}
-                              className="h-8"
+                              className="h-9 bg-green-600 hover:bg-green-700"
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -666,22 +697,22 @@ export function KanbanBoard({
                       )}
                     </div>
 
-                    <Separator />
-
                     {/* Comments/Chat */}
-                    <div>
-                      <label className="text-sm font-medium flex items-center gap-2 mb-3">
-                        <MessageSquare className="h-4 w-4" />
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
+                        <div className="bg-blue-500/10 rounded-lg p-1.5">
+                          <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
                         Discussion
                         {comments.length > 0 && (
-                          <Badge variant="secondary" className="text-xs">{comments.length}</Badge>
+                          <Badge variant="secondary" className="text-xs ml-auto">{comments.length}</Badge>
                         )}
                       </label>
                       
                       {/* Comment input */}
-                      <div className="flex gap-2 mb-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-[#4F63A4] text-white text-xs">
+                      <div className="flex gap-3 mb-4 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <Avatar className="h-9 w-9 ring-2 ring-[#4F63A4]/20">
+                          <AvatarFallback className="bg-[#4F63A4] text-white text-xs font-medium">
                             {currentUserId ? getInitials(getUserById(currentUserId)) : 'U'}
                           </AvatarFallback>
                         </Avatar>
@@ -690,7 +721,7 @@ export function KanbanBoard({
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             placeholder={currentUserId ? "Write a comment..." : "Sign in to comment"}
-                            className="flex-1"
+                            className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-0"
                             disabled={!currentUserId}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && newComment.trim() && currentUserId) {
@@ -702,6 +733,7 @@ export function KanbanBoard({
                             size="sm"
                             onClick={() => newComment.trim() && currentUserId && addCommentMutation.mutate(newComment)}
                             disabled={!newComment.trim() || addCommentMutation.isPending || !currentUserId}
+                            className="bg-[#4F63A4] hover:bg-[#3D4E85] h-9 px-3"
                           >
                             <Send className="h-4 w-4" />
                           </Button>
@@ -710,25 +742,28 @@ export function KanbanBoard({
 
                       {/* Comments list */}
                       {commentsLoading ? (
-                        <div className="flex justify-center py-4">
+                        <div className="flex justify-center py-6">
                           <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                         </div>
                       ) : comments.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-4">No comments yet. Start the conversation!</p>
+                        <div className="text-center py-6">
+                          <MessageSquare className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                          <p className="text-sm text-gray-400">No comments yet. Start the conversation!</p>
+                        </div>
                       ) : (
-                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                        <div className="space-y-3 max-h-52 overflow-y-auto pr-2">
                           {comments.map((comment) => {
                             const commentUser = getUserById(comment.userId);
                             return (
-                              <div key={comment.id} className="flex gap-2 group">
+                              <div key={comment.id} className="flex gap-3 group p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
                                 <Avatar className="h-8 w-8 flex-shrink-0">
-                                  <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-xs">
+                                  <AvatarFallback className="bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-medium">
                                     {getInitials(commentUser)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                                       {getUserDisplayName(commentUser)}
                                     </span>
                                     <span className="text-xs text-gray-400">
@@ -738,14 +773,14 @@ export function KanbanBoard({
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0 ml-auto"
+                                        className="opacity-0 group-hover:opacity-100 h-5 w-5 p-0 ml-auto text-gray-400 hover:text-red-500"
                                         onClick={() => deleteCommentMutation.mutate(comment.id)}
                                       >
-                                        <Trash2 className="h-3 w-3 text-gray-400" />
+                                        <Trash2 className="h-3 w-3" />
                                       </Button>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-600 dark:text-gray-300 break-words">
+                                  <p className="text-sm text-gray-600 dark:text-gray-300 break-words leading-relaxed">
                                     {comment.content}
                                   </p>
                                 </div>
@@ -759,13 +794,13 @@ export function KanbanBoard({
 
                   {/* Sidebar - Right column */}
                   <div className="space-y-4">
-                    {/* Status */}
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Status</label>
+                    {/* Status Card */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Status</label>
                       <select
                         value={selectedCard.status}
                         onChange={(e) => setSelectedCard({ ...selectedCard, status: e.target.value })}
-                        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#4F63A4] focus:border-transparent transition-all"
                       >
                         {statusColumns.map((col) => (
                           <option key={col} value={col}>{col}</option>
@@ -773,25 +808,25 @@ export function KanbanBoard({
                       </select>
                     </div>
 
-                    {/* Assignees */}
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Assignees</label>
+                    {/* Assignees Card */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Assignees</label>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between">
-                            <span className="flex items-center gap-2">
-                              <Users className="h-4 w-4" />
+                          <Button variant="outline" className="w-full justify-between h-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600">
+                            <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                              <Users className="h-4 w-4 text-[#4F63A4]" />
                               {cardAssignees.length > 0 
                                 ? `${cardAssignees.length} assigned`
                                 : 'Assign members'
                               }
                             </span>
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56">
                           {users.length === 0 ? (
-                            <div className="p-2 text-sm text-gray-500 text-center">
+                            <div className="p-3 text-sm text-gray-500 text-center">
                               No team members found
                             </div>
                           ) : (
@@ -800,14 +835,15 @@ export function KanbanBoard({
                                 key={user.id}
                                 checked={cardAssignees.includes(user.id)}
                                 onCheckedChange={() => handleAssigneeToggle(user.id)}
+                                className="py-2"
                               >
                                 <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback className="text-xs bg-[#4F63A4] text-white">
+                                  <Avatar className="h-6 w-6 ring-2 ring-[#4F63A4]/20">
+                                    <AvatarFallback className="text-xs bg-[#4F63A4] text-white font-medium">
                                       {getInitials(user)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span>{getUserDisplayName(user)}</span>
+                                  <span className="font-medium">{getUserDisplayName(user)}</span>
                                 </div>
                               </DropdownMenuCheckboxItem>
                             ))
@@ -817,20 +853,20 @@ export function KanbanBoard({
                       
                       {/* Show assigned avatars */}
                       {cardAssignees.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
+                        <div className="flex flex-wrap gap-2 mt-3">
                           {cardAssignees.map((userId) => {
                             const user = getUserById(userId);
                             return (
-                              <div key={userId} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-1">
+                              <div key={userId} className="flex items-center gap-1.5 bg-white dark:bg-gray-700 rounded-full pl-1 pr-2 py-1 border border-gray-200 dark:border-gray-600 shadow-sm">
                                 <Avatar className="h-5 w-5">
-                                  <AvatarFallback className="text-xs bg-[#4F63A4] text-white">
+                                  <AvatarFallback className="text-[10px] bg-[#4F63A4] text-white font-medium">
                                     {getInitials(user)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-xs">{getUserDisplayName(user)}</span>
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{getUserDisplayName(user)}</span>
                                 <button
                                   onClick={() => handleAssigneeToggle(userId)}
-                                  className="text-gray-400 hover:text-gray-600"
+                                  className="text-gray-400 hover:text-red-500 transition-colors ml-0.5"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -841,14 +877,13 @@ export function KanbanBoard({
                       )}
                     </div>
 
-                    <Separator />
-
-                    {/* Actions */}
-                    <div className="space-y-2">
+                    {/* Actions Card */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Actions</label>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="w-full justify-start h-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800/50"
                         onClick={() => {
                           if (selectedCard) {
                             deleteCardMutation.mutate(selectedCard.id);
@@ -867,8 +902,8 @@ export function KanbanBoard({
             </div>
           )}
 
-          <DialogFooter className="pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsCardDialogOpen(false)}>
+          <DialogFooter className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30">
+            <Button variant="outline" onClick={() => setIsCardDialogOpen(false)} className="px-5">
               Cancel
             </Button>
             <Button
@@ -887,9 +922,13 @@ export function KanbanBoard({
                 }
               }}
               disabled={updateCardMutation.isPending}
-              className="bg-[#4F63A4] hover:bg-[#3d4f80]"
+              className="bg-[#4F63A4] hover:bg-[#3d4f80] px-6 shadow-sm"
             >
-              Save Changes
+              {updateCardMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
