@@ -5264,6 +5264,8 @@ Thank you for your assistance.`;
                       isLoadingDocuments={documentsLoading}
                       aiInstructions={kanbanConfig.aiInstructions}
                       knowledgeDocumentIds={kanbanConfig.knowledgeDocumentIds}
+                      organizationId={user?.organizationId}
+                      currentUserId={user?.id}
                       onGenerateTasks={async (selectedDocumentIds: string[]) => {
                         await apiRequest(`/api/sessions/${session.id}/steps/${currentStep.id}/generate-tasks`, {
                           method: 'POST',
