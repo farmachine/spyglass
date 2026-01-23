@@ -42,8 +42,6 @@ import {
   excelWizardryFunctions,
   extractionIdentifierReferences,
   sampleDocuments,
-  sessionTemplates,
-  documentEmbeddings,
   type Project, 
   type InsertProject,
   type ProjectSchemaField,
@@ -84,10 +82,6 @@ import {
   type InsertExtractionIdentifierReference,
   type SampleDocument,
   type InsertSampleDocument,
-  type SessionTemplate,
-  type InsertSessionTemplate,
-  type DocumentEmbedding,
-  type InsertDocumentEmbedding,
   testDocuments,
   type TestDocument,
   type InsertTestDocument
@@ -286,9 +280,7 @@ export interface IStorage {
   deleteTestDocument(id: string): Promise<boolean>;
 
   // Workflow Steps
-  getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>; // Project-level steps only
-  getSessionWorkflowSteps(sessionId: string): Promise<WorkflowStep[]>; // Session-specific steps only
-  getCombinedWorkflowSteps(projectId: string, sessionId: string): Promise<WorkflowStep[]>; // Project + session steps
+  getWorkflowSteps(projectId: string): Promise<WorkflowStep[]>;
   getWorkflowStep(id: string): Promise<WorkflowStep | undefined>;
   createWorkflowStep(step: InsertWorkflowStep): Promise<WorkflowStep>;
   updateWorkflowStep(id: string, step: Partial<InsertWorkflowStep>): Promise<WorkflowStep | undefined>;
@@ -301,37 +293,6 @@ export interface IStorage {
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
   deleteStepValue(id: string): Promise<boolean>;
-  
-  // Reference Project Tools - fetches all step values with tool configs from a reference project
-  getReferenceProjectTools(projectId: string): Promise<Array<{
-    valueName: string;
-    stepName: string;
-    stepType: string;
-    toolId: string | null;
-    inputValues: any;
-    dataType: string;
-    isIdentifier: boolean;
-    description: string | null;
-  }>>;
-  
-  // Clone default tools from reference project to target project
-  // Returns mapping of tool names to newly created tool IDs
-  cloneDefaultToolsToProject(referenceProjectId: string, targetProjectId: string, toolNames: string[]): Promise<Map<string, string>>;
-
-  // Session Templates
-  getSessionTemplates(projectId: string): Promise<SessionTemplate[]>;
-  getSessionTemplate(id: string): Promise<SessionTemplate | undefined>;
-  createSessionTemplate(template: InsertSessionTemplate): Promise<SessionTemplate>;
-  updateSessionTemplate(id: string, template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined>;
-  deleteSessionTemplate(id: string): Promise<boolean>;
-  getDefaultTemplate(projectId: string): Promise<SessionTemplate | undefined>;
-
-  // Document Embeddings
-  getDocumentEmbeddings(projectId: string): Promise<DocumentEmbedding[]>;
-  getDocumentEmbedding(id: string): Promise<DocumentEmbedding | undefined>;
-  getEmbeddingBySessionId(sessionId: string): Promise<DocumentEmbedding | undefined>;
-  createDocumentEmbedding(embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding>;
-  deleteDocumentEmbedding(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2298,62 +2259,6 @@ export class MemStorage implements IStorage {
     }
     return deletedCount > 0;
   }
-
-  // Session Templates (stub implementations - MemStorage is for testing only)
-  async getSessionTemplates(_projectId: string): Promise<SessionTemplate[]> {
-    return [];
-  }
-  async getSessionTemplate(_id: string): Promise<SessionTemplate | undefined> {
-    return undefined;
-  }
-  async createSessionTemplate(_template: InsertSessionTemplate): Promise<SessionTemplate> {
-    throw new Error("MemStorage does not support session templates");
-  }
-  async updateSessionTemplate(_id: string, _template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined> {
-    return undefined;
-  }
-  async deleteSessionTemplate(_id: string): Promise<boolean> {
-    return false;
-  }
-  async getDefaultTemplate(_projectId: string): Promise<SessionTemplate | undefined> {
-    return undefined;
-  }
-
-  // Reference Project Tools (stub implementations)
-  async getReferenceProjectTools(_projectId: string): Promise<Array<{
-    valueName: string;
-    stepName: string;
-    stepType: string;
-    toolId: string | null;
-    inputValues: any;
-    dataType: string;
-    isIdentifier: boolean;
-    description: string | null;
-  }>> {
-    return [];
-  }
-
-  async cloneDefaultToolsToProject(_referenceProjectId: string, _targetProjectId: string, _toolNames: string[]): Promise<Map<string, string>> {
-    console.warn("MemStorage does not support cloneDefaultToolsToProject");
-    return new Map();
-  }
-
-  // Document Embeddings (stub implementations)
-  async getDocumentEmbeddings(_projectId: string): Promise<DocumentEmbedding[]> {
-    return [];
-  }
-  async getDocumentEmbedding(_id: string): Promise<DocumentEmbedding | undefined> {
-    return undefined;
-  }
-  async getEmbeddingBySessionId(_sessionId: string): Promise<DocumentEmbedding | undefined> {
-    return undefined;
-  }
-  async createDocumentEmbedding(_embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding> {
-    throw new Error("MemStorage does not support document embeddings");
-  }
-  async deleteDocumentEmbedding(_id: string): Promise<boolean> {
-    return false;
-  }
 }
 
 // PostgreSQL Storage Implementation
@@ -4138,43 +4043,11 @@ class PostgreSQLStorage implements IStorage {
   }
 
   // Workflow Steps
-  // Get project-level workflow steps only (sessionId is null)
   async getWorkflowSteps(projectId: string): Promise<WorkflowStep[]> {
     return this.retryOperation(async () => {
       return await this.db.select().from(workflowSteps)
-        .where(and(
-          eq(workflowSteps.projectId, projectId),
-          isNull(workflowSteps.sessionId)
-        ))
+        .where(eq(workflowSteps.projectId, projectId))
         .orderBy(workflowSteps.orderIndex);
-    });
-  }
-
-  // Get session-specific workflow steps only
-  async getSessionWorkflowSteps(sessionId: string): Promise<WorkflowStep[]> {
-    return this.retryOperation(async () => {
-      return await this.db.select().from(workflowSteps)
-        .where(eq(workflowSteps.sessionId, sessionId))
-        .orderBy(workflowSteps.orderIndex);
-    });
-  }
-
-  // Get combined workflow steps for a session (project-level + session-specific)
-  async getCombinedWorkflowSteps(projectId: string, sessionId: string): Promise<WorkflowStep[]> {
-    return this.retryOperation(async () => {
-      const projectSteps = await this.db.select().from(workflowSteps)
-        .where(and(
-          eq(workflowSteps.projectId, projectId),
-          isNull(workflowSteps.sessionId)
-        ))
-        .orderBy(workflowSteps.orderIndex);
-      
-      const sessionSteps = await this.db.select().from(workflowSteps)
-        .where(eq(workflowSteps.sessionId, sessionId))
-        .orderBy(workflowSteps.orderIndex);
-      
-      // Combine: project steps first, then session-specific steps
-      return [...projectSteps, ...sessionSteps];
     });
   }
 
@@ -4394,266 +4267,6 @@ class PostgreSQLStorage implements IStorage {
   async deleteStepValue(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
-      return result.rowCount > 0;
-    });
-  }
-
-  async getReferenceProjectTools(projectId: string): Promise<Array<{
-    valueName: string;
-    stepName: string;
-    stepType: string;
-    toolId: string | null;
-    inputValues: any;
-    dataType: string;
-    isIdentifier: boolean;
-    description: string | null;
-  }>> {
-    return this.retryOperation(async () => {
-      // Get all workflow steps for the project
-      const steps = await this.db.select().from(workflowSteps)
-        .where(eq(workflowSteps.projectId, projectId));
-      
-      if (steps.length === 0) return [];
-      
-      // Get all step values for each step
-      const results: Array<{
-        valueName: string;
-        stepName: string;
-        stepType: string;
-        toolId: string | null;
-        inputValues: any;
-        dataType: string;
-        isIdentifier: boolean;
-        description: string | null;
-      }> = [];
-      
-      for (const step of steps) {
-        const values = await this.db.select().from(stepValues)
-          .where(eq(stepValues.stepId, step.id))
-          .orderBy(stepValues.orderIndex);
-        
-        for (const value of values) {
-          results.push({
-            valueName: value.valueName,
-            stepName: step.stepName,
-            stepType: step.stepType,
-            toolId: value.toolId,
-            inputValues: value.inputValues,
-            dataType: value.dataType,
-            isIdentifier: value.isIdentifier || false,
-            description: value.description
-          });
-        }
-      }
-      
-      return results;
-    });
-  }
-
-  async cloneDefaultToolsToProject(referenceProjectId: string, targetProjectId: string, toolNames: string[]): Promise<Map<string, string>> {
-    return this.retryOperation(async () => {
-      const toolMapping = new Map<string, string>();
-      
-      // Get all tools from reference project
-      const referenceTools = await this.db.select().from(excelWizardryFunctions)
-        .where(eq(excelWizardryFunctions.projectId, referenceProjectId));
-      
-      // Check if target project already has these tools
-      const existingTools = await this.db.select().from(excelWizardryFunctions)
-        .where(eq(excelWizardryFunctions.projectId, targetProjectId));
-      
-      const existingToolNames = new Set(existingTools.map(t => t.name.toLowerCase().trim()));
-      
-      for (const toolName of toolNames) {
-        const normalizedName = toolName.toLowerCase().trim();
-        
-        // Check if tool already exists in target project
-        const existingTool = existingTools.find(t => t.name.toLowerCase().trim() === normalizedName);
-        if (existingTool) {
-          toolMapping.set(toolName, existingTool.id);
-          console.log(`Tool "${toolName}" already exists in target project with ID ${existingTool.id}`);
-          continue;
-        }
-        
-        // Find the reference tool
-        const refTool = referenceTools.find(t => t.name.toLowerCase().trim() === normalizedName);
-        if (!refTool) {
-          console.warn(`Reference tool "${toolName}" not found in reference project`);
-          continue;
-        }
-        
-        // Clone the tool to target project
-        const [newTool] = await this.db.insert(excelWizardryFunctions).values({
-          projectId: targetProjectId,
-          name: refTool.name,
-          description: refTool.description,
-          functionCode: refTool.functionCode,
-          aiPrompt: refTool.aiPrompt,
-          toolType: refTool.toolType,
-          outputType: refTool.outputType,
-          operationType: refTool.operationType,
-          inputParameters: refTool.inputParameters,
-          aiAssistanceRequired: refTool.aiAssistanceRequired,
-          aiAssistancePrompt: refTool.aiAssistancePrompt,
-          llmModel: refTool.llmModel,
-          metadata: refTool.metadata,
-          inputSchema: refTool.inputSchema,
-          outputSchema: refTool.outputSchema,
-          tags: refTool.tags,
-          usageCount: 0
-        }).returning();
-        
-        toolMapping.set(toolName, newTool.id);
-        console.log(`Cloned tool "${toolName}" to target project with new ID ${newTool.id}`);
-      }
-      
-      return toolMapping;
-    });
-  }
-
-  // Clone all tools from reference project to a new project
-  async cloneAllToolsFromReferenceProject(targetProjectId: string, referenceProjectId: string = '3005ce6d-79f2-4cd3-892e-4482d4534ca4'): Promise<number> {
-    return this.retryOperation(async () => {
-      // Get all tools from reference project
-      const referenceTools = await this.db.select().from(excelWizardryFunctions)
-        .where(eq(excelWizardryFunctions.projectId, referenceProjectId));
-      
-      if (referenceTools.length === 0) {
-        console.log(`No tools found in reference project ${referenceProjectId}`);
-        return 0;
-      }
-      
-      // Check if target project already has tools
-      const existingTools = await this.db.select().from(excelWizardryFunctions)
-        .where(eq(excelWizardryFunctions.projectId, targetProjectId));
-      
-      const existingToolNames = new Set(existingTools.map(t => t.name.toLowerCase().trim()));
-      
-      let clonedCount = 0;
-      
-      for (const refTool of referenceTools) {
-        // Skip if tool already exists in target project
-        if (existingToolNames.has(refTool.name.toLowerCase().trim())) {
-          console.log(`Tool "${refTool.name}" already exists in target project, skipping`);
-          continue;
-        }
-        
-        // Clone the tool to target project
-        await this.db.insert(excelWizardryFunctions).values({
-          projectId: targetProjectId,
-          name: refTool.name,
-          description: refTool.description,
-          functionCode: refTool.functionCode,
-          aiPrompt: refTool.aiPrompt,
-          toolType: refTool.toolType,
-          outputType: refTool.outputType,
-          operationType: refTool.operationType,
-          inputParameters: refTool.inputParameters,
-          aiAssistanceRequired: refTool.aiAssistanceRequired,
-          aiAssistancePrompt: refTool.aiAssistancePrompt,
-          llmModel: refTool.llmModel,
-          metadata: refTool.metadata,
-          inputSchema: refTool.inputSchema,
-          outputSchema: refTool.outputSchema,
-          tags: refTool.tags,
-          usageCount: 0
-        });
-        
-        clonedCount++;
-        console.log(`Cloned tool "${refTool.name}" to project ${targetProjectId}`);
-      }
-      
-      console.log(`Cloned ${clonedCount} tools from reference project to ${targetProjectId}`);
-      return clonedCount;
-    });
-  }
-
-  // Session Templates
-  async getSessionTemplates(projectId: string): Promise<SessionTemplate[]> {
-    return this.retryOperation(async () => {
-      return await this.db.select().from(sessionTemplates).where(eq(sessionTemplates.projectId, projectId));
-    });
-  }
-
-  async getSessionTemplate(id: string): Promise<SessionTemplate | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.select().from(sessionTemplates).where(eq(sessionTemplates.id, id));
-      return result;
-    });
-  }
-
-  async createSessionTemplate(template: InsertSessionTemplate): Promise<SessionTemplate> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.insert(sessionTemplates).values(template).returning();
-      return result;
-    });
-  }
-
-  async updateSessionTemplate(id: string, template: Partial<InsertSessionTemplate>): Promise<SessionTemplate | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.update(sessionTemplates)
-        .set({ ...template, updatedAt: new Date() })
-        .where(eq(sessionTemplates.id, id))
-        .returning();
-      return result;
-    });
-  }
-
-  async deleteSessionTemplate(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db.delete(sessionTemplates).where(eq(sessionTemplates.id, id));
-      return result.rowCount > 0;
-    });
-  }
-
-  async getDefaultTemplate(projectId: string): Promise<SessionTemplate | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.select().from(sessionTemplates)
-        .where(and(eq(sessionTemplates.projectId, projectId), eq(sessionTemplates.isDefault, true)));
-      return result;
-    });
-  }
-
-  // Document Embeddings
-  async getDocumentEmbeddings(projectId: string): Promise<DocumentEmbedding[]> {
-    return this.retryOperation(async () => {
-      const sessions = await this.db.select({ id: extractionSessions.id })
-        .from(extractionSessions)
-        .where(eq(extractionSessions.projectId, projectId));
-      
-      if (sessions.length === 0) return [];
-      
-      const sessionIds = sessions.map(s => s.id);
-      return await this.db.select().from(documentEmbeddings)
-        .where(inArray(documentEmbeddings.sessionId, sessionIds));
-    });
-  }
-
-  async getDocumentEmbedding(id: string): Promise<DocumentEmbedding | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.select().from(documentEmbeddings).where(eq(documentEmbeddings.id, id));
-      return result;
-    });
-  }
-
-  async getEmbeddingBySessionId(sessionId: string): Promise<DocumentEmbedding | undefined> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.select().from(documentEmbeddings)
-        .where(eq(documentEmbeddings.sessionId, sessionId));
-      return result;
-    });
-  }
-
-  async createDocumentEmbedding(embedding: InsertDocumentEmbedding): Promise<DocumentEmbedding> {
-    return this.retryOperation(async () => {
-      const [result] = await this.db.insert(documentEmbeddings).values(embedding).returning();
-      return result;
-    });
-  }
-
-  async deleteDocumentEmbedding(id: string): Promise<boolean> {
-    return this.retryOperation(async () => {
-      const result = await this.db.delete(documentEmbeddings).where(eq(documentEmbeddings.id, id));
       return result.rowCount > 0;
     });
   }

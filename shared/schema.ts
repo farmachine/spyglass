@@ -66,7 +66,6 @@ export const projects = pgTable("projects", {
   mainObjectDescription: text("main_object_description"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
-  sessionStatusOptions: jsonb("session_status_options"), // Configurable status options for sessions e.g. ["In Progress", "Responded", "Won", "Lost"]
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -79,11 +78,9 @@ export const projectPublishing = pgTable("project_publishing", {
 });
 
 // New unified structure for both schema fields and collections as "steps"
-// Steps can be project-level (sessionId = null) or session-specific (sessionId = session's id)
 export const workflowSteps = pgTable("workflow_steps", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  sessionId: uuid("session_id").references(() => extractionSessions.id, { onDelete: "cascade" }), // null = project-level, set = session-specific
   stepName: text("step_name").notNull(),
   stepType: text("step_type", { enum: ["page", "list"] }).notNull(), // page = single values (schema), list = multiple records (collection)
   description: text("description"),
@@ -170,8 +167,7 @@ export const extractionSessions = pgTable("extraction_sessions", {
   sessionName: text("session_name").notNull(),
   description: text("description"),
   documentCount: integer("document_count").notNull().default(0),
-  status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error (system status)
-  workflowStatus: text("workflow_status"), // User-defined workflow status from project's sessionStatusOptions
+  status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error
   extractedData: text("extracted_data"), // Store AI extraction results as JSON string
   extractionPrompt: text("extraction_prompt"), // Store the complete AI prompt used for extraction
   aiResponse: text("ai_response"), // Store the raw AI response before parsing
@@ -339,31 +335,6 @@ export const testDocuments = pgTable("test_documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Session templates for reusable extraction schemas (Phase 2: Dynamic Extraction)
-export const sessionTemplates = pgTable("session_templates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  description: text("description"),
-  sourceSessionId: uuid("source_session_id").references(() => extractionSessions.id, { onDelete: "set null" }),
-  schemaSnapshot: jsonb("schema_snapshot").notNull(), // Snapshot of workflow steps and values at template creation
-  usageCount: integer("usage_count").default(0).notNull(),
-  isDefault: boolean("is_default").default(false).notNull(), // Mark as default template for new sessions
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Document embeddings for similarity detection (Phase 2: Dynamic Extraction)
-export const documentEmbeddings = pgTable("document_embeddings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
-  documentId: uuid("document_id").references(() => sessionDocuments.id, { onDelete: "cascade" }),
-  embedding: jsonb("embedding").notNull(), // Vector embedding as JSON array of floats
-  embeddingModel: text("embedding_model").notNull().default("text-embedding-004"), // Gemini embedding model
-  contentHash: text("content_hash"), // Hash of document content for deduplication
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -466,17 +437,6 @@ export const insertTestDocumentSchema = createInsertSchema(testDocuments).omit({
   createdAt: true,
 });
 
-export const insertSessionTemplateSchema = createInsertSchema(sessionTemplates).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertDocumentEmbeddingSchema = createInsertSchema(documentEmbeddings).omit({
-  id: true,
-  createdAt: true,
-});
-
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -523,10 +483,6 @@ export type SampleDocument = typeof sampleDocuments.$inferSelect;
 export type InsertSampleDocument = z.infer<typeof insertSampleDocumentSchema>;
 export type TestDocument = typeof testDocuments.$inferSelect;
 export type InsertTestDocument = z.infer<typeof insertTestDocumentSchema>;
-export type SessionTemplate = typeof sessionTemplates.$inferSelect;
-export type InsertSessionTemplate = z.infer<typeof insertSessionTemplateSchema>;
-export type DocumentEmbedding = typeof documentEmbeddings.$inferSelect;
-export type InsertDocumentEmbedding = z.infer<typeof insertDocumentEmbeddingSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual' | 'verified' | 'unverified' | 'extracted';

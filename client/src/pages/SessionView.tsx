@@ -27,7 +27,7 @@
  * 5. Export data → Excel files generated with proper structure
  */
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -64,7 +64,6 @@ import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
-import SimilarSessionsModal from "@/components/SimilarSessionsModal";
 
 import type { 
   ExtractionSession, 
@@ -1105,9 +1104,9 @@ const AIExtractionModal = ({
     ));
     console.log('Collected Document IDs for extraction:', documentIds);
     
-    // Check if this is a workflow step extraction (use combined steps for session-specific)
-    const isWorkflowStep = sectionName && combinedWorkflowSteps?.find(
-      (step: any) => step.stepName === sectionName
+    // Check if this is a workflow step extraction
+    const isWorkflowStep = sectionName && project?.workflowSteps?.find(
+      step => step.stepName === sectionName
     );
     
     try {
@@ -1139,7 +1138,7 @@ const AIExtractionModal = ({
           // Find the specific target field for this value
           const targetField = targetFieldsWithSources.find(tf => tf.id === field.id);
           
-          // Prepare value-specific request data (use combined steps for session-specific)
+          // Prepare value-specific request data
           const valueRequestData = {
             files: docsForThisField,
             project_data: {
@@ -1147,7 +1146,7 @@ const AIExtractionModal = ({
               projectId: project?.id,
               schemaFields: project?.schemaFields || [],
               collections: collections || [],
-              workflowSteps: combinedWorkflowSteps || []
+              workflowSteps: project?.workflowSteps || []
             },
             target_fields: targetField ? [targetField] : [],
             step_id: field.stepId,
@@ -1595,9 +1594,9 @@ const AIExtractionModal = ({
 const convertStepsToCollections = (workflowSteps: any[]) => {
   if (!workflowSteps) return [];
   
-  // Filter for list-type and data_table-type steps (data tables)
+  // Filter for list-type steps (data tables)
   return workflowSteps
-    .filter(step => step.stepType === 'list' || step.stepType === 'data_table')
+    .filter(step => step.stepType === 'list')
     .map(step => ({
       id: step.id,
       collectionName: step.stepName,
@@ -1648,10 +1647,6 @@ export default function SessionView() {
   
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
-  
-  // Similar sessions modal state (for template detection after upload)
-  const [similarSessionsModalOpen, setSimilarSessionsModalOpen] = useState(false);
-  const [uploadedDocumentContent, setUploadedDocumentContent] = useState<string>("");
   
   
   // AI extraction modal state
@@ -1781,14 +1776,14 @@ export default function SessionView() {
       // For data tables, we need to find the field ID from the step values, not collection properties
       // The columns in data tables come from workflow_steps/step_values, not the original collection schema
       
-      console.log('All workflow steps:', combinedWorkflowSteps?.map((s: any) => ({ 
+      console.log('All workflow steps:', project?.workflowSteps?.map(s => ({ 
         stepName: s.stepName, 
         stepType: s.stepType, 
         collectionName: s.collectionName 
       })));
       
-      // Find the workflow step for this collection - check both list and data_table types (use combined)
-      const workflowStep = combinedWorkflowSteps?.find((step: any) => 
+      // Find the workflow step for this collection - check both list and data_table types
+      const workflowStep = project?.workflowSteps?.find(step => 
         ((step.stepType === 'data_table' || step.stepType === 'list') && step.collectionName === collectionName) ||
         ((step.stepType === 'data_table' || step.stepType === 'list') && step.stepName === collectionName)
       );
@@ -1911,9 +1906,9 @@ export default function SessionView() {
   const handleOpenAIExtraction = (sectionName: string, availableFields: { id: string; name: string; type: string }[]) => {
     console.log('handleOpenAIExtraction called with:', { sectionName, availableFields });
     
-    // Check if this is a workflow step (use combined for session-specific)
-    const workflowStep = combinedWorkflowSteps?.find(
-      (step: any) => step.stepName === sectionName
+    // Check if this is a workflow step
+    const workflowStep = project?.workflowSteps?.find(
+      step => step.stepName === sectionName
     );
     
     if (workflowStep) {
@@ -2136,9 +2131,9 @@ export default function SessionView() {
   const sortCollectionData = (itemsWithIndices: any[], collection: any, sortConfig: any) => {
     if (!sortConfig || sortConfig.collectionId !== collection.id) return itemsWithIndices;
     
-    // Check if we have workflow steps with values (use combined for session-specific)
-    const workflowStep = combinedWorkflowSteps?.find(
-      (step: any) => step.stepName === collection.collectionName
+    // Check if we have workflow steps with values
+    const workflowStep = project?.workflowSteps?.find(
+      step => step.stepName === collection.collectionName
     );
     
     // Find the column/property being sorted
@@ -2213,42 +2208,6 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  // Fetch combined workflow steps for this session (project-level + session-specific)
-  const { data: sessionWorkflowSteps = [] } = useQuery({
-    queryKey: ['/api/sessions', sessionId, 'workflow-steps'],
-    queryFn: () => apiRequest(`/api/sessions/${sessionId}/workflow-steps`),
-    enabled: !!sessionId
-  });
-
-  // Merge session-specific workflow steps with project workflow steps
-  // Session-specific steps are marked with isSessionSpecific: true
-  const combinedWorkflowSteps = useMemo(() => {
-    if (!project?.workflowSteps) return sessionWorkflowSteps;
-    
-    // Start with project steps
-    const projectStepIds = new Set(project.workflowSteps.map(s => s.id));
-    
-    // Add session-specific steps (ones not in project)
-    const sessionOnlySteps = sessionWorkflowSteps.filter((s: any) => !projectStepIds.has(s.id));
-    
-    // Combine: project steps first, then session-specific
-    return [...project.workflowSteps, ...sessionOnlySteps.map((s: any) => ({ ...s, isSessionSpecific: true }))];
-  }, [project?.workflowSteps, sessionWorkflowSteps]);
-
-  // Helper function to find a workflow step by name (uses combined steps)
-  const findWorkflowStep = useCallback((stepName: string) => {
-    return combinedWorkflowSteps?.find((step: any) => step.stepName === stepName);
-  }, [combinedWorkflowSteps]);
-
-  // Helper function to find a step value by ID (uses combined steps)
-  const findStepValue = useCallback((valueId: string) => {
-    for (const step of combinedWorkflowSteps || []) {
-      const value = step.values?.find((v: any) => v.id === valueId);
-      if (value) return { step, value };
-    }
-    return null;
-  }, [combinedWorkflowSteps]);
-
   // Set dynamic page title based on session and project data
   usePageTitle(session?.sessionName && project?.name ? 
     `${session.sessionName} - ${project.name}` : 
@@ -2258,15 +2217,10 @@ export default function SessionView() {
   // Convert workflowSteps to collections for backward compatibility
   // This allows us to gradually migrate from the old collections/fields architecture
   // to the new unified steps/values architecture
-  // Uses combinedWorkflowSteps which includes both project-level and session-specific steps
   const collections = useMemo(() => {
-    if (!combinedWorkflowSteps || combinedWorkflowSteps.length === 0) {
-      // Fallback to project steps if combined steps not loaded yet
-      if (!project?.workflowSteps) return [];
-      return convertStepsToCollections(project.workflowSteps);
-    }
-    return convertStepsToCollections(combinedWorkflowSteps);
-  }, [combinedWorkflowSteps, project?.workflowSteps]);
+    if (!project?.workflowSteps) return [];
+    return convertStepsToCollections(project.workflowSteps);
+  }, [project?.workflowSteps]);
 
   const { data: validations = [], isLoading: validationsLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/sessions', sessionId, 'validations'],
@@ -3746,9 +3700,9 @@ export default function SessionView() {
       const collectionName = collectionMatch[1];
       const valueName = collectionMatch[2];
       
-      // Find the step value for this field to get the valueId (use combined steps)
-      const workflowStep = combinedWorkflowSteps?.find((step: any) => step.stepName === collectionName);
-      const stepValue = workflowStep?.values?.find((v: any) => v.valueName === valueName);
+      // Find the step value for this field to get the valueId
+      const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
+      const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
       return stepValue?.id;
     }
     
@@ -3757,10 +3711,10 @@ export default function SessionView() {
     if (infoPageMatch) {
       const valueName = infoPageMatch[1];
       
-      // Find the InfoPage step value with this valueName (use combined steps)
-      for (const step of combinedWorkflowSteps || []) {
-        if ((step as any).stepType === 'infoPage') {
-          const stepValue = (step as any).values?.find((v: any) => v.valueName === valueName);
+      // Find the InfoPage step value with this valueName
+      for (const step of project?.workflowSteps || []) {
+        if (step.stepType === 'infoPage') {
+          const stepValue = step.values?.find(v => v.valueName === valueName);
           if (stepValue) {
             return stepValue.id;
           }
@@ -4030,7 +3984,7 @@ Thank you for your assistance.`;
               ['Field Name', 'Value'],
               ...step.data.map((item: any) => [item.fieldName, item.value])
             ];
-          } else if (step.stepType === 'data' || step.stepType === 'list' || step.stepType === 'data_table') {
+          } else if (step.stepType === 'data' || step.stepType === 'list') {
             // Data table format: normal table with headers as columns
             worksheetData = [
               step.data.headers,
@@ -4247,7 +4201,7 @@ Thank you for your assistance.`;
             projectId: project?.id,
             schemaFields: project?.schemaFields || [],
             collections: collections || [],
-            workflowSteps: combinedWorkflowSteps || []
+            workflowSteps: project?.workflowSteps || []
           },
           target_fields: (() => {
             // Check if this is a multi-field value
@@ -4370,16 +4324,16 @@ Thank you for your assistance.`;
     let stepValue = null;
     let fieldInfo = null; // For multi-field values
     
-    for (const step of combinedWorkflowSteps || []) {
+    for (const step of project?.workflowSteps || []) {
       // Check for exact match first (single-field values)
-      const found = (step as any).values?.find((v: any) => v.valueName === fieldName);
+      const found = step.values?.find(v => v.valueName === fieldName);
       if (found) {
         stepValue = found;
         break;
       }
       
       // Check for multi-field values (format: valueName.fieldName)
-      for (const value of (step as any).values || []) {
+      for (const value of step.values || []) {
         if (value.fields && Array.isArray(value.fields) && fieldName.startsWith(value.valueName + '.')) {
           const fieldNamePart = fieldName.substring(value.valueName.length + 1);
           const fieldIndex = value.fields.findIndex((f: any) => f.name === fieldNamePart);
@@ -5279,9 +5233,9 @@ Thank you for your assistance.`;
 
             {/* Step Description - positioned below step header */}
             {(() => {
-              // Get the current step to check its type (use combined for session-specific)
-              const currentStep = combinedWorkflowSteps?.find((step: any) => step.stepName === activeTab);
-              const isInfoPage = (currentStep as any)?.stepType === 'page';
+              // Get the current step to check its type
+              const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
+              const isInfoPage = currentStep?.stepType === 'page';
               
               // Show description directly below header for InfoPages
               if (isInfoPage) {
@@ -5296,18 +5250,18 @@ Thank you for your assistance.`;
               const collectionsList = collections || [];
               const activeCollection = collectionsList.find(c => {
                 const stepName = c.collectionName;
-                const workflowSteps = combinedWorkflowSteps || [];
-                return workflowSteps.some((step: any) => 
+                const workflowSteps = project?.workflowSteps || [];
+                return workflowSteps.some(step => 
                   step.stepName === stepName && 
-                  ((step as any).values?.length > 0 || step.stepName === activeTab)
+                  (step.values?.length > 0 || step.stepName === activeTab)
                 );
               });
               
               if (activeCollection && activeTab !== 'info' && activeTab !== 'documents' && !isInfoPage) {
                 // Calculate record counts for the counter - use same logic as table
                 const getRecordCounts = () => {
-                  // Find the collection that matches the current activeTab (same as table logic - use combined)
-                  const currentCollection = (combinedWorkflowSteps || []).find((step: any) => step.stepName === activeTab);
+                  // Find the collection that matches the current activeTab (same as table logic)
+                  const currentCollection = (project?.workflowSteps || []).find(step => step.stepName === activeTab);
                   if (!currentCollection) return { visible: 0, total: 0 };
                   
                   // Use exact same logic as the table to get unique indices
@@ -6053,7 +6007,7 @@ Thank you for your assistance.`;
                 // Add workflow steps that aren't in collections
                 if (project.workflowSteps) {
                   project.workflowSteps
-                    .filter(step => step.stepType === 'list' || step.stepType === 'data_table')
+                    .filter(step => step.stepType === 'list')
                     .forEach(step => {
                       // Only add if not already in collections
                       const alreadyExists = allListItems.some(item => item.itemName === step.stepName);
@@ -6900,84 +6854,11 @@ Thank you for your assistance.`;
         onClose={() => setDocumentUploadModalOpen(false)}
         sessionId={sessionId!}
         projectId={projectId!}
-        onSuccess={async () => {
+        onSuccess={() => {
           // Refresh session documents after successful upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-          
-          // Always show the similar sessions modal after document upload
-          // This allows AI to suggest session-specific schema additions even if project has base schema
-          // Fetch the latest documents to get content for similarity detection
-          try {
-            const docsResponse = await apiRequest(`/api/sessions/${sessionId}/documents`);
-            if (docsResponse && docsResponse.length > 0) {
-              // Get the combined content of all documents
-              const combinedContent = docsResponse
-                .map((doc: any) => doc.extractedContent || '')
-                .filter((content: string) => content.length > 0)
-                .join('\n\n');
-              
-              if (combinedContent.length > 0) {
-                setUploadedDocumentContent(combinedContent);
-                setSimilarSessionsModalOpen(true);
-              }
-            }
-          } catch (error) {
-            console.error('Failed to fetch documents for similarity detection:', error);
-          }
         }}
-      />
-      
-      {/* Similar Sessions Modal (template detection after upload) */}
-      <SimilarSessionsModal
-        open={similarSessionsModalOpen}
-        onOpenChange={setSimilarSessionsModalOpen}
-        sessionId={sessionId!}
-        projectId={projectId!}
-        documentContent={uploadedDocumentContent}
-        onApplyTemplate={(schemaSnapshot) => {
-          console.log('Template schema applied:', schemaSnapshot);
-          // Refresh project data to show the new schema
-          queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-          toast({
-            title: "Schema Applied",
-            description: "The extraction schema has been copied from a similar session.",
-          });
-        }}
-        mainObjectName={project?.mainObjectName}
-        onApplyAiSuggestion={async (suggestion) => {
-          console.log('AI schema suggestion:', suggestion);
-          try {
-            // Pass sessionId to create session-specific workflow steps
-            const result = await apiRequest(`/api/projects/${projectId}/apply-ai-schema`, {
-              method: "POST",
-              body: JSON.stringify({ 
-                suggestedSteps: suggestion.suggestedSteps,
-                sessionId: sessionId // Creates session-specific steps
-              }),
-            });
-            
-            if (result?.success) {
-              queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
-              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/workflow`] });
-              queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
-              queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'workflow-steps'] });
-              toast({
-                title: "Session Schema Created",
-                description: `Created ${result.createdSteps?.length || 0} session-specific workflow steps from AI suggestion.`,
-              });
-            }
-          } catch (error) {
-            console.error('Failed to apply AI schema:', error);
-            toast({
-              title: "Error",
-              description: "Failed to create workflow steps from AI suggestion.",
-              variant: "destructive",
-            });
-          }
-        }}
-        onSkip={() => setSimilarSessionsModalOpen(false)}
       />
       {/* Column Extraction Modal for Workflow Step Values */}
       {columnExtractionModal && (
@@ -6999,8 +6880,8 @@ Thank you for your assistance.`;
             console.log(`🎯 Documents: ${documentIds.length} selected`);
             console.log(`🎯 Previous data: ${previousData.length} records`);
             
-            // Get the workflow step (use combined steps to include session-specific)
-            const workflowStep = combinedWorkflowSteps?.find((step: any) => step.stepName === stepName);
+            // Get the workflow step
+            const workflowStep = project?.workflowSteps?.find(step => step.stepName === stepName);
             if (!workflowStep) {
               console.error('Workflow step not found:', stepName);
               return;
