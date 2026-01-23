@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { 
   Plus, 
   MoreVertical, 
@@ -15,7 +17,8 @@ import {
   User,
   Sparkles,
   X,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -35,11 +38,21 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { KanbanCard as KanbanCardType } from "@shared/schema";
 
+interface SessionDocument {
+  id: string;
+  fileName: string;
+  fileType?: string;
+}
+
 interface KanbanBoardProps {
   sessionId: string;
   stepId: string;
   statusColumns: string[];
-  onGenerateTasks?: () => void;
+  sessionDocuments?: SessionDocument[];
+  isLoadingDocuments?: boolean;
+  aiInstructions?: string;
+  knowledgeDocumentIds?: string[];
+  onGenerateTasks?: (selectedDocumentIds: string[]) => Promise<void>;
   isGenerating?: boolean;
 }
 
@@ -47,6 +60,10 @@ export function KanbanBoard({
   sessionId, 
   stepId, 
   statusColumns,
+  sessionDocuments = [],
+  isLoadingDocuments = false,
+  aiInstructions,
+  knowledgeDocumentIds,
   onGenerateTasks,
   isGenerating = false 
 }: KanbanBoardProps) {
@@ -56,6 +73,9 @@ export function KanbanBoard({
   const [newCardTitle, setNewCardTitle] = useState('');
   const [selectedCard, setSelectedCard] = useState<KanbanCardType | null>(null);
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [localIsGenerating, setLocalIsGenerating] = useState(false);
 
   const { data: cards = [], isLoading } = useQuery<KanbanCardType[]>({
     queryKey: [`/api/sessions/${sessionId}/steps/${stepId}/kanban-cards`]
@@ -160,6 +180,51 @@ export function KanbanBoard({
     setIsCardDialogOpen(true);
   };
 
+  const handleDocumentToggle = (docId: string) => {
+    setSelectedDocumentIds(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    );
+  };
+
+  const handleOpenGenerateModal = () => {
+    setSelectedDocumentIds([]);
+    setIsGenerateModalOpen(true);
+  };
+
+  const handleGenerate = async () => {
+    if (selectedDocumentIds.length === 0) {
+      toast({
+        title: "No documents selected",
+        description: "Please select at least one document to generate tasks from.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (onGenerateTasks) {
+      setLocalIsGenerating(true);
+      try {
+        await onGenerateTasks(selectedDocumentIds);
+        setIsGenerateModalOpen(false);
+        toast({
+          title: "Tasks generated",
+          description: "AI has generated tasks from the selected documents."
+        });
+      } catch (error) {
+        console.error('Error generating tasks:', error);
+        toast({
+          title: "Generation failed",
+          description: "Failed to generate tasks. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLocalIsGenerating(false);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -177,11 +242,11 @@ export function KanbanBoard({
         </div>
         {onGenerateTasks && (
           <Button
-            onClick={onGenerateTasks}
-            disabled={isGenerating}
+            onClick={handleOpenGenerateModal}
+            disabled={isGenerating || localIsGenerating}
             className="bg-[#4F63A4] hover:bg-[#3d4f80]"
           >
-            {isGenerating ? (
+            {(isGenerating || localIsGenerating) ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Generating...
@@ -394,6 +459,102 @@ export function KanbanBoard({
                 Save Changes
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Tasks Modal */}
+      <Dialog open={isGenerateModalOpen} onOpenChange={setIsGenerateModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#4F63A4]" />
+              Generate Tasks with AI
+            </DialogTitle>
+            <DialogDescription>
+              Select the documents you want AI to analyze and generate tasks from.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Label className="text-sm font-medium mb-3 block">
+              Select Documents ({selectedDocumentIds.length} selected)
+            </Label>
+            
+            {isLoadingDocuments ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-[#4F63A4]" />
+              </div>
+            ) : sessionDocuments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No documents available in this session.</p>
+                <p className="text-sm">Upload documents first to generate tasks.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 dark:border-gray-700">
+                {sessionDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                    onClick={() => handleDocumentToggle(doc.id)}
+                  >
+                    <Checkbox
+                      checked={selectedDocumentIds.includes(doc.id)}
+                      onCheckedChange={() => handleDocumentToggle(doc.id)}
+                    />
+                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm truncate">{doc.fileName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {sessionDocuments.length > 0 && (
+              <div className="flex gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDocumentIds(sessionDocuments.map(d => d.id))}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDocumentIds([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsGenerateModalOpen(false)}
+              disabled={localIsGenerating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGenerate}
+              disabled={localIsGenerating || selectedDocumentIds.length === 0}
+              className="bg-[#4F63A4] hover:bg-[#3d4f80]"
+            >
+              {localIsGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Tasks
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

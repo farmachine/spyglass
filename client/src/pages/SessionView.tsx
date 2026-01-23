@@ -5256,20 +5256,25 @@ Thank you for your assistance.`;
                       sessionId={session.id}
                       stepId={currentStep.id}
                       statusColumns={kanbanConfig.statusColumns}
-                      onGenerateTasks={async () => {
-                        try {
-                          await apiRequest(`/api/sessions/${session.id}/steps/${currentStep.id}/generate-tasks`, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                              aiInstructions: kanbanConfig.aiInstructions,
-                              knowledgeDocumentIds: kanbanConfig.knowledgeDocumentIds,
-                              statusColumns: kanbanConfig.statusColumns
-                            })
-                          });
-                          queryClient.invalidateQueries({ queryKey: [`/api/sessions/${session.id}/steps/${currentStep.id}/kanban-cards`] });
-                        } catch (error) {
-                          console.error('Error generating tasks:', error);
-                        }
+                      sessionDocuments={sessionDocuments?.map(doc => ({
+                        id: doc.id,
+                        fileName: doc.fileName,
+                        fileType: doc.fileType
+                      })) || []}
+                      isLoadingDocuments={documentsLoading}
+                      aiInstructions={kanbanConfig.aiInstructions}
+                      knowledgeDocumentIds={kanbanConfig.knowledgeDocumentIds}
+                      onGenerateTasks={async (selectedDocumentIds: string[]) => {
+                        await apiRequest(`/api/sessions/${session.id}/steps/${currentStep.id}/generate-tasks`, {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            aiInstructions: kanbanConfig.aiInstructions,
+                            knowledgeDocumentIds: kanbanConfig.knowledgeDocumentIds,
+                            statusColumns: kanbanConfig.statusColumns,
+                            selectedDocumentIds
+                          })
+                        });
+                        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${session.id}/steps/${currentStep.id}/kanban-cards`] });
                       }}
                     />
                   </div>

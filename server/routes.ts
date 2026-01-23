@@ -10565,12 +10565,18 @@ def extract_function(Column_Name, Excel_File):
   app.post('/api/sessions/:sessionId/steps/:stepId/generate-tasks', async (req, res) => {
     try {
       const { sessionId, stepId } = req.params;
-      const { aiInstructions, knowledgeDocumentIds, statusColumns } = req.body;
+      const { aiInstructions, knowledgeDocumentIds, statusColumns, selectedDocumentIds } = req.body;
 
       // Get session documents
-      const sessionDocs = await storage.getSessionDocuments(sessionId);
+      const allSessionDocs = await storage.getSessionDocuments(sessionId);
+      
+      // Filter to only selected documents if specified
+      const sessionDocs = selectedDocumentIds && selectedDocumentIds.length > 0
+        ? allSessionDocs.filter((doc: any) => selectedDocumentIds.includes(doc.id))
+        : allSessionDocs;
+        
       if (sessionDocs.length === 0) {
-        return res.status(400).json({ error: 'No documents found in session' });
+        return res.status(400).json({ error: 'No documents selected for task generation' });
       }
 
       // Get knowledge documents if specified
