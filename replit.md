@@ -81,11 +81,30 @@ The design system uses Slate Blue (#4F63A4) as the primary color and features co
 *   **Backend**: Node.js with Express, TypeScript (ESM modules), PostgreSQL with Drizzle ORM, Google Gemini API for AI integration, Python services for document processing, `connect-pg-simple` for session management.
 *   **Infrastructure**: Deployed on Replit, database hosted on Neon (PostgreSQL), NixOS distribution, npm/pip for package management.
 
+### Kanban Board Feature (Jan 2026)
+**Third Step Type**: Kanban steps are now supported alongside "page" (Info Page) and "list" (Data Table) step types.
+
+**Architecture**:
+- **Database Schema**: `kanban_cards`, `kanban_checklist_items`, `kanban_comments`, `kanban_attachments` tables
+- **Configuration**: Steps store `kanbanConfig` with `statusColumns`, `aiInstructions`, and `knowledgeDocumentIds`
+- **Component**: `KanbanBoard.tsx` provides drag-and-drop card management with full CRUD operations
+- **AI Integration**: Task generation endpoint creates cards based on session documents and AI instructions
+
+**Key Implementation Details**:
+- WorkflowBuilder supports kanban step configuration (status columns editor, AI instructions, document selection)
+- SessionView renders KanbanBoard for kanban step types with proper query patterns
+- All API calls use `apiRequest` for consistent authentication
+- Query invalidation uses string-interpolated keys: `/api/sessions/${sessionId}/steps/${stepId}/kanban-cards`
+
 ### Database Schema
 Core tables include:
-*   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, and `identifier_id`.
+*   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables, Kanban) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, `identifier_id`, and `kanban_config` (JSONB).
 *   `step_values`: Defines columns/fields within steps with `id`, `step_id`, `value_name`, `tool_id`, `order_index`, `input_values` (JSONB), and `fields` (JSONB for multi-field support).
 *   `field_validations`: Stores extracted data with `id`, `field_id`, `identifier_id`, `extracted_value`, `validation_status`, `ai_reasoning`, and `confidence_score`.
+*   `kanban_cards`: Stores task cards with `id`, `step_id`, `session_id`, `title`, `description`, `status`, `order_index`, `assignees`, `priority`, `due_date`.
+*   `kanban_checklist_items`: Stores checklist items per card with `id`, `card_id`, `text`, `completed`.
+*   `kanban_comments`: Stores comments per card with `id`, `card_id`, `user_id`, `content`, `created_at`.
+*   `kanban_attachments`: Stores file attachments per card with `id`, `card_id`, `file_name`, `file_url`.
 
 ## External Dependencies
 *   **Database**: PostgreSQL (specifically Neon for hosting)
