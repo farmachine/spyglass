@@ -10339,6 +10339,337 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
+  // ==================== KANBAN BOARD ROUTES ====================
+
+  // Get all kanban cards for a session/step
+  app.get('/api/sessions/:sessionId/steps/:stepId/kanban-cards', async (req, res) => {
+    try {
+      const { sessionId, stepId } = req.params;
+      const cards = await storage.getKanbanCards(sessionId, stepId);
+      res.json(cards);
+    } catch (error) {
+      console.error('Error fetching kanban cards:', error);
+      res.status(500).json({ error: 'Failed to fetch kanban cards' });
+    }
+  });
+
+  // Get a single kanban card with its checklist items, comments, and attachments
+  app.get('/api/kanban-cards/:cardId', async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const card = await storage.getKanbanCard(cardId);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      
+      const [checklistItems, comments, attachments] = await Promise.all([
+        storage.getKanbanChecklistItems(cardId),
+        storage.getKanbanComments(cardId),
+        storage.getKanbanAttachments(cardId)
+      ]);
+      
+      res.json({ ...card, checklistItems, comments, attachments });
+    } catch (error) {
+      console.error('Error fetching kanban card:', error);
+      res.status(500).json({ error: 'Failed to fetch kanban card' });
+    }
+  });
+
+  // Create a new kanban card
+  app.post('/api/sessions/:sessionId/steps/:stepId/kanban-cards', async (req, res) => {
+    try {
+      const { sessionId, stepId } = req.params;
+      const card = await storage.createKanbanCard({
+        sessionId,
+        stepId,
+        ...req.body
+      });
+      res.status(201).json(card);
+    } catch (error) {
+      console.error('Error creating kanban card:', error);
+      res.status(500).json({ error: 'Failed to create kanban card' });
+    }
+  });
+
+  // Update a kanban card
+  app.patch('/api/kanban-cards/:cardId', async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const card = await storage.updateKanbanCard(cardId, req.body);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      res.json(card);
+    } catch (error) {
+      console.error('Error updating kanban card:', error);
+      res.status(500).json({ error: 'Failed to update kanban card' });
+    }
+  });
+
+  // Delete a kanban card
+  app.delete('/api/kanban-cards/:cardId', async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const success = await storage.deleteKanbanCard(cardId);
+      if (!success) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting kanban card:', error);
+      res.status(500).json({ error: 'Failed to delete kanban card' });
+    }
+  });
+
+  // Reorder kanban cards (for drag and drop)
+  app.post('/api/sessions/:sessionId/steps/:stepId/kanban-cards/reorder', async (req, res) => {
+    try {
+      const { cards } = req.body; // Array of { id, orderIndex, status? }
+      const success = await storage.reorderKanbanCards(cards);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error reordering kanban cards:', error);
+      res.status(500).json({ error: 'Failed to reorder kanban cards' });
+    }
+  });
+
+  // Kanban Checklist Items
+  app.get('/api/kanban-cards/:cardId/checklist', async (req, res) => {
+    try {
+      const items = await storage.getKanbanChecklistItems(req.params.cardId);
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching checklist items:', error);
+      res.status(500).json({ error: 'Failed to fetch checklist items' });
+    }
+  });
+
+  app.post('/api/kanban-cards/:cardId/checklist', async (req, res) => {
+    try {
+      const item = await storage.createKanbanChecklistItem({
+        cardId: req.params.cardId,
+        ...req.body
+      });
+      res.status(201).json(item);
+    } catch (error) {
+      console.error('Error creating checklist item:', error);
+      res.status(500).json({ error: 'Failed to create checklist item' });
+    }
+  });
+
+  app.patch('/api/kanban-checklist/:itemId', async (req, res) => {
+    try {
+      const item = await storage.updateKanbanChecklistItem(req.params.itemId, req.body);
+      if (!item) {
+        return res.status(404).json({ error: 'Checklist item not found' });
+      }
+      res.json(item);
+    } catch (error) {
+      console.error('Error updating checklist item:', error);
+      res.status(500).json({ error: 'Failed to update checklist item' });
+    }
+  });
+
+  app.delete('/api/kanban-checklist/:itemId', async (req, res) => {
+    try {
+      const success = await storage.deleteKanbanChecklistItem(req.params.itemId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting checklist item:', error);
+      res.status(500).json({ error: 'Failed to delete checklist item' });
+    }
+  });
+
+  // Kanban Comments
+  app.get('/api/kanban-cards/:cardId/comments', async (req, res) => {
+    try {
+      const comments = await storage.getKanbanComments(req.params.cardId);
+      res.json(comments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).json({ error: 'Failed to fetch comments' });
+    }
+  });
+
+  app.post('/api/kanban-cards/:cardId/comments', async (req, res) => {
+    try {
+      const comment = await storage.createKanbanComment({
+        cardId: req.params.cardId,
+        ...req.body
+      });
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      res.status(500).json({ error: 'Failed to create comment' });
+    }
+  });
+
+  app.patch('/api/kanban-comments/:commentId', async (req, res) => {
+    try {
+      const comment = await storage.updateKanbanComment(req.params.commentId, req.body);
+      if (!comment) {
+        return res.status(404).json({ error: 'Comment not found' });
+      }
+      res.json(comment);
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      res.status(500).json({ error: 'Failed to update comment' });
+    }
+  });
+
+  app.delete('/api/kanban-comments/:commentId', async (req, res) => {
+    try {
+      const success = await storage.deleteKanbanComment(req.params.commentId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      res.status(500).json({ error: 'Failed to delete comment' });
+    }
+  });
+
+  // Kanban Attachments
+  app.get('/api/kanban-cards/:cardId/attachments', async (req, res) => {
+    try {
+      const attachments = await storage.getKanbanAttachments(req.params.cardId);
+      res.json(attachments);
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+      res.status(500).json({ error: 'Failed to fetch attachments' });
+    }
+  });
+
+  app.post('/api/kanban-cards/:cardId/attachments', async (req, res) => {
+    try {
+      const attachment = await storage.createKanbanAttachment({
+        cardId: req.params.cardId,
+        ...req.body
+      });
+      res.status(201).json(attachment);
+    } catch (error) {
+      console.error('Error creating attachment:', error);
+      res.status(500).json({ error: 'Failed to create attachment' });
+    }
+  });
+
+  app.delete('/api/kanban-attachments/:attachmentId', async (req, res) => {
+    try {
+      const success = await storage.deleteKanbanAttachment(req.params.attachmentId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      res.status(500).json({ error: 'Failed to delete attachment' });
+    }
+  });
+
+  // AI Task Generation for Kanban
+  app.post('/api/sessions/:sessionId/steps/:stepId/generate-tasks', async (req, res) => {
+    try {
+      const { sessionId, stepId } = req.params;
+      const { aiInstructions, knowledgeDocumentIds, statusColumns } = req.body;
+
+      // Get session documents
+      const sessionDocs = await storage.getSessionDocuments(sessionId);
+      if (sessionDocs.length === 0) {
+        return res.status(400).json({ error: 'No documents found in session' });
+      }
+
+      // Get knowledge documents if specified
+      let knowledgeContent = '';
+      if (knowledgeDocumentIds && knowledgeDocumentIds.length > 0) {
+        for (const docId of knowledgeDocumentIds) {
+          const doc = await storage.getKnowledgeDocument(docId);
+          if (doc && doc.content) {
+            knowledgeContent += `\n\n--- Reference Document: ${doc.displayName} ---\n${doc.content}`;
+          }
+        }
+      }
+
+      // Combine session document content
+      const documentContent = sessionDocs
+        .map(doc => `--- ${doc.fileName} ---\n${doc.extractedContent || ''}`)
+        .join('\n\n');
+
+      // Build the prompt
+      const prompt = `You are a task extraction assistant. Analyze the following documents and extract actionable tasks.
+
+${aiInstructions ? `INSTRUCTIONS: ${aiInstructions}` : 'Extract all action items, tasks, and work items from the documents.'}
+
+${knowledgeContent ? `REFERENCE DOCUMENTS FOR CONTEXT:${knowledgeContent}` : ''}
+
+DOCUMENTS TO ANALYZE:
+${documentContent}
+
+AVAILABLE STATUS COLUMNS: ${(statusColumns || ['To Do', 'In Progress', 'Done']).join(', ')}
+
+For each task, provide:
+1. A clear, concise title (max 80 characters)
+2. A brief description (optional, max 200 characters)
+3. Initial status (choose from the available columns, default to first column)
+4. Brief reasoning for why this is a task
+
+Return your response as a JSON array with objects having: title, description, status, reasoning
+
+Example format:
+[
+  {"title": "Review contract terms", "description": "Section 3.1 needs legal review", "status": "To Do", "reasoning": "Contract mentions pending review requirement"},
+  {"title": "Update budget figures", "description": null, "status": "To Do", "reasoning": "Financial section has placeholder values"}
+]
+
+Return ONLY the JSON array, no other text.`;
+
+      // Call Gemini AI
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Parse the JSON response
+      let tasks: any[] = [];
+      try {
+        // Clean up the response - remove markdown code blocks if present
+        const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        tasks = JSON.parse(cleanedText);
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', text);
+        return res.status(500).json({ error: 'Failed to parse AI response' });
+      }
+
+      if (!Array.isArray(tasks)) {
+        return res.status(500).json({ error: 'AI did not return a valid task array' });
+      }
+
+      // Create the kanban cards
+      const createdCards = [];
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        const card = await storage.createKanbanCard({
+          sessionId,
+          stepId,
+          title: task.title || 'Untitled Task',
+          description: task.description || null,
+          status: task.status || (statusColumns?.[0] || 'To Do'),
+          orderIndex: i,
+          aiGenerated: true,
+          aiReasoning: task.reasoning || null
+        });
+        createdCards.push(card);
+      }
+
+      res.json({ 
+        success: true, 
+        cardsCreated: createdCards.length,
+        cards: createdCards 
+      });
+
+    } catch (error) {
+      console.error('Error generating tasks:', error);
+      res.status(500).json({ error: 'Failed to generate tasks' });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;

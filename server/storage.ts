@@ -84,7 +84,19 @@ import {
   type InsertSampleDocument,
   testDocuments,
   type TestDocument,
-  type InsertTestDocument
+  type InsertTestDocument,
+  kanbanCards,
+  kanbanChecklistItems,
+  kanbanComments,
+  kanbanAttachments,
+  type KanbanCard,
+  type InsertKanbanCard,
+  type KanbanChecklistItem,
+  type InsertKanbanChecklistItem,
+  type KanbanComment,
+  type InsertKanbanComment,
+  type KanbanAttachment,
+  type InsertKanbanAttachment
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -293,6 +305,31 @@ export interface IStorage {
   createStepValue(value: InsertStepValue): Promise<StepValue>;
   updateStepValue(id: string, value: Partial<InsertStepValue>): Promise<StepValue | undefined>;
   deleteStepValue(id: string): Promise<boolean>;
+
+  // Kanban Cards
+  getKanbanCards(sessionId: string, stepId: string): Promise<KanbanCard[]>;
+  getKanbanCard(id: string): Promise<KanbanCard | undefined>;
+  createKanbanCard(card: InsertKanbanCard): Promise<KanbanCard>;
+  updateKanbanCard(id: string, card: Partial<InsertKanbanCard>): Promise<KanbanCard | undefined>;
+  deleteKanbanCard(id: string): Promise<boolean>;
+  reorderKanbanCards(cards: { id: string; orderIndex: number; status?: string }[]): Promise<boolean>;
+
+  // Kanban Checklist Items
+  getKanbanChecklistItems(cardId: string): Promise<KanbanChecklistItem[]>;
+  createKanbanChecklistItem(item: InsertKanbanChecklistItem): Promise<KanbanChecklistItem>;
+  updateKanbanChecklistItem(id: string, item: Partial<InsertKanbanChecklistItem>): Promise<KanbanChecklistItem | undefined>;
+  deleteKanbanChecklistItem(id: string): Promise<boolean>;
+
+  // Kanban Comments
+  getKanbanComments(cardId: string): Promise<KanbanComment[]>;
+  createKanbanComment(comment: InsertKanbanComment): Promise<KanbanComment>;
+  updateKanbanComment(id: string, comment: Partial<InsertKanbanComment>): Promise<KanbanComment | undefined>;
+  deleteKanbanComment(id: string): Promise<boolean>;
+
+  // Kanban Attachments
+  getKanbanAttachments(cardId: string): Promise<KanbanAttachment[]>;
+  createKanbanAttachment(attachment: InsertKanbanAttachment): Promise<KanbanAttachment>;
+  deleteKanbanAttachment(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2258,6 +2295,65 @@ export class MemStorage implements IStorage {
       }
     }
     return deletedCount > 0;
+  }
+
+  // Kanban Cards (placeholder implementations for MemStorage)
+  async getKanbanCards(_sessionId: string, _stepId: string): Promise<KanbanCard[]> {
+    return [];
+  }
+  async getKanbanCard(_id: string): Promise<KanbanCard | undefined> {
+    return undefined;
+  }
+  async createKanbanCard(_card: InsertKanbanCard): Promise<KanbanCard> {
+    throw new Error("Kanban not supported in MemStorage");
+  }
+  async updateKanbanCard(_id: string, _card: Partial<InsertKanbanCard>): Promise<KanbanCard | undefined> {
+    return undefined;
+  }
+  async deleteKanbanCard(_id: string): Promise<boolean> {
+    return false;
+  }
+  async reorderKanbanCards(_cards: { id: string; orderIndex: number; status?: string }[]): Promise<boolean> {
+    return false;
+  }
+
+  // Kanban Checklist Items
+  async getKanbanChecklistItems(_cardId: string): Promise<KanbanChecklistItem[]> {
+    return [];
+  }
+  async createKanbanChecklistItem(_item: InsertKanbanChecklistItem): Promise<KanbanChecklistItem> {
+    throw new Error("Kanban not supported in MemStorage");
+  }
+  async updateKanbanChecklistItem(_id: string, _item: Partial<InsertKanbanChecklistItem>): Promise<KanbanChecklistItem | undefined> {
+    return undefined;
+  }
+  async deleteKanbanChecklistItem(_id: string): Promise<boolean> {
+    return false;
+  }
+
+  // Kanban Comments
+  async getKanbanComments(_cardId: string): Promise<KanbanComment[]> {
+    return [];
+  }
+  async createKanbanComment(_comment: InsertKanbanComment): Promise<KanbanComment> {
+    throw new Error("Kanban not supported in MemStorage");
+  }
+  async updateKanbanComment(_id: string, _comment: Partial<InsertKanbanComment>): Promise<KanbanComment | undefined> {
+    return undefined;
+  }
+  async deleteKanbanComment(_id: string): Promise<boolean> {
+    return false;
+  }
+
+  // Kanban Attachments
+  async getKanbanAttachments(_cardId: string): Promise<KanbanAttachment[]> {
+    return [];
+  }
+  async createKanbanAttachment(_attachment: InsertKanbanAttachment): Promise<KanbanAttachment> {
+    throw new Error("Kanban not supported in MemStorage");
+  }
+  async deleteKanbanAttachment(_id: string): Promise<boolean> {
+    return false;
   }
 }
 
@@ -4267,6 +4363,149 @@ class PostgreSQLStorage implements IStorage {
   async deleteStepValue(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Kanban Cards
+  async getKanbanCards(sessionId: string, stepId: string): Promise<KanbanCard[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(kanbanCards)
+        .where(and(
+          eq(kanbanCards.sessionId, sessionId),
+          eq(kanbanCards.stepId, stepId)
+        ))
+        .orderBy(kanbanCards.orderIndex);
+    });
+  }
+
+  async getKanbanCard(id: string): Promise<KanbanCard | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(kanbanCards).where(eq(kanbanCards.id, id));
+      return result;
+    });
+  }
+
+  async createKanbanCard(card: InsertKanbanCard): Promise<KanbanCard> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(kanbanCards).values(card).returning();
+      return result;
+    });
+  }
+
+  async updateKanbanCard(id: string, card: Partial<InsertKanbanCard>): Promise<KanbanCard | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(kanbanCards)
+        .set({ ...card, updatedAt: new Date() })
+        .where(eq(kanbanCards.id, id))
+        .returning();
+      return result;
+    });
+  }
+
+  async deleteKanbanCard(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(kanbanCards).where(eq(kanbanCards.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  async reorderKanbanCards(cards: { id: string; orderIndex: number; status?: string }[]): Promise<boolean> {
+    return this.retryOperation(async () => {
+      for (const card of cards) {
+        const updateData: any = { orderIndex: card.orderIndex, updatedAt: new Date() };
+        if (card.status) updateData.status = card.status;
+        await this.db.update(kanbanCards).set(updateData).where(eq(kanbanCards.id, card.id));
+      }
+      return true;
+    });
+  }
+
+  // Kanban Checklist Items
+  async getKanbanChecklistItems(cardId: string): Promise<KanbanChecklistItem[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(kanbanChecklistItems)
+        .where(eq(kanbanChecklistItems.cardId, cardId))
+        .orderBy(kanbanChecklistItems.orderIndex);
+    });
+  }
+
+  async createKanbanChecklistItem(item: InsertKanbanChecklistItem): Promise<KanbanChecklistItem> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(kanbanChecklistItems).values(item).returning();
+      return result;
+    });
+  }
+
+  async updateKanbanChecklistItem(id: string, item: Partial<InsertKanbanChecklistItem>): Promise<KanbanChecklistItem | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(kanbanChecklistItems)
+        .set(item)
+        .where(eq(kanbanChecklistItems.id, id))
+        .returning();
+      return result;
+    });
+  }
+
+  async deleteKanbanChecklistItem(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(kanbanChecklistItems).where(eq(kanbanChecklistItems.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Kanban Comments
+  async getKanbanComments(cardId: string): Promise<KanbanComment[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(kanbanComments)
+        .where(eq(kanbanComments.cardId, cardId))
+        .orderBy(kanbanComments.createdAt);
+    });
+  }
+
+  async createKanbanComment(comment: InsertKanbanComment): Promise<KanbanComment> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(kanbanComments).values(comment).returning();
+      return result;
+    });
+  }
+
+  async updateKanbanComment(id: string, comment: Partial<InsertKanbanComment>): Promise<KanbanComment | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.update(kanbanComments)
+        .set({ ...comment, updatedAt: new Date() })
+        .where(eq(kanbanComments.id, id))
+        .returning();
+      return result;
+    });
+  }
+
+  async deleteKanbanComment(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(kanbanComments).where(eq(kanbanComments.id, id));
+      return result.rowCount > 0;
+    });
+  }
+
+  // Kanban Attachments
+  async getKanbanAttachments(cardId: string): Promise<KanbanAttachment[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(kanbanAttachments)
+        .where(eq(kanbanAttachments.cardId, cardId))
+        .orderBy(kanbanAttachments.uploadedAt);
+    });
+  }
+
+  async createKanbanAttachment(attachment: InsertKanbanAttachment): Promise<KanbanAttachment> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(kanbanAttachments).values(attachment).returning();
+      return result;
+    });
+  }
+
+  async deleteKanbanAttachment(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(kanbanAttachments).where(eq(kanbanAttachments.id, id));
       return result.rowCount > 0;
     });
   }

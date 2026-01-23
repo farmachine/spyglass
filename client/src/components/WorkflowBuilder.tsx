@@ -23,6 +23,7 @@ import {
   Trash2,
   GripVertical,
   Code,
+  LayoutGrid,
   Brain,
   MoreVertical,
   ArrowUp,
@@ -57,12 +58,18 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface WorkflowStep {
   id: string;
-  type: 'list' | 'page';
+  type: 'list' | 'page' | 'kanban';
   name: string;
   description: string;
   values: WorkflowValue[];
   isExpanded: boolean;
   orderIndex: number;
+  // Kanban-specific configuration
+  kanbanConfig?: {
+    statusColumns: string[];
+    aiInstructions?: string;
+    knowledgeDocumentIds?: string[];
+  };
   // Original data reference
   originalId?: string;
   originalType?: 'collection' | 'schema';
@@ -131,11 +138,16 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           // Convert server data to WorkflowStep format
           const loadedSteps = data.steps.map((serverStep: any) => ({
             id: serverStep.id,
-            type: serverStep.stepType as 'list' | 'page',
+            type: serverStep.stepType as 'list' | 'page' | 'kanban',
             name: serverStep.stepName,
             description: serverStep.description || '',
             isExpanded: false,
             orderIndex: serverStep.orderIndex || 0,
+            kanbanConfig: serverStep.kanbanConfig || (serverStep.stepType === 'kanban' ? {
+              statusColumns: ['To Do', 'In Progress', 'Done'],
+              aiInstructions: '',
+              knowledgeDocumentIds: []
+            } : undefined),
             values: serverStep.values ? serverStep.values.map((serverValue: any) => ({
                 id: serverValue.id,
                 name: serverValue.valueName,
@@ -415,8 +427,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           </div>
                         )}
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {step.type === 'list' ? 'Data Table' : 'Info Page'}
-                          {step.values.length > 0 && ` • ${step.values.length} values`}
+                          {step.type === 'list' ? 'Data Table' : step.type === 'kanban' ? 'Task Board' : 'Info Page'}
+                          {step.type !== 'kanban' && step.values.length > 0 && ` • ${step.values.length} values`}
+                          {step.type === 'kanban' && step.kanbanConfig?.statusColumns && ` • ${step.kanbanConfig.statusColumns.length} columns`}
                         </div>
                       </div>
                     </div>
@@ -544,7 +557,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Step Type
                         </label>
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 flex-wrap">
                           <label className="flex items-center cursor-pointer">
                             <input
                               type="radio"
@@ -567,11 +580,169 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                             <List className="h-4 w-4 mr-1 text-[#4F63A4]" />
                             <span className="text-sm">Data Table</span>
                           </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`step-type-${step.id}`}
+                              checked={step.type === 'kanban'}
+                              onChange={() => updateStep(step.id, { 
+                                type: 'kanban',
+                                kanbanConfig: step.kanbanConfig || {
+                                  statusColumns: ['To Do', 'In Progress', 'Done'],
+                                  aiInstructions: '',
+                                  knowledgeDocumentIds: []
+                                }
+                              })}
+                              className="mr-2 text-[#4F63A4]"
+                            />
+                            <LayoutGrid className="h-4 w-4 mr-1 text-[#4F63A4]" />
+                            <span className="text-sm">Task Board</span>
+                          </label>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {step.type === 'page' ? 'Extract single values from documents' : 'Extract multiple rows of data'}
+                          {step.type === 'page' 
+                            ? 'Extract single values from documents' 
+                            : step.type === 'list'
+                            ? 'Extract multiple rows of data'
+                            : 'AI-generated task board for tracking work items'}
                         </p>
                       </div>
+
+                      {/* Kanban Configuration - only shown for kanban type */}
+                      {step.type === 'kanban' && (
+                        <div className="space-y-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <LayoutGrid className="h-4 w-4" />
+                            Task Board Configuration
+                          </h4>
+                          
+                          {/* Status Columns */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Status Columns
+                            </label>
+                            <div className="space-y-2">
+                              {(step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((col, colIndex) => (
+                                <div key={colIndex} className="flex gap-2">
+                                  <Input
+                                    value={col}
+                                    onChange={(e) => {
+                                      const newColumns = [...(step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'])];
+                                      newColumns[colIndex] = e.target.value;
+                                      updateStep(step.id, {
+                                        kanbanConfig: {
+                                          ...step.kanbanConfig,
+                                          statusColumns: newColumns
+                                        }
+                                      });
+                                    }}
+                                    placeholder="Column name"
+                                    className="flex-1"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newColumns = (step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).filter((_, i) => i !== colIndex);
+                                      updateStep(step.id, {
+                                        kanbanConfig: {
+                                          ...step.kanbanConfig,
+                                          statusColumns: newColumns
+                                        }
+                                      });
+                                    }}
+                                    className="text-red-500 hover:text-red-700"
+                                    disabled={(step.kanbanConfig?.statusColumns || []).length <= 2}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newColumns = [...(step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']), 'New Status'];
+                                  updateStep(step.id, {
+                                    kanbanConfig: {
+                                      ...step.kanbanConfig,
+                                      statusColumns: newColumns
+                                    }
+                                  });
+                                }}
+                                className="w-full"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Column
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Cards will be organized in these columns
+                            </p>
+                          </div>
+
+                          {/* AI Instructions */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              AI Task Generation Instructions
+                            </label>
+                            <Textarea
+                              value={step.kanbanConfig?.aiInstructions || ''}
+                              onChange={(e) => {
+                                updateStep(step.id, {
+                                  kanbanConfig: {
+                                    ...step.kanbanConfig,
+                                    statusColumns: step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                    aiInstructions: e.target.value
+                                  }
+                                });
+                              }}
+                              placeholder="Describe how the AI should analyze documents to generate tasks. For example: 'Extract action items, deadlines, and responsible parties from the uploaded documents. Create a task for each action item identified.'"
+                              rows={4}
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Instructions for AI to generate tasks from session documents
+                            </p>
+                          </div>
+
+                          {/* Knowledge Documents Selection */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Reference Documents (Optional)
+                            </label>
+                            <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
+                              {knowledgeDocuments.length === 0 ? (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">No reference documents available</p>
+                              ) : (
+                                knowledgeDocuments.map((doc) => (
+                                  <label key={doc.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                                    <Checkbox
+                                      checked={step.kanbanConfig?.knowledgeDocumentIds?.includes(doc.id) || false}
+                                      onCheckedChange={(checked) => {
+                                        const currentIds = step.kanbanConfig?.knowledgeDocumentIds || [];
+                                        const newIds = checked 
+                                          ? [...currentIds, doc.id]
+                                          : currentIds.filter(id => id !== doc.id);
+                                        updateStep(step.id, {
+                                          kanbanConfig: {
+                                            ...step.kanbanConfig,
+                                            statusColumns: step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                            knowledgeDocumentIds: newIds
+                                          }
+                                        });
+                                      }}
+                                    />
+                                    {doc.displayName}
+                                  </label>
+                                ))
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Additional context for AI task generation
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

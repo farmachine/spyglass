@@ -82,7 +82,7 @@ export const workflowSteps = pgTable("workflow_steps", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   stepName: text("step_name").notNull(),
-  stepType: text("step_type", { enum: ["page", "list"] }).notNull(), // page = single values (schema), list = multiple records (collection)
+  stepType: text("step_type", { enum: ["page", "list", "kanban"] }).notNull(), // page = single values (schema), list = multiple records (collection), kanban = task board
   description: text("description"),
   orderIndex: integer("order_index").default(0),
   valueCount: integer("value_count").default(0), // Number of values in this step
@@ -240,6 +240,58 @@ export const fieldValidations = pgTable("field_validations", {
     table.fieldId
   ).where(sql`validation_type = 'schema_field'`),
 }));
+
+// Kanban Cards for task management within sessions
+export const kanbanCards = pgTable("kanban_cards", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  stepId: uuid("step_id").notNull().references(() => workflowSteps.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("todo"), // Configurable statuses from step configuration
+  orderIndex: integer("order_index").default(0),
+  assigneeIds: jsonb("assignee_ids"), // Array of user IDs assigned to this card
+  aiGenerated: boolean("ai_generated").default(false).notNull(),
+  aiReasoning: text("ai_reasoning"), // AI explanation for why this task was generated
+  documentSource: text("document_source"), // Source document reference
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Kanban Checklist Items within cards
+export const kanbanChecklistItems = pgTable("kanban_checklist_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cardId: uuid("card_id").notNull().references(() => kanbanCards.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  isCompleted: boolean("is_completed").default(false).notNull(),
+  orderIndex: integer("order_index").default(0),
+  aiGenerated: boolean("ai_generated").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Kanban Comments/Chat for card discussions
+export const kanbanComments = pgTable("kanban_comments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cardId: uuid("card_id").notNull().references(() => kanbanCards.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Kanban Attachments for cards and comments
+export const kanbanAttachments = pgTable("kanban_attachments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cardId: uuid("card_id").notNull().references(() => kanbanCards.id, { onDelete: "cascade" }),
+  commentId: uuid("comment_id").references(() => kanbanComments.id, { onDelete: "cascade" }), // Optional - if attached to a specific comment
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  uploadedBy: uuid("uploaded_by").references(() => users.id),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -437,6 +489,28 @@ export const insertTestDocumentSchema = createInsertSchema(testDocuments).omit({
   createdAt: true,
 });
 
+export const insertKanbanCardSchema = createInsertSchema(kanbanCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertKanbanChecklistItemSchema = createInsertSchema(kanbanChecklistItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKanbanCommentSchema = createInsertSchema(kanbanComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertKanbanAttachmentSchema = createInsertSchema(kanbanAttachments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -483,6 +557,14 @@ export type SampleDocument = typeof sampleDocuments.$inferSelect;
 export type InsertSampleDocument = z.infer<typeof insertSampleDocumentSchema>;
 export type TestDocument = typeof testDocuments.$inferSelect;
 export type InsertTestDocument = z.infer<typeof insertTestDocumentSchema>;
+export type KanbanCard = typeof kanbanCards.$inferSelect;
+export type InsertKanbanCard = z.infer<typeof insertKanbanCardSchema>;
+export type KanbanChecklistItem = typeof kanbanChecklistItems.$inferSelect;
+export type InsertKanbanChecklistItem = z.infer<typeof insertKanbanChecklistItemSchema>;
+export type KanbanComment = typeof kanbanComments.$inferSelect;
+export type InsertKanbanComment = z.infer<typeof insertKanbanCommentSchema>;
+export type KanbanAttachment = typeof kanbanAttachments.$inferSelect;
+export type InsertKanbanAttachment = z.infer<typeof insertKanbanAttachmentSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual' | 'verified' | 'unverified' | 'extracted';

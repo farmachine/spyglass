@@ -64,6 +64,7 @@ import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
+import { KanbanBoard } from "@/components/KanbanBoard";
 
 import type { 
   ExtractionSession, 
@@ -5236,6 +5237,44 @@ Thank you for your assistance.`;
               // Get the current step to check its type
               const currentStep = project?.workflowSteps?.find(step => step.stepName === activeTab);
               const isInfoPage = currentStep?.stepType === 'page';
+              const isKanban = currentStep?.stepType === 'kanban';
+              
+              // Render Kanban board for kanban type steps
+              if (isKanban && currentStep && session) {
+                const kanbanConfig = (currentStep as any).kanbanConfig || {
+                  statusColumns: ['To Do', 'In Progress', 'Done'],
+                  aiInstructions: '',
+                  knowledgeDocumentIds: []
+                };
+                
+                return (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      Task board for managing work items related to this session.
+                    </p>
+                    <KanbanBoard
+                      sessionId={session.id}
+                      stepId={currentStep.id}
+                      statusColumns={kanbanConfig.statusColumns}
+                      onGenerateTasks={async () => {
+                        try {
+                          await apiRequest(`/api/sessions/${session.id}/steps/${currentStep.id}/generate-tasks`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              aiInstructions: kanbanConfig.aiInstructions,
+                              knowledgeDocumentIds: kanbanConfig.knowledgeDocumentIds,
+                              statusColumns: kanbanConfig.statusColumns
+                            })
+                          });
+                          queryClient.invalidateQueries({ queryKey: [`/api/sessions/${session.id}/steps/${currentStep.id}/kanban-cards`] });
+                        } catch (error) {
+                          console.error('Error generating tasks:', error);
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              }
               
               // Show description directly below header for InfoPages
               if (isInfoPage) {
