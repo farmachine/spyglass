@@ -550,23 +550,23 @@ export function KanbanBoard({
       <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
         <DialogContent className="max-w-4xl w-[95vw] h-[90vh] overflow-hidden flex flex-col p-0">
           {/* Card Header */}
-          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] p-6 text-white">
-            <div className="flex items-start gap-3">
+          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] p-8 text-white">
+            <div className="flex items-start gap-4">
               {selectedCard?.aiGenerated && (
-                <div className="bg-white/20 rounded-lg p-2 mt-1">
-                  <Sparkles className="h-5 w-5" />
+                <div className="bg-white/20 rounded-xl p-3 mt-1">
+                  <Sparkles className="h-6 w-6" />
                 </div>
               )}
               <div className="flex-1">
                 <Input
                   value={selectedCard?.title || ''}
                   onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
-                  className="text-xl font-semibold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60"
+                  className="text-3xl font-bold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60 tracking-tight"
                   placeholder="Task title"
                 />
                 {selectedCard?.aiGenerated && (
-                  <p className="text-sm text-white/70 mt-1 flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> AI Generated Task
+                  <p className="text-sm text-white/70 mt-2 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" /> AI Generated Task
                   </p>
                 )}
               </div>
