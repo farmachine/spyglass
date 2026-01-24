@@ -548,7 +548,7 @@ export function KanbanBoard({
 
       {/* Card Detail Dialog - Trello-like Workspace */}
       <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] overflow-hidden flex flex-col p-0">
           {/* Card Header */}
           <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] p-6 text-white">
             <div className="flex items-start gap-3">
@@ -574,11 +574,11 @@ export function KanbanBoard({
           </div>
           
           {selectedCard && (
-            <div className="flex-1 overflow-hidden p-6">
+            <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
-                <div className="grid grid-cols-3 gap-8">
-                  {/* Main Content - Left 2 columns */}
-                  <div className="col-span-2 space-y-5">
+                <div className="grid grid-cols-4 gap-6 p-6">
+                  {/* Main Content - Left 3 columns */}
+                  <div className="col-span-3 space-y-5">
                     {/* Description Section */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -590,9 +590,9 @@ export function KanbanBoard({
                       <Textarea
                         value={selectedCard.description || ''}
                         onChange={(e) => setSelectedCard({ ...selectedCard, description: e.target.value })}
-                        rows={3}
+                        rows={5}
                         placeholder="Add a more detailed description..."
-                        className="resize-none bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                        className="resize-y min-h-[120px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
                       />
                     </div>
 
@@ -751,7 +751,7 @@ export function KanbanBoard({
                           <p className="text-sm text-gray-400">No comments yet. Start the conversation!</p>
                         </div>
                       ) : (
-                        <div className="space-y-3 max-h-52 overflow-y-auto pr-2">
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                           {comments.map((comment) => {
                             const commentUser = getUserById(comment.userId);
                             return (
@@ -793,7 +793,7 @@ export function KanbanBoard({
                   </div>
 
                   {/* Sidebar - Right column */}
-                  <div className="space-y-4">
+                  <div className="space-y-4 sticky top-0">
                     {/* Status Card */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Status</label>
