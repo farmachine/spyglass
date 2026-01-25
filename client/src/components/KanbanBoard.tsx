@@ -725,8 +725,8 @@ export function KanbanBoard({
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <label className="text-sm font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                          <div className="bg-green-500/10 rounded-lg p-1.5">
-                            <CheckSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <div className="bg-[#4F63A4]/10 rounded-lg p-1.5">
+                            <CheckSquare className="h-4 w-4 text-[#4F63A4]" />
                           </div>
                           Checklist
                         </label>
@@ -798,7 +798,7 @@ export function KanbanBoard({
                               size="sm"
                               onClick={() => newChecklistItem.trim() && addChecklistItemMutation.mutate(newChecklistItem)}
                               disabled={!newChecklistItem.trim() || addChecklistItemMutation.isPending}
-                              className="h-9 bg-green-600 hover:bg-green-700"
+                              className="h-9 bg-[#4F63A4] hover:bg-[#3D4E85]"
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -810,8 +810,8 @@ export function KanbanBoard({
                     {/* Attachments */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
-                        <div className="bg-purple-500/10 rounded-lg p-1.5">
-                          <Paperclip className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        <div className="bg-[#4F63A4]/10 rounded-lg p-1.5">
+                          <Paperclip className="h-4 w-4 text-[#4F63A4]" />
                         </div>
                         Attachments
                         {attachments.length > 0 && (
@@ -827,8 +827,8 @@ export function KanbanBoard({
                         <div className="space-y-2">
                           {attachments.map((attachment) => (
                             <div key={attachment.id} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
-                              <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2">
-                                <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              <div className="bg-[#4F63A4]/10 rounded-lg p-2">
+                                <FileText className="h-4 w-4 text-[#4F63A4]" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <a
