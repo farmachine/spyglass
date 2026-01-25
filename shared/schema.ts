@@ -251,6 +251,7 @@ export const kanbanCards = pgTable("kanban_cards", {
   status: text("status").notNull().default("todo"), // Configurable statuses from step configuration
   orderIndex: integer("order_index").default(0),
   assigneeIds: jsonb("assignee_ids"), // Array of user IDs assigned to this card
+  fieldValues: jsonb("field_values"), // Stores values for step-defined fields: {valueId: extractedValue}
   aiGenerated: boolean("ai_generated").default(false).notNull(),
   aiReasoning: text("ai_reasoning"), // AI explanation for why this task was generated
   documentSource: text("document_source"), // Source document reference
