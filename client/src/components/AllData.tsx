@@ -54,12 +54,50 @@ export default function AllData({ project }: AllDataProps) {
   const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>([]);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   
-  // Analytics state
+  // Analytics state - load from localStorage
+  const analyticsStorageKey = `analytics-${project.id}`;
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [selectedAnalyticsFields, setSelectedAnalyticsFields] = useState<Set<string>>(new Set());
-  const [generatedCharts, setGeneratedCharts] = useState<ChartConfig[]>([]);
+  const [selectedAnalyticsFields, setSelectedAnalyticsFields] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(analyticsStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return new Set(parsed.selectedFields || []);
+      }
+    } catch (e) {}
+    return new Set();
+  });
+  const [generatedCharts, setGeneratedCharts] = useState<ChartConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem(analyticsStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.charts || [];
+      }
+    } catch (e) {}
+    return [];
+  });
   const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
-  const [showAnalyticsPane, setShowAnalyticsPane] = useState(false);
+  const [showAnalyticsPane, setShowAnalyticsPane] = useState(() => {
+    try {
+      const saved = localStorage.getItem(analyticsStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.showPane === true && (parsed.charts?.length > 0);
+      }
+    } catch (e) {}
+    return false;
+  });
+  
+  // Save analytics state to localStorage whenever it changes
+  useEffect(() => {
+    const data = {
+      selectedFields: Array.from(selectedAnalyticsFields),
+      charts: generatedCharts,
+      showPane: showAnalyticsPane
+    };
+    localStorage.setItem(analyticsStorageKey, JSON.stringify(data));
+  }, [selectedAnalyticsFields, generatedCharts, showAnalyticsPane, analyticsStorageKey]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
