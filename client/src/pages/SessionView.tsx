@@ -6937,8 +6937,13 @@ Thank you for your assistance.`;
         open={sessionLinkingModalOpen}
         onClose={() => setSessionLinkingModalOpen(false)}
         sessionId={sessionId!}
+        kanbanStepId={project?.workflowSteps?.find(s => s.stepType === 'kanban')?.id}
         onLinkComplete={() => {
           // Refresh kanban data after linking
+          const kanbanStep = project?.workflowSteps?.find(s => s.stepType === 'kanban');
+          if (kanbanStep) {
+            queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps/${kanbanStep.id}/kanban-cards`] });
+          }
           queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps`] });
         }}
       />

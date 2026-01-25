@@ -30,6 +30,7 @@ interface SessionLinkingModalProps {
   open: boolean;
   onClose: () => void;
   sessionId: string;
+  kanbanStepId?: string;
   onLinkComplete?: () => void;
 }
 
@@ -37,6 +38,7 @@ export default function SessionLinkingModal({
   open,
   onClose,
   sessionId,
+  kanbanStepId,
   onLinkComplete
 }: SessionLinkingModalProps) {
   const [similarSessions, setSimilarSessions] = useState<SimilarSession[]>([]);
@@ -78,6 +80,10 @@ export default function SessionLinkingModal({
     },
     onSuccess: (data) => {
       setLinkResult(data);
+      // Invalidate kanban cards query to refresh the board
+      if (kanbanStepId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps/${kanbanStepId}/kanban-cards`] });
+      }
       queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps`] });
       toast({
         title: "Session Linked Successfully",
