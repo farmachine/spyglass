@@ -548,20 +548,20 @@ export function KanbanBoard({
 
       {/* Card Detail Dialog - Trello-like Workspace */}
       <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-6xl w-[98vw] h-[92vh] overflow-hidden flex flex-col p-0">
           {/* Card Header */}
-          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] p-8 text-white">
-            <div className="flex items-start gap-4">
+          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] px-10 py-8 text-white">
+            <div className="flex items-center gap-5">
               {selectedCard?.aiGenerated && (
-                <div className="bg-white/20 rounded-xl p-3 mt-1">
-                  <Sparkles className="h-6 w-6" />
+                <div className="bg-white/20 rounded-xl p-3 flex-shrink-0">
+                  <Sparkles className="h-7 w-7" />
                 </div>
               )}
               <div className="flex-1">
                 <Input
                   value={selectedCard?.title || ''}
                   onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
-                  className="text-3xl font-bold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60 tracking-tight"
+                  className="text-4xl font-bold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60 tracking-tight leading-tight"
                   placeholder="Task title"
                 />
                 {selectedCard?.aiGenerated && (
@@ -595,21 +595,6 @@ export function KanbanBoard({
                         className="resize-y min-h-[120px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
                       />
                     </div>
-
-                    {/* AI Reasoning */}
-                    {selectedCard.aiReasoning && (
-                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="bg-purple-500/20 rounded-lg p-1.5">
-                            <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">AI Reasoning</span>
-                        </div>
-                        <p className="text-sm text-purple-600 dark:text-purple-400 leading-relaxed">
-                          {selectedCard.aiReasoning}
-                        </p>
-                      </div>
-                    )}
 
                     {/* Checklist */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
