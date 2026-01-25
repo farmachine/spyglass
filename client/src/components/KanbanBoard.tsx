@@ -380,9 +380,9 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header with AI Generate button */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {cards.length} task{cards.length !== 1 ? 's' : ''}
         </div>
@@ -408,17 +408,18 @@ export function KanbanBoard({
       </div>
 
       {/* Kanban Columns */}
-      <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '500px' }}>
-        {statusColumns.map((status) => {
-          const columnCards = getColumnCards(status);
-          
-          return (
-            <div
-              key={status}
-              className="flex-shrink-0 w-72 bg-gray-100 dark:bg-gray-800 rounded-lg p-3"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, status)}
-            >
+      <div className="flex-1 overflow-y-auto pb-8">
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${statusColumns.length}, minmax(280px, 1fr))` }}>
+          {statusColumns.map((status) => {
+            const columnCards = getColumnCards(status);
+            
+            return (
+              <div
+                key={status}
+                className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 min-h-[200px]"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, status)}
+              >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
@@ -544,6 +545,7 @@ export function KanbanBoard({
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Card Detail Dialog - Trello-like Workspace */}
