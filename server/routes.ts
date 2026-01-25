@@ -10732,8 +10732,8 @@ DATA SUMMARY:
 ${JSON.stringify(dataDescription, null, 2)}
 
 For each field, determine the best chart type:
-- Use "pie" for categorical data with few distinct values (e.g., "Won or Lost", "Status", "Category")
-- Use "bar" for data with more distinct values or when comparing quantities
+- ALWAYS use "pie" charts for text/categorical data (names, labels, statuses, categories, etc.)
+- Only use "bar" charts for numeric data that represents quantities or measurements
 
 Return a JSON array of chart configurations. Each chart should have:
 - type: "pie" or "bar"
@@ -10781,14 +10781,13 @@ Return ONLY the JSON array, no other text or markdown.`;
             valueCounts[normalizedValue] = (valueCounts[normalizedValue] || 0) + 1;
           }
           
-          const uniqueCount = Object.keys(valueCounts).length;
           const chartData = Object.entries(valueCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10) // Limit to top 10 values
             .map(([name, value]) => ({ name, value }));
 
           return {
-            type: uniqueCount <= 5 ? 'pie' : 'bar',
+            type: 'pie', // Always use pie for text values
             title: `${field.fieldName} Distribution`,
             fieldName: field.fieldName,
             data: chartData
