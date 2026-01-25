@@ -255,6 +255,10 @@ export const kanbanCards = pgTable("kanban_cards", {
   aiGenerated: boolean("ai_generated").default(false).notNull(),
   aiReasoning: text("ai_reasoning"), // AI explanation for why this task was generated
   documentSource: text("document_source"), // Source document reference
+  // Linked session fields
+  fromLinkedSession: boolean("from_linked_session").default(false).notNull(), // True if copied from a linked session
+  linkedFromSessionId: uuid("linked_from_session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Original session this card was copied from
+  linkedFromCardId: uuid("linked_from_card_id"), // Original card ID this was copied from
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -277,6 +281,9 @@ export const kanbanComments = pgTable("kanban_comments", {
   cardId: uuid("card_id").notNull().references(() => kanbanCards.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  // Linked session fields
+  fromLinkedSession: boolean("from_linked_session").default(false).notNull(), // True if copied from a linked session
+  linkedFromSessionId: uuid("linked_from_session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Original session this comment was copied from
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -292,6 +299,18 @@ export const kanbanAttachments = pgTable("kanban_attachments", {
   mimeType: text("mime_type"),
   uploadedBy: uuid("uploaded_by").references(() => users.id),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+// Session Links for reusing content from previous similar sessions
+export const sessionLinks = pgTable("session_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sourceSessionId: uuid("source_session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }), // The new session
+  linkedSessionId: uuid("linked_session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }), // The previous session being linked
+  similarityScore: integer("similarity_score").default(0), // AI-calculated similarity percentage
+  gapAnalysis: text("gap_analysis"), // AI-generated description of differences
+  newRequirements: jsonb("new_requirements"), // Array of new requirements not in the linked session
+  excludedTasks: jsonb("excluded_tasks"), // Array of task IDs excluded as non-relevant
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const knowledgeDocuments = pgTable("knowledge_documents", {
@@ -512,6 +531,11 @@ export const insertKanbanAttachmentSchema = createInsertSchema(kanbanAttachments
   uploadedAt: true,
 });
 
+export const insertSessionLinkSchema = createInsertSchema(sessionLinks).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -566,6 +590,8 @@ export type KanbanComment = typeof kanbanComments.$inferSelect;
 export type InsertKanbanComment = z.infer<typeof insertKanbanCommentSchema>;
 export type KanbanAttachment = typeof kanbanAttachments.$inferSelect;
 export type InsertKanbanAttachment = z.infer<typeof insertKanbanAttachmentSchema>;
+export type SessionLink = typeof sessionLinks.$inferSelect;
+export type InsertSessionLink = z.infer<typeof insertSessionLinkSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual' | 'verified' | 'unverified' | 'extracted';
