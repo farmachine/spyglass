@@ -5543,6 +5543,30 @@ print(json.dumps(results))
     }
   });
 
+  // Delete a workflow step
+  app.delete("/api/workflow-steps/:stepId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { stepId } = req.params;
+      
+      console.log("\n🗑️ DELETE request to remove workflow step:", stepId);
+      
+      // First delete all step values for this step
+      const stepValues = await storage.getStepValues(stepId);
+      for (const value of stepValues) {
+        await storage.deleteStepValue(value.id);
+      }
+      
+      // Delete the step itself
+      await storage.deleteWorkflowStep(stepId);
+      
+      console.log("✅ Successfully deleted step:", stepId);
+      res.json({ success: true, message: "Step deleted successfully" });
+    } catch (error) {
+      console.error("\n❌ Error deleting step:", error);
+      res.status(500).json({ message: "Failed to delete step" });
+    }
+  });
+
   // Get all Excel wizardry functions
   app.get("/api/excel-functions", authenticateToken, async (req: AuthRequest, res) => {
     try {

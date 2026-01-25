@@ -313,8 +313,38 @@ export default function DefineData({
 
   // Handler for saving workflow steps
   const handleSaveWorkflow = async (steps: any[]) => {
-    // Convert workflow steps back to schema fields and collections
-    console.log('Saving workflow steps:', steps);
+    console.log('📝 Saving workflow steps:', steps);
+    
+    // Get current step IDs from the new steps array
+    const newStepIds = new Set(steps.map(s => s.id));
+    
+    // Get existing steps from server to identify deletions
+    const existingSteps = workflow?.steps || [];
+    const existingStepIds = existingSteps.map((s: any) => s.id);
+    
+    // Delete steps that are no longer in the new steps array
+    for (const existingId of existingStepIds) {
+      if (!newStepIds.has(existingId)) {
+        try {
+          console.log(`🗑️ Deleting removed step: ${existingId}`);
+          const deleteResponse = await fetch(`/api/workflow-steps/${existingId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!deleteResponse.ok) {
+            console.error(`Failed to delete step ${existingId}:`, await deleteResponse.text());
+          } else {
+            console.log(`✅ Successfully deleted step ${existingId}`);
+          }
+        } catch (error) {
+          console.error(`Error deleting step ${existingId}:`, error);
+        }
+      }
+    }
     
     // Save each step to the server
     for (const step of steps) {
@@ -337,7 +367,7 @@ export default function DefineData({
         if (!response.ok) {
           console.error(`Failed to save step ${step.id}:`, await response.text());
         } else {
-          console.log(`Successfully saved step ${step.id}`);
+          console.log(`✅ Successfully saved step ${step.id}`);
         }
       } catch (error) {
         console.error(`Error saving step ${step.id}:`, error);
