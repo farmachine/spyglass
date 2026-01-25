@@ -231,16 +231,19 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   const deleteStep = (stepId: string) => {
-    setSteps(steps.filter(step => step.id !== stepId));
-    // Update orderIndex for remaining steps
-    setSteps(prev => prev.map((step, index) => ({
-      ...step,
-      orderIndex: index
-    })));
+    // Filter and update orderIndex in a single state update
+    const remainingSteps = steps
+      .filter(step => step.id !== stepId)
+      .map((step, index) => ({
+        ...step,
+        orderIndex: index
+      }));
+    
+    setSteps(remainingSteps);
     
     // Clear selection if deleted step was selected
     if (selectedStepId === stepId) {
-      setSelectedStepId(steps.length > 1 ? steps[0].id : null);
+      setSelectedStepId(remainingSteps.length > 0 ? remainingSteps[0].id : null);
     }
   };
 
