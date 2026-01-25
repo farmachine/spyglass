@@ -62,6 +62,7 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 // import { EditFieldValueDialog } from "@/components/EditFieldValueDialog"; // Replaced with inline editing
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
+import SessionLinkingModal from "@/components/SessionLinkingModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
@@ -1648,6 +1649,9 @@ export default function SessionView() {
   
   // Document upload modal state (upload only, no AI processing)
   const [documentUploadModalOpen, setDocumentUploadModalOpen] = useState(false);
+  
+  // Session linking modal state (triggered after document upload)
+  const [sessionLinkingModalOpen, setSessionLinkingModalOpen] = useState(false);
   
   
   // AI extraction modal state
@@ -6910,6 +6914,8 @@ Thank you for your assistance.`;
           // Refresh session data and validations after successful document upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+          // Trigger session linking modal to find similar sessions
+          setSessionLinkingModalOpen(true);
         }}
       />
       {/* Document Upload Modal (upload only, no AI processing) */}
@@ -6922,6 +6928,18 @@ Thank you for your assistance.`;
           // Refresh session documents after successful upload
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
           queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] });
+          // Trigger session linking modal to find similar sessions
+          setSessionLinkingModalOpen(true);
+        }}
+      />
+      {/* Session Linking Modal (triggered after document upload) */}
+      <SessionLinkingModal
+        open={sessionLinkingModalOpen}
+        onClose={() => setSessionLinkingModalOpen(false)}
+        sessionId={sessionId!}
+        onLinkComplete={() => {
+          // Refresh kanban data after linking
+          queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps`] });
         }}
       />
       {/* Column Extraction Modal for Workflow Step Values */}

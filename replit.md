@@ -111,6 +111,27 @@ The design system uses Slate Blue (#4F63A4) as the primary color and features co
 - Charts display in a responsive grid layout taking 1/3 of the page width
 - Fallback logic generates charts locally if AI response parsing fails
 
+### Session Linking Feature (Jan 2026)
+**AI-Powered Session Reuse**: When uploading documents to a session, the system automatically scans previous sessions for similar content and offers to copy relevant tasks.
+
+**Architecture**:
+- **Database Schema**: `session_links` table stores linked session relationships with gap analysis
+- **Kanban Extensions**: `kanban_cards` and `kanban_comments` tables include `from_linked_session`, `linked_from_session_id` columns
+- **Component**: `SessionLinkingModal.tsx` provides UI for selecting similar sessions
+- **AI Integration**: Endpoints use Gemini AI for similarity detection and gap analysis
+
+**API Endpoints**:
+- `POST /api/sessions/:sessionId/find-similar` - Scans project sessions for similar documents (40%+ threshold)
+- `POST /api/sessions/:sessionId/link-session` - Links sessions and copies kanban content with gap analysis
+- `GET /api/sessions/:sessionId/links` - Gets linked sessions for a session
+
+**Key Implementation Details**:
+- Triggered automatically after document upload (both AddDocumentsModal and DocumentUploadModal)
+- AI calculates similarity score and provides match reasoning
+- Gap analysis identifies new requirements and irrelevant tasks
+- Copies cards, checklists, comments (marked as "previous session"), and attachments
+- Non-relevant tasks are excluded, new requirement tasks are auto-generated
+
 ### Database Schema
 Core tables include:
 *   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables, Kanban) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, `identifier_id`, and `kanban_config` (JSONB).
