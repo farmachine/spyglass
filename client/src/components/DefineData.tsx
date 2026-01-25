@@ -319,7 +319,7 @@ export default function DefineData({
     const newStepIds = new Set(steps.map(s => s.id));
     
     // Get existing steps from server to identify deletions
-    const existingSteps = workflow?.steps || [];
+    const existingSteps = workflowData?.steps || [];
     const existingStepIds = existingSteps.map((s: any) => s.id);
     
     // Delete steps that are no longer in the new steps array
