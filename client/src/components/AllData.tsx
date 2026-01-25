@@ -1,18 +1,28 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
+import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+// Chart configuration type from AI
+interface ChartConfig {
+  type: 'pie' | 'bar';
+  title: string;
+  fieldName: string;
+  data: { name: string; value: number; color?: string }[];
+}
 
 interface ColumnConfig {
   id: string;
@@ -31,6 +41,9 @@ interface AllDataProps {
 type SortField = 'sessionName' | 'documentCount' | 'progress' | 'status' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
 
+// Chart colors palette
+const CHART_COLORS = ['#4F63A4', '#6B7FBF', '#8A9AD9', '#3A4A7C', '#5C73B8', '#2E3A5F', '#7B8DC4', '#9AACDE'];
+
 export default function AllData({ project }: AllDataProps) {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -40,6 +53,14 @@ export default function AllData({ project }: AllDataProps) {
   const [sessionName, setSessionName] = useState('');
   const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>([]);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  
+  // Analytics state
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [selectedAnalyticsFields, setSelectedAnalyticsFields] = useState<Set<string>>(new Set());
+  const [generatedCharts, setGeneratedCharts] = useState<ChartConfig[]>([]);
+  const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
+  const [showAnalyticsPane, setShowAnalyticsPane] = useState(false);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -330,6 +351,111 @@ export default function AllData({ project }: AllDataProps) {
     setSessionName('');
   };
 
+  // Toggle analytics field selection
+  const toggleAnalyticsField = (fieldId: string) => {
+    const newSelected = new Set(selectedAnalyticsFields);
+    if (newSelected.has(fieldId)) {
+      newSelected.delete(fieldId);
+    } else {
+      newSelected.add(fieldId);
+    }
+    setSelectedAnalyticsFields(newSelected);
+  };
+
+  // Get all data for selected fields from sessions
+  const getFieldDataForAnalytics = (fieldId: string): { values: string[], fieldName: string } => {
+    const column = columnConfigs.find(c => c.id === fieldId) || infoPageFields.find(f => f.id === fieldId);
+    if (!column) return { values: [], fieldName: 'Unknown' };
+    
+    const columnConfig: ColumnConfig = {
+      id: column.id,
+      name: column.name,
+      visible: true,
+      orderIndex: 0,
+      valueId: column.valueId,
+      stepId: column.stepId,
+      fieldIdentifierId: column.fieldIdentifierId
+    };
+    
+    const values: string[] = [];
+    const validSessions = (project.sessions || []).filter(s => s && s.id);
+    
+    for (const session of validSessions) {
+      const value = getExtractedValue(session.id, columnConfig);
+      if (value && value !== '-') {
+        values.push(value);
+      }
+    }
+    
+    return { values, fieldName: column.name };
+  };
+
+  // Generate charts using AI
+  const generateAnalyticsCharts = async () => {
+    if (selectedAnalyticsFields.size === 0) {
+      toast({
+        title: "No fields selected",
+        description: "Please select at least one field to analyze",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingCharts(true);
+    setShowAnalyticsModal(false);
+    
+    try {
+      // Collect data for selected fields
+      const fieldData: { fieldName: string; values: string[] }[] = [];
+      
+      for (const fieldId of selectedAnalyticsFields) {
+        const data = getFieldDataForAnalytics(fieldId);
+        if (data.values.length > 0) {
+          fieldData.push(data);
+        }
+      }
+
+      if (fieldData.length === 0) {
+        toast({
+          title: "No data available",
+          description: "Selected fields have no extracted values to analyze",
+          variant: "destructive",
+        });
+        setIsGeneratingCharts(false);
+        return;
+      }
+
+      // Call AI endpoint to generate chart configurations
+      const response = await apiRequest(`/api/analytics/generate-charts`, {
+        method: 'POST',
+        body: JSON.stringify({ fieldData })
+      }) as { charts?: ChartConfig[] };
+
+      if (response && response.charts && Array.isArray(response.charts)) {
+        setGeneratedCharts(response.charts);
+        setShowAnalyticsPane(true);
+      } else {
+        throw new Error('Invalid response from analytics API');
+      }
+    } catch (error) {
+      console.error('Failed to generate analytics:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate analytics charts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCharts(false);
+    }
+  };
+
+  // Clear analytics
+  const clearAnalytics = () => {
+    setGeneratedCharts([]);
+    setShowAnalyticsPane(false);
+    setSelectedAnalyticsFields(new Set());
+  };
+
   // Get verification progress for a session
   const getSessionProgress = (sessionId: string) => {
     // Safety check for sessionId
@@ -430,6 +556,21 @@ export default function AllData({ project }: AllDataProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Analytics Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowAnalyticsModal(true)}
+              disabled={isGeneratingCharts}
+              className="flex items-center gap-2"
+            >
+              {isGeneratingCharts ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="h-4 w-4" />
+              )}
+              Analytics
+            </Button>
+
             {/* Column Settings Button */}
             <Button
               variant="outline"
@@ -553,6 +694,147 @@ export default function AllData({ project }: AllDataProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Analytics Field Selection Modal */}
+      <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Generate Analytics
+            </DialogTitle>
+            <DialogDescription>
+              Select data fields to visualize. AI will create appropriate charts based on your data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {infoPageFields.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No info page fields configured in this project.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {infoPageFields.map((field) => (
+                  <label
+                    key={field.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedAnalyticsFields.has(field.id)}
+                      onCheckedChange={() => toggleAnalyticsField(field.id)}
+                    />
+                    <span className="flex-1 text-sm">{field.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between gap-2 pt-4 border-t">
+            <Button variant="ghost" onClick={() => setSelectedAnalyticsFields(new Set())}>
+              Clear All
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAnalyticsModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={generateAnalyticsCharts}
+                disabled={selectedAnalyticsFields.size === 0 || isGeneratingCharts}
+              >
+                {isGeneratingCharts ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate Charts
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Analytics Pane - Shows generated charts */}
+      {showAnalyticsPane && generatedCharts.length > 0 && (
+        <Card className="w-full mb-6">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Analytics
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAnalyticsModal(true)}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Regenerate
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearAnalytics}
+                  title="Close Analytics"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{ maxHeight: '280px', overflow: 'auto' }}>
+              {generatedCharts.map((chart, index) => (
+                <div key={index} className="border rounded-lg p-4 bg-background">
+                  <h4 className="text-sm font-medium mb-3 text-center">{chart.title}</h4>
+                  <div className="h-[180px]">
+                    {chart.type === 'pie' ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPie>
+                          <Pie
+                            data={chart.data}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={30}
+                            outerRadius={60}
+                            paddingAngle={2}
+                            dataKey="value"
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            labelLine={false}
+                          >
+                            {chart.data.map((entry, i) => (
+                              <Cell key={`cell-${i}`} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </RechartsPie>
+                      </ResponsiveContainer>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chart.data} layout="vertical">
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                          <Tooltip />
+                          <Bar dataKey="value" radius={4}>
+                            {chart.data.map((entry, i) => (
+                              <Cell key={`cell-${i}`} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sessions Table */}
       <Card className="w-full">

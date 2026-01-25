@@ -10700,6 +10700,110 @@ Return ONLY the JSON array, no other text.`;
     }
   });
 
+  // Analytics chart generation endpoint
+  app.post('/api/analytics/generate-charts', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { fieldData } = req.body;
+      
+      if (!fieldData || !Array.isArray(fieldData) || fieldData.length === 0) {
+        return res.status(400).json({ error: 'Field data is required' });
+      }
+
+      // Build prompt for AI to generate chart configurations
+      const dataDescription = fieldData.map((field: { fieldName: string; values: string[] }) => {
+        const valueCounts: Record<string, number> = {};
+        for (const value of field.values) {
+          const normalizedValue = value.trim().toLowerCase();
+          valueCounts[normalizedValue] = (valueCounts[normalizedValue] || 0) + 1;
+        }
+        
+        return {
+          fieldName: field.fieldName,
+          totalValues: field.values.length,
+          uniqueValues: Object.keys(valueCounts).length,
+          valueCounts,
+          sampleValues: field.values.slice(0, 5)
+        };
+      });
+
+      const prompt = `You are a data visualization expert. Analyze the following field data and create appropriate chart configurations.
+
+DATA SUMMARY:
+${JSON.stringify(dataDescription, null, 2)}
+
+For each field, determine the best chart type:
+- Use "pie" for categorical data with few distinct values (e.g., "Won or Lost", "Status", "Category")
+- Use "bar" for data with more distinct values or when comparing quantities
+
+Return a JSON array of chart configurations. Each chart should have:
+- type: "pie" or "bar"
+- title: A descriptive title for the chart
+- fieldName: The original field name
+- data: An array of {name: string, value: number} objects with the aggregated counts
+
+Example output:
+[
+  {
+    "type": "pie",
+    "title": "Win/Loss Distribution",
+    "fieldName": "Won or Lost",
+    "data": [
+      {"name": "Won", "value": 15},
+      {"name": "Lost", "value": 8}
+    ]
+  }
+]
+
+Return ONLY the JSON array, no other text or markdown.`;
+
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text();
+
+      // Clean up markdown code blocks if present
+      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      let charts;
+      try {
+        charts = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', text);
+        
+        // Fallback: Generate simple charts from the data
+        charts = fieldData.map((field: { fieldName: string; values: string[] }) => {
+          const valueCounts: Record<string, number> = {};
+          for (const value of field.values) {
+            const normalizedValue = value.trim();
+            valueCounts[normalizedValue] = (valueCounts[normalizedValue] || 0) + 1;
+          }
+          
+          const uniqueCount = Object.keys(valueCounts).length;
+          const chartData = Object.entries(valueCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10) // Limit to top 10 values
+            .map(([name, value]) => ({ name, value }));
+
+          return {
+            type: uniqueCount <= 5 ? 'pie' : 'bar',
+            title: `${field.fieldName} Distribution`,
+            fieldName: field.fieldName,
+            data: chartData
+          };
+        });
+      }
+
+      res.json({ charts });
+
+    } catch (error) {
+      console.error('Error generating analytics charts:', error);
+      res.status(500).json({ error: 'Failed to generate analytics charts' });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
