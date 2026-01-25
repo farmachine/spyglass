@@ -195,8 +195,8 @@ export default function AllData({ project }: AllDataProps) {
     // Find validation that matches the column
     const validation = sessionValidations.find(v => {
       if (column.fieldIdentifierId) {
-        // Multi-field: match by fieldId (which is the identifierId for the field)
-        return v.fieldId === column.fieldIdentifierId;
+        // Multi-field: match by identifierId (the unique field identifier)
+        return v.identifierId === column.fieldIdentifierId;
       } else {
         // Single-field: match by valueId
         return v.valueId === column.valueId;
