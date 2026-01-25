@@ -558,11 +558,13 @@ export function KanbanBoard({
                 </div>
               )}
               <div className="flex-1">
-                <Input
+                <input
+                  type="text"
                   value={selectedCard?.title || ''}
                   onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
-                  className="text-4xl font-bold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-white placeholder:text-white/60 tracking-tight leading-tight"
+                  className="w-full text-4xl font-bold border-0 p-0 h-auto outline-none bg-transparent text-white placeholder:text-white/60 tracking-tight leading-tight"
                   placeholder="Task title"
+                  style={{ fontSize: '2.5rem', lineHeight: '1.2' }}
                 />
                 {selectedCard?.aiGenerated && (
                   <p className="text-sm text-white/70 mt-2 flex items-center gap-1.5">
