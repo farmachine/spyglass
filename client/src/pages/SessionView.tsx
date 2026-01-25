@@ -5248,8 +5248,8 @@ Thank you for your assistance.`;
                 };
                 
                 return (
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <div className="flex flex-col" style={{ height: 'calc(100vh - 280px)', minHeight: '500px' }}>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-shrink-0">
                       Task board for managing work items related to this session.
                     </p>
                     <KanbanBoard
