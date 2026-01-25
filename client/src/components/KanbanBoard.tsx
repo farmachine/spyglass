@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import type { KanbanCard as KanbanCardType, User as UserType, KanbanComment, KanbanChecklistItem, StepValue } from "@shared/schema";
+import type { KanbanCard as KanbanCardType, User as UserType, KanbanComment, KanbanChecklistItem, KanbanAttachment, StepValue } from "@shared/schema";
 
 interface SessionDocument {
   id: string;
@@ -96,6 +96,7 @@ export function KanbanBoard({
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [cardAssignees, setCardAssignees] = useState<string[]>([]);
   const [cardFieldValues, setCardFieldValues] = useState<Record<string, string>>({});
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   // Fetch organization users for assignee dropdown and card avatars
   const { data: users = [] } = useQuery<UserType[]>({
@@ -112,6 +113,12 @@ export function KanbanBoard({
   // Fetch checklist items for selected card
   const { data: checklistItems = [], isLoading: checklistLoading } = useQuery<KanbanChecklistItem[]>({
     queryKey: [`/api/kanban-cards/${selectedCard?.id}/checklist`],
+    enabled: !!selectedCard?.id && isCardDialogOpen
+  });
+
+  // Fetch attachments for selected card
+  const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<KanbanAttachment[]>({
+    queryKey: [`/api/kanban-cards/${selectedCard?.id}/attachments`],
     enabled: !!selectedCard?.id && isCardDialogOpen
   });
 
@@ -188,6 +195,56 @@ export function KanbanBoard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/kanban-cards/${selectedCard?.id}/checklist`] });
+    }
+  });
+
+  // Attachment mutations
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedCard?.id) return;
+
+    setIsUploadingAttachment(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (currentUserId) {
+        formData.append('uploadedBy', currentUserId);
+      }
+
+      const response = await fetch(`/api/kanban-cards/${selectedCard.id}/attachments`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      queryClient.invalidateQueries({ queryKey: [`/api/kanban-cards/${selectedCard.id}/attachments`] });
+      toast({
+        title: "Attachment uploaded",
+        description: file.name
+      });
+    } catch (error) {
+      console.error('Failed to upload attachment:', error);
+      toast({
+        title: "Upload failed",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingAttachment(false);
+      event.target.value = '';
+    }
+  };
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: string) => {
+      return apiRequest(`/api/kanban-attachments/${attachmentId}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/kanban-cards/${selectedCard?.id}/attachments`] });
     }
   });
 
@@ -745,6 +802,78 @@ export function KanbanBoard({
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Attachments */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                      <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
+                        <div className="bg-purple-500/10 rounded-lg p-1.5">
+                          <Paperclip className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        Attachments
+                        {attachments.length > 0 && (
+                          <Badge variant="secondary" className="text-xs ml-auto">{attachments.length}</Badge>
+                        )}
+                      </label>
+                      
+                      {attachmentsLoading ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {attachments.map((attachment) => (
+                            <div key={attachment.id} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                              <div className="bg-purple-100 dark:bg-purple-900/30 rounded-lg p-2">
+                                <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <a
+                                  href={attachment.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#4F63A4] truncate block"
+                                >
+                                  {attachment.fileName}
+                                </a>
+                                {attachment.fileSize && (
+                                  <span className="text-xs text-gray-400">
+                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                                onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                          
+                          {/* Upload button */}
+                          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors">
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={handleFileUpload}
+                                disabled={isUploadingAttachment}
+                              />
+                              {isUploadingAttachment ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                              ) : (
+                                <Plus className="h-4 w-4 text-gray-400" />
+                              )}
+                              <span className="text-sm text-gray-500">
+                                {isUploadingAttachment ? 'Uploading...' : 'Add attachment'}
+                              </span>
+                            </label>
                           </div>
                         </div>
                       )}

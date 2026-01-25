@@ -70,6 +70,37 @@ export class ObjectStorageService {
       ttlSec: 900,
     });
   }
+
+  // Upload a file directly to object storage
+  async uploadFile(objectKey: string, buffer: Buffer, contentType: string): Promise<void> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const fullPath = `${privateObjectDir}/${objectKey}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(buffer, {
+      contentType,
+      metadata: {
+        contentType
+      }
+    });
+  }
+
+  // Get a signed URL for downloading a file
+  async getSignedUrl(objectKey: string): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const fullPath = `${privateObjectDir}/${objectKey}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 3600 * 24 * 7 // 7 days
+    });
+  }
 }
 
 function parseObjectPath(path: string): {

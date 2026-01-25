@@ -46,6 +46,7 @@ import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
 import { UserRole } from "@shared/schema";
 import { log } from "./vite";
+import multer from "multer";
 
 // Async workflow test processing function
 async function processWorkflowTestAsync(
@@ -10562,11 +10563,36 @@ def extract_function(Column_Name, Excel_File):
     }
   });
 
-  app.post('/api/kanban-cards/:cardId/attachments', async (req, res) => {
+  // Configure multer for attachment uploads
+  const attachmentUpload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+
+  app.post('/api/kanban-cards/:cardId/attachments', attachmentUpload.single('file'), async (req, res) => {
     try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      // Upload to object storage
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      const fileName = file.originalname;
+      const objectKey = `kanban-attachments/${req.params.cardId}/${Date.now()}-${fileName}`;
+      
+      await objectStorageService.uploadFile(objectKey, file.buffer, file.mimetype);
+      const fileUrl = await objectStorageService.getSignedUrl(objectKey);
+      
       const attachment = await storage.createKanbanAttachment({
         cardId: req.params.cardId,
-        ...req.body
+        fileName: fileName,
+        fileUrl: fileUrl,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        uploadedBy: req.body.uploadedBy || null
       });
       res.status(201).json(attachment);
     } catch (error) {
