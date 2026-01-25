@@ -608,61 +608,61 @@ export function KanbanBoard({
                         placeholder="Add a more detailed description..."
                         className="resize-y min-h-[120px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
                       />
+                      
+                      {/* Step Value Fields - Inside description container */}
+                      {stepValues.length > 0 && (
+                        <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                          {stepValues.map((value) => (
+                            <div key={value.id} className="space-y-1.5">
+                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block">
+                                {value.valueName}
+                              </label>
+                              {value.dataType === 'TEXT' || !value.dataType ? (
+                                <Input
+                                  value={cardFieldValues[value.id] || ''}
+                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                  placeholder={value.valueName}
+                                  className="h-9 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                                />
+                              ) : value.dataType === 'NUMBER' ? (
+                                <Input
+                                  type="number"
+                                  value={cardFieldValues[value.id] || ''}
+                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                  placeholder={value.valueName}
+                                  className="h-9 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                                />
+                              ) : value.dataType === 'DATE' ? (
+                                <Input
+                                  type="date"
+                                  value={cardFieldValues[value.id] || ''}
+                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                  className="h-9 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                                />
+                              ) : value.dataType === 'CHOICE' && value.choiceOptions ? (
+                                <select
+                                  value={cardFieldValues[value.id] || ''}
+                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                  className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 text-sm focus:ring-2 focus:ring-[#4F63A4] focus:border-transparent"
+                                >
+                                  <option value="">Select...</option>
+                                  {(value.choiceOptions as string[]).map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <Input
+                                  value={cardFieldValues[value.id] || ''}
+                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                  placeholder={value.valueName}
+                                  className="h-9 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    {/* Step Value Fields - Compact form-like layout */}
-                    {stepValues.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {stepValues.map((value) => (
-                          <div key={value.id} className="space-y-1">
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                              {value.valueName}
-                            </label>
-                            {value.dataType === 'TEXT' || !value.dataType ? (
-                              <Input
-                                value={cardFieldValues[value.id] || ''}
-                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                placeholder={value.valueName}
-                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                              />
-                            ) : value.dataType === 'NUMBER' ? (
-                              <Input
-                                type="number"
-                                value={cardFieldValues[value.id] || ''}
-                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                placeholder={value.valueName}
-                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                              />
-                            ) : value.dataType === 'DATE' ? (
-                              <Input
-                                type="date"
-                                value={cardFieldValues[value.id] || ''}
-                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                              />
-                            ) : value.dataType === 'CHOICE' && value.choiceOptions ? (
-                              <select
-                                value={cardFieldValues[value.id] || ''}
-                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                className="w-full h-8 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 text-sm focus:ring-2 focus:ring-[#4F63A4] focus:border-transparent"
-                              >
-                                <option value="">Select...</option>
-                                {(value.choiceOptions as string[]).map((option) => (
-                                  <option key={option} value={option}>{option}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <Input
-                                value={cardFieldValues[value.id] || ''}
-                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                placeholder={value.valueName}
-                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
 
                     {/* Checklist */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
