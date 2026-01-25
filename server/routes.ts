@@ -10829,6 +10829,339 @@ Return ONLY the JSON array, no other text or markdown.`;
     }
   });
 
+  // Find similar sessions in the same project
+  app.post('/api/sessions/:sessionId/find-similar', authenticateToken, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      // Get all documents from the current session
+      const currentDocs = await storage.getSessionDocuments(sessionId);
+      if (currentDocs.length === 0) {
+        return res.json({ similarSessions: [] });
+      }
+
+      // Get all other sessions in the same project
+      const allSessions = await storage.getSessionsByProject(session.projectId);
+      const otherSessions = allSessions.filter(s => s.id !== sessionId);
+
+      if (otherSessions.length === 0) {
+        return res.json({ similarSessions: [] });
+      }
+
+      // Get the combined content from current session documents
+      const currentContent = currentDocs
+        .map(d => d.extractedContent || '')
+        .join('\n')
+        .substring(0, 15000); // Limit content size for AI
+
+      // Analyze each session for similarity
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const similarSessions: Array<{
+        sessionId: string;
+        sessionName: string;
+        similarityScore: number;
+        matchReason: string;
+        documentCount: number;
+        hasKanbanContent: boolean;
+      }> = [];
+
+      // Check each session for similarity
+      for (const otherSession of otherSessions.slice(0, 10)) { // Limit to 10 sessions
+        const otherDocs = await storage.getSessionDocuments(otherSession.id);
+        if (otherDocs.length === 0) continue;
+
+        const otherContent = otherDocs
+          .map(d => d.extractedContent || '')
+          .join('\n')
+          .substring(0, 15000);
+
+        // Check if there are kanban cards in this session
+        const steps = await storage.getWorkflowSteps(session.projectId);
+        const kanbanStep = steps.find(s => s.stepType === 'kanban');
+        let hasKanbanContent = false;
+        if (kanbanStep) {
+          const cards = await storage.getKanbanCards(otherSession.id, kanbanStep.id);
+          hasKanbanContent = cards.length > 0;
+        }
+
+        // Use AI to calculate similarity
+        const prompt = `Compare these two documents and determine their similarity.
+Document 1 (Current):
+${currentContent.substring(0, 5000)}
+
+Document 2 (Previous):
+${otherContent.substring(0, 5000)}
+
+Analyze these documents and provide:
+1. A similarity score from 0-100 (where 100 is identical subject matter)
+2. A brief reason for the match (max 50 words)
+
+Consider similarity in:
+- Subject matter (e.g., both are tender documents, both are contracts)
+- Document type and structure
+- Common terminology and topics
+
+Respond in JSON format:
+{"similarityScore": number, "matchReason": "brief explanation"}`;
+
+        try {
+          const result = await model.generateContent(prompt);
+          const text = result.response.text();
+          const jsonMatch = text.match(/\{[\s\S]*?\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.similarityScore >= 40) { // Only include sessions with 40%+ similarity
+              similarSessions.push({
+                sessionId: otherSession.id,
+                sessionName: otherSession.sessionName,
+                similarityScore: parsed.similarityScore,
+                matchReason: parsed.matchReason,
+                documentCount: otherDocs.length,
+                hasKanbanContent
+              });
+            }
+          }
+        } catch (aiError) {
+          console.error('AI similarity check failed for session:', otherSession.id, aiError);
+        }
+      }
+
+      // Sort by similarity score descending
+      similarSessions.sort((a, b) => b.similarityScore - a.similarityScore);
+
+      res.json({ similarSessions: similarSessions.slice(0, 5) }); // Return top 5
+
+    } catch (error) {
+      console.error('Error finding similar sessions:', error);
+      res.status(500).json({ error: 'Failed to find similar sessions' });
+    }
+  });
+
+  // Link a session and copy kanban content with gap analysis
+  app.post('/api/sessions/:sessionId/link-session', authenticateToken, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { linkedSessionId } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!linkedSessionId) {
+        return res.status(400).json({ error: 'linkedSessionId is required' });
+      }
+
+      const session = await storage.getExtractionSession(sessionId);
+      const linkedSession = await storage.getExtractionSession(linkedSessionId);
+      
+      if (!session || !linkedSession) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      // Get documents from both sessions
+      const currentDocs = await storage.getSessionDocuments(sessionId);
+      const linkedDocs = await storage.getSessionDocuments(linkedSessionId);
+
+      const currentContent = currentDocs.map(d => d.extractedContent || '').join('\n').substring(0, 20000);
+      const linkedContent = linkedDocs.map(d => d.extractedContent || '').join('\n').substring(0, 20000);
+
+      // Use AI for gap analysis
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      // Get existing kanban cards from linked session
+      const steps = await storage.getWorkflowSteps(session.projectId);
+      const kanbanStep = steps.find(s => s.stepType === 'kanban');
+
+      if (!kanbanStep) {
+        return res.status(400).json({ error: 'No kanban step found in this project' });
+      }
+
+      const linkedCards = await storage.getKanbanCards(linkedSessionId, kanbanStep.id);
+
+      // Perform gap analysis
+      const gapAnalysisPrompt = `Compare these two documents and identify differences.
+
+NEW DOCUMENT:
+${currentContent.substring(0, 8000)}
+
+PREVIOUS DOCUMENT:
+${linkedContent.substring(0, 8000)}
+
+EXISTING TASKS FROM PREVIOUS SESSION:
+${linkedCards.map(c => `- ${c.title}: ${c.description || 'No description'}`).join('\n')}
+
+Analyze the differences between the new and previous documents. Determine:
+1. What requirements in the new document are NOT covered by the existing tasks
+2. Which existing tasks are NOT relevant to the new document
+3. A summary of the key differences
+
+Respond in JSON format:
+{
+  "gapAnalysis": "A paragraph describing the key differences between the documents",
+  "newRequirements": [{"title": "task title", "description": "task description", "aiReasoning": "why this is needed"}],
+  "excludedTaskTitles": ["task title that is not relevant"]
+}`;
+
+      let gapAnalysis = '';
+      let newRequirements: Array<{title: string; description: string; aiReasoning: string}> = [];
+      let excludedTaskTitles: string[] = [];
+
+      try {
+        const result = await model.generateContent(gapAnalysisPrompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          gapAnalysis = parsed.gapAnalysis || '';
+          newRequirements = parsed.newRequirements || [];
+          excludedTaskTitles = parsed.excludedTaskTitles || [];
+        }
+      } catch (aiError) {
+        console.error('Gap analysis AI error:', aiError);
+        gapAnalysis = 'Unable to perform detailed gap analysis.';
+      }
+
+      // Copy relevant cards from linked session
+      const copiedCardIds: string[] = [];
+      const excludedCardIds: string[] = [];
+
+      for (const card of linkedCards) {
+        // Check if this card should be excluded
+        const isExcluded = excludedTaskTitles.some(title => 
+          card.title.toLowerCase().includes(title.toLowerCase()) ||
+          title.toLowerCase().includes(card.title.toLowerCase())
+        );
+
+        if (isExcluded) {
+          excludedCardIds.push(card.id);
+          continue;
+        }
+
+        // Create a copy of the card with linked session marker
+        const newCard = await storage.createKanbanCard({
+          sessionId,
+          stepId: kanbanStep.id,
+          title: card.title,
+          description: card.description ? `[From previous session]\n\n${card.description}` : '[From previous session]',
+          status: 'todo', // Reset status to todo
+          orderIndex: card.orderIndex,
+          assigneeIds: null, // Don't copy assignees
+          fieldValues: card.fieldValues,
+          aiGenerated: card.aiGenerated,
+          aiReasoning: card.aiReasoning,
+          documentSource: card.documentSource,
+          fromLinkedSession: true,
+          linkedFromSessionId: linkedSessionId,
+          linkedFromCardId: card.id,
+          createdBy: userId || null
+        });
+
+        copiedCardIds.push(newCard.id);
+
+        // Copy checklist items
+        const checklistItems = await storage.getKanbanChecklistItems(card.id);
+        for (const item of checklistItems) {
+          await storage.createKanbanChecklistItem({
+            cardId: newCard.id,
+            title: item.title,
+            isCompleted: false, // Reset completion status
+            orderIndex: item.orderIndex,
+            aiGenerated: item.aiGenerated
+          });
+        }
+
+        // Copy comments with linked session marker
+        const comments = await storage.getKanbanComments(card.id);
+        for (const comment of comments) {
+          await storage.createKanbanComment({
+            cardId: newCard.id,
+            userId: comment.userId,
+            content: `[Previous session comment]\n\n${comment.content}`,
+            fromLinkedSession: true,
+            linkedFromSessionId: linkedSessionId
+          });
+        }
+
+        // Copy attachments
+        const attachments = await storage.getKanbanAttachments(card.id);
+        for (const attachment of attachments) {
+          await storage.createKanbanAttachment({
+            cardId: newCard.id,
+            commentId: null,
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl, // Keep same URL as files are in object storage
+            fileSize: attachment.fileSize,
+            mimeType: attachment.mimeType,
+            uploadedBy: attachment.uploadedBy
+          });
+        }
+      }
+
+      // Create cards for new requirements
+      const newTaskIds: string[] = [];
+      for (const req of newRequirements) {
+        const maxOrder = linkedCards.length + newTaskIds.length;
+        const newCard = await storage.createKanbanCard({
+          sessionId,
+          stepId: kanbanStep.id,
+          title: req.title,
+          description: `[New requirement]\n\n${req.description}`,
+          status: 'todo',
+          orderIndex: maxOrder,
+          aiGenerated: true,
+          aiReasoning: req.aiReasoning,
+          fromLinkedSession: false,
+          createdBy: userId || null
+        });
+        newTaskIds.push(newCard.id);
+      }
+
+      // Create session link record
+      const sessionLink = await storage.createSessionLink({
+        sourceSessionId: sessionId,
+        linkedSessionId,
+        similarityScore: 0, // Will be updated if we want to track
+        gapAnalysis,
+        newRequirements: newRequirements as any,
+        excludedTasks: excludedCardIds as any
+      });
+
+      res.json({
+        success: true,
+        sessionLinkId: sessionLink.id,
+        gapAnalysis,
+        copiedTaskCount: copiedCardIds.length,
+        excludedTaskCount: excludedCardIds.length,
+        newTaskCount: newTaskIds.length,
+        copiedCardIds,
+        newTaskIds
+      });
+
+    } catch (error) {
+      console.error('Error linking session:', error);
+      res.status(500).json({ error: 'Failed to link session' });
+    }
+  });
+
+  // Get session links for a session
+  app.get('/api/sessions/:sessionId/links', authenticateToken, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const links = await storage.getSessionLinks(sessionId);
+      res.json({ links });
+    } catch (error) {
+      console.error('Error getting session links:', error);
+      res.status(500).json({ error: 'Failed to get session links' });
+    }
+  });
+
   // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;

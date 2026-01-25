@@ -89,6 +89,7 @@ import {
   kanbanChecklistItems,
   kanbanComments,
   kanbanAttachments,
+  sessionLinks,
   type KanbanCard,
   type InsertKanbanCard,
   type KanbanChecklistItem,
@@ -96,7 +97,9 @@ import {
   type KanbanComment,
   type InsertKanbanComment,
   type KanbanAttachment,
-  type InsertKanbanAttachment
+  type InsertKanbanAttachment,
+  type SessionLink,
+  type InsertSessionLink
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -330,6 +333,11 @@ export interface IStorage {
   getKanbanAttachments(cardId: string): Promise<KanbanAttachment[]>;
   createKanbanAttachment(attachment: InsertKanbanAttachment): Promise<KanbanAttachment>;
   deleteKanbanAttachment(id: string): Promise<boolean>;
+
+  // Session Links
+  getSessionLinks(sessionId: string): Promise<SessionLink[]>;
+  createSessionLink(link: InsertSessionLink): Promise<SessionLink>;
+  getSessionsByProject(projectId: string): Promise<ExtractionSession[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -2354,6 +2362,17 @@ export class MemStorage implements IStorage {
   }
   async deleteKanbanAttachment(_id: string): Promise<boolean> {
     return false;
+  }
+
+  // Session Links
+  async getSessionLinks(_sessionId: string): Promise<SessionLink[]> {
+    return [];
+  }
+  async createSessionLink(_link: InsertSessionLink): Promise<SessionLink> {
+    throw new Error("Session links not supported in MemStorage");
+  }
+  async getSessionsByProject(_projectId: string): Promise<ExtractionSession[]> {
+    return [];
   }
 }
 
@@ -4507,6 +4526,30 @@ class PostgreSQLStorage implements IStorage {
     return this.retryOperation(async () => {
       const result = await this.db.delete(kanbanAttachments).where(eq(kanbanAttachments.id, id));
       return result.rowCount > 0;
+    });
+  }
+
+  // Session Links
+  async getSessionLinks(sessionId: string): Promise<SessionLink[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(sessionLinks)
+        .where(eq(sessionLinks.sourceSessionId, sessionId))
+        .orderBy(desc(sessionLinks.createdAt));
+    });
+  }
+
+  async createSessionLink(link: InsertSessionLink): Promise<SessionLink> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(sessionLinks).values(link).returning();
+      return result;
+    });
+  }
+
+  async getSessionsByProject(projectId: string): Promise<ExtractionSession[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(extractionSessions)
+        .where(eq(extractionSessions.projectId, projectId))
+        .orderBy(desc(extractionSessions.createdAt));
     });
   }
 }
