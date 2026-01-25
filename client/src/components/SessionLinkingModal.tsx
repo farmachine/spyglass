@@ -50,10 +50,10 @@ export default function SessionLinkingModal({
 
   const findSimilarMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/sessions/${sessionId}/find-similar`, {
+      const data = await apiRequest(`/api/sessions/${sessionId}/find-similar`, {
         method: 'POST'
       });
-      return response.json();
+      return data;
     },
     onSuccess: (data) => {
       setSimilarSessions(data.similarSessions || []);
@@ -69,12 +69,12 @@ export default function SessionLinkingModal({
 
   const linkSessionMutation = useMutation({
     mutationFn: async (linkedSessionId: string) => {
-      const response = await apiRequest(`/api/sessions/${sessionId}/link-session`, {
+      const data = await apiRequest(`/api/sessions/${sessionId}/link-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ linkedSessionId })
       });
-      return response.json();
+      return data;
     },
     onSuccess: (data) => {
       setLinkResult(data);
