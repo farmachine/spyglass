@@ -96,6 +96,21 @@ The design system uses Slate Blue (#4F63A4) as the primary color and features co
 - All API calls use `apiRequest` for consistent authentication
 - Query invalidation uses string-interpolated keys: `/api/sessions/${sessionId}/steps/${stepId}/kanban-cards`
 
+### Analytics Pane Feature (Jan 2026)
+**AI-Powered Data Visualization**: The project overview page includes an analytics pane that generates charts from extracted data.
+
+**Architecture**:
+- **Component**: `AllData.tsx` contains the analytics pane with field selection modal and chart rendering
+- **Chart Library**: Recharts for pie and bar chart visualization
+- **AI Integration**: `/api/analytics/generate-charts` endpoint uses Gemini AI to analyze data and generate chart configurations
+- **Authentication**: Endpoint requires `authenticateToken` middleware for security
+
+**Key Implementation Details**:
+- Field selection modal shows all info page fields from the project workflow
+- AI analyzes field data to determine optimal chart type (pie for ≤5 unique values, bar for more)
+- Charts display in a responsive grid layout taking 1/3 of the page width
+- Fallback logic generates charts locally if AI response parsing fails
+
 ### Database Schema
 Core tables include:
 *   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables, Kanban) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, `identifier_id`, and `kanban_config` (JSONB).
