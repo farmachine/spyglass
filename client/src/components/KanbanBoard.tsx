@@ -407,40 +407,35 @@ export function KanbanBoard({
         )}
       </div>
 
-      {/* Fixed Column Headers */}
-      <div className="flex-shrink-0 grid gap-4 mb-2" style={{ gridTemplateColumns: `repeat(${statusColumns.length}, minmax(280px, 1fr))` }}>
+      {/* Kanban Columns - Each scrolls independently */}
+      <div className="flex-1 grid gap-4 min-h-0" style={{ gridTemplateColumns: `repeat(${statusColumns.length}, minmax(280px, 1fr))` }}>
         {statusColumns.map((status) => {
           const columnCards = getColumnCards(status);
+          
           return (
-            <div key={status} className="bg-gray-100 dark:bg-gray-800 rounded-t-lg px-3 py-2">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  {status}
-                  <Badge variant="secondary" className="text-xs">
-                    {columnCards.length}
-                  </Badge>
-                </h3>
+            <div
+              key={status}
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col min-h-0 max-h-full"
+            >
+              {/* Fixed Column Header */}
+              <div className="flex-shrink-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    {status}
+                    <Badge variant="secondary" className="text-xs">
+                      {columnCards.length}
+                    </Badge>
+                  </h3>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Scrollable Kanban Columns */}
-      <div className="flex-1 overflow-y-auto pb-8">
-        <div className="grid gap-4 h-full" style={{ gridTemplateColumns: `repeat(${statusColumns.length}, minmax(280px, 1fr))` }}>
-          {statusColumns.map((status) => {
-            const columnCards = getColumnCards(status);
-            
-            return (
+              {/* Scrollable Cards Area */}
               <div
-                key={status}
-                className="bg-gray-100 dark:bg-gray-800 rounded-b-lg p-3 min-h-[200px]"
+                className="flex-1 overflow-y-auto p-3 min-h-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status)}
               >
-              {/* Cards */}
-              <div className="space-y-2 min-h-[100px]">
+                <div className="space-y-2 min-h-[100px]">
                 {columnCards.map((card) => {
                   const cardAssigneeIds = (card.assigneeIds as string[]) || [];
                   return (
@@ -552,9 +547,9 @@ export function KanbanBoard({
                 )}
               </div>
             </div>
+          </div>
           );
         })}
-        </div>
       </div>
 
       {/* Card Detail Dialog - Trello-like Workspace */}
