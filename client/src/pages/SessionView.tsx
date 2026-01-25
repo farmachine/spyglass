@@ -4414,10 +4414,22 @@ Thank you for your assistance.`;
       } else {
         // Create new validation record
         
-        const createData = {
+        // For multi-field values, use the field's identifierId as fieldId
+        // For single-field values, use the stepValue.id
+        let fieldIdToUse = stepValue.id;
+        let identifierIdToUse = null;
+        
+        if (fieldInfo) {
+          // Multi-field value - use the field's identifierId
+          fieldIdToUse = fieldInfo.field.identifierId || fieldInfo.field.id || `${stepValue.id}_field_${fieldInfo.index}`;
+          identifierIdToUse = fieldIdToUse;
+        }
+        
+        const createData: any = {
           sessionId: sessionId,
           validationType: 'schema_field',
-          fieldId: stepValue.id, // Use step value ID directly
+          fieldId: fieldIdToUse,
+          valueId: stepValue.id, // Always include parent value ID
           fieldName: fieldName,
           extractedValue: valueToStore,
           validationStatus: 'manual',
@@ -4426,6 +4438,11 @@ Thank you for your assistance.`;
           confidenceScore: 100,
           dataType: stepValue.dataType || 'text'
         };
+        
+        // For multi-field values, also set identifierId
+        if (identifierIdToUse) {
+          createData.identifierId = identifierIdToUse;
+        }
         
         console.log('🔍 Creating validation with data:', createData);
         
