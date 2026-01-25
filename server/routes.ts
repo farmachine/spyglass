@@ -11050,7 +11050,7 @@ Respond in JSON format:
           stepId: kanbanStep.id,
           title: card.title,
           description: card.description ? `[From previous session]\n\n${card.description}` : '[From previous session]',
-          status: 'todo', // Reset status to todo
+          status: 'To Do', // Reset status to To Do (matches UI column name)
           orderIndex: card.orderIndex,
           assigneeIds: null, // Don't copy assignees
           fieldValues: card.fieldValues,
