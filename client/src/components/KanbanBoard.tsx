@@ -610,70 +610,57 @@ export function KanbanBoard({
                       />
                     </div>
 
-                    {/* Step Value Fields */}
+                    {/* Step Value Fields - Compact form-like layout */}
                     {stepValues.length > 0 && (
-                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                        <label className="text-sm font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300 mb-3">
-                          <div className="bg-purple-500/10 rounded-lg p-1.5">
-                            <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      <div className="grid grid-cols-2 gap-3">
+                        {stepValues.map((value) => (
+                          <div key={value.id} className="space-y-1">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              {value.valueName}
+                            </label>
+                            {value.dataType === 'TEXT' || !value.dataType ? (
+                              <Input
+                                value={cardFieldValues[value.id] || ''}
+                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                placeholder={value.valueName}
+                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                              />
+                            ) : value.dataType === 'NUMBER' ? (
+                              <Input
+                                type="number"
+                                value={cardFieldValues[value.id] || ''}
+                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                placeholder={value.valueName}
+                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                              />
+                            ) : value.dataType === 'DATE' ? (
+                              <Input
+                                type="date"
+                                value={cardFieldValues[value.id] || ''}
+                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                              />
+                            ) : value.dataType === 'CHOICE' && value.choiceOptions ? (
+                              <select
+                                value={cardFieldValues[value.id] || ''}
+                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                className="w-full h-8 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 text-sm focus:ring-2 focus:ring-[#4F63A4] focus:border-transparent"
+                              >
+                                <option value="">Select...</option>
+                                {(value.choiceOptions as string[]).map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <Input
+                                value={cardFieldValues[value.id] || ''}
+                                onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
+                                placeholder={value.valueName}
+                                className="h-8 text-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                              />
+                            )}
                           </div>
-                          Task Fields
-                        </label>
-                        <div className="space-y-3">
-                          {stepValues.map((value) => (
-                            <div key={value.id} className="space-y-1">
-                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {value.valueName}
-                                {value.description && (
-                                  <span className="ml-1 text-gray-400 dark:text-gray-500 font-normal">
-                                    - {value.description}
-                                  </span>
-                                )}
-                              </label>
-                              {value.dataType === 'TEXT' || !value.dataType ? (
-                                <Input
-                                  value={cardFieldValues[value.id] || ''}
-                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                  placeholder={`Enter ${value.valueName.toLowerCase()}...`}
-                                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                                />
-                              ) : value.dataType === 'NUMBER' ? (
-                                <Input
-                                  type="number"
-                                  value={cardFieldValues[value.id] || ''}
-                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                  placeholder={`Enter ${value.valueName.toLowerCase()}...`}
-                                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                                />
-                              ) : value.dataType === 'DATE' ? (
-                                <Input
-                                  type="date"
-                                  value={cardFieldValues[value.id] || ''}
-                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                                />
-                              ) : value.dataType === 'CHOICE' && value.choiceOptions ? (
-                                <select
-                                  value={cardFieldValues[value.id] || ''}
-                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                  className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:ring-2 focus:ring-[#4F63A4] focus:border-transparent transition-all"
-                                >
-                                  <option value="">Select {value.valueName.toLowerCase()}...</option>
-                                  {(value.choiceOptions as string[]).map((option) => (
-                                    <option key={option} value={option}>{option}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <Input
-                                  value={cardFieldValues[value.id] || ''}
-                                  onChange={(e) => setCardFieldValues(prev => ({ ...prev, [value.id]: e.target.value }))}
-                                  placeholder={`Enter ${value.valueName.toLowerCase()}...`}
-                                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        ))}
                       </div>
                     )}
 
