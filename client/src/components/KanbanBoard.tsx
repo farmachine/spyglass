@@ -634,6 +634,13 @@ export function KanbanBoard({
                   className="w-full font-bold border-0 p-0 h-auto outline-none bg-transparent text-white placeholder:text-white/60 tracking-tight"
                   placeholder="Task title"
                   style={{ fontSize: '1.75rem', lineHeight: '1.3' }}
+                  tabIndex={-1}
+                  onFocus={(e) => {
+                    const input = e.target;
+                    setTimeout(() => {
+                      input.selectionStart = input.selectionEnd = input.value.length;
+                    }, 0);
+                  }}
                 />
                 {selectedCard?.aiGenerated && (
                   <p className="text-sm text-white/70 mt-2 flex items-center gap-1.5">
