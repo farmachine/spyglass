@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,11 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
+
+interface ColumnConfig {
+  id: string;
+  name: string;
+  visible: boolean;
+  orderIndex: number;
+  valueId?: string;
+  stepId?: string;
+  fieldIdentifierId?: string;
+}
 
 interface AllDataProps {
   project: ProjectWithDetails;
@@ -25,9 +36,176 @@ export default function AllData({ project }: AllDataProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [, setLocation] = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [sessionName, setSessionName] = useState('');
+  const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>([]);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch workflow to get info page fields
+  const { data: workflowData } = useQuery<{ steps?: any[] }>({
+    queryKey: [`/api/projects/${project.id}/workflow`],
+  });
+
+  // Extract info page fields from workflow
+  const infoPageFields = useMemo(() => {
+    if (!workflowData?.steps) return [];
+    
+    const fields: { id: string; name: string; valueId: string; stepId: string; fieldIdentifierId?: string }[] = [];
+    
+    for (const step of workflowData.steps) {
+      if (step.stepType === 'page') {
+        for (const value of (step.values || [])) {
+          // Check if value has multi-field configuration
+          if (value.fields && Array.isArray(value.fields)) {
+            for (const field of value.fields) {
+              fields.push({
+                id: `${value.id}-${field.identifierId}`,
+                name: field.name,
+                valueId: value.id,
+                stepId: step.id,
+                fieldIdentifierId: field.identifierId
+              });
+            }
+          } else {
+            // Single-field value
+            fields.push({
+              id: value.id,
+              name: value.valueName,
+              valueId: value.id,
+              stepId: step.id
+            });
+          }
+        }
+      }
+    }
+    
+    return fields;
+  }, [workflowData]);
+
+  // Load column settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem(`column-settings-${project.id}`);
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setColumnConfigs(parsed);
+      } catch (e) {
+        console.error('Failed to parse column settings:', e);
+      }
+    }
+  }, [project.id]);
+
+  // Initialize and sync column configs when info page fields change
+  useEffect(() => {
+    if (infoPageFields.length === 0) return;
+    
+    const savedSettings = localStorage.getItem(`column-settings-${project.id}`);
+    
+    if (savedSettings && columnConfigs.length > 0) {
+      // Merge new fields from workflow that aren't in saved settings
+      const existingIds = new Set(columnConfigs.map(c => c.id));
+      const newFields = infoPageFields.filter(f => !existingIds.has(f.id));
+      
+      if (newFields.length > 0) {
+        const maxOrderIndex = Math.max(...columnConfigs.map(c => c.orderIndex), -1);
+        const newConfigs = newFields.map((field, index) => ({
+          id: field.id,
+          name: field.name,
+          visible: false,
+          orderIndex: maxOrderIndex + 1 + index,
+          valueId: field.valueId,
+          stepId: field.stepId,
+          fieldIdentifierId: field.fieldIdentifierId
+        }));
+        const merged = [...columnConfigs, ...newConfigs];
+        saveColumnSettings(merged);
+      }
+    } else if (!savedSettings && columnConfigs.length === 0) {
+      // Initialize with all fields hidden by default
+      const initialConfigs = infoPageFields.map((field, index) => ({
+        id: field.id,
+        name: field.name,
+        visible: false,
+        orderIndex: index,
+        valueId: field.valueId,
+        stepId: field.stepId,
+        fieldIdentifierId: field.fieldIdentifierId
+      }));
+      setColumnConfigs(initialConfigs);
+    }
+  }, [infoPageFields, project.id]);
+
+  // Save column settings to localStorage
+  const saveColumnSettings = (configs: ColumnConfig[]) => {
+    localStorage.setItem(`column-settings-${project.id}`, JSON.stringify(configs));
+    setColumnConfigs(configs);
+  };
+
+  // Toggle column visibility
+  const toggleColumnVisibility = (columnId: string) => {
+    const updated = columnConfigs.map(c => 
+      c.id === columnId ? { ...c, visible: !c.visible } : c
+    );
+    saveColumnSettings(updated);
+  };
+
+  // Reorder columns via drag and drop
+  const handleDragStart = (columnId: string) => {
+    setDraggedColumn(columnId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedColumn || draggedColumn === targetId) return;
+    
+    const draggedIndex = columnConfigs.findIndex(c => c.id === draggedColumn);
+    const targetIndex = columnConfigs.findIndex(c => c.id === targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+    
+    const updated = [...columnConfigs];
+    const [removed] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, removed);
+    
+    // Update order indices
+    updated.forEach((c, i) => c.orderIndex = i);
+    setColumnConfigs(updated);
+  };
+
+  const handleDragEnd = () => {
+    if (draggedColumn) {
+      saveColumnSettings(columnConfigs);
+    }
+    setDraggedColumn(null);
+  };
+
+  // Get visible columns sorted by order index
+  const visibleColumns = useMemo(() => {
+    return columnConfigs
+      .filter(c => c.visible)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }, [columnConfigs]);
+
+  // Get extracted value for a session and column
+  const getExtractedValue = (sessionId: string, column: ColumnConfig): string => {
+    const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
+    
+    // Find validation that matches the column
+    const validation = sessionValidations.find(v => {
+      if (column.fieldIdentifierId) {
+        // Multi-field: match by fieldId (which is the identifierId for the field)
+        return v.fieldId === column.fieldIdentifierId;
+      } else {
+        // Single-field: match by valueId
+        return v.valueId === column.valueId;
+      }
+    });
+    
+    if (!validation) return '-';
+    return validation.extractedValue || '-';
+  };
 
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -251,16 +429,27 @@ export default function AllData({ project }: AllDataProps) {
               Collect, validate & manage all {project.mainObjectName || "session"} documents & data.
             </p>
           </div>
-          <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogTrigger asChild>
-              <Button 
-                onClick={handleCreateNewSession}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                New {project.mainObjectName || "Session"}
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            {/* Column Settings Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowColumnSettings(true)}
+              title="Column Settings"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+            
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={handleCreateNewSession}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New {project.mainObjectName || "Session"}
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
@@ -302,9 +491,68 @@ export default function AllData({ project }: AllDataProps) {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
       </div>
+
+      {/* Column Settings Modal */}
+      <Dialog open={showColumnSettings} onOpenChange={setShowColumnSettings}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Column Settings</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <p className="text-sm text-muted-foreground mb-4">
+              Show or hide info page fields as columns. Drag to reorder.
+            </p>
+            {columnConfigs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No info page fields configured in this project.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {[...columnConfigs]
+                  .sort((a, b) => a.orderIndex - b.orderIndex)
+                  .map((column) => (
+                    <div
+                      key={column.id}
+                      draggable
+                      onDragStart={() => handleDragStart(column.id)}
+                      onDragOver={(e) => handleDragOver(e, column.id)}
+                      onDragEnd={handleDragEnd}
+                      className={`flex items-center gap-3 p-2 rounded-lg border cursor-move transition-colors ${
+                        draggedColumn === column.id
+                          ? 'bg-primary/10 border-primary'
+                          : 'bg-background hover:bg-muted/50 border-border'
+                      }`}
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="flex-1 text-sm truncate">{column.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleColumnVisibility(column.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {column.visible ? (
+                          <Eye className="h-4 w-4 text-primary" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowColumnSettings(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Sessions Table */}
       <Card className="w-full">
@@ -376,15 +624,21 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName" className="py-3 w-2/5">{project.mainObjectName || 'Session'} Name</SortableHeader>
-                    <SortableHeader field="documentCount" className="py-3 w-1/12 text-center">Docs</SortableHeader>
-                    <SortableHeader field="progress" className="py-3 w-1/4">Progress</SortableHeader>
-                    <SortableHeader field="status" className="py-3 w-1/12 text-center">
+                    <SortableHeader field="sessionName" className="py-3 w-[200px] min-w-[200px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 w-[60px] min-w-[60px] text-center">Docs</SortableHeader>
+                    {/* Dynamic columns from info page fields */}
+                    {visibleColumns.map(column => (
+                      <TableHead key={column.id} className="py-3 w-[150px] min-w-[150px]">
+                        <span className="text-xs font-medium text-muted-foreground truncate">{column.name}</span>
+                      </TableHead>
+                    ))}
+                    <SortableHeader field="progress" className="py-3 w-[120px] min-w-[120px]">Progress</SortableHeader>
+                    <SortableHeader field="status" className="py-3 w-[50px] min-w-[50px] text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </SortableHeader>
-                    <SortableHeader field="createdAt" className="py-3 w-1/6">Created</SortableHeader>
+                    <SortableHeader field="createdAt" className="py-3 w-[100px] min-w-[100px]">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -410,6 +664,14 @@ export default function AllData({ project }: AllDataProps) {
                       <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
                       </TableCell>
+                      {/* Dynamic column values */}
+                      {visibleColumns.map(column => (
+                        <TableCell key={column.id} className="py-3">
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate block max-w-[140px]" title={getExtractedValue(session.id, column)}>
+                            {getExtractedValue(session.id, column)}
+                          </span>
+                        </TableCell>
+                      ))}
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
