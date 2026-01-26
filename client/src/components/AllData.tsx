@@ -123,7 +123,7 @@ export default function AllData({ project }: AllDataProps) {
       statusBreakdown: Record<string, number>;
     }>>;
   }>({
-    queryKey: ['/api/projects', project.id, 'kanban-progress'],
+    queryKey: [`/api/projects/${project.id}/kanban-progress`],
   });
 
   // Extract info page fields from workflow
@@ -1067,7 +1067,16 @@ export default function AllData({ project }: AllDataProps) {
                         <span className="text-xs font-medium text-muted-foreground truncate">{column.name}</span>
                       </TableHead>
                     ))}
-                    <SortableHeader field="progress" className="py-3 w-[120px] min-w-[120px]">Progress</SortableHeader>
+                    {/* Kanban progress columns - one per kanban step */}
+                    {kanbanProgressData?.kanbanSteps?.map((step) => (
+                      <TableHead key={`kanban-header-${step.stepId}`} className="py-3 w-[140px] min-w-[140px]">
+                        <span className="text-xs font-medium text-muted-foreground truncate">{step.stepName}</span>
+                      </TableHead>
+                    ))}
+                    {/* Fallback progress column for non-kanban projects */}
+                    {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
+                      <SortableHeader field="progress" className="py-3 w-[120px] min-w-[120px]">Progress</SortableHeader>
+                    )}
                     <SortableHeader field="status" className="py-3 w-[50px] min-w-[50px] text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -1107,28 +1116,47 @@ export default function AllData({ project }: AllDataProps) {
                           </span>
                         </TableCell>
                       ))}
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                            <div 
-                              className={`h-2.5 rounded-full transition-all duration-300 ${
-                                progress.percentage === 100 ? 'bg-green-600' : 
-                                progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
-                              }`}
-                              style={{ width: `${progress.percentage}%` }}
-                            />
-                          </div>
-                          {kanbanProgressData?.hasKanban ? (
-                            <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                              {progress.verified}/{progress.total} tasks
-                            </span>
-                          ) : (
+                      {/* Kanban progress cells - one per kanban step */}
+                      {kanbanProgressData?.kanbanSteps?.map((step) => {
+                        const stepProgress = getKanbanStepProgress(session.id, step.stepId);
+                        return (
+                          <TableCell key={`kanban-cell-${step.stepId}`} className="py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                <div 
+                                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                                    stepProgress.percentage === 100 ? 'bg-green-600' : 
+                                    stepProgress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                                  }`}
+                                  style={{ width: `${stepProgress.percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                {stepProgress.completed}/{stepProgress.total}
+                              </span>
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                      {/* Fallback progress cell for non-kanban projects */}
+                      {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                              <div 
+                                className={`h-2.5 rounded-full transition-all duration-300 ${
+                                  progress.percentage === 100 ? 'bg-green-600' : 
+                                  progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                                }`}
+                                style={{ width: `${progress.percentage}%` }}
+                              />
+                            </div>
                             <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
                               {progress.percentage}%
                             </span>
-                          )}
-                        </div>
-                      </TableCell>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="py-3 text-center">
                         <div className="flex justify-center">
                           {verificationStatus === 'verified' ? (
