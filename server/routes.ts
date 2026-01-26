@@ -10727,7 +10727,7 @@ def extract_function(Column_Name, Excel_File):
       // Build the prompt
       const prompt = `You are a task extraction assistant. Analyze the following documents and extract actionable tasks.
 
-${aiInstructions ? `INSTRUCTIONS: ${aiInstructions}` : 'Extract all action items, tasks, and work items from the documents.'}
+${aiInstructions ? `INSTRUCTIONS FROM USER: ${aiInstructions}` : 'Extract all action items, tasks, and work items from the documents.'}
 
 ${knowledgeContent ? `REFERENCE DOCUMENTS FOR CONTEXT:${knowledgeContent}` : ''}
 
@@ -10736,19 +10736,51 @@ ${documentContent}
 
 AVAILABLE STATUS COLUMNS: ${(statusColumns || ['To Do', 'In Progress', 'Done']).join(', ')}
 
-For each task, provide:
-1. A clear, concise title (max 80 characters)
-2. A brief description (optional, max 200 characters)
-3. Initial status (choose from the available columns, default to first column)
-4. Brief reasoning for why this is a task
+For each task, you MUST provide:
+1. **title**: A clear, concise title (max 80 characters)
+2. **description**: A DETAILED description (300-500 characters) that includes:
+   - What needs to be done
+   - Specific completion instructions from the documents
+   - Which department or role is responsible
+   - Any deadlines or dependencies mentioned
+   - Reference to specific document sections where applicable
+3. **status**: Initial status (choose from the available columns, default to first column)
+4. **reasoning**: Brief reasoning for why this is a task
+5. **checklist**: An array of 3-6 specific subtasks or steps needed to complete this task. Each item should be actionable and measurable.
 
-Return your response as a JSON array with objects having: title, description, status, reasoning
+Return your response as a JSON array with objects having: title, description, status, reasoning, checklist
 
 Example format:
 [
-  {"title": "Review contract terms", "description": "Section 3.1 needs legal review", "status": "To Do", "reasoning": "Contract mentions pending review requirement"},
-  {"title": "Update budget figures", "description": null, "status": "To Do", "reasoning": "Financial section has placeholder values"}
+  {
+    "title": "Review contract terms and conditions",
+    "description": "Legal department must review all terms in Section 3 of the tender document, particularly clauses 3.1-3.5 regarding liability and indemnification. Deadline: 5 business days before submission. Must identify any non-standard terms and propose amendments. Coordinate with procurement team for any commercial implications.",
+    "status": "To Do",
+    "reasoning": "Contract Section 3 mentions mandatory legal review before tender submission",
+    "checklist": [
+      "Review liability clauses in Section 3.1-3.2",
+      "Assess indemnification requirements in Section 3.3",
+      "Identify non-standard terms requiring negotiation",
+      "Draft proposed amendments document",
+      "Obtain sign-off from Legal Director"
+    ]
+  },
+  {
+    "title": "Prepare project timeline and schedule",
+    "description": "Project Management team to develop comprehensive project timeline based on tender requirements. Must include all milestones from tender Section 5, resource allocation plan, and critical path analysis. Timeline must demonstrate capability to meet client's completion deadline of Q4 2024.",
+    "status": "To Do",
+    "reasoning": "Tender requires detailed project schedule in submission package",
+    "checklist": [
+      "Extract all milestone requirements from Section 5",
+      "Create detailed Gantt chart with dependencies",
+      "Identify resource requirements for each phase",
+      "Conduct critical path analysis",
+      "Review with Project Director for approval"
+    ]
+  }
 ]
+
+IMPORTANT: Follow the user's instructions carefully. Generate comprehensive, detailed descriptions and relevant checklists for each task.
 
 Return ONLY the JSON array, no other text.`;
 
@@ -10776,7 +10808,7 @@ Return ONLY the JSON array, no other text.`;
         return res.status(500).json({ error: 'AI did not return a valid task array' });
       }
 
-      // Create the kanban cards
+      // Create the kanban cards with checklists
       const createdCards = [];
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i];
@@ -10790,6 +10822,22 @@ Return ONLY the JSON array, no other text.`;
           aiGenerated: true,
           aiReasoning: task.reasoning || null
         });
+        
+        // Create checklist items for this card
+        if (task.checklist && Array.isArray(task.checklist)) {
+          for (let j = 0; j < task.checklist.length; j++) {
+            const checklistText = task.checklist[j];
+            if (checklistText && typeof checklistText === 'string') {
+              await storage.createKanbanChecklistItem({
+                cardId: card.id,
+                text: checklistText,
+                completed: false,
+                orderIndex: j
+              });
+            }
+          }
+        }
+        
         createdCards.push(card);
       }
 
