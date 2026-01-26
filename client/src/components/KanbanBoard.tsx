@@ -26,7 +26,8 @@ import {
   Send,
   Trash2,
   Check,
-  ChevronDown
+  ChevronDown,
+  ExternalLink
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -54,6 +55,12 @@ interface SessionDocument {
   fileType?: string;
 }
 
+interface KanbanAction {
+  name: string;
+  aiInstructions: string;
+  link: string;
+}
+
 interface KanbanBoardProps {
   sessionId: string;
   stepId: string;
@@ -67,6 +74,7 @@ interface KanbanBoardProps {
   organizationId?: string;
   currentUserId?: string;
   stepValues?: StepValue[];
+  actions?: KanbanAction[];
 }
 
 export function KanbanBoard({ 
@@ -81,7 +89,8 @@ export function KanbanBoard({
   isGenerating = false,
   organizationId,
   currentUserId,
-  stepValues = []
+  stepValues = [],
+  actions = []
 }: KanbanBoardProps) {
   const { toast } = useToast();
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
@@ -1069,21 +1078,37 @@ export function KanbanBoard({
                     {/* Actions Card */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Actions</label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start h-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800/50"
-                        onClick={() => {
-                          if (selectedCard) {
-                            deleteCardMutation.mutate(selectedCard.id);
-                            setIsCardDialogOpen(false);
-                          }
-                        }}
-                        disabled={deleteCardMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Task
-                      </Button>
+                      <div className="space-y-2">
+                        {/* Configured action buttons */}
+                        {actions.filter(action => action.name && action.link).map((action, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start h-10 text-[#4F63A4] hover:text-[#3d4f80] hover:bg-[#4F63A4]/10 border-[#4F63A4]/30"
+                            onClick={() => window.open(action.link, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            {action.name}
+                          </Button>
+                        ))}
+                        {/* Delete button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-start h-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800/50"
+                          onClick={() => {
+                            if (selectedCard) {
+                              deleteCardMutation.mutate(selectedCard.id);
+                              setIsCardDialogOpen(false);
+                            }
+                          }}
+                          disabled={deleteCardMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Task
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

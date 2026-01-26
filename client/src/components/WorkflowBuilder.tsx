@@ -789,6 +789,109 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           Additional context for AI task generation
                         </p>
                       </div>
+
+                      {/* Actions Configuration */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Task Actions
+                        </label>
+                        <div className="space-y-3">
+                          {(selectedStep.kanbanConfig?.actions || []).map((action: { name: string; aiInstructions: string; link: string }, actionIndex: number) => (
+                            <div key={actionIndex} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Action {actionIndex + 1}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newActions = (selectedStep.kanbanConfig?.actions || []).filter((_: any, i: number) => i !== actionIndex);
+                                    updateStep(selectedStep.id, {
+                                      kanbanConfig: {
+                                        ...selectedStep.kanbanConfig,
+                                        statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                        actions: newActions
+                                      }
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <Input
+                                value={action.name}
+                                onChange={(e) => {
+                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
+                                  newActions[actionIndex] = { ...newActions[actionIndex], name: e.target.value };
+                                  updateStep(selectedStep.id, {
+                                    kanbanConfig: {
+                                      ...selectedStep.kanbanConfig,
+                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                      actions: newActions
+                                    }
+                                  });
+                                }}
+                                placeholder="Action Name (e.g., Generate Document)"
+                                className="text-sm"
+                              />
+                              <Textarea
+                                value={action.aiInstructions}
+                                onChange={(e) => {
+                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
+                                  newActions[actionIndex] = { ...newActions[actionIndex], aiInstructions: e.target.value };
+                                  updateStep(selectedStep.id, {
+                                    kanbanConfig: {
+                                      ...selectedStep.kanbanConfig,
+                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                      actions: newActions
+                                    }
+                                  });
+                                }}
+                                placeholder="AI Instructions: When should this action be available? (e.g., Tasks that require document drafting)"
+                                rows={2}
+                                className="text-sm"
+                              />
+                              <Input
+                                value={action.link}
+                                onChange={(e) => {
+                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
+                                  newActions[actionIndex] = { ...newActions[actionIndex], link: e.target.value };
+                                  updateStep(selectedStep.id, {
+                                    kanbanConfig: {
+                                      ...selectedStep.kanbanConfig,
+                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                      actions: newActions
+                                    }
+                                  });
+                                }}
+                                placeholder="Link URL (opens in new tab)"
+                                className="text-sm"
+                              />
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newActions = [...(selectedStep.kanbanConfig?.actions || []), { name: '', aiInstructions: '', link: '' }];
+                              updateStep(selectedStep.id, {
+                                kanbanConfig: {
+                                  ...selectedStep.kanbanConfig,
+                                  statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                  actions: newActions
+                                }
+                              });
+                            }}
+                            className="w-full"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Action
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Action buttons that appear on task cards (links open in new tab)
+                        </p>
+                      </div>
                     </div>
                   );
                 })()}
