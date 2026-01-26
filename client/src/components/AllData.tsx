@@ -107,6 +107,16 @@ export default function AllData({ project }: AllDataProps) {
     queryKey: [`/api/projects/${project.id}/workflow`],
   });
 
+  // Fetch kanban progress for all sessions
+  const { data: kanbanProgressData } = useQuery<{
+    hasKanban: boolean;
+    kanbanStepId?: string;
+    lastColumn?: string;
+    progress: Record<string, { total: number; completed: number; percentage: number }>;
+  }>({
+    queryKey: ['/api/projects', project.id, 'kanban-progress'],
+  });
+
   // Extract info page fields from workflow
   const infoPageFields = useMemo(() => {
     if (!workflowData?.steps) return [];
@@ -499,6 +509,17 @@ export default function AllData({ project }: AllDataProps) {
     // Safety check for sessionId
     if (!sessionId) return { verified: 0, total: 0, percentage: 0 };
     
+    // If project has kanban, use kanban progress (cards in last column = completed)
+    if (kanbanProgressData?.hasKanban && kanbanProgressData.progress[sessionId]) {
+      const kanbanProgress = kanbanProgressData.progress[sessionId];
+      return {
+        verified: kanbanProgress.completed,
+        total: kanbanProgress.total,
+        percentage: kanbanProgress.percentage
+      };
+    }
+    
+    // Fallback to field validation progress for non-kanban projects
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
     

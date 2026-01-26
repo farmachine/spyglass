@@ -10366,6 +10366,53 @@ def extract_function(Column_Name, Excel_File):
 
   // ==================== KANBAN BOARD ROUTES ====================
 
+  // Get kanban progress for all sessions in a project
+  app.get('/api/projects/:projectId/kanban-progress', authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      
+      // Get workflow steps for the project
+      const steps = await storage.getWorkflowSteps(projectId);
+      const kanbanStep = steps.find(s => s.stepType === 'kanban');
+      
+      if (!kanbanStep) {
+        return res.json({ hasKanban: false, progress: {} });
+      }
+      
+      // Get kanban config to find status columns
+      const kanbanConfig = (kanbanStep as any).kanbanConfig || {
+        statusColumns: ['To Do', 'In Progress', 'Done']
+      };
+      const statusColumns: string[] = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
+      const lastColumn = statusColumns[statusColumns.length - 1];
+      
+      // Get all sessions for the project
+      const sessions = await storage.getExtractionSessions(projectId);
+      
+      // Calculate progress for each session
+      const progress: Record<string, { total: number; completed: number; percentage: number }> = {};
+      
+      for (const session of sessions) {
+        const cards = await storage.getKanbanCards(session.id, kanbanStep.id);
+        const total = cards.length;
+        const completed = cards.filter(c => c.status === lastColumn).length;
+        const percentage = total > 0 ? Math.floor((completed / total) * 100) : 0;
+        
+        progress[session.id] = { total, completed, percentage };
+      }
+      
+      res.json({
+        hasKanban: true,
+        kanbanStepId: kanbanStep.id,
+        lastColumn,
+        progress
+      });
+    } catch (error) {
+      console.error('Error fetching kanban progress:', error);
+      res.status(500).json({ error: 'Failed to fetch kanban progress' });
+    }
+  });
+
   // Get all kanban cards for a session/step
   app.get('/api/sessions/:sessionId/steps/:stepId/kanban-cards', async (req, res) => {
     try {
