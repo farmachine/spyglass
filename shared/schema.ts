@@ -87,6 +87,7 @@ export const workflowSteps = pgTable("workflow_steps", {
   orderIndex: integer("order_index").default(0),
   valueCount: integer("value_count").default(0), // Number of values in this step
   identifierId: uuid("identifier_id"), // UUID of the identifier value (first value for list steps)
+  kanbanConfig: jsonb("kanban_config"), // Configuration for kanban steps (statusColumns, aiInstructions, knowledgeDocumentIds, actions)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
