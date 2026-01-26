@@ -1027,7 +1027,7 @@ export default function AllData({ project }: AllDataProps) {
                           </div>
                           {kanbanProgressData?.hasKanban ? (
                             <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                              {progress.verified}/{progress.total} {kanbanProgressData.kanbanStepName || 'tasks'}
+                              {progress.verified}/{progress.total} tasks
                             </span>
                           ) : (
                             <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
