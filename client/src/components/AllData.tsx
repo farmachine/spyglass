@@ -111,6 +111,7 @@ export default function AllData({ project }: AllDataProps) {
   const { data: kanbanProgressData } = useQuery<{
     hasKanban: boolean;
     kanbanStepId?: string;
+    kanbanStepName?: string;
     lastColumn?: string;
     progress: Record<string, { total: number; completed: number; percentage: number }>;
   }>({
@@ -1024,9 +1025,15 @@ export default function AllData({ project }: AllDataProps) {
                               style={{ width: `${progress.percentage}%` }}
                             />
                           </div>
-                          <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
-                            {progress.percentage}%
-                          </span>
+                          {kanbanProgressData?.hasKanban ? (
+                            <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                              {progress.verified}/{progress.total} {kanbanProgressData.kanbanStepName || 'tasks'}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
+                              {progress.percentage}%
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="py-3 text-center">

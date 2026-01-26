@@ -10404,6 +10404,7 @@ def extract_function(Column_Name, Excel_File):
       res.json({
         hasKanban: true,
         kanbanStepId: kanbanStep.id,
+        kanbanStepName: kanbanStep.stepName,
         lastColumn,
         progress
       });
