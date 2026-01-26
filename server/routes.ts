@@ -10366,46 +10366,75 @@ def extract_function(Column_Name, Excel_File):
 
   // ==================== KANBAN BOARD ROUTES ====================
 
-  // Get kanban progress for all sessions in a project
+  // Get kanban progress for all sessions in a project (supports multiple kanban steps)
   app.get('/api/projects/:projectId/kanban-progress', authenticateToken, async (req, res) => {
     try {
       const { projectId } = req.params;
       
       // Get workflow steps for the project
       const steps = await storage.getWorkflowSteps(projectId);
-      const kanbanStep = steps.find(s => s.stepType === 'kanban');
+      const kanbanSteps = steps.filter(s => s.stepType === 'kanban');
       
-      if (!kanbanStep) {
-        return res.json({ hasKanban: false, progress: {} });
+      if (kanbanSteps.length === 0) {
+        return res.json({ hasKanban: false, kanbanSteps: [], progress: {} });
       }
-      
-      // Get kanban config to find status columns
-      const kanbanConfig = (kanbanStep as any).kanbanConfig || {
-        statusColumns: ['To Do', 'In Progress', 'Done']
-      };
-      const statusColumns: string[] = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
-      const lastColumn = statusColumns[statusColumns.length - 1];
       
       // Get all sessions for the project
       const sessions = await storage.getExtractionSessions(projectId);
       
-      // Calculate progress for each session
-      const progress: Record<string, { total: number; completed: number; percentage: number }> = {};
+      // Build kanban step info with status columns
+      const kanbanStepInfo: Array<{
+        stepId: string;
+        stepName: string;
+        statusColumns: string[];
+        lastColumn: string;
+      }> = [];
       
-      for (const session of sessions) {
-        const cards = await storage.getKanbanCards(session.id, kanbanStep.id);
-        const total = cards.length;
-        const completed = cards.filter(c => c.status === lastColumn).length;
-        const percentage = total > 0 ? Math.floor((completed / total) * 100) : 0;
+      // Calculate progress for each session and each kanban step
+      // Structure: { [sessionId]: { [stepId]: { total, completed, percentage, statusBreakdown } } }
+      const progress: Record<string, Record<string, { 
+        total: number; 
+        completed: number; 
+        percentage: number;
+        statusBreakdown: Record<string, number>;
+      }>> = {};
+      
+      for (const kanbanStep of kanbanSteps) {
+        const kanbanConfig = (kanbanStep as any).kanbanConfig || {
+          statusColumns: ['To Do', 'In Progress', 'Done']
+        };
+        const statusColumns: string[] = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
+        const lastColumn = statusColumns[statusColumns.length - 1];
         
-        progress[session.id] = { total, completed, percentage };
+        kanbanStepInfo.push({
+          stepId: kanbanStep.id,
+          stepName: kanbanStep.stepName,
+          statusColumns,
+          lastColumn
+        });
+        
+        for (const session of sessions) {
+          const cards = await storage.getKanbanCards(session.id, kanbanStep.id);
+          const total = cards.length;
+          const completed = cards.filter(c => c.status === lastColumn).length;
+          const percentage = total > 0 ? Math.floor((completed / total) * 100) : 0;
+          
+          // Calculate status breakdown for analytics
+          const statusBreakdown: Record<string, number> = {};
+          for (const col of statusColumns) {
+            statusBreakdown[col] = cards.filter(c => c.status === col).length;
+          }
+          
+          if (!progress[session.id]) {
+            progress[session.id] = {};
+          }
+          progress[session.id][kanbanStep.id] = { total, completed, percentage, statusBreakdown };
+        }
       }
       
       res.json({
         hasKanban: true,
-        kanbanStepId: kanbanStep.id,
-        kanbanStepName: kanbanStep.stepName,
-        lastColumn,
+        kanbanSteps: kanbanStepInfo,
         progress
       });
     } catch (error) {

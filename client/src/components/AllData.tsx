@@ -107,13 +107,21 @@ export default function AllData({ project }: AllDataProps) {
     queryKey: [`/api/projects/${project.id}/workflow`],
   });
 
-  // Fetch kanban progress for all sessions
+  // Fetch kanban progress for all sessions (supports multiple kanban steps)
   const { data: kanbanProgressData } = useQuery<{
     hasKanban: boolean;
-    kanbanStepId?: string;
-    kanbanStepName?: string;
-    lastColumn?: string;
-    progress: Record<string, { total: number; completed: number; percentage: number }>;
+    kanbanSteps: Array<{
+      stepId: string;
+      stepName: string;
+      statusColumns: string[];
+      lastColumn: string;
+    }>;
+    progress: Record<string, Record<string, { 
+      total: number; 
+      completed: number; 
+      percentage: number;
+      statusBreakdown: Record<string, number>;
+    }>>;
   }>({
     queryKey: ['/api/projects', project.id, 'kanban-progress'],
   });
@@ -439,6 +447,44 @@ export default function AllData({ project }: AllDataProps) {
     return { values, fieldName: column.name };
   };
 
+  // Generate pie chart data for a kanban step (aggregate status breakdown across all sessions)
+  const generateKanbanChartData = (stepId: string): ChartConfig | null => {
+    const step = kanbanProgressData?.kanbanSteps?.find(s => s.stepId === stepId);
+    if (!step) return null;
+    
+    // Aggregate status counts across all sessions
+    const aggregatedCounts: Record<string, number> = {};
+    for (const col of step.statusColumns) {
+      aggregatedCounts[col] = 0;
+    }
+    
+    const sessions = project.sessions || [];
+    for (const session of sessions) {
+      const sessionProgress = kanbanProgressData?.progress?.[session.id]?.[stepId];
+      if (sessionProgress?.statusBreakdown) {
+        for (const [status, count] of Object.entries(sessionProgress.statusBreakdown)) {
+          aggregatedCounts[status] = (aggregatedCounts[status] || 0) + count;
+        }
+      }
+    }
+    
+    // Build chart data
+    const data = step.statusColumns.map((status, index) => ({
+      name: status,
+      value: aggregatedCounts[status] || 0,
+      color: CHART_COLORS[index % CHART_COLORS.length]
+    })).filter(d => d.value > 0);
+    
+    if (data.length === 0) return null;
+    
+    return {
+      type: 'pie',
+      title: `${step.stepName} - Task Status`,
+      fieldName: step.stepName,
+      data
+    };
+  };
+
   // Generate charts using AI
   const generateAnalyticsCharts = async () => {
     if (selectedAnalyticsFields.size === 0) {
@@ -454,38 +500,63 @@ export default function AllData({ project }: AllDataProps) {
     setShowAnalyticsModal(false);
     
     try {
-      // Collect data for selected fields
-      const fieldData: { fieldName: string; values: string[] }[] = [];
+      const charts: ChartConfig[] = [];
+      
+      // Separate kanban fields from regular fields
+      const kanbanFieldIds: string[] = [];
+      const regularFieldIds: string[] = [];
       
       for (const fieldId of selectedAnalyticsFields) {
-        const data = getFieldDataForAnalytics(fieldId);
-        if (data.values.length > 0) {
-          fieldData.push(data);
+        if (fieldId.startsWith('kanban-')) {
+          kanbanFieldIds.push(fieldId.replace('kanban-', ''));
+        } else {
+          regularFieldIds.push(fieldId);
         }
       }
+      
+      // Generate kanban charts directly (no AI needed)
+      for (const stepId of kanbanFieldIds) {
+        const kanbanChart = generateKanbanChartData(stepId);
+        if (kanbanChart) {
+          charts.push(kanbanChart);
+        }
+      }
+      
+      // Collect data for regular fields and call AI
+      if (regularFieldIds.length > 0) {
+        const fieldData: { fieldName: string; values: string[] }[] = [];
+        
+        for (const fieldId of regularFieldIds) {
+          const data = getFieldDataForAnalytics(fieldId);
+          if (data.values.length > 0) {
+            fieldData.push(data);
+          }
+        }
 
-      if (fieldData.length === 0) {
+        if (fieldData.length > 0) {
+          const response = await apiRequest(`/api/analytics/generate-charts`, {
+            method: 'POST',
+            body: JSON.stringify({ fieldData })
+          }) as { charts?: ChartConfig[] };
+
+          if (response && response.charts && Array.isArray(response.charts)) {
+            charts.push(...response.charts);
+          }
+        }
+      }
+      
+      if (charts.length === 0) {
         toast({
           title: "No data available",
-          description: "Selected fields have no extracted values to analyze",
+          description: "Selected fields have no data to analyze",
           variant: "destructive",
         });
         setIsGeneratingCharts(false);
         return;
       }
 
-      // Call AI endpoint to generate chart configurations
-      const response = await apiRequest(`/api/analytics/generate-charts`, {
-        method: 'POST',
-        body: JSON.stringify({ fieldData })
-      }) as { charts?: ChartConfig[] };
-
-      if (response && response.charts && Array.isArray(response.charts)) {
-        setGeneratedCharts(response.charts);
-        setShowAnalyticsPane(true);
-      } else {
-        throw new Error('Invalid response from analytics API');
-      }
+      setGeneratedCharts(charts);
+      setShowAnalyticsPane(true);
     } catch (error) {
       console.error('Failed to generate analytics:', error);
       toast({
@@ -505,20 +576,10 @@ export default function AllData({ project }: AllDataProps) {
     setSelectedAnalyticsFields(new Set());
   };
 
-  // Get verification progress for a session
+  // Get verification progress for a session (for non-kanban projects)
   const getSessionProgress = (sessionId: string) => {
     // Safety check for sessionId
     if (!sessionId) return { verified: 0, total: 0, percentage: 0 };
-    
-    // If project has kanban, use kanban progress (cards in last column = completed)
-    if (kanbanProgressData?.hasKanban && kanbanProgressData.progress[sessionId]) {
-      const kanbanProgress = kanbanProgressData.progress[sessionId];
-      return {
-        verified: kanbanProgress.completed,
-        total: kanbanProgress.total,
-        percentage: kanbanProgress.percentage
-      };
-    }
     
     // Fallback to field validation progress for non-kanban projects
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
@@ -531,6 +592,23 @@ export default function AllData({ project }: AllDataProps) {
     const percentage = verified === total ? 100 : Math.floor(exactPercentage);
     
     return { verified, total, percentage };
+  };
+
+  // Get kanban progress for a specific session and step
+  const getKanbanStepProgress = (sessionId: string, stepId: string) => {
+    if (!sessionId || !stepId) return { total: 0, completed: 0, percentage: 0 };
+    
+    const sessionProgress = kanbanProgressData?.progress?.[sessionId];
+    if (!sessionProgress) return { total: 0, completed: 0, percentage: 0 };
+    
+    const stepProgress = sessionProgress[stepId];
+    if (!stepProgress) return { total: 0, completed: 0, percentage: 0 };
+    
+    return {
+      total: stepProgress.total,
+      completed: stepProgress.completed,
+      percentage: stepProgress.percentage
+    };
   };
 
   // Sortable column header component
@@ -768,9 +846,9 @@ export default function AllData({ project }: AllDataProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
-            {infoPageFields.length === 0 ? (
+            {infoPageFields.length === 0 && (!kanbanProgressData?.kanbanSteps || kanbanProgressData.kanbanSteps.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No info page fields configured in this project.
+                No fields configured in this project.
               </p>
             ) : (
               <div className="space-y-2">
@@ -784,6 +862,21 @@ export default function AllData({ project }: AllDataProps) {
                       onCheckedChange={() => toggleAnalyticsField(field.id)}
                     />
                     <span className="flex-1 text-sm">{field.name}</span>
+                  </label>
+                ))}
+                {kanbanProgressData?.kanbanSteps?.map((step) => (
+                  <label
+                    key={`kanban-${step.stepId}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-blue-50/50 dark:bg-blue-900/10"
+                  >
+                    <Checkbox
+                      checked={selectedAnalyticsFields.has(`kanban-${step.stepId}`)}
+                      onCheckedChange={() => toggleAnalyticsField(`kanban-${step.stepId}`)}
+                    />
+                    <span className="flex-1 text-sm flex items-center gap-2">
+                      {step.stepName}
+                      <Badge variant="secondary" className="text-xs">Tasks</Badge>
+                    </span>
                   </label>
                 ))}
               </div>
