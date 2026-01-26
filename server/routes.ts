@@ -10830,9 +10830,10 @@ Return ONLY the JSON array, no other text.`;
             if (checklistText && typeof checklistText === 'string') {
               await storage.createKanbanChecklistItem({
                 cardId: card.id,
-                text: checklistText,
-                completed: false,
-                orderIndex: j
+                title: checklistText,
+                isCompleted: false,
+                orderIndex: j,
+                aiGenerated: true
               });
             }
           }
