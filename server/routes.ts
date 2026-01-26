@@ -5425,7 +5425,8 @@ print(json.dumps(results))
         description: stepData.description,
         orderIndex: stepData.orderIndex,
         valueCount: stepData.valueCount || stepData.values?.length || 0,
-        identifierId: stepData.identifierId
+        identifierId: stepData.identifierId,
+        kanbanConfig: stepData.kanbanConfig || null
       });
     } else {
       // Create new step - need to get project ID from the step data
@@ -5441,7 +5442,8 @@ print(json.dumps(results))
         description: stepData.description,
         orderIndex: stepData.orderIndex,
         valueCount: stepData.valueCount || stepData.values?.length || 0,
-        identifierId: stepData.identifierId
+        identifierId: stepData.identifierId,
+        kanbanConfig: stepData.kanbanConfig || null
       });
     }
     
