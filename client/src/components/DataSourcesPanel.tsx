@@ -122,6 +122,122 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     return str;
   };
 
+  const flattenObject = (obj: Record<string, any>, prefix = ""): { key: string; value: string }[] => {
+    const result: { key: string; value: string }[] = [];
+    for (const [key, value] of Object.entries(obj)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      if (value === null || value === undefined) continue;
+      if (typeof value === "object" && !Array.isArray(value)) {
+        result.push(...flattenObject(value, fullKey));
+      } else if (!Array.isArray(value)) {
+        result.push({ key: fullKey, value: formatCellValue(value) });
+      }
+    }
+    return result;
+  };
+
+  const renderArrayAsTable = (arr: any[]): JSX.Element => {
+    if (arr.length === 0) return <p className="text-gray-500">Empty array</p>;
+    
+    const firstItem = arr[0];
+    if (typeof firstItem === "object" && firstItem !== null) {
+      const allKeys = new Set<string>();
+      arr.slice(0, 20).forEach(item => {
+        if (item && typeof item === "object") {
+          Object.keys(item).forEach(k => allKeys.add(k));
+        }
+      });
+      const columns = Array.from(allKeys);
+      
+      return (
+        <div className="overflow-x-auto border rounded-lg max-h-[500px] overflow-y-auto">
+          <Table>
+            <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+              <TableRow>
+                <TableHead className="font-semibold text-gray-500 w-12">#</TableHead>
+                {columns.map((col) => (
+                  <TableHead key={col} className="font-semibold whitespace-nowrap">
+                    {formatColumnHeader(col)}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {arr.slice(0, 100).map((row, idx) => (
+                <TableRow key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <TableCell className="text-gray-400 text-sm">{idx + 1}</TableCell>
+                  {columns.map((col) => (
+                    <TableCell key={col} className="max-w-[300px]" title={formatCellValue(row[col])}>
+                      <span className="block truncate">{formatCellValue(row[col])}</span>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {arr.length > 100 && (
+            <p className="text-sm text-gray-500 p-2 text-center border-t">
+              Showing first 100 of {arr.length} records
+            </p>
+          )}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-1">
+        {arr.slice(0, 50).map((item, idx) => (
+          <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-sm">
+            {String(item)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const findMainDataArray = (obj: any): { data: any[]; metadata: Record<string, any> } | null => {
+    if (!obj || typeof obj !== "object") return null;
+    
+    const commonDataKeys = ["entries", "data", "items", "results", "records", "rows", "list"];
+    
+    // Check if obj itself has a common data array key
+    for (const key of commonDataKeys) {
+      if (Array.isArray(obj[key]) && obj[key].length > 0) {
+        const metadata: Record<string, any> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (k !== key) metadata[k] = v;
+        }
+        return { data: obj[key], metadata };
+      }
+    }
+    
+    // Check nested "data" object
+    if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data)) {
+      for (const key of commonDataKeys) {
+        if (Array.isArray(obj.data[key]) && obj.data[key].length > 0) {
+          const metadata: Record<string, any> = {};
+          for (const [k, v] of Object.entries(obj.data)) {
+            if (k !== key) metadata[k] = v;
+          }
+          return { data: obj.data[key], metadata };
+        }
+      }
+    }
+    
+    // Find any array with objects
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object") {
+        const metadata: Record<string, any> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (k !== key) metadata[k] = v;
+        }
+        return { data: value, metadata };
+      }
+    }
+    
+    return null;
+  };
+
   const renderJsonTable = (data: any): JSX.Element => {
     if (!data) return <p className="text-gray-500">No data</p>;
 
@@ -132,6 +248,34 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       } catch {
         return <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm overflow-auto whitespace-pre-wrap">{data}</pre>;
       }
+    }
+    
+    // Try to find the main data array (handles nested structures like {data: {entries: [...]}})
+    const found = findMainDataArray(parsedData);
+    if (found) {
+      parsedData = found.data;
+      // Render with metadata header
+      const flatMeta = flattenObject(found.metadata);
+      if (flatMeta.length > 0) {
+        return (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400 pb-2 border-b">
+              {flatMeta.map(({ key, value }) => (
+                <span key={key}>
+                  <span className="font-medium">{formatColumnHeader(key)}:</span> {value}
+                </span>
+              ))}
+            </div>
+            <div>
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Records ({found.data.length} items)
+              </h4>
+              {renderArrayAsTable(found.data)}
+            </div>
+          </div>
+        );
+      }
+      return renderArrayAsTable(found.data);
     }
 
     if (Array.isArray(parsedData)) {
