@@ -1717,44 +1717,45 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         console.log('\n📍 PHASE 1: Generating unified filter for ALL input items...');
         
         // PHASE 1: Generate ONE comprehensive filter from ALL input items
-        const filterPrompt = `You are a database filter assistant. Analyze ALL input items and generate comprehensive filter criteria to find ALL potential matching records.
+        const filterPrompt = `You are a smart database filter assistant. Your job is to analyze input data and generate optimal filter criteria to find potential matches in a large database.
 
-DATABASE INFO:
+DATABASE STRUCTURE:
 - Total records: ${dataSourceData.length}
 - Available columns: ${columnDescriptions}
-- Sample records (showing structure): ${JSON.stringify(sampleDbRecords, null, 2)}
+- Sample records: ${JSON.stringify(sampleDbRecords, null, 2)}
 
-USER LOOKUP INSTRUCTIONS:
+USER INSTRUCTIONS (follow these carefully):
 ${aiPrompt}
 
-ALL INPUT ITEMS TO MATCH (${inputArray.length} items):
+INPUT DATA TO FIND MATCHES FOR (${inputArray.length} items):
 ${JSON.stringify(inputArray, null, 2)}
 
-TASK:
-Analyze ALL ${inputArray.length} input items and generate filter criteria that will capture ALL potential matching records.
-- Extract ALL unique cities, streets, postal codes, and other identifiers from ALL items
-- Create comprehensive filters that will match records for ANY of these items
-- Use contains/partial matching for flexibility
-- The goal is to reduce ${dataSourceData.length} records to a manageable set that contains matches for ALL input items
+YOUR TASK:
+1. Study the database columns and sample records to understand the data structure
+2. Analyze the input data to identify key values that can be used for filtering
+3. Generate filter criteria that will find ALL potential matching records
 
-CRITICAL: Your filters must be broad enough to capture matches for ALL ${inputArray.length} items, not just some of them.
+FILTERING STRATEGY:
+- Identify which database columns correspond to which input fields (semantic matching)
+- Extract unique values from ALL input items for each relevant field
+- Create filters that are BROAD enough to capture all potential matches
+- Account for spelling variations, abbreviations, formatting differences
+- When in doubt, be MORE inclusive rather than risk missing matches
 
 OUTPUT FORMAT (JSON):
 {
   "filters": [
     {
-      "column": "column_name",
+      "column": "exact_database_column_name",
       "operator": "in",
-      "values": ["list", "of", "all", "unique", "values", "from", "all", "input", "items"],
+      "values": ["all", "unique", "values", "from", "inputs"],
       "caseSensitive": false
     }
   ],
-  "extractedCriteria": {
-    "cities": ["list of all unique cities found in input"],
-    "streets": ["list of all unique streets found in input"],
-    "postalCodes": ["list of all unique postal codes found"]
+  "columnMapping": {
+    "inputField": "databaseColumn"
   },
-  "reasoning": "How these filters will capture matches for all input items"
+  "reasoning": "Brief explanation of filtering strategy"
 }`;
 
         const filterModel = genAI.getGenerativeModel({ 
@@ -1768,10 +1769,12 @@ OUTPUT FORMAT (JSON):
           const filterResult = await filterModel.generateContent(filterPrompt);
           const filterResponse = JSON.parse(filterResult.response.text());
           
-          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 150) || 'Generated'}`);
-          if (filterResponse.extractedCriteria) {
-            const criteria = filterResponse.extractedCriteria;
-            console.log(`   📍 Extracted: ${criteria.cities?.length || 0} cities, ${criteria.streets?.length || 0} streets, ${criteria.postalCodes?.length || 0} postal codes`);
+          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 200) || 'Generated'}`);
+          if (filterResponse.columnMapping) {
+            console.log(`   📍 Column mapping: ${JSON.stringify(filterResponse.columnMapping)}`);
+          }
+          if (filterResponse.filters?.length) {
+            console.log(`   📍 Generated ${filterResponse.filters.length} filters`);
           }
           
           if (filterResponse.filters && filterResponse.filters.length > 0) {
@@ -1804,24 +1807,32 @@ OUTPUT FORMAT (JSON):
           // Fallback if filter is too restrictive
           if (filteredData.length === 0) {
             console.log(`   ⚠️ No matches with strict filter, trying broader approach...`);
-            // Try to extract just cities and do a broader search
-            if (filterResponse.extractedCriteria?.cities?.length > 0) {
-              const cities = filterResponse.extractedCriteria.cities.map((c: string) => c.toLowerCase());
+            
+            // Extract ALL text values from all filters and do loose matching
+            const allFilterValues: string[] = [];
+            filterResponse.filters.forEach((filter: any) => {
+              if (Array.isArray(filter.values)) {
+                allFilterValues.push(...filter.values.map((v: string) => String(v).toLowerCase()));
+              } else if (filter.value) {
+                allFilterValues.push(String(filter.value).toLowerCase());
+              }
+            });
+            
+            if (allFilterValues.length > 0) {
+              // Try matching ANY column against ANY filter value (very loose)
               filteredData = dataSourceData.filter((record: any) => {
-                const cityColumn = dataSourceColumns.find(col => 
-                  col.toLowerCase().includes('city') || col.toLowerCase().includes('gemeente') || col === 'c_text_0002'
-                );
-                if (cityColumn && record[cityColumn]) {
-                  const recordCity = String(record[cityColumn]).toLowerCase();
-                  return cities.some(c => recordCity.includes(c) || c.includes(recordCity));
-                }
-                return false;
+                return dataSourceColumns.some(col => {
+                  const val = record[col];
+                  if (val === undefined || val === null) return false;
+                  const strVal = String(val).toLowerCase();
+                  return allFilterValues.some(fv => strVal.includes(fv) || fv.includes(strVal));
+                });
               });
-              console.log(`   📊 Broader city filter: ${filteredData.length} candidates`);
+              console.log(`   📊 Broader loose filter: ${filteredData.length} candidates`);
             }
           }
           
-          // If still no matches, use a sample
+          // If still no matches, use a proportional sample
           if (filteredData.length === 0) {
             console.log(`   ⚠️ Using sample of full dataset as fallback`);
             filteredData = dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
@@ -1838,37 +1849,39 @@ OUTPUT FORMAT (JSON):
         // PHASE 2: Match ALL input items against ALL candidates in ONE call
         console.log('\n📍 PHASE 2: Matching ALL input items against candidates...');
         
-        const matchPrompt = `You are a database lookup assistant. Match EACH input item to its BEST matching record from the candidates.
+        const matchPrompt = `You are a smart database lookup assistant. Your task is to match each input item to its best matching record from the candidate database.
 
 CANDIDATE DATABASE RECORDS (${limitedCandidates.length} pre-filtered records):
 ${JSON.stringify(limitedCandidates, null, 2)}
 
-USER MATCHING INSTRUCTIONS:
+USER MATCHING INSTRUCTIONS (FOLLOW CAREFULLY):
 ${aiPrompt}
 
-ALL INPUT ITEMS TO MATCH (${inputArray.length} items):
+INPUT ITEMS TO MATCH (${inputArray.length} items):
 ${JSON.stringify(inputArray, null, 2)}
 
-TASK:
-For EACH of the ${inputArray.length} input items, find the BEST matching candidate record.
-- Match addresses by street name, city, postal code
-- Handle spelling variations and abbreviations (e.g., "straat" vs "str", different letter cases)
-- Consider partial matches when exact matches aren't available
-- If no good match exists for an item, return null for that item
+MATCHING INSTRUCTIONS:
+1. For EACH input item, find the BEST matching candidate record based on the user instructions above
+2. Use intelligent fuzzy matching:
+   - Handle spelling variations (e.g., "straat"/"str", "weg"/"w", different cases)
+   - Handle abbreviations and formatting differences
+   - Match semantically equivalent values
+3. A match is VALID only when the key identifying fields match (both should match, not just one)
+4. If no good match exists, return null for extractedValue with "invalid" status
+5. Be strict about matching quality - only mark as "valid" when you're confident in the match
 
-CRITICAL: You MUST return exactly ${inputArray.length} results, one for each input item, in the SAME ORDER as the input.
+CRITICAL: Return EXACTLY ${inputArray.length} results in the SAME ORDER as the input items.
 
-OUTPUT FORMAT (JSON array with exactly ${inputArray.length} results):
+OUTPUT FORMAT (JSON array):
 [
   {
-    "extractedValue": "The best matching value from candidate (e.g., profit center name, id) or null if no match",
-    "validationStatus": "valid" if confident match, "invalid" if no match or uncertain,
-    "aiReasoning": "Brief explanation of match (e.g., 'Matched Ham city and Kerkeneikestraat')",
-    "confidenceScore": 0-100,
-    "documentSource": "Identifier of matched record or 'None'",
-    "identifierId": "MUST copy exactly from input item's identifierId field"
-  },
-  ... (exactly ${inputArray.length} items total)
+    "extractedValue": "The extracted value as specified by user instructions, or null if no match",
+    "validationStatus": "valid" only if confident match, "invalid" if no match or uncertain,
+    "aiReasoning": "Brief explanation: what matched or why no match was found",
+    "confidenceScore": 0-100 (high only for clear matches),
+    "documentSource": "Identifier or name of matched record",
+    "identifierId": "COPY EXACTLY from input item's identifierId"
+  }
 ]`;
 
         const matchModel = genAI.getGenerativeModel({ 
