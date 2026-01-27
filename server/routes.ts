@@ -2060,35 +2060,115 @@ except Exception as e:
       
       console.log(`Fetching data from: ${url}`);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: fetchHeaders
-      });
+      // Helper to extract data array from response
+      const extractDataArray = (data: any): any[] => {
+        if (Array.isArray(data)) return data;
+        if (typeof data === 'object' && data !== null) {
+          const commonKeys = ['data', 'entries', 'items', 'results', 'records', 'rows'];
+          for (const key of commonKeys) {
+            if (data[key] && Array.isArray(data[key])) return data[key];
+          }
+        }
+        return [];
+      };
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        await storage.updateApiDataSource(id, {
-          lastFetchedAt: new Date(),
-          lastFetchStatus: 'error',
-          lastFetchError: `HTTP ${response.status}: ${errorText.substring(0, 500)}`
+      // Fetch with pagination support
+      let allData: any[] = [];
+      let currentUrl = url;
+      let pageCount = 0;
+      const MAX_PAGES = 500; // Safety limit to prevent infinite loops
+      const PAGE_SIZE = 100; // Records per page
+      
+      console.log(`🔄 Starting paginated fetch from data source...`);
+      
+      while (currentUrl && pageCount < MAX_PAGES) {
+        pageCount++;
+        
+        // Add page_size parameter if not already present
+        const pageUrl = new URL(currentUrl);
+        if (!pageUrl.searchParams.has('page_size') && !pageUrl.searchParams.has('limit')) {
+          pageUrl.searchParams.set('page_size', String(PAGE_SIZE));
+        }
+        
+        console.log(`   📄 Fetching page ${pageCount}: ${pageUrl.toString()}`);
+        
+        const response = await fetch(pageUrl.toString(), {
+          method: 'GET',
+          headers: fetchHeaders
         });
-        return res.status(response.status).json({ 
-          message: "Failed to fetch from API", 
-          error: errorText 
-        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          await storage.updateApiDataSource(id, {
+            lastFetchedAt: new Date(),
+            lastFetchStatus: 'error',
+            lastFetchError: `HTTP ${response.status}: ${errorText.substring(0, 500)}`
+          });
+          return res.status(response.status).json({ 
+            message: "Failed to fetch from API", 
+            error: errorText 
+          });
+        }
+        
+        const pageData = await response.json();
+        const pageRecords = extractDataArray(pageData);
+        
+        console.log(`   📊 Page ${pageCount} returned ${pageRecords.length} records`);
+        
+        if (pageRecords.length === 0) {
+          console.log(`   ✅ No more records, stopping pagination`);
+          break;
+        }
+        
+        allData = allData.concat(pageRecords);
+        
+        // Check for next page link in various formats
+        let nextUrl = null;
+        
+        // Check response body for pagination info
+        if (pageData.next) nextUrl = pageData.next;
+        else if (pageData.links?.next) nextUrl = pageData.links.next;
+        else if (pageData.pagination?.next_url) nextUrl = pageData.pagination.next_url;
+        else if (pageData._links?.next?.href) nextUrl = pageData._links.next.href;
+        
+        // Check Link header for next page
+        const linkHeader = response.headers.get('Link');
+        if (linkHeader && !nextUrl) {
+          const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+          if (nextMatch) nextUrl = nextMatch[1];
+        }
+        
+        // If no next link found but we got a full page, try incrementing page number
+        if (!nextUrl && pageRecords.length >= PAGE_SIZE) {
+          const testUrl = new URL(currentUrl);
+          const currentPage = parseInt(testUrl.searchParams.get('page') || '1');
+          testUrl.searchParams.set('page', String(currentPage + 1));
+          testUrl.searchParams.set('page_size', String(PAGE_SIZE));
+          currentUrl = testUrl.toString();
+        } else if (nextUrl) {
+          // Handle relative URLs
+          if (nextUrl.startsWith('/')) {
+            const baseUrl = new URL(currentUrl);
+            nextUrl = `${baseUrl.protocol}//${baseUrl.host}${nextUrl}`;
+          }
+          currentUrl = nextUrl;
+        } else {
+          // No more pages
+          break;
+        }
       }
       
-      const data = await response.json();
+      console.log(`✅ Pagination complete: ${pageCount} pages, ${allData.length} total records`);
       
-      // Cache the data
+      // Cache the combined data
       await storage.updateApiDataSource(id, {
         lastFetchedAt: new Date(),
         lastFetchStatus: 'success',
         lastFetchError: null,
-        cachedData: data
+        cachedData: allData
       });
       
-      res.json({ success: true, data });
+      res.json({ success: true, data: allData, totalRecords: allData.length, pagesFetched: pageCount });
     } catch (error: any) {
       console.error("Error fetching from data source:", error);
       
