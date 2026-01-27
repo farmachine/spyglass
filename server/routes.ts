@@ -2114,10 +2114,16 @@ except Exception as e:
         console.log(`   🔍 Raw response type: ${typeof pageData}, isArray: ${Array.isArray(pageData)}`);
         if (typeof pageData === 'object' && !Array.isArray(pageData)) {
           console.log(`   🔍 Response keys: ${Object.keys(pageData).join(', ')}`);
-          // Log sample of first key's value if it exists
-          const firstKey = Object.keys(pageData)[0];
-          if (firstKey && Array.isArray(pageData[firstKey])) {
-            console.log(`   🔍 ${firstKey} is array with ${pageData[firstKey].length} items`);
+          // Log the data key specifically
+          if (pageData.data) {
+            console.log(`   🔍 data key: isArray=${Array.isArray(pageData.data)}, length=${Array.isArray(pageData.data) ? pageData.data.length : 'N/A'}`);
+            if (Array.isArray(pageData.data) && pageData.data.length > 0) {
+              console.log(`   🔍 First data item: ${JSON.stringify(pageData.data[0]).substring(0, 200)}`);
+            }
+          }
+          // Log pageInfo for pagination debugging
+          if (pageData.pageInfo) {
+            console.log(`   🔍 pageInfo: ${JSON.stringify(pageData.pageInfo)}`);
           }
         }
         
