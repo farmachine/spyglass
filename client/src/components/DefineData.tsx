@@ -129,6 +129,11 @@ export default function DefineData({
     queryKey: [`/api/projects/${project.id}/excel-functions`],
   });
 
+  const { data: dataSources = [] } = useQuery<any[]>({
+    queryKey: ['/api/projects', project.id, 'data-sources'],
+    queryFn: () => apiRequest(`/api/projects/${project.id}/data-sources`),
+  });
+
   const { data: workflowData, refetch: refetchWorkflow, isLoading: isWorkflowLoading } = useQuery({
     queryKey: [`/api/projects/${project.id}/workflow`],
     staleTime: 1000 * 60 * 5, // Keep data fresh for 5 minutes
@@ -552,6 +557,7 @@ export default function DefineData({
         collections={collectionsWithProps}
         excelFunctions={wizardryFunctions}
         knowledgeDocuments={knowledgeDocuments}
+        dataSources={dataSources}
         onSave={handleSaveWorkflow}
         isLoading={isWorkflowLoading}
       />

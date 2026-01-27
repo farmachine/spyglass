@@ -48,7 +48,6 @@ interface CreateToolDialogProps {
 export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction, trigger }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
   const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | "DATABASE_LOOKUP" | null>(null);
-  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [operationType, setOperationType] = useState<"create" | "update">("update");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -73,16 +72,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const queryClient = useQueryClient();
 
-  // Query for data sources (for Database Lookup tools)
-  const { data: dataSources = [] } = useQuery<any[]>({
-    queryKey: ['/api/projects', projectId, 'data-sources'],
-    enabled: !!projectId,
-  });
-
   const resetForm = () => {
     setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
-    setSelectedDataSourceId(null);
     // outputType removed - always use multiple
     setOperationType("update");
     setInputParameters([]);
@@ -125,9 +117,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         } else {
           setToolType('CODE');
         }
-        
-        // Set data source ID for DATABASE_LOOKUP tools
-        setSelectedDataSourceId(editingFunction.dataSourceId || null);
         
         // Parse the full operationType enum back to base form
         const fullOpType = editingFunction.operationType || "updateMultiple";
@@ -931,7 +920,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       name: formData.name,
       description: formData.description,
       toolType,
-      dataSourceId: toolType === 'DATABASE_LOOKUP' ? selectedDataSourceId : null,
       outputType: "multiple",
       operationType: fullOperationType,
       inputParameters,
@@ -1046,43 +1034,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
             </CardContent>
           </Card>
-
-          {/* Data Source Selector - Only for Database Lookup tools */}
-          {toolType === "DATABASE_LOOKUP" && (
-            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Data Source *</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedDataSourceId || ""} onValueChange={(value) => setSelectedDataSourceId(value)}>
-                  <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
-                    <SelectValue placeholder="Select data source" />
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                    {dataSources.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">No data sources configured. Add one in the Connect tab.</div>
-                    ) : (
-                      dataSources.map((source: any) => (
-                        <SelectItem 
-                          key={source.id} 
-                          value={source.id}
-                          className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Database className="w-4 h-4" />
-                            {source.name}
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Select the external data source to look up values from. Configure data sources in the Connect tab.
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* LLM Model Selector - Only for AI tools or Database Lookup */}
           {(toolType === "AI_ONLY" || toolType === "DATABASE_LOOKUP") && (

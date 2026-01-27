@@ -34,7 +34,8 @@ import {
   Edit2,
   Upload,
   Circle,
-  ChevronRight
+  ChevronRight,
+  Database
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -90,12 +91,21 @@ interface WorkflowValue {
   originalId?: string;
 }
 
+interface ApiDataSource {
+  id: string;
+  name: string;
+  description?: string;
+  endpointUrl: string;
+  isActive: boolean;
+}
+
 interface WorkflowBuilderProps {
   projectId: string;
   schemaFields: ProjectSchemaField[];
   collections: any[];  // Collections with properties included
   excelFunctions: ExcelWizardryFunction[];
   knowledgeDocuments: KnowledgeDocument[];
+  dataSources?: ApiDataSource[];
   onSave: (steps: WorkflowStep[]) => Promise<void>;
   isLoading?: boolean;
 }
@@ -106,6 +116,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   collections,
   excelFunctions,
   knowledgeDocuments,
+  dataSources = [],
   onSave,
   isLoading = false
 }, ref) => {
@@ -903,6 +914,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     value={value}
                     excelFunctions={excelFunctions}
                     knowledgeDocuments={knowledgeDocuments}
+                    dataSources={dataSources}
                     allSteps={steps}
                     currentValueIndex={valueIndex}
                     onUpdate={(updates) => updateValue(selectedStepId, value.id, updates)}
@@ -965,6 +977,7 @@ interface ValueCardProps {
   value: WorkflowValue;
   excelFunctions: ExcelWizardryFunction[];
   knowledgeDocuments: KnowledgeDocument[];
+  dataSources: ApiDataSource[];
   allSteps: WorkflowStep[];
   currentValueIndex: number;
   onUpdate: (updates: Partial<WorkflowValue>) => void;
@@ -979,6 +992,7 @@ function ValueCard({
   value,
   excelFunctions,
   knowledgeDocuments,
+  dataSources,
   allSteps,
   currentValueIndex,
   onUpdate,
@@ -1329,6 +1343,44 @@ function ValueCard({
                 </p>
               )}
             </div>
+
+            {/* Data Source Selector for DATABASE_LOOKUP tools */}
+            {selectedTool?.toolType === "DATABASE_LOOKUP" && (
+              <div>
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Data Source *</Label>
+                <Select 
+                  value={(value.inputValues as Record<string, any>)?._dataSourceId || ''} 
+                  onValueChange={(v) => onUpdate({ 
+                    inputValues: { 
+                      ...(value.inputValues as Record<string, any> || {}), 
+                      _dataSourceId: v 
+                    } 
+                  })}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select data source..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataSources.filter(ds => ds.isActive).map((ds) => (
+                      <SelectItem key={ds.id} value={ds.id}>
+                        <div className="flex items-center gap-2">
+                          <Database className="h-3 w-3 text-green-500" />
+                          <span>{ds.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {dataSources.filter(ds => ds.isActive).length === 0 && (
+                      <div className="px-2 py-2 text-xs text-gray-500">
+                        No data sources configured. Add one in the Connect tab.
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Select the external data source to look up values from.
+                </p>
+              </div>
+            )}
 
             {/* Tool Parameters */}
             {selectedTool && inputParameters.length > 0 && (

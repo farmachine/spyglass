@@ -1582,18 +1582,21 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
   ): Promise<ToolResult[]> {
     console.log(`\n🔍 DATABASE LOOKUP TOOL HANDLER - testDatabaseLookupTool() called`);
     console.log(`   Tool: ${tool.name}`);
-    console.log(`   Data Source ID: ${tool.dataSourceId}`);
     console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
+    
+    // Get dataSourceId from step value inputValues (passed as _dataSourceId)
+    const dataSourceId = inputs._dataSourceId || tool.dataSourceId;
+    console.log(`   Data Source ID: ${dataSourceId}`);
     
     try {
       // 1. Get the data source configuration
-      if (!tool.dataSourceId) {
-        throw new Error('Database Lookup tool requires a dataSourceId');
+      if (!dataSourceId) {
+        throw new Error('Database Lookup tool requires a data source to be configured. Please select a data source in the step value configuration.');
       }
       
-      const dataSource = await storage.getApiDataSource(tool.dataSourceId);
+      const dataSource = await storage.getApiDataSource(dataSourceId);
       if (!dataSource) {
-        throw new Error(`Data source not found: ${tool.dataSourceId}`);
+        throw new Error(`Data source not found: ${dataSourceId}`);
       }
       
       console.log(`📂 Data source found: ${dataSource.name}`);
