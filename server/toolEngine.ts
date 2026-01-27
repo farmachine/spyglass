@@ -1857,36 +1857,50 @@ If no meaningful filter can be applied, return:
       // PASS 2: Fuzzy matching on filtered data
       console.log('🔍 PASS 2: Performing fuzzy matching lookup...');
       
+      // Build a sample of the first few database records for better AI understanding
+      const sampleDbRecords = limitedData.slice(0, 3);
+      console.log('📊 Sample database records for AI context:', JSON.stringify(sampleDbRecords, null, 2));
+      
       const systemPrompt = `You are a database lookup assistant that performs intelligent fuzzy matching between input records and a reference database.
 
-REFERENCE DATABASE:
+REFERENCE DATABASE SCHEMA:
 - Total records in source: ${dataSourceData.length}
 - Records after filtering: ${filteredData.length}
 - Records provided for matching: ${limitedData.length}
 - Available columns: ${columnDescriptions}
 
-DATABASE RECORDS (use these for matching):
+SAMPLE DATABASE RECORDS (showing first 3 for column understanding):
+${JSON.stringify(sampleDbRecords, null, 2)}
+
+FULL DATABASE RECORDS (use these for matching):
 ${JSON.stringify(limitedData, null, 2)}
 
-USER INSTRUCTIONS:
+USER LOOKUP INSTRUCTIONS:
 ${aiPrompt}
 
-FUZZY MATCHING RULES:
-1. Use intelligent fuzzy matching - don't require exact matches
-2. Consider variations in spelling, abbreviations, punctuation
-3. For names: handle first/last name ordering, nicknames, initials
-4. For addresses: handle abbreviations (St./Street, Ave./Avenue, etc.)
-5. For dates: handle different formats (MM/DD/YYYY, YYYY-MM-DD, etc.)
-6. When multiple matches are possible, return the best match with highest confidence
-7. If no reasonable match exists, return null for extractedValue
+CRITICAL MATCHING GUIDANCE:
+1. ANALYZE the database columns to understand what data is available (e.g., postal codes, cities, regions, names)
+2. PARSE input data to extract matching criteria (e.g., extract postal code "2250" from address "Processieweg 1, 2250 Olen")
+3. IDENTIFY which database column(s) can be matched against (e.g., postal code column, city column, region column)
+4. For addresses: extract postal codes and cities to match against location columns
+5. Use fuzzy matching for spelling variations, abbreviations, and partial matches
+6. When multiple database records could match, choose the BEST match based on all available criteria
 
-OUTPUT FORMAT:
-Return results as a JSON array. Each result must have:
-- extractedValue: The matched value from the database (or null if no match)
-- validationStatus: "valid" if confident match, "invalid" if uncertain/no match
-- aiReasoning: Explain the matching logic used
-- confidenceScore: 0-100 confidence in the match
-- documentSource: Reference to matched database record`;
+WHAT TO RETURN AS extractedValue:
+- Return the PRIMARY IDENTIFIER or NAME from the matched database record
+- This is usually the first column or a column named like "name", "id", "code", "title", etc.
+- Look at the database columns and return the value that best identifies the matched record
+
+OUTPUT FORMAT (JSON array with one result per input record):
+[
+  {
+    "extractedValue": "The primary identifier/name from the matched database record (or null if no match)",
+    "validationStatus": "valid" for confident match, "invalid" if uncertain/no match,
+    "aiReasoning": "Explain HOW you matched (e.g., 'Matched postal code 2250 to Olen region')",
+    "confidenceScore": 0-100,
+    "documentSource": "Which database record was matched"
+  }
+]`;
 
       // Prepare the user message with input records
       let userMessage: string;
