@@ -1880,23 +1880,22 @@ OUTPUT: JSON array with one result per input item (in same order):
       const limitedData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
       console.log(`📊 Using direct matching with ${limitedData.length} records`);
       
-      // PASS 2: Fuzzy matching on filtered data
+      // PASS 2: Fuzzy matching on filtered data (for small datasets without per-item processing)
       console.log('🔍 PASS 2: Performing fuzzy matching lookup...');
       
       // Build a sample of the first few database records for better AI understanding
-      const sampleDbRecords = limitedData.slice(0, 3);
-      console.log('📊 Sample database records for AI context:', JSON.stringify(sampleDbRecords, null, 2));
+      const sampleRecords = limitedData.slice(0, 3);
+      console.log('📊 Sample database records for AI context:', JSON.stringify(sampleRecords, null, 2));
       
       const systemPrompt = `You are a database lookup assistant that performs intelligent fuzzy matching between input records and a reference database.
 
 REFERENCE DATABASE SCHEMA:
 - Total records in source: ${dataSourceData.length}
-- Records after filtering: ${filteredData.length}
 - Records provided for matching: ${limitedData.length}
 - Available columns: ${columnDescriptions}
 
 SAMPLE DATABASE RECORDS (showing first 3 for column understanding):
-${JSON.stringify(sampleDbRecords, null, 2)}
+${JSON.stringify(sampleRecords, null, 2)}
 
 FULL DATABASE RECORDS (use these for matching):
 ${JSON.stringify(limitedData, null, 2)}
