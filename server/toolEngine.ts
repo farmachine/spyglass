@@ -1797,86 +1797,44 @@ OUTPUT FORMAT (JSON):
         
         let filteredData = dataSourceData;
         
-        // DIRECT PRE-FILTERING: Extract all text values from input and match against database
-        // This is more reliable than AI-generated filters for address matching
-        const inputTextValues: string[] = [];
-        inputArray.forEach((item: any) => {
-          Object.values(item).forEach((val: any) => {
-            if (typeof val === 'string' && val.length > 2 && val.length < 200) {
-              // Extract potential street names and cities from address strings
-              const parts = val.split(/[,\s]+/).filter((p: string) => p.length > 2);
-              inputTextValues.push(...parts.map((p: string) => p.toLowerCase()));
-            }
-          });
-        });
-        const uniqueInputValues = [...new Set(inputTextValues)];
-        console.log(`   📍 Extracted ${uniqueInputValues.length} unique text values from input for pre-filtering`);
-        
-        // Pre-filter: Find records where ANY column contains ANY input value
-        const preFilteredData = dataSourceData.filter((record: any) => {
-          return dataSourceColumns.some(col => {
-            const val = record[col];
-            if (val === undefined || val === null) return false;
-            const strVal = String(val).toLowerCase();
-            // Check if any input value matches this column
-            return uniqueInputValues.some(inputVal => 
-              strVal.includes(inputVal) || inputVal.includes(strVal)
-            );
-          });
-        });
-        console.log(`   📊 Pre-filter: ${dataSourceData.length} → ${preFilteredData.length} records`);
-        
-        // If pre-filter is too broad or too narrow, try AI-based filtering as well
-        if (preFilteredData.length > 0 && preFilteredData.length < dataSourceData.length * 0.5) {
-          // Pre-filter worked well, use it
-          filteredData = preFilteredData;
-        } else {
-          // Fall back to AI-based filtering
-          console.log(`   📍 Pre-filter result not optimal, trying AI-based filtering...`);
+        try {
+          const filterResult = await filterModel.generateContent(filterPrompt);
+          const filterResponse = JSON.parse(filterResult.response.text());
           
-          try {
-            const filterResult = await filterModel.generateContent(filterPrompt);
-            const filterResponse = JSON.parse(filterResult.response.text());
-            
-            console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 200) || 'Generated'}`);
-            if (filterResponse.columnMapping) {
-              console.log(`   📍 Column mapping: ${JSON.stringify(filterResponse.columnMapping)}`);
-            }
-            if (filterResponse.filters?.length) {
-              console.log(`   📍 Generated ${filterResponse.filters.length} filters`);
-            }
-            
-            if (filterResponse.filters && filterResponse.filters.length > 0) {
-              // Apply filters with OR logic (any filter matches)
-              filteredData = dataSourceData.filter((record: any) => {
-                return filterResponse.filters.some((filter: any) => {
-                  if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
-                  const value = record[filter.column];
-                  if (value === undefined || value === null) return false;
-                  
-                  const strValue = String(value).toLowerCase();
-                  
-                  // Handle "in" operator with values array
-                  if ((filter.operator === 'in' || filter.values) && Array.isArray(filter.values)) {
-                    return filter.values.some((v: string) => {
-                      const searchVal = String(v).toLowerCase();
-                      return strValue.includes(searchVal) || searchVal.includes(strValue);
-                    });
-                  } else if (filter.value) {
-                    const filterVal = String(filter.value).toLowerCase();
-                    return strValue.includes(filterVal) || filterVal.includes(strValue);
-                  }
-                  return false;
-                });
-              });
-              
-              console.log(`   📊 AI Filtered: ${dataSourceData.length} → ${filteredData.length} candidate records`);
-            }
-          } catch (aiFilterError) {
-            console.log(`   ⚠️ AI filter failed, using pre-filtered data`);
-            filteredData = preFilteredData.length > 0 ? preFilteredData : dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
+          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 200) || 'Generated'}`);
+          if (filterResponse.columnMapping) {
+            console.log(`   📍 Column mapping: ${JSON.stringify(filterResponse.columnMapping)}`);
           }
-        }
+          if (filterResponse.filters?.length) {
+            console.log(`   📍 Generated ${filterResponse.filters.length} filters`);
+          }
+          
+          if (filterResponse.filters && filterResponse.filters.length > 0) {
+            // Apply filters with OR logic (any filter matches)
+            filteredData = dataSourceData.filter((record: any) => {
+              return filterResponse.filters.some((filter: any) => {
+                if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
+                const value = record[filter.column];
+                if (value === undefined || value === null) return false;
+                
+                const strValue = String(value).toLowerCase();
+                
+                // Handle "in" operator with values array
+                if ((filter.operator === 'in' || filter.values) && Array.isArray(filter.values)) {
+                  return filter.values.some((v: string) => {
+                    const searchVal = String(v).toLowerCase();
+                    return strValue.includes(searchVal) || searchVal.includes(strValue);
+                  });
+                } else if (filter.value) {
+                  const filterVal = String(filter.value).toLowerCase();
+                  return strValue.includes(filterVal) || filterVal.includes(strValue);
+                }
+                return false;
+              });
+            });
+            
+            console.log(`   📊 Filtered: ${dataSourceData.length} → ${filteredData.length} candidate records`);
+          }
           
           // Fallback if filter is too restrictive
           if (filteredData.length === 0) {
