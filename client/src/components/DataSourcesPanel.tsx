@@ -196,54 +196,91 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     }
 
     if (typeof parsedData === "object" && parsedData !== null) {
-      const entries = Object.entries(parsedData);
-      const arrayEntries = entries.filter(([, v]) => Array.isArray(v) && (v as any[]).length > 0);
-      const simpleEntries = entries.filter(([, v]) => !Array.isArray(v) || (v as any[]).length === 0);
-
-      if (arrayEntries.length === 1 && simpleEntries.filter(([, v]) => v !== null && v !== undefined).length <= 3) {
-        const [key, value] = arrayEntries[0];
+      const allEntries = Object.entries(parsedData);
+      
+      // Find the main data array - prioritize common names, then largest array
+      const commonDataKeys = ["entries", "data", "items", "results", "records", "rows", "list"];
+      const arrayEntries = allEntries.filter(([, v]) => Array.isArray(v) && (v as any[]).length > 0);
+      
+      let mainDataEntry: [string, any] | null = null;
+      
+      // First check for common data array names
+      for (const key of commonDataKeys) {
+        const found = arrayEntries.find(([k]) => k.toLowerCase() === key);
+        if (found) {
+          mainDataEntry = found;
+          break;
+        }
+      }
+      
+      // If no common name found, use the largest array
+      if (!mainDataEntry && arrayEntries.length > 0) {
+        mainDataEntry = arrayEntries.reduce((a, b) => 
+          (a[1] as any[]).length >= (b[1] as any[]).length ? a : b
+        );
+      }
+      
+      // Collect metadata (everything that's not the main data array)
+      const metadataEntries = allEntries.filter(([k]) => k !== mainDataEntry?.[0]);
+      
+      // Flatten nested metadata objects for display
+      const flattenMetadata = (entries: [string, any][]): { key: string; value: string }[] => {
+        const result: { key: string; value: string }[] = [];
+        for (const [key, value] of entries) {
+          if (value === null || value === undefined) continue;
+          if (typeof value === "object" && !Array.isArray(value)) {
+            // Flatten nested object
+            for (const [nestedKey, nestedValue] of Object.entries(value)) {
+              if (nestedValue !== null && nestedValue !== undefined && !Array.isArray(nestedValue)) {
+                result.push({ key: `${key}.${nestedKey}`, value: formatCellValue(nestedValue) });
+              }
+            }
+          } else if (!Array.isArray(value)) {
+            result.push({ key, value: formatCellValue(value) });
+          }
+        }
+        return result;
+      };
+      
+      if (mainDataEntry) {
+        const [dataKey, dataValue] = mainDataEntry;
+        const metadata = flattenMetadata(metadataEntries);
+        
         return (
           <div className="space-y-3">
-            {simpleEntries.length > 0 && simpleEntries.some(([, v]) => v !== null) && (
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                {simpleEntries.filter(([, v]) => v !== null && v !== undefined).map(([k, v]) => (
-                  <span key={k}>
-                    <span className="font-medium">{formatColumnHeader(k)}:</span>{" "}
-                    {formatCellValue(v)}
+            {metadata.length > 0 && (
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400 pb-2 border-b">
+                {metadata.map(({ key, value }) => (
+                  <span key={key}>
+                    <span className="font-medium">{formatColumnHeader(key)}:</span> {value}
                   </span>
                 ))}
               </div>
             )}
             <div>
               <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-                {formatColumnHeader(key)} ({(value as any[]).length} records)
+                {formatColumnHeader(dataKey)} ({(dataValue as any[]).length} records)
               </h4>
-              {renderJsonTable(value)}
+              {renderJsonTable(dataValue)}
             </div>
           </div>
         );
       }
-
-      return (
-        <div className="space-y-4">
-          {simpleEntries.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {simpleEntries.map(([key, value]) => (
-                <div key={key} className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                  <span className="font-medium text-sm text-gray-600 dark:text-gray-400">{formatColumnHeader(key)}</span>
-                  <div className="text-sm mt-1">{formatCellValue(value)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {arrayEntries.map(([key, value]) => (
-            <div key={key}>
-              <h4 className="font-medium mb-2">{formatColumnHeader(key)} ({(value as any[]).length} items)</h4>
-              {renderJsonTable(value)}
-            </div>
-          ))}
-        </div>
-      );
+      
+      // No main array found, show as key-value pairs
+      const metadata = flattenMetadata(allEntries);
+      if (metadata.length > 0) {
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {metadata.map(({ key, value }) => (
+              <div key={key} className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                <span className="font-medium text-sm text-gray-600 dark:text-gray-400">{formatColumnHeader(key)}</span>
+                <div className="text-sm mt-1">{value}</div>
+              </div>
+            ))}
+          </div>
+        );
+      }
     }
 
     return <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm overflow-auto">{JSON.stringify(parsedData, null, 2)}</pre>;
