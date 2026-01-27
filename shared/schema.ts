@@ -355,7 +355,8 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   description: text("description").notNull(),
   functionCode: text("function_code"), // Python function code for CODE tools
   aiPrompt: text("ai_prompt"), // AI prompt for AI_ONLY tools
-  toolType: text("tool_type", { enum: ["AI_ONLY", "CODE"] }).notNull().default("CODE"), // Type of tool
+  toolType: text("tool_type", { enum: ["AI_ONLY", "CODE", "DATABASE_LOOKUP"] }).notNull().default("CODE"), // Type of tool
+  dataSourceId: uuid("data_source_id").references(() => apiDataSources.id, { onDelete: "set null" }), // Data source for DATABASE_LOOKUP tools
   outputType: text("output_type", { enum: ["single", "multiple"] }).notNull().default("single"), // Whether function creates single value or multiple records
   operationType: text("operation_type", { enum: ["createSingle", "updateSingle", "createMultiple", "updateMultiple"] }).notNull().default("updateSingle"), // Combined operation and output type
   inputParameters: jsonb("input_parameters").notNull(), // Array of input parameter definitions { name, type, description }

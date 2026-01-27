@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code, Info as InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -47,7 +47,8 @@ interface CreateToolDialogProps {
 
 export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction, trigger }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
-  const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | null>(null);
+  const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | "DATABASE_LOOKUP" | null>(null);
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string | null>(null);
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [operationType, setOperationType] = useState<"create" | "update">("update");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -72,10 +73,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const queryClient = useQueryClient();
 
+  // Query for data sources (for Database Lookup tools)
+  const { data: dataSources = [] } = useQuery<any[]>({
+    queryKey: ['/api/projects', projectId, 'data-sources'],
+    enabled: !!projectId,
+  });
 
   const resetForm = () => {
     setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
+    setSelectedDataSourceId(null);
     // outputType removed - always use multiple
     setOperationType("update");
     setInputParameters([]);
@@ -111,7 +118,16 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           aiPrompt: editingFunction.aiPrompt || "",
           llmModel: editingFunction.llmModel || "gemini-2.0-flash"
         });
-        setToolType(editingFunction.toolType === 'AI_ONLY' ? 'AI_ONLY' : 'CODE');
+        // Set tool type properly for all three options
+        const tt = editingFunction.toolType;
+        if (tt === 'AI_ONLY' || tt === 'CODE' || tt === 'DATABASE_LOOKUP') {
+          setToolType(tt);
+        } else {
+          setToolType('CODE');
+        }
+        
+        // Set data source ID for DATABASE_LOOKUP tools
+        setSelectedDataSourceId(editingFunction.dataSourceId || null);
         
         // Parse the full operationType enum back to base form
         const fullOpType = editingFunction.operationType || "updateMultiple";
@@ -162,8 +178,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           name: data.name,
           description: data.description,
           functionCode: data.toolType === 'CODE' ? (data.functionCode || editingFunction.functionCode) : null,
-          aiPrompt: data.toolType === 'AI_ONLY' ? (data.aiPrompt || editingFunction.aiPrompt) : null,
+          aiPrompt: (data.toolType === 'AI_ONLY' || data.toolType === 'DATABASE_LOOKUP') ? (data.aiPrompt || editingFunction.aiPrompt) : null,
           toolType: data.toolType,
+          dataSourceId: data.toolType === 'DATABASE_LOOKUP' ? data.dataSourceId : null,
           outputType: "multiple",
           operationType: data.operationType,
           inputParameters: data.inputParameters,
@@ -914,13 +931,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       name: formData.name,
       description: formData.description,
       toolType,
+      dataSourceId: toolType === 'DATABASE_LOOKUP' ? selectedDataSourceId : null,
       outputType: "multiple",
       operationType: fullOperationType,
       inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
       // Include the actual content based on tool type
-      aiPrompt: toolType === 'AI_ONLY' ? formData.aiPrompt : null,
+      aiPrompt: (toolType === 'AI_ONLY' || toolType === 'DATABASE_LOOKUP') ? formData.aiPrompt : null,
       functionCode: toolType === 'CODE' ? formData.functionCode : null,
       llmModel: formData.llmModel || "gemini-2.0-flash",
       // Add required schema fields
@@ -1007,18 +1025,21 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE") => setToolType(value)}>
+              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP") => setToolType(value)}>
                 <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                   <SelectItem value="AI_ONLY" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">AI</SelectItem>
                   <SelectItem value="CODE" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Code</SelectItem>
+                  <SelectItem value="DATABASE_LOOKUP" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Database Lookup</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {toolType === "CODE"
                   ? "Data is processed using a coded function"
+                  : toolType === "DATABASE_LOOKUP"
+                  ? "Data is looked up from an external data source with AI-powered matching"
                   : "Data is processed using AI"
                 }
               </p>
@@ -1026,8 +1047,45 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </CardContent>
           </Card>
 
-          {/* LLM Model Selector - Only for AI tools */}
-          {toolType === "AI_ONLY" && (
+          {/* Data Source Selector - Only for Database Lookup tools */}
+          {toolType === "DATABASE_LOOKUP" && (
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Data Source *</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedDataSourceId || ""} onValueChange={(value) => setSelectedDataSourceId(value)}>
+                  <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+                    <SelectValue placeholder="Select data source" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                    {dataSources.length === 0 ? (
+                      <div className="p-2 text-sm text-gray-500">No data sources configured. Add one in the Connect tab.</div>
+                    ) : (
+                      dataSources.map((source: any) => (
+                        <SelectItem 
+                          key={source.id} 
+                          value={source.id}
+                          className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4" />
+                            {source.name}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Select the external data source to look up values from. Configure data sources in the Connect tab.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* LLM Model Selector - Only for AI tools or Database Lookup */}
+          {(toolType === "AI_ONLY" || toolType === "DATABASE_LOOKUP") && (
             <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-gray-800 dark:text-gray-100">AI Model</CardTitle>
