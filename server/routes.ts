@@ -2060,13 +2060,23 @@ except Exception as e:
       
       console.log(`Fetching data from: ${url}`);
       
-      // Helper to extract data array from response
+      // Helper to extract data array from response (handles nested structures like data.entries)
       const extractDataArray = (data: any): any[] => {
         if (Array.isArray(data)) return data;
         if (typeof data === 'object' && data !== null) {
           const commonKeys = ['data', 'entries', 'items', 'results', 'records', 'rows'];
+          // First level check
           for (const key of commonKeys) {
             if (data[key] && Array.isArray(data[key])) return data[key];
+          }
+          // Check nested: data.entries, data.items, etc (BRYTER uses data.entries)
+          if (data.data && typeof data.data === 'object') {
+            for (const key of commonKeys) {
+              if (data.data[key] && Array.isArray(data.data[key])) {
+                console.log(`   ✅ Extracting from nested path: data.${key}`);
+                return data.data[key];
+              }
+            }
           }
         }
         return [];
