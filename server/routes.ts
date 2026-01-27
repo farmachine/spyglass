@@ -2083,14 +2083,14 @@ except Exception as e:
       while (pageCount < MAX_PAGES) {
         pageCount++;
         
-        // Build URL with BRYTER pagination params
-        const pageUrl = new URL(url);
-        pageUrl.searchParams.set('page', String(pageCount));
-        pageUrl.searchParams.set('entriesPerPage', String(ENTRIES_PER_PAGE));
+        // Build URL with BRYTER pagination params - use base endpoint directly
+        const baseUrl = dataSource.endpointUrl;
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const fetchUrl = `${baseUrl}${separator}page=${pageCount}&entriesPerPage=${ENTRIES_PER_PAGE}`;
         
-        console.log(`   📄 Fetching page ${pageCount}: ${pageUrl.toString()}`);
+        console.log(`   📄 Fetching page ${pageCount}: ${fetchUrl}`);
         
-        const response = await fetch(pageUrl.toString(), {
+        const response = await fetch(fetchUrl, {
           method: 'GET',
           headers: fetchHeaders
         });
