@@ -2072,23 +2072,21 @@ except Exception as e:
         return [];
       };
       
-      // Fetch with pagination support
+      // Fetch with pagination support - BRYTER API style
       let allData: any[] = [];
-      let currentUrl = url;
       let pageCount = 0;
-      const MAX_PAGES = 500; // Safety limit to prevent infinite loops
-      const PAGE_SIZE = 100; // Records per page
+      const MAX_PAGES = 3; // Fetch up to 3 pages
+      const ENTRIES_PER_PAGE = 10000; // Max entries per page for BRYTER
       
-      console.log(`🔄 Starting paginated fetch from data source...`);
+      console.log(`🔄 Starting paginated fetch from data source (max ${MAX_PAGES} pages, ${ENTRIES_PER_PAGE} entries/page)...`);
       
-      while (currentUrl && pageCount < MAX_PAGES) {
+      while (pageCount < MAX_PAGES) {
         pageCount++;
         
-        // Add page_size parameter if not already present
-        const pageUrl = new URL(currentUrl);
-        if (!pageUrl.searchParams.has('page_size') && !pageUrl.searchParams.has('limit')) {
-          pageUrl.searchParams.set('page_size', String(PAGE_SIZE));
-        }
+        // Build URL with BRYTER pagination params
+        const pageUrl = new URL(url);
+        pageUrl.searchParams.set('page', String(pageCount));
+        pageUrl.searchParams.set('entriesPerPage', String(ENTRIES_PER_PAGE));
         
         console.log(`   📄 Fetching page ${pageCount}: ${pageUrl.toString()}`);
         
@@ -2122,38 +2120,9 @@ except Exception as e:
         
         allData = allData.concat(pageRecords);
         
-        // Check for next page link in various formats
-        let nextUrl = null;
-        
-        // Check response body for pagination info
-        if (pageData.next) nextUrl = pageData.next;
-        else if (pageData.links?.next) nextUrl = pageData.links.next;
-        else if (pageData.pagination?.next_url) nextUrl = pageData.pagination.next_url;
-        else if (pageData._links?.next?.href) nextUrl = pageData._links.next.href;
-        
-        // Check Link header for next page
-        const linkHeader = response.headers.get('Link');
-        if (linkHeader && !nextUrl) {
-          const nextMatch = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
-          if (nextMatch) nextUrl = nextMatch[1];
-        }
-        
-        // If no next link found but we got a full page, try incrementing page number
-        if (!nextUrl && pageRecords.length >= PAGE_SIZE) {
-          const testUrl = new URL(currentUrl);
-          const currentPage = parseInt(testUrl.searchParams.get('page') || '1');
-          testUrl.searchParams.set('page', String(currentPage + 1));
-          testUrl.searchParams.set('page_size', String(PAGE_SIZE));
-          currentUrl = testUrl.toString();
-        } else if (nextUrl) {
-          // Handle relative URLs
-          if (nextUrl.startsWith('/')) {
-            const baseUrl = new URL(currentUrl);
-            nextUrl = `${baseUrl.protocol}//${baseUrl.host}${nextUrl}`;
-          }
-          currentUrl = nextUrl;
-        } else {
-          // No more pages
+        // If we got fewer records than requested, we've reached the end
+        if (pageRecords.length < ENTRIES_PER_PAGE) {
+          console.log(`   ✅ Last page reached (${pageRecords.length} < ${ENTRIES_PER_PAGE})`);
           break;
         }
       }
