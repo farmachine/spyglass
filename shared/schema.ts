@@ -425,6 +425,7 @@ export const apiDataSources = pgTable("api_data_sources", {
   lastFetchStatus: text("last_fetch_status"), // "success" | "error"
   lastFetchError: text("last_fetch_error"),
   cachedData: jsonb("cached_data"), // Cached response data
+  columnMappings: jsonb("column_mappings"), // User-defined column name mappings {originalName: displayName}
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -1984,6 +1984,37 @@ except Exception as e:
     }
   });
 
+  // Update column mappings for a data source
+  app.patch("/api/data-sources/:id/column-mappings", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      
+      const existing = await storage.getApiDataSource(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      if (!await verifyProjectAccess(existing.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Validate column mappings - should be Record<string, string>
+      const columnMappingsSchema = z.record(z.string(), z.string().max(200));
+      const result = columnMappingsSchema.safeParse(req.body.columnMappings);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid column mappings", errors: result.error.errors });
+      }
+      
+      const updated = await storage.updateApiDataSource(id, { 
+        columnMappings: result.data 
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating column mappings:", error);
+      res.status(500).json({ message: "Failed to update column mappings" });
+    }
+  });
+
   // Fetch data from API data source
   app.post("/api/data-sources/:id/fetch", authenticateToken, async (req: AuthRequest, res) => {
     try {

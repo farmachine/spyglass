@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X } from "lucide-react";
 import type { ApiDataSource } from "@shared/schema";
 
 interface DataSourcesPanelProps {
@@ -24,6 +24,8 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [showToken, setShowToken] = useState(false);
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
   const [fetchedData, setFetchedData] = useState<Record<string, any>>({});
+  const [editingColumn, setEditingColumn] = useState<{ sourceId: string; column: string } | null>(null);
+  const [editingColumnName, setEditingColumnName] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -88,6 +90,37 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     }
   });
 
+  const updateColumnMappingsMutation = useMutation({
+    mutationFn: async ({ sourceId, columnMappings }: { sourceId: string; columnMappings: Record<string, string> }) => {
+      return apiRequest(`/api/data-sources/${sourceId}/column-mappings`, {
+        method: "PATCH",
+        body: JSON.stringify({ columnMappings })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "data-sources"] });
+      setEditingColumn(null);
+      toast({ title: "Column renamed", description: "Column mapping saved successfully." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save column mapping", variant: "destructive" });
+    }
+  });
+
+  const handleColumnRename = (source: ApiDataSource, originalColumn: string, newName: string) => {
+    const currentMappings = (source.columnMappings as Record<string, string>) || {};
+    const updatedMappings = { ...currentMappings, [originalColumn]: newName };
+    if (!newName.trim() || newName === originalColumn) {
+      delete updatedMappings[originalColumn];
+    }
+    updateColumnMappingsMutation.mutate({ sourceId: source.id, columnMappings: updatedMappings });
+  };
+
+  const getDisplayColumnName = (source: ApiDataSource, originalColumn: string): string => {
+    const mappings = (source.columnMappings as Record<string, string>) || {};
+    return mappings[originalColumn] || originalColumn;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(formData);
@@ -136,7 +169,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     return result;
   };
 
-  const renderArrayAsTable = (arr: any[]): JSX.Element => {
+  const renderArrayAsTable = (arr: any[], source?: ApiDataSource): JSX.Element => {
     if (arr.length === 0) return <p className="text-gray-500">Empty array</p>;
     
     const firstItem = arr[0];
@@ -149,6 +182,69 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       });
       const columns = Array.from(allKeys);
       
+      const renderColumnHeader = (col: string) => {
+        const displayName = source ? getDisplayColumnName(source, col) : col;
+        const isEditing = editingColumn?.sourceId === source?.id && editingColumn?.column === col;
+        
+        if (isEditing && source) {
+          return (
+            <div className="flex items-center gap-1">
+              <Input
+                value={editingColumnName}
+                onChange={(e) => setEditingColumnName(e.target.value)}
+                className="h-6 w-32 text-xs"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleColumnRename(source, col, editingColumnName);
+                  } else if (e.key === 'Escape') {
+                    setEditingColumn(null);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => handleColumnRename(source, col, editingColumnName)}
+              >
+                <Check className="w-3 h-3 text-green-600" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0"
+                onClick={() => setEditingColumn(null)}
+              >
+                <X className="w-3 h-3 text-red-600" />
+              </Button>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex items-center gap-1 group">
+            <span>{displayName !== col ? displayName : formatColumnHeader(col)}</span>
+            {displayName !== col && (
+              <span className="text-xs text-gray-400">({col})</span>
+            )}
+            {source && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setEditingColumn({ sourceId: source.id, column: col });
+                  setEditingColumnName(displayName !== col ? displayName : '');
+                }}
+              >
+                <Pencil className="w-3 h-3 text-gray-400" />
+              </Button>
+            )}
+          </div>
+        );
+      };
+      
       return (
         <div className="overflow-x-auto border rounded-lg max-h-[500px] overflow-y-auto">
           <Table>
@@ -157,7 +253,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 <TableHead className="font-semibold text-gray-500 w-12">#</TableHead>
                 {columns.map((col) => (
                   <TableHead key={col} className="font-semibold whitespace-nowrap">
-                    {formatColumnHeader(col)}
+                    {renderColumnHeader(col)}
                   </TableHead>
                 ))}
               </TableRow>
@@ -238,7 +334,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     return null;
   };
 
-  const renderJsonTable = (data: any): JSX.Element => {
+  const renderJsonTable = (data: any, source?: ApiDataSource): JSX.Element => {
     if (!data) return <p className="text-gray-500">No data</p>;
 
     let parsedData = data;
@@ -270,12 +366,12 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
                 Records ({found.data.length} items)
               </h4>
-              {renderArrayAsTable(found.data)}
+              {renderArrayAsTable(found.data, source)}
             </div>
           </div>
         );
       }
-      return renderArrayAsTable(found.data);
+      return renderArrayAsTable(found.data, source);
     }
 
     if (Array.isArray(parsedData)) {
@@ -670,7 +766,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   <div className="mt-4 pt-4 border-t">
                     <h4 className="font-medium mb-3">Data Preview</h4>
                     {fetchedData[source.id] || source.cachedData ? (
-                      renderJsonTable(fetchedData[source.id] || source.cachedData)
+                      renderJsonTable(fetchedData[source.id] || source.cachedData, source)
                     ) : (
                       <p className="text-gray-500 text-sm">
                         Click "Fetch" to load data from the API.
