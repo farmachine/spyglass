@@ -331,9 +331,10 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       console.log('🎉 AI generation response:', JSON.stringify(response, null, 2));
       
       // Validate response based on tool type
-      const isValidResponse = toolType === 'AI_ONLY' 
-        ? !!response.aiPrompt  // AI tools need aiPrompt
-        : !!response.functionCode; // CODE tools need functionCode
+      // AI_ONLY and DATABASE_LOOKUP tools need aiPrompt, CODE tools need functionCode
+      const isValidResponse = toolType === 'CODE' 
+        ? !!response.functionCode  // CODE tools need functionCode
+        : !!response.aiPrompt; // AI_ONLY and DATABASE_LOOKUP tools need aiPrompt
         
       if (!isValidResponse) {
         console.error('❌ Missing required fields in AI response:', {
@@ -342,7 +343,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           hasFunctionCode: !!response.functionCode,
           response: response
         });
-        console.error(`❌ AI generation incomplete - missing ${toolType === 'AI_ONLY' ? 'aiPrompt' : 'functionCode'}`);
+        console.error(`❌ AI generation incomplete - missing ${toolType === 'CODE' ? 'functionCode' : 'aiPrompt'}`);
         setLoadingProgress(0);
         setLoadingMessage("");
         return;
@@ -1511,7 +1512,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg text-gray-800 dark:text-gray-100">
-                    {toolType === 'AI_ONLY' ? 'Tool Prompt' : 'Tool Code'}
+                    {toolType === 'CODE' ? 'Tool Code' : 'Tool Prompt'}
                   </CardTitle>
                   <Button
                     size="sm"
@@ -1539,30 +1540,37 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 'animate-spin' : ''}`} />
                     {(regenerateToolCode.isPending || generateToolCode.isPending || generateCodeClean.isPending) ? 
-                      (toolType === 'AI_ONLY' ? 'Generating Prompt' : 'Generating Code') : 
-                      (toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code')}
+                      (toolType === 'CODE' ? 'Generating Code' : 'Generating Prompt') : 
+                      (toolType === 'CODE' ? 'Generate Code' : 'Generate Prompt')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  value={toolType === 'AI_ONLY' ? (formData.aiPrompt || '') : (formData.functionCode || '')}
+                  value={toolType === 'CODE' ? (formData.functionCode || '') : (formData.aiPrompt || '')}
                   onChange={(e) => {
-                    if (toolType === 'AI_ONLY') {
-                      setFormData({ ...formData, aiPrompt: e.target.value });
-                    } else {
+                    if (toolType === 'CODE') {
                       setFormData({ ...formData, functionCode: e.target.value });
+                    } else {
+                      setFormData({ ...formData, aiPrompt: e.target.value });
                     }
                   }}
-                  placeholder={toolType === 'AI_ONLY' 
-                    ? "Enter your prompt here, or click 'Generate Prompt' to create automatically..."
-                    : "Enter your Python code here, or click 'Generate Code' to create automatically..."
+                  placeholder={toolType === 'CODE' 
+                    ? "Enter your Python code here, or click 'Generate Code' to create automatically..."
+                    : toolType === 'DATABASE_LOOKUP'
+                    ? "Enter lookup instructions here, or click 'Generate Prompt' to create automatically..."
+                    : "Enter your prompt here, or click 'Generate Prompt' to create automatically..."
                   }
                   rows={12}
                   className="font-mono text-sm"
                 />
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  You can manually enter {toolType === 'AI_ONLY' ? 'your prompt' : 'Python code'} or use the "{toolType === 'AI_ONLY' ? 'Generate Prompt' : 'Generate Code'}" button to create it automatically based on your inputs.
+                  {toolType === 'CODE' 
+                    ? 'You can manually enter Python code or use the "Generate Code" button to create it automatically based on your inputs.'
+                    : toolType === 'DATABASE_LOOKUP'
+                    ? 'You can manually enter lookup instructions or use the "Generate Prompt" button to create them automatically. These instructions guide the AI in filtering and matching records from the data source.'
+                    : 'You can manually enter your prompt or use the "Generate Prompt" button to create it automatically based on your inputs.'
+                  }
                 </p>
               </CardContent>
             </Card>

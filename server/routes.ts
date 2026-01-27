@@ -6126,11 +6126,13 @@ print(json.dumps(results))
           });
         }
       } else if (toolType === 'DATABASE_LOOKUP') {
-        if (!dataSourceId) {
-          console.error('❌ DATABASE_LOOKUP tools require dataSourceId field');
+        // DATABASE_LOOKUP tools require aiPrompt for lookup instructions
+        // dataSourceId is now configured at step value level, not at tool level
+        if (!aiPrompt) {
+          console.error('❌ DATABASE_LOOKUP tools require aiPrompt field');
           return res.status(400).json({ 
-            message: "DATABASE_LOOKUP tools must have a dataSourceId field", 
-            errors: [{ path: ['dataSourceId'], message: 'Required for DATABASE_LOOKUP tools' }]
+            message: "DATABASE_LOOKUP tools must have lookup instructions (aiPrompt)", 
+            errors: [{ path: ['aiPrompt'], message: 'Required for DATABASE_LOOKUP tools' }]
           });
         }
       }
@@ -6140,11 +6142,11 @@ print(json.dumps(results))
       const metadata = otherData.metadata || {};
       
       // First create the function to get its ID
+      // Note: dataSourceId is now configured at step value level for DATABASE_LOOKUP tools
       const toolData = {
         ...otherData,
         inputParameters: inputParameters || [],
         toolType,
-        dataSourceId: toolType === 'DATABASE_LOOKUP' ? dataSourceId : null,
         aiPrompt: (toolType === 'AI_ONLY' || toolType === 'DATABASE_LOOKUP') ? aiPrompt : null,
         functionCode: toolType === 'CODE' ? functionCode : null,
         metadata
@@ -6639,12 +6641,16 @@ print(json.dumps(results))
       console.log('='.repeat(80));
       
       // Generate tool content using unified engine with optimized parameters
+      // DATABASE_LOOKUP tools are treated as AI_ONLY for prompt generation
+      const effectiveToolType = toolType === "DATABASE_LOOKUP" ? "AI_ONLY" : toolType;
       const { content } = await toolEngine.generateToolContent({
         name,
         description: operationType && operationType.includes('update') 
           ? `${description}\n\nOPERATION TYPE: UPDATE - This tool automatically receives current step data and maintains identifierId relationships for proper data mapping.`
+          : toolType === "DATABASE_LOOKUP"
+          ? `${description}\n\nTOOL TYPE: DATABASE_LOOKUP - Generate lookup instructions for querying external data sources. The AI will use these instructions to filter and match records from the data source.`
           : description,
-        toolType: toolType as "AI_ONLY" | "CODE",
+        toolType: effectiveToolType as "AI_ONLY" | "CODE",
         operationType: operationType as "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple",
         outputType: outputType as "single" | "multiple",
         inputParameters
@@ -6677,12 +6683,13 @@ print(json.dumps(results))
       });
 
       // Create the complete function object
+      // DATABASE_LOOKUP tools use aiPrompt like AI_ONLY tools
       const functionData = {
         projectId,
         name,
         description,
         functionCode: toolType === "CODE" ? content : undefined,
-        aiPrompt: toolType === "AI_ONLY" ? content : undefined,
+        aiPrompt: (toolType === "AI_ONLY" || toolType === "DATABASE_LOOKUP") ? content : undefined,
         toolType: toolType || "CODE",
         outputType: outputType || "single",
         operationType: operationType || "updateSingle",
