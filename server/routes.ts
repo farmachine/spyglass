@@ -8862,9 +8862,15 @@ def extract_function(Column_Name, Excel_File):
       delete cleanedToolInputs.__crossStepData; // Remove internal cross-step data
       
       // Also remove the raw parameter IDs (like 0.880fzw5k308) from the inputs
+      // But preserve special fields like _dataSourceId
       if (value.inputValues) {
         for (const paramId of Object.keys(value.inputValues)) {
-          delete cleanedToolInputs[paramId];
+          // Preserve _dataSourceId for DATABASE_LOOKUP tools
+          if (paramId === '_dataSourceId') {
+            cleanedToolInputs._dataSourceId = value.inputValues[paramId];
+          } else {
+            delete cleanedToolInputs[paramId];
+          }
         }
       }
       
