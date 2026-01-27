@@ -2109,6 +2109,18 @@ except Exception as e:
         }
         
         const pageData = await response.json();
+        
+        // Debug: Log raw response structure
+        console.log(`   🔍 Raw response type: ${typeof pageData}, isArray: ${Array.isArray(pageData)}`);
+        if (typeof pageData === 'object' && !Array.isArray(pageData)) {
+          console.log(`   🔍 Response keys: ${Object.keys(pageData).join(', ')}`);
+          // Log sample of first key's value if it exists
+          const firstKey = Object.keys(pageData)[0];
+          if (firstKey && Array.isArray(pageData[firstKey])) {
+            console.log(`   🔍 ${firstKey} is array with ${pageData[firstKey].length} items`);
+          }
+        }
+        
         const pageRecords = extractDataArray(pageData);
         
         console.log(`   📊 Page ${pageCount} returned ${pageRecords.length} records`);
