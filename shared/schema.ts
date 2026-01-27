@@ -408,6 +408,27 @@ export const testDocuments = pgTable("test_documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// API Data Sources for Connect feature
+export const apiDataSources = pgTable("api_data_sources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  endpointUrl: text("endpoint_url").notNull(),
+  authType: text("auth_type", { enum: ["none", "bearer", "basic", "api_key"] }).notNull().default("bearer"),
+  authToken: text("auth_token"), // Bearer token or API key
+  authHeader: text("auth_header"), // Custom header name for API key auth
+  headers: jsonb("headers"), // Additional headers as JSON object
+  queryParams: jsonb("query_params"), // Query parameters as JSON object
+  isActive: boolean("is_active").default(true).notNull(),
+  lastFetchedAt: timestamp("last_fetched_at"),
+  lastFetchStatus: text("last_fetch_status"), // "success" | "error"
+  lastFetchError: text("last_fetch_error"),
+  cachedData: jsonb("cached_data"), // Cached response data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -537,6 +558,12 @@ export const insertSessionLinkSchema = createInsertSchema(sessionLinks).omit({
   createdAt: true,
 });
 
+export const insertApiDataSourceSchema = createInsertSchema(apiDataSources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -593,6 +620,8 @@ export type KanbanAttachment = typeof kanbanAttachments.$inferSelect;
 export type InsertKanbanAttachment = z.infer<typeof insertKanbanAttachmentSchema>;
 export type SessionLink = typeof sessionLinks.$inferSelect;
 export type InsertSessionLink = z.infer<typeof insertSessionLinkSchema>;
+export type ApiDataSource = typeof apiDataSources.$inferSelect;
+export type InsertApiDataSource = z.infer<typeof insertApiDataSourceSchema>;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual' | 'verified' | 'unverified' | 'extracted';
