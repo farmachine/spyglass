@@ -223,7 +223,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
         }
         
         return (
-          <div className="flex items-center gap-1 group">
+          <div className="flex items-center gap-1">
             <span>{displayName !== col ? displayName : formatColumnHeader(col)}</span>
             {displayName !== col && (
               <span className="text-xs text-gray-400">({col})</span>
@@ -232,13 +232,14 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-5 w-5 p-0 ml-1 hover:bg-gray-200 dark:hover:bg-gray-700"
                 onClick={() => {
                   setEditingColumn({ sourceId: source.id, column: col });
                   setEditingColumnName(displayName !== col ? displayName : '');
                 }}
+                title="Rename column"
               >
-                <Pencil className="w-3 h-3 text-gray-400" />
+                <Pencil className="w-3 h-3 text-gray-400 hover:text-gray-600" />
               </Button>
             )}
           </div>
