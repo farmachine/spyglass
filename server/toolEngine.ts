@@ -57,10 +57,11 @@ export interface Tool {
   id: string;
   name: string;
   description: string;
-  toolType: "AI_ONLY" | "CODE";
+  toolType: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP";
   inputParameters: ToolParameter[];
   functionCode?: string;
   aiPrompt?: string;
+  dataSourceId?: string; // For DATABASE_LOOKUP tools
   outputType?: "single" | "multiple";
   operationType?: "createSingle" | "updateSingle" | "createMultiple" | "updateMultiple";
   llmModel?: string;
@@ -656,6 +657,9 @@ export class ToolEngine {
     if (tool.toolType === "AI_ONLY") {
       console.log(`   ✅ Routing to AI tool handler (testAITool)`);
       return this.testAITool(tool, preparedInputs, progressCallback);
+    } else if (tool.toolType === "DATABASE_LOOKUP") {
+      console.log(`   🔍 Routing to Database Lookup handler (testDatabaseLookupTool)`);
+      return this.testDatabaseLookupTool(tool, preparedInputs, progressCallback);
     } else {
       console.log(`   📦 Routing to CODE tool handler (testCodeTool)`);
       return this.testCodeTool(tool, preparedInputs);
@@ -1533,6 +1537,324 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         documentSource: ""
       };
     });
+  }
+
+  /**
+   * SSRF protection helper - validate URL is safe to fetch
+   */
+  private isUrlSafeForFetch(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      if (!['https:', 'http:'].includes(parsed.protocol)) {
+        return false;
+      }
+      const hostname = parsed.hostname.toLowerCase();
+      const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', '[::]'];
+      if (blockedHosts.includes(hostname)) {
+        return false;
+      }
+      if (hostname.startsWith('fe80:') || hostname.startsWith('[fe80:') ||
+          hostname.startsWith('fc') || hostname.startsWith('[fc') ||
+          hostname.startsWith('fd') || hostname.startsWith('[fd')) {
+        return false;
+      }
+      const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+      if (ipv4Match) {
+        const [, a, b, c, d] = ipv4Match.map(Number);
+        if (a === 10 || (a === 172 && b >= 16 && b <= 31) || 
+            (a === 192 && b === 168) || (a === 169 && b === 254) || a === 127) {
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Test database lookup tool - AI-orchestrated data source queries with fuzzy matching
+   */
+  private async testDatabaseLookupTool(
+    tool: Tool, 
+    inputs: Record<string, any>,
+    progressCallback?: (current: number, total: number, message?: string) => void
+  ): Promise<ToolResult[]> {
+    console.log(`\n🔍 DATABASE LOOKUP TOOL HANDLER - testDatabaseLookupTool() called`);
+    console.log(`   Tool: ${tool.name}`);
+    console.log(`   Data Source ID: ${tool.dataSourceId}`);
+    console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
+    
+    try {
+      // 1. Get the data source configuration
+      if (!tool.dataSourceId) {
+        throw new Error('Database Lookup tool requires a dataSourceId');
+      }
+      
+      const dataSource = await storage.getApiDataSource(tool.dataSourceId);
+      if (!dataSource) {
+        throw new Error(`Data source not found: ${tool.dataSourceId}`);
+      }
+      
+      console.log(`📂 Data source found: ${dataSource.name}`);
+      console.log(`   Endpoint: ${dataSource.endpointUrl}`);
+      
+      // 2. Fetch data from the API endpoint
+      let dataSourceData: any[] = [];
+      
+      // If we have cached data, use it; otherwise fetch fresh
+      if (dataSource.cachedData) {
+        console.log('📦 Using cached data from data source');
+        let parsedData = dataSource.cachedData;
+        if (typeof parsedData === 'string') {
+          try {
+            parsedData = JSON.parse(parsedData);
+          } catch {
+            // Not JSON, use as-is
+          }
+        }
+        
+        // Extract array from nested structure if needed
+        dataSourceData = this.extractDataArray(parsedData);
+      } else {
+        console.log('🌐 Fetching fresh data from API endpoint');
+        
+        // SSRF protection
+        if (!this.isUrlSafeForFetch(dataSource.endpointUrl)) {
+          throw new Error('Cannot fetch from blocked URL (private/internal network)');
+        }
+        
+        // Fetch from the endpoint
+        const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        
+        // Add authentication if configured - use correct field names from schema
+        if (dataSource.authType && dataSource.authType !== 'none') {
+          if (dataSource.authType === 'bearer' && dataSource.authToken) {
+            fetchHeaders['Authorization'] = `Bearer ${dataSource.authToken}`;
+          } else if (dataSource.authType === 'api_key' && dataSource.authHeader && dataSource.authToken) {
+            fetchHeaders[dataSource.authHeader] = dataSource.authToken;
+          } else if (dataSource.authType === 'basic' && dataSource.authToken) {
+            // For basic auth, authToken should be base64 encoded "username:password"
+            fetchHeaders['Authorization'] = `Basic ${dataSource.authToken}`;
+          }
+        }
+        
+        // Add any custom headers
+        if (dataSource.headers) {
+          const customHeaders = dataSource.headers as Record<string, string>;
+          Object.assign(fetchHeaders, customHeaders);
+        }
+        
+        const response = await fetch(dataSource.endpointUrl, { 
+          method: 'GET',
+          headers: fetchHeaders 
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data source: ${response.status} ${response.statusText}`);
+        }
+        
+        const responseData = await response.json();
+        dataSourceData = this.extractDataArray(responseData);
+      }
+      
+      console.log(`📊 Data source contains ${dataSourceData.length} records`);
+      
+      // 3. Limit dataset for AI prompt to avoid token limits (max 200 records for context)
+      const MAX_RECORDS_FOR_AI = 200;
+      const limitedData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
+      if (dataSourceData.length > MAX_RECORDS_FOR_AI) {
+        console.log(`⚠️ Dataset truncated from ${dataSourceData.length} to ${MAX_RECORDS_FOR_AI} for AI context`);
+      }
+      
+      // 3. Find data input array if exists (for UPDATE operations)
+      const dataInput = this.findDataInput(tool, inputs);
+      let inputArray: any[] = [];
+      
+      if (dataInput && Array.isArray(dataInput.value)) {
+        inputArray = dataInput.value.slice(0, 50); // Limit for performance
+        console.log(`🔄 Processing ${inputArray.length} input records for lookup`);
+      }
+      
+      // 4. Prepare context for AI-powered lookup
+      const columnMappings = dataSource.columnMappings || {};
+      const dataSourceColumns = dataSourceData.length > 0 ? Object.keys(dataSourceData[0]) : [];
+      
+      // Build a description of available columns
+      const columnDescriptions = dataSourceColumns.map(col => {
+        const mappedName = (columnMappings as Record<string, string>)[col];
+        return mappedName ? `${mappedName} (${col})` : col;
+      }).join(', ');
+      
+      // 5. Build AI prompt for fuzzy matching lookup
+      const aiPrompt = tool.aiPrompt || 'Look up and match records from the data source.';
+      
+      const systemPrompt = `You are a database lookup assistant that performs intelligent fuzzy matching between input records and a reference database.
+
+REFERENCE DATABASE:
+- Total records in source: ${dataSourceData.length}
+- Records provided for matching: ${limitedData.length}
+- Available columns: ${columnDescriptions}
+
+DATABASE RECORDS (use these for matching):
+${JSON.stringify(limitedData, null, 2)}
+
+${dataSourceData.length > limitedData.length ? `Note: Showing first ${limitedData.length} of ${dataSourceData.length} total records.` : ''}
+
+USER INSTRUCTIONS:
+${aiPrompt}
+
+FUZZY MATCHING RULES:
+1. Use intelligent fuzzy matching - don't require exact matches
+2. Consider variations in spelling, abbreviations, punctuation
+3. For names: handle first/last name ordering, nicknames, initials
+4. For addresses: handle abbreviations (St./Street, Ave./Avenue, etc.)
+5. For dates: handle different formats (MM/DD/YYYY, YYYY-MM-DD, etc.)
+6. When multiple matches are possible, return the best match with highest confidence
+7. If no reasonable match exists, return null for extractedValue
+
+OUTPUT FORMAT:
+Return results as a JSON array. Each result must have:
+- extractedValue: The matched value from the database (or null if no match)
+- validationStatus: "valid" if confident match, "invalid" if uncertain/no match
+- aiReasoning: Explain the matching logic used
+- confidenceScore: 0-100 confidence in the match
+- documentSource: Reference to matched database record`;
+
+      // 6. Prepare the user message with input records
+      let userMessage: string;
+      if (inputArray.length > 0) {
+        userMessage = `Please look up the following records and find matching entries in the reference database:
+
+INPUT RECORDS TO MATCH:
+${JSON.stringify(inputArray, null, 2)}
+
+For each input record, find the best matching record from the reference database and extract the requested information.
+${inputs.__infoPageFields ? `\nExtract these fields for each match: ${inputs.__infoPageFields.map((f: any) => f.name).join(', ')}` : ''}
+
+Return the results as a JSON array in the exact order of the input records.`;
+      } else {
+        userMessage = `Extract information from the reference database based on the following instructions:
+
+${Object.entries(inputs)
+  .filter(([key]) => !key.startsWith('_') && key !== 'sessionDocumentContent')
+  .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+  .join('\n')}
+
+${inputs.__infoPageFields ? `\nExtract these fields: ${inputs.__infoPageFields.map((f: any) => f.name).join(', ')}` : ''}`;
+      }
+
+      // 7. Call AI for intelligent lookup
+      console.log('🤖 Calling AI for fuzzy matching lookup...');
+      
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('Google AI API key not configured');
+      }
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: tool.llmModel || "gemini-2.0-flash",
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      });
+      
+      const result = await model.generateContent([
+        { text: systemPrompt },
+        { text: userMessage }
+      ]);
+      
+      const responseText = result.response.text();
+      console.log('📝 AI Response received');
+      
+      // 8. Parse and return results
+      let parsedResults: any[];
+      try {
+        parsedResults = JSON.parse(responseText);
+        if (!Array.isArray(parsedResults)) {
+          parsedResults = [parsedResults];
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        return [{
+          extractedValue: null,
+          validationStatus: "invalid",
+          aiReasoning: "Failed to parse AI response",
+          confidenceScore: 0,
+          documentSource: ""
+        }];
+      }
+      
+      console.log(`✅ Database lookup returned ${parsedResults.length} results`);
+      
+      // 9. Map results back to input records if needed (preserve identifierIds)
+      if (inputArray.length > 0) {
+        return parsedResults.map((r, idx) => {
+          const inputRecord = inputArray[idx];
+          return {
+            extractedValue: r.extractedValue ?? null,
+            validationStatus: r.validationStatus || (r.extractedValue ? "valid" : "invalid"),
+            aiReasoning: r.aiReasoning || "Database lookup result",
+            confidenceScore: r.confidenceScore ?? (r.extractedValue ? 85 : 0),
+            documentSource: r.documentSource || dataSource.name,
+            identifierId: inputRecord?.identifierId
+          };
+        });
+      }
+      
+      return parsedResults.map(r => ({
+        extractedValue: r.extractedValue ?? null,
+        validationStatus: r.validationStatus || (r.extractedValue ? "valid" : "invalid"),
+        aiReasoning: r.aiReasoning || "Database lookup result",
+        confidenceScore: r.confidenceScore ?? (r.extractedValue ? 85 : 0),
+        documentSource: r.documentSource || dataSource.name
+      }));
+      
+    } catch (error) {
+      console.error('Database lookup error:', error);
+      return [{
+        extractedValue: null,
+        validationStatus: "invalid",
+        aiReasoning: `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        confidenceScore: 0,
+        documentSource: ""
+      }];
+    }
+  }
+
+  /**
+   * Helper to extract data array from potentially nested API response
+   */
+  private extractDataArray(data: any): any[] {
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    if (typeof data === 'object' && data !== null) {
+      // Check common data wrapper keys
+      const commonKeys = ['data', 'entries', 'items', 'results', 'records', 'rows'];
+      
+      for (const key of commonKeys) {
+        if (Array.isArray(data[key])) {
+          return data[key];
+        }
+        // Check nested data.entries pattern
+        if (data.data && Array.isArray(data.data[key])) {
+          return data.data[key];
+        }
+      }
+      
+      // Find any array in the response
+      for (const [key, value] of Object.entries(data)) {
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+          return value;
+        }
+      }
+    }
+    
+    return [];
   }
   
   /**

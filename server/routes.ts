@@ -6105,8 +6105,8 @@ print(json.dumps(results))
     try {
       console.log('🔧 Creating new Excel function with data:', JSON.stringify(req.body, null, 2));
       
-      // Custom validation for AI_ONLY vs CODE tools
-      const { toolType, aiPrompt, functionCode, inputParameters, ...otherData } = req.body;
+      // Custom validation for AI_ONLY vs CODE vs DATABASE_LOOKUP tools
+      const { toolType, aiPrompt, functionCode, inputParameters, dataSourceId, ...otherData } = req.body;
       
       // Validate required fields based on tool type
       if (toolType === 'AI_ONLY') {
@@ -6125,6 +6125,14 @@ print(json.dumps(results))
             errors: [{ path: ['functionCode'], message: 'Required for CODE tools' }]
           });
         }
+      } else if (toolType === 'DATABASE_LOOKUP') {
+        if (!dataSourceId) {
+          console.error('❌ DATABASE_LOOKUP tools require dataSourceId field');
+          return res.status(400).json({ 
+            message: "DATABASE_LOOKUP tools must have a dataSourceId field", 
+            errors: [{ path: ['dataSourceId'], message: 'Required for DATABASE_LOOKUP tools' }]
+          });
+        }
       }
       
       // Process input parameters and extract document content if needed
@@ -6136,7 +6144,8 @@ print(json.dumps(results))
         ...otherData,
         inputParameters: inputParameters || [],
         toolType,
-        aiPrompt: toolType === 'AI_ONLY' ? aiPrompt : null,
+        dataSourceId: toolType === 'DATABASE_LOOKUP' ? dataSourceId : null,
+        aiPrompt: (toolType === 'AI_ONLY' || toolType === 'DATABASE_LOOKUP') ? aiPrompt : null,
         functionCode: toolType === 'CODE' ? functionCode : null,
         metadata
       };
