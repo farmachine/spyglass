@@ -1692,189 +1692,258 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       }
       const genAI = new GoogleGenerativeAI(apiKey);
       
-      // 5. PER-ITEM FILTERING AND MATCHING SYSTEM
-      // For large databases, process each input item individually with its own filter
-      const MAX_RECORDS_FOR_AI = 200;
+      // 5. UNIFIED TWO-PHASE FILTERING AND MATCHING SYSTEM
+      // Phase 1: Generate ONE comprehensive filter from ALL input items
+      // Phase 2: Match ALL filtered candidates to ALL input items in ONE call
+      const MAX_RECORDS_FOR_AI = 500; // Can handle more since we only do 2 AI calls
+      // Dynamic candidate cap based on input size - more items need more potential matches
+      const BASE_CANDIDATES = 500;
+      const CANDIDATES_PER_INPUT = 50;
+      const MAX_CANDIDATES_FOR_MATCHING = Math.min(
+        Math.max(BASE_CANDIDATES, inputArray.length * CANDIDATES_PER_INPUT),
+        2000 // Hard cap to avoid token limits
+      );
       const sampleDbRecords = dataSourceData.slice(0, 5);
       
       console.log('━'.repeat(80));
-      console.log('🔍 DATABASE LOOKUP - PER-ITEM PROCESSING');
+      console.log('🔍 DATABASE LOOKUP - UNIFIED TWO-PHASE PROCESSING');
       console.log('━'.repeat(80));
       console.log(`📊 Total records in data source: ${dataSourceData.length}`);
       console.log(`📊 Input items to process: ${inputArray.length}`);
-      console.log(`📊 Processing mode: ${dataSourceData.length > MAX_RECORDS_FOR_AI ? 'PER-ITEM FILTERING' : 'DIRECT MATCHING'}`);
+      console.log(`📊 Processing mode: ${dataSourceData.length > MAX_RECORDS_FOR_AI ? 'TWO-PHASE (FILTER → MATCH)' : 'DIRECT MATCHING'}`);
       
-      // If we have input items and a large database, process each item individually
+      // If we have input items and a large database, use two-phase approach
       if (inputArray.length > 0 && dataSourceData.length > MAX_RECORDS_FOR_AI) {
-        console.log('🔄 Processing each input item with individual filtering...');
+        console.log('\n📍 PHASE 1: Generating unified filter for ALL input items...');
         
-        const allResults: any[] = [];
-        
-        // Process each item individually for maximum accuracy
-        // Each item gets its own filter based on its unique address
-        const BATCH_SIZE = 1;
-        
-        for (let batchStart = 0; batchStart < inputArray.length; batchStart += BATCH_SIZE) {
-          const batchItems = inputArray.slice(batchStart, batchStart + BATCH_SIZE);
-          const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
-          const totalBatches = Math.ceil(inputArray.length / BATCH_SIZE);
-          
-          console.log(`\n📦 Processing batch ${batchNum}/${totalBatches} (items ${batchStart + 1}-${batchStart + batchItems.length})...`);
-          
-          // Generate filter for this batch of items
-          const filterPrompt = `You are a database filter assistant. Generate filter criteria to find matching records for these specific input items.
+        // PHASE 1: Generate ONE comprehensive filter from ALL input items
+        const filterPrompt = `You are a database filter assistant. Analyze ALL input items and generate comprehensive filter criteria to find ALL potential matching records.
 
 DATABASE INFO:
 - Total records: ${dataSourceData.length}
 - Available columns: ${columnDescriptions}
-- Sample records: ${JSON.stringify(sampleDbRecords, null, 2)}
+- Sample records (showing structure): ${JSON.stringify(sampleDbRecords, null, 2)}
 
 USER LOOKUP INSTRUCTIONS:
 ${aiPrompt}
 
-INPUT ITEMS TO MATCH (this batch only):
-${JSON.stringify(batchItems, null, 2)}
+ALL INPUT ITEMS TO MATCH (${inputArray.length} items):
+${JSON.stringify(inputArray, null, 2)}
 
 TASK:
-Generate filter criteria that will find potential matching records for THESE SPECIFIC INPUT ITEMS.
-- Extract key identifying info from each item (addresses, cities, postal codes, names)
-- Create filters that will match records relevant to these items
+Analyze ALL ${inputArray.length} input items and generate filter criteria that will capture ALL potential matching records.
+- Extract ALL unique cities, streets, postal codes, and other identifiers from ALL items
+- Create comprehensive filters that will match records for ANY of these items
 - Use contains/partial matching for flexibility
+- The goal is to reduce ${dataSourceData.length} records to a manageable set that contains matches for ALL input items
+
+CRITICAL: Your filters must be broad enough to capture matches for ALL ${inputArray.length} items, not just some of them.
 
 OUTPUT FORMAT (JSON):
 {
   "filters": [
     {
       "column": "column_name",
-      "operator": "contains|in",
-      "value": "value or [array of values from input items]",
+      "operator": "in",
+      "values": ["list", "of", "all", "unique", "values", "from", "all", "input", "items"],
       "caseSensitive": false
     }
   ],
-  "reasoning": "Brief explanation"
+  "extractedCriteria": {
+    "cities": ["list of all unique cities found in input"],
+    "streets": ["list of all unique streets found in input"],
+    "postalCodes": ["list of all unique postal codes found"]
+  },
+  "reasoning": "How these filters will capture matches for all input items"
 }`;
 
-          const filterModel = genAI.getGenerativeModel({ 
-            model: "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" }
-          });
+        const filterModel = genAI.getGenerativeModel({ 
+          model: "gemini-2.0-flash",
+          generationConfig: { responseMimeType: "application/json" }
+        });
+        
+        let filteredData = dataSourceData;
+        
+        try {
+          const filterResult = await filterModel.generateContent(filterPrompt);
+          const filterResponse = JSON.parse(filterResult.response.text());
           
-          let batchFilteredData = dataSourceData;
-          
-          try {
-            const filterResult = await filterModel.generateContent(filterPrompt);
-            const filterResponse = JSON.parse(filterResult.response.text());
-            
-            console.log(`   🎯 Filter: ${filterResponse.reasoning?.substring(0, 100) || 'Generated'}`);
-            
-            if (filterResponse.filters && filterResponse.filters.length > 0) {
-              // Apply filters with OR logic (any filter matches)
-              batchFilteredData = dataSourceData.filter((record: any) => {
-                return filterResponse.filters.some((filter: any) => {
-                  if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
-                  const value = record[filter.column];
-                  if (value === undefined || value === null) return false;
-                  
-                  const strValue = String(value).toLowerCase();
-                  
-                  if (filter.operator === 'in' && Array.isArray(filter.value)) {
-                    return filter.value.some((v: string) => 
-                      strValue.includes(String(v).toLowerCase()) || 
-                      String(v).toLowerCase().includes(strValue)
-                    );
-                  } else {
-                    const filterVal = String(filter.value).toLowerCase();
-                    return strValue.includes(filterVal) || filterVal.includes(strValue);
-                  }
-                });
-              });
-              
-              console.log(`   📊 Filtered: ${dataSourceData.length} → ${batchFilteredData.length} records`);
-            }
-            
-            // Fallback if filter returns too few records
-            if (batchFilteredData.length === 0) {
-              console.log(`   ⚠️ No matches, using sample of full dataset`);
-              batchFilteredData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
-            }
-          } catch (filterError) {
-            console.log(`   ⚠️ Filter failed, using sample of full dataset`);
-            batchFilteredData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
+          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 150) || 'Generated'}`);
+          if (filterResponse.extractedCriteria) {
+            const criteria = filterResponse.extractedCriteria;
+            console.log(`   📍 Extracted: ${criteria.cities?.length || 0} cities, ${criteria.streets?.length || 0} streets, ${criteria.postalCodes?.length || 0} postal codes`);
           }
           
-          // Limit filtered data for AI
-          const limitedBatchData = batchFilteredData.slice(0, MAX_RECORDS_FOR_AI);
-          
-          // Now match this batch against filtered records
-          const matchPrompt = `You are a database lookup assistant. Find the BEST matching record for each input item.
-
-REFERENCE DATABASE (${limitedBatchData.length} filtered records):
-${JSON.stringify(limitedBatchData, null, 2)}
-
-USER INSTRUCTIONS:
-${aiPrompt}
-
-INPUT ITEMS TO MATCH:
-${JSON.stringify(batchItems, null, 2)}
-
-For each input item, find the BEST matching database record. Use fuzzy matching:
-- Match addresses by street name, city, postal code
-- Handle spelling variations and abbreviations
-- If no good match exists, return null
-
-OUTPUT: JSON array with one result per input item (in same order):
-[
-  {
-    "extractedValue": "The 'id' field of the best matching record (or null if no match)",
-    "validationStatus": "valid" or "invalid",
-    "aiReasoning": "Why this record matches (e.g., 'Matched city Ham and street Processiestraat')",
-    "confidenceScore": 0-100,
-    "documentSource": "Matched record id or 'None'",
-    "identifierId": "Copy from input item"
-  }
-]`;
-
-          const matchModel = genAI.getGenerativeModel({ 
-            model: tool.llmModel || "gemini-2.0-flash",
-            generationConfig: { responseMimeType: "application/json" }
-          });
-          
-          try {
-            const matchResult = await matchModel.generateContent(matchPrompt);
-            const batchResults = JSON.parse(matchResult.response.text());
-            
-            // Ensure results have identifierIds from input
-            const processedResults = (Array.isArray(batchResults) ? batchResults : [batchResults]).map((r: any, idx: number) => ({
-              extractedValue: r.extractedValue ?? null,
-              validationStatus: r.validationStatus || (r.extractedValue ? "valid" : "invalid"),
-              aiReasoning: r.aiReasoning || "Database lookup result",
-              confidenceScore: r.confidenceScore ?? (r.extractedValue ? 85 : 0),
-              documentSource: r.documentSource || dataSource.name,
-              identifierId: batchItems[idx]?.identifierId || r.identifierId
-            }));
-            
-            const matchedCount = processedResults.filter((r: any) => r.extractedValue).length;
-            console.log(`   ✅ Matched ${matchedCount}/${batchItems.length} items`);
-            
-            allResults.push(...processedResults);
-          } catch (matchError) {
-            console.error(`   ❌ Batch matching failed:`, matchError);
-            // Add null results for failed batch
-            batchItems.forEach((item: any) => {
-              allResults.push({
-                extractedValue: null,
-                validationStatus: "invalid",
-                aiReasoning: "Matching failed",
-                confidenceScore: 0,
-                documentSource: "",
-                identifierId: item.identifierId
+          if (filterResponse.filters && filterResponse.filters.length > 0) {
+            // Apply filters with OR logic (any filter matches)
+            filteredData = dataSourceData.filter((record: any) => {
+              return filterResponse.filters.some((filter: any) => {
+                if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
+                const value = record[filter.column];
+                if (value === undefined || value === null) return false;
+                
+                const strValue = String(value).toLowerCase();
+                
+                // Handle "in" operator with values array
+                if ((filter.operator === 'in' || filter.values) && Array.isArray(filter.values)) {
+                  return filter.values.some((v: string) => {
+                    const searchVal = String(v).toLowerCase();
+                    return strValue.includes(searchVal) || searchVal.includes(strValue);
+                  });
+                } else if (filter.value) {
+                  const filterVal = String(filter.value).toLowerCase();
+                  return strValue.includes(filterVal) || filterVal.includes(strValue);
+                }
+                return false;
               });
             });
+            
+            console.log(`   📊 Filtered: ${dataSourceData.length} → ${filteredData.length} candidate records`);
           }
+          
+          // Fallback if filter is too restrictive
+          if (filteredData.length === 0) {
+            console.log(`   ⚠️ No matches with strict filter, trying broader approach...`);
+            // Try to extract just cities and do a broader search
+            if (filterResponse.extractedCriteria?.cities?.length > 0) {
+              const cities = filterResponse.extractedCriteria.cities.map((c: string) => c.toLowerCase());
+              filteredData = dataSourceData.filter((record: any) => {
+                const cityColumn = dataSourceColumns.find(col => 
+                  col.toLowerCase().includes('city') || col.toLowerCase().includes('gemeente') || col === 'c_text_0002'
+                );
+                if (cityColumn && record[cityColumn]) {
+                  const recordCity = String(record[cityColumn]).toLowerCase();
+                  return cities.some(c => recordCity.includes(c) || c.includes(recordCity));
+                }
+                return false;
+              });
+              console.log(`   📊 Broader city filter: ${filteredData.length} candidates`);
+            }
+          }
+          
+          // If still no matches, use a sample
+          if (filteredData.length === 0) {
+            console.log(`   ⚠️ Using sample of full dataset as fallback`);
+            filteredData = dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
+          }
+        } catch (filterError) {
+          console.error(`   ❌ Filter generation failed:`, filterError);
+          filteredData = dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
         }
         
-        console.log(`\n✅ Per-item processing complete: ${allResults.filter(r => r.extractedValue).length}/${inputArray.length} matched`);
-        return allResults;
+        // Limit candidates for AI matching
+        const limitedCandidates = filteredData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
+        console.log(`   ✅ Phase 1 complete: ${limitedCandidates.length} candidate records for matching`);
+        
+        // PHASE 2: Match ALL input items against ALL candidates in ONE call
+        console.log('\n📍 PHASE 2: Matching ALL input items against candidates...');
+        
+        const matchPrompt = `You are a database lookup assistant. Match EACH input item to its BEST matching record from the candidates.
+
+CANDIDATE DATABASE RECORDS (${limitedCandidates.length} pre-filtered records):
+${JSON.stringify(limitedCandidates, null, 2)}
+
+USER MATCHING INSTRUCTIONS:
+${aiPrompt}
+
+ALL INPUT ITEMS TO MATCH (${inputArray.length} items):
+${JSON.stringify(inputArray, null, 2)}
+
+TASK:
+For EACH of the ${inputArray.length} input items, find the BEST matching candidate record.
+- Match addresses by street name, city, postal code
+- Handle spelling variations and abbreviations (e.g., "straat" vs "str", different letter cases)
+- Consider partial matches when exact matches aren't available
+- If no good match exists for an item, return null for that item
+
+CRITICAL: You MUST return exactly ${inputArray.length} results, one for each input item, in the SAME ORDER as the input.
+
+OUTPUT FORMAT (JSON array with exactly ${inputArray.length} results):
+[
+  {
+    "extractedValue": "The best matching value from candidate (e.g., profit center name, id) or null if no match",
+    "validationStatus": "valid" if confident match, "invalid" if no match or uncertain,
+    "aiReasoning": "Brief explanation of match (e.g., 'Matched Ham city and Kerkeneikestraat')",
+    "confidenceScore": 0-100,
+    "documentSource": "Identifier of matched record or 'None'",
+    "identifierId": "MUST copy exactly from input item's identifierId field"
+  },
+  ... (exactly ${inputArray.length} items total)
+]`;
+
+        const matchModel = genAI.getGenerativeModel({ 
+          model: tool.llmModel || "gemini-2.0-flash",
+          generationConfig: { responseMimeType: "application/json" }
+        });
+        
+        try {
+          const matchResult = await matchModel.generateContent(matchPrompt);
+          const rawResponse = matchResult.response.text();
+          let matchResults: any[];
+          
+          try {
+            matchResults = JSON.parse(rawResponse);
+            if (!Array.isArray(matchResults)) {
+              matchResults = [matchResults];
+            }
+          } catch (parseError) {
+            console.error(`   ❌ Failed to parse AI response:`, rawResponse.substring(0, 500));
+            throw new Error('Invalid JSON response from AI');
+          }
+          
+          console.log(`   📊 AI returned ${matchResults.length} results for ${inputArray.length} inputs`);
+          
+          // Build a map of identifierIds from AI results for alignment
+          const resultsByIdentifierId = new Map<string, any>();
+          matchResults.forEach((r: any) => {
+            if (r.identifierId) {
+              resultsByIdentifierId.set(r.identifierId, r);
+            }
+          });
+          
+          // Align results: prefer identifierId matching, fallback to index order
+          const processedResults = inputArray.map((inputItem: any, idx: number) => {
+            // Try to find result by identifierId first
+            let result = resultsByIdentifierId.get(inputItem.identifierId);
+            
+            // Fallback to index-based matching if identifierId not found
+            if (!result && idx < matchResults.length) {
+              result = matchResults[idx];
+            }
+            
+            // Format the result
+            return {
+              extractedValue: result?.extractedValue ?? null,
+              validationStatus: result?.validationStatus || (result?.extractedValue ? "valid" : "invalid"),
+              aiReasoning: result?.aiReasoning || "No matching result from AI",
+              confidenceScore: result?.confidenceScore ?? (result?.extractedValue ? 85 : 0),
+              documentSource: result?.documentSource || dataSource.name,
+              identifierId: inputItem.identifierId
+            };
+          });
+          
+          const matchedCount = processedResults.filter((r: any) => r.extractedValue).length;
+          console.log(`   ✅ Phase 2 complete: ${matchedCount}/${inputArray.length} items matched`);
+          console.log('\n' + '━'.repeat(80));
+          console.log(`✅ UNIFIED TWO-PHASE PROCESSING COMPLETE`);
+          console.log(`   Total AI calls: 2 (filter + match)`);
+          console.log(`   Items processed: ${inputArray.length}`);
+          console.log(`   Successful matches: ${matchedCount}`);
+          console.log('━'.repeat(80));
+          
+          return processedResults;
+        } catch (matchError) {
+          console.error(`   ❌ Matching failed:`, matchError);
+          // Return null results for all items
+          return inputArray.map((item: any) => ({
+            extractedValue: null,
+            validationStatus: "invalid",
+            aiReasoning: "Matching failed: " + (matchError instanceof Error ? matchError.message : 'Unknown error'),
+            confidenceScore: 0,
+            documentSource: "",
+            identifierId: item.identifierId
+          }));
+        }
       }
       
       // For small databases or no input array, use original approach
