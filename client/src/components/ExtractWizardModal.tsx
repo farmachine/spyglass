@@ -399,7 +399,9 @@ export default function ExtractWizardModal({
             {/* Sections rendered purely from tool input configuration */}
             {inputValues && Object.keys(inputValues).length > 0 && (
               <div className="space-y-4">
-                {Object.entries(inputValues).map(([key, value]) => {
+                {Object.entries(inputValues)
+                  .filter(([key]) => !key.startsWith('_')) // Filter out internal config keys like _dataSourceId, _searchByColumns
+                  .map(([key, value]) => {
                   // Get parameter name from referenceFieldNames or use key as fallback
                   const parameterName = referenceFieldNames[key] || key.split('.').pop()?.replace(/_/g, ' ') || key;
                   const isArray = Array.isArray(value);
