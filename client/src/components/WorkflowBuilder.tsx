@@ -1498,6 +1498,74 @@ function ValueCard({
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Select the external data source to look up values from.
                 </p>
+                
+                {/* Search By Columns - show when data source is selected */}
+                {(value.inputValues as Record<string, any>)?._dataSourceId && (() => {
+                  const selectedDataSource = dataSources.find(
+                    ds => ds.id === (value.inputValues as Record<string, any>)?._dataSourceId
+                  ) as any;
+                  const cachedData = selectedDataSource?.cachedData;
+                  let columns: string[] = [];
+                  
+                  // Extract columns from cached data
+                  if (cachedData) {
+                    try {
+                      const parsed = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+                      const dataArray = Array.isArray(parsed) ? parsed : 
+                                        parsed?.data?.entries || parsed?.entries || parsed?.data || [];
+                      if (dataArray.length > 0) {
+                        columns = Object.keys(dataArray[0]);
+                      }
+                    } catch (e) {
+                      console.error('Failed to parse data source columns:', e);
+                    }
+                  }
+                  
+                  const columnMappings = (selectedDataSource?.columnMappings as Record<string, string>) || {};
+                  const selectedColumns = (value.inputValues as Record<string, any>)?._searchByColumns || [];
+                  
+                  if (columns.length === 0) return null;
+                  
+                  return (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <Label className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">
+                        Search By Columns (for matching)
+                      </Label>
+                      <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto bg-white dark:bg-gray-800 p-2 rounded border">
+                        {columns.map((col) => {
+                          const displayName = columnMappings[col] || col;
+                          const isSelected = selectedColumns.includes(col);
+                          return (
+                            <label key={col} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const newColumns = e.target.checked
+                                    ? [...selectedColumns, col]
+                                    : selectedColumns.filter((c: string) => c !== col);
+                                  onUpdate({
+                                    inputValues: {
+                                      ...(value.inputValues as Record<string, any> || {}),
+                                      _searchByColumns: newColumns
+                                    }
+                                  });
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <span className="truncate" title={col !== displayName ? `${displayName} (${col})` : col}>
+                                {displayName}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Select which columns to use for matching. Leave empty to auto-detect.
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

@@ -1676,11 +1676,19 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       const columnMappings = dataSource.columnMappings || {};
       const dataSourceColumns = dataSourceData.length > 0 ? Object.keys(dataSourceData[0]) : [];
       
-      // Build a description of available columns
-      const columnDescriptions = dataSourceColumns.map(col => {
+      // Extract search-by columns configuration (user-specified columns to match on)
+      const searchByColumns: string[] = inputs._searchByColumns || [];
+      const hasSearchByConfig = searchByColumns.length > 0;
+      
+      // Build a description of available columns (prioritize search-by columns if configured)
+      const columnDescriptions = (hasSearchByConfig ? searchByColumns : dataSourceColumns).map(col => {
         const mappedName = (columnMappings as Record<string, string>)[col];
         return mappedName ? `${mappedName} (${col})` : col;
       }).join(', ');
+      
+      if (hasSearchByConfig) {
+        console.log(`   🎯 Search by columns configured: ${searchByColumns.join(', ')}`);
+      }
       
       // Extract ALL AI instructions from various sources
       const instructionSources: string[] = [];
@@ -1749,12 +1757,21 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         console.log('\n📍 PHASE 1: Generating unified filter for ALL input items...');
         
         // PHASE 1: Generate ONE comprehensive filter from ALL input items
+        // Build search columns instruction
+        const searchColumnsInstruction = hasSearchByConfig 
+          ? `\nIMPORTANT: You MUST filter on these specific columns: ${searchByColumns.map(c => {
+              const mapped = (columnMappings as Record<string, string>)[c];
+              return mapped ? `${mapped} (${c})` : c;
+            }).join(', ')}`
+          : '';
+        
         const filterPrompt = `You are a smart database filter assistant. Your job is to analyze input data and generate optimal filter criteria to find potential matches in a large database.
 
 DATABASE STRUCTURE:
 - Total records: ${dataSourceData.length}
 - Available columns: ${columnDescriptions}
 - Sample records: ${JSON.stringify(sampleDbRecords, null, 2)}
+${searchColumnsInstruction}
 
 USER INSTRUCTIONS (follow these carefully):
 ${aiPrompt}
@@ -1764,14 +1781,22 @@ ${JSON.stringify(inputArray, null, 2)}
 
 YOUR TASK:
 1. Study the database columns and sample records to understand the data structure
-2. Analyze the input data to identify key values that can be used for filtering
-3. Generate filter criteria that will find ALL potential matching records
+2. Parse the input data to extract individual values (e.g., if "Address" contains "Street 123, 1234 City", extract street name and city separately)
+3. Generate filter criteria using the specified columns${hasSearchByConfig ? ` (${searchByColumns.join(', ')})` : ''}
+
+CRITICAL PARSING RULES:
+- If input has combined address fields (e.g., "Kerkeneikestraat 3A, 3945 Ham"), parse into components:
+  - Street name (without number): "Kerkeneikestraat"
+  - City: "Ham"
+  - Postal code: "3945"
+- Extract the core street name without house numbers for better fuzzy matching
+- Be generous - include partial matches and variations
 
 FILTERING STRATEGY:
-- Identify which database columns correspond to which input fields (semantic matching)
-- Extract unique values from ALL input items for each relevant field
-- Create filters that are BROAD enough to capture all potential matches
-- Account for spelling variations, abbreviations, formatting differences
+- Create separate filters for each search column
+- Extract ALL unique values from ALL input items
+- Use partial/contains matching - extract core words, not full strings
+- Account for spelling variations, abbreviations (straat/str, weg/w)
 - When in doubt, be MORE inclusive rather than risk missing matches
 
 OUTPUT FORMAT (JSON):
@@ -1780,12 +1805,12 @@ OUTPUT FORMAT (JSON):
     {
       "column": "exact_database_column_name",
       "operator": "in",
-      "values": ["all", "unique", "values", "from", "inputs"],
+      "values": ["extracted", "values", "from", "inputs"],
       "caseSensitive": false
     }
   ],
-  "columnMapping": {
-    "inputField": "databaseColumn"
+  "parsedInputs": {
+    "description": "How you parsed the input data"
   },
   "reasoning": "Brief explanation of filtering strategy"
 }`;
