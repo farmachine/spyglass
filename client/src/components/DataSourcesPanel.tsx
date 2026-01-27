@@ -376,64 +376,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     }
 
     if (Array.isArray(parsedData)) {
-      if (parsedData.length === 0) {
-        return <p className="text-gray-500">Empty array</p>;
-      }
-
-      const firstItem = parsedData[0];
-      if (typeof firstItem === "object" && firstItem !== null) {
-        const allKeys = new Set<string>();
-        parsedData.slice(0, 20).forEach(item => {
-          if (item && typeof item === "object") {
-            Object.keys(item).forEach(k => allKeys.add(k));
-          }
-        });
-        const columns = Array.from(allKeys);
-        
-        return (
-          <div className="overflow-x-auto border rounded-lg max-h-[500px] overflow-y-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
-                <TableRow>
-                  <TableHead className="font-semibold text-gray-500 w-12">#</TableHead>
-                  {columns.map((col) => (
-                    <TableHead key={col} className="font-semibold whitespace-nowrap">
-                      {formatColumnHeader(col)}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {parsedData.slice(0, 100).map((row, idx) => (
-                  <TableRow key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <TableCell className="text-gray-400 text-sm">{idx + 1}</TableCell>
-                    {columns.map((col) => (
-                      <TableCell key={col} className="max-w-[300px]" title={formatCellValue(row[col])}>
-                        <span className="block truncate">{formatCellValue(row[col])}</span>
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {parsedData.length > 100 && (
-              <p className="text-sm text-gray-500 p-2 text-center border-t">
-                Showing first 100 of {parsedData.length} records
-              </p>
-            )}
-          </div>
-        );
-      } else {
-        return (
-          <div className="space-y-1">
-            {parsedData.slice(0, 50).map((item, idx) => (
-              <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-sm">
-                {String(item)}
-              </div>
-            ))}
-          </div>
-        );
-      }
+      return renderArrayAsTable(parsedData, source);
     }
 
     if (typeof parsedData === "object" && parsedData !== null) {
@@ -502,7 +445,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
                 {formatColumnHeader(dataKey)} ({(dataValue as any[]).length} records)
               </h4>
-              {renderJsonTable(dataValue)}
+              {renderJsonTable(dataValue, source)}
             </div>
           </div>
         );
