@@ -792,6 +792,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import tools from another project
+  app.post("/api/projects/:projectId/import-tools", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const targetProjectId = req.params.projectId;
+      const { sourceProjectId } = req.body;
+      
+      if (!sourceProjectId || typeof sourceProjectId !== 'string') {
+        return res.status(400).json({ message: "Source project ID is required" });
+      }
+      
+      // Verify both projects exist
+      const targetProject = await storage.getProject(targetProjectId);
+      const sourceProject = await storage.getProject(sourceProjectId);
+      
+      if (!targetProject) {
+        return res.status(404).json({ message: "Target project not found" });
+      }
+      if (!sourceProject) {
+        return res.status(404).json({ message: "Source project not found" });
+      }
+      
+      // Get all tools from source project
+      const sourceTools = await storage.getExcelWizardryFunctionsByProject(sourceProjectId);
+      
+      if (sourceTools.length === 0) {
+        return res.status(200).json({ 
+          message: "No tools found in source project", 
+          imported: 0,
+          skipped: 0
+        });
+      }
+      
+      // Get existing tools in target project to avoid duplicates
+      const existingTools = await storage.getExcelWizardryFunctionsByProject(targetProjectId);
+      const existingToolNames = new Set(existingTools.map(t => t.name.toLowerCase()));
+      
+      let imported = 0;
+      let skipped = 0;
+      const importedTools = [];
+      
+      for (const tool of sourceTools) {
+        // Skip if tool with same name already exists
+        if (existingToolNames.has(tool.name.toLowerCase())) {
+          skipped++;
+          continue;
+        }
+        
+        // Create new tool in target project
+        const newTool = await storage.createExcelWizardryFunction({
+          projectId: targetProjectId,
+          name: tool.name,
+          description: tool.description,
+          functionCode: tool.functionCode,
+          aiPrompt: tool.aiPrompt,
+          toolType: tool.toolType,
+          outputType: tool.outputType,
+          operationType: tool.operationType,
+          inputParameters: tool.inputParameters,
+          aiAssistanceRequired: tool.aiAssistanceRequired,
+          aiAssistancePrompt: tool.aiAssistancePrompt,
+          llmModel: tool.llmModel,
+          metadata: tool.metadata,
+          inputSchema: tool.inputSchema,
+          outputSchema: tool.outputSchema,
+          tags: tool.tags
+        });
+        
+        importedTools.push(newTool);
+        imported++;
+      }
+      
+      console.log(`Imported ${imported} tools from project ${sourceProjectId} to ${targetProjectId} (skipped ${skipped} duplicates)`);
+      
+      res.status(200).json({
+        message: `Successfully imported ${imported} tools`,
+        imported,
+        skipped,
+        tools: importedTools
+      });
+    } catch (error) {
+      console.error("Import tools error:", error);
+      res.status(500).json({ message: "Failed to import tools" });
+    }
+  });
+
   // AI Schema Generation
   app.post("/api/projects/:projectId/generate-schema", authenticateToken, async (req: AuthRequest, res) => {
     try {
