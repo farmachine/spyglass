@@ -99,7 +99,10 @@ import {
   type KanbanAttachment,
   type InsertKanbanAttachment,
   type SessionLink,
-  type InsertSessionLink
+  type InsertSessionLink,
+  apiDataSources,
+  type ApiDataSource,
+  type InsertApiDataSource
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -338,6 +341,13 @@ export interface IStorage {
   getSessionLinks(sessionId: string): Promise<SessionLink[]>;
   createSessionLink(link: InsertSessionLink): Promise<SessionLink>;
   getSessionsByProject(projectId: string): Promise<ExtractionSession[]>;
+  
+  // API Data Sources
+  getApiDataSources(projectId: string): Promise<ApiDataSource[]>;
+  getApiDataSource(id: string): Promise<ApiDataSource | undefined>;
+  createApiDataSource(source: InsertApiDataSource): Promise<ApiDataSource>;
+  updateApiDataSource(id: string, source: Partial<InsertApiDataSource>): Promise<ApiDataSource | undefined>;
+  deleteApiDataSource(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2373,6 +2383,23 @@ export class MemStorage implements IStorage {
   }
   async getSessionsByProject(_projectId: string): Promise<ExtractionSession[]> {
     return [];
+  }
+  
+  // API Data Sources (MemStorage stubs)
+  async getApiDataSources(_projectId: string): Promise<ApiDataSource[]> {
+    return [];
+  }
+  async getApiDataSource(_id: string): Promise<ApiDataSource | undefined> {
+    return undefined;
+  }
+  async createApiDataSource(_source: InsertApiDataSource): Promise<ApiDataSource> {
+    throw new Error("API data sources not supported in MemStorage");
+  }
+  async updateApiDataSource(_id: string, _source: Partial<InsertApiDataSource>): Promise<ApiDataSource | undefined> {
+    return undefined;
+  }
+  async deleteApiDataSource(_id: string): Promise<boolean> {
+    return false;
   }
 }
 
@@ -4550,6 +4577,55 @@ class PostgreSQLStorage implements IStorage {
       return await this.db.select().from(extractionSessions)
         .where(eq(extractionSessions.projectId, projectId))
         .orderBy(desc(extractionSessions.createdAt));
+    });
+  }
+
+  // API Data Sources
+  async getApiDataSources(projectId: string): Promise<ApiDataSource[]> {
+    return this.retryOperation(async () => {
+      return await this.db.select().from(apiDataSources)
+        .where(eq(apiDataSources.projectId, projectId))
+        .orderBy(desc(apiDataSources.createdAt));
+    });
+  }
+
+  async getApiDataSource(id: string): Promise<ApiDataSource | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db.select().from(apiDataSources)
+        .where(eq(apiDataSources.id, id));
+      return result[0];
+    });
+  }
+
+  async createApiDataSource(source: InsertApiDataSource): Promise<ApiDataSource> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.insert(apiDataSources).values({
+        ...source,
+        updatedAt: sql`NOW()`
+      }).returning();
+      return result;
+    });
+  }
+
+  async updateApiDataSource(id: string, source: Partial<InsertApiDataSource>): Promise<ApiDataSource | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db.update(apiDataSources)
+        .set({
+          ...source,
+          updatedAt: sql`NOW()`
+        })
+        .where(eq(apiDataSources.id, id))
+        .returning();
+      return result[0];
+    });
+  }
+
+  async deleteApiDataSource(id: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.delete(apiDataSources)
+        .where(eq(apiDataSources.id, id))
+        .returning();
+      return result.length > 0;
     });
   }
 }

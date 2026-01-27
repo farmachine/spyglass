@@ -1788,6 +1788,156 @@ except Exception as e:
     }
   });
 
+  // API Data Sources
+  app.get("/api/projects/:projectId/data-sources", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const dataSources = await storage.getApiDataSources(projectId);
+      res.json(dataSources);
+    } catch (error) {
+      console.error("Error getting data sources:", error);
+      res.status(500).json({ message: "Failed to get data sources" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/data-sources", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const { name, description, endpointUrl, authType, authToken, authHeader, headers, queryParams } = req.body;
+      
+      if (!name || !endpointUrl) {
+        return res.status(400).json({ message: "Name and endpoint URL are required" });
+      }
+      
+      const dataSource = await storage.createApiDataSource({
+        projectId,
+        name,
+        description: description || null,
+        endpointUrl,
+        authType: authType || 'bearer',
+        authToken: authToken || null,
+        authHeader: authHeader || null,
+        headers: headers || null,
+        queryParams: queryParams || null,
+        isActive: true
+      });
+      
+      res.status(201).json(dataSource);
+    } catch (error) {
+      console.error("Error creating data source:", error);
+      res.status(500).json({ message: "Failed to create data source" });
+    }
+  });
+
+  app.patch("/api/data-sources/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const dataSource = await storage.updateApiDataSource(id, updates);
+      if (!dataSource) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      res.json(dataSource);
+    } catch (error) {
+      console.error("Error updating data source:", error);
+      res.status(500).json({ message: "Failed to update data source" });
+    }
+  });
+
+  app.delete("/api/data-sources/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteApiDataSource(id);
+      if (!success) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting data source:", error);
+      res.status(500).json({ message: "Failed to delete data source" });
+    }
+  });
+
+  // Fetch data from API data source
+  app.post("/api/data-sources/:id/fetch", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      
+      const dataSource = await storage.getApiDataSource(id);
+      if (!dataSource) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      // Build headers
+      const fetchHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(dataSource.headers as Record<string, string> || {})
+      };
+      
+      // Add authentication
+      if (dataSource.authType === 'bearer' && dataSource.authToken) {
+        fetchHeaders['Authorization'] = `Bearer ${dataSource.authToken}`;
+      } else if (dataSource.authType === 'api_key' && dataSource.authToken) {
+        const headerName = dataSource.authHeader || 'X-API-Key';
+        fetchHeaders[headerName] = dataSource.authToken;
+      } else if (dataSource.authType === 'basic' && dataSource.authToken) {
+        fetchHeaders['Authorization'] = `Basic ${Buffer.from(dataSource.authToken).toString('base64')}`;
+      }
+      
+      // Build URL with query parameters
+      let url = dataSource.endpointUrl;
+      if (dataSource.queryParams && typeof dataSource.queryParams === 'object') {
+        const params = new URLSearchParams(dataSource.queryParams as Record<string, string>);
+        url += (url.includes('?') ? '&' : '?') + params.toString();
+      }
+      
+      console.log(`Fetching data from: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: fetchHeaders
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        await storage.updateApiDataSource(id, {
+          lastFetchedAt: new Date(),
+          lastFetchStatus: 'error',
+          lastFetchError: `HTTP ${response.status}: ${errorText.substring(0, 500)}`
+        });
+        return res.status(response.status).json({ 
+          message: "Failed to fetch from API", 
+          error: errorText 
+        });
+      }
+      
+      const data = await response.json();
+      
+      // Cache the data
+      await storage.updateApiDataSource(id, {
+        lastFetchedAt: new Date(),
+        lastFetchStatus: 'success',
+        lastFetchError: null,
+        cachedData: data
+      });
+      
+      res.json({ success: true, data });
+    } catch (error: any) {
+      console.error("Error fetching from data source:", error);
+      
+      const { id } = req.params;
+      await storage.updateApiDataSource(id, {
+        lastFetchedAt: new Date(),
+        lastFetchStatus: 'error',
+        lastFetchError: error.message || 'Unknown error'
+      });
+      
+      res.status(500).json({ message: "Failed to fetch data", error: error.message });
+    }
+  });
+
   // Dashboard Statistics
   app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
     try {
