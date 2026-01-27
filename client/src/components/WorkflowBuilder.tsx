@@ -1430,7 +1430,7 @@ function ValueCard({
             {/* Tool Selection */}
             <div>
               <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Extraction Tool</Label>
-              <Select value={value.toolId} onValueChange={(v) => onUpdate({ toolId: v })}>
+              <Select value={value.toolId} onValueChange={(v) => onUpdate({ toolId: v, inputValues: {} })}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select tool..." />
                 </SelectTrigger>
