@@ -2116,9 +2116,18 @@ except Exception as e:
           console.log(`   🔍 Response keys: ${Object.keys(pageData).join(', ')}`);
           // Log the data key specifically
           if (pageData.data) {
-            console.log(`   🔍 data key: isArray=${Array.isArray(pageData.data)}, length=${Array.isArray(pageData.data) ? pageData.data.length : 'N/A'}`);
-            if (Array.isArray(pageData.data) && pageData.data.length > 0) {
-              console.log(`   🔍 First data item: ${JSON.stringify(pageData.data[0]).substring(0, 200)}`);
+            console.log(`   🔍 data key: isArray=${Array.isArray(pageData.data)}, type=${typeof pageData.data}`);
+            if (!Array.isArray(pageData.data) && typeof pageData.data === 'object') {
+              console.log(`   🔍 data object keys: ${Object.keys(pageData.data).join(', ')}`);
+              // Check common nested array keys
+              const nestedKeys = ['entries', 'items', 'records', 'rows', 'results'];
+              for (const key of nestedKeys) {
+                if (pageData.data[key] && Array.isArray(pageData.data[key])) {
+                  console.log(`   🔍 Found nested array: data.${key} with ${pageData.data[key].length} items`);
+                }
+              }
+            } else if (Array.isArray(pageData.data) && pageData.data.length > 0) {
+              console.log(`   🔍 data array length: ${pageData.data.length}`);
             }
           }
           // Log pageInfo for pagination debugging
