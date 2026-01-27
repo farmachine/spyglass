@@ -11202,18 +11202,106 @@ def extract_function(Column_Name, Excel_File):
   app.post('/api/sessions/:sessionId/steps/:stepId/generate-tasks', async (req, res) => {
     try {
       const { sessionId, stepId } = req.params;
-      const { aiInstructions, knowledgeDocumentIds, statusColumns, selectedDocumentIds } = req.body;
+      const { 
+        aiInstructions, 
+        knowledgeDocumentIds, 
+        statusColumns, 
+        selectedDocumentIds,
+        includeUserDocuments = true,
+        referenceStepIds,
+        dataSourceId,
+        dataSourceInstructions
+      } = req.body;
 
-      // Get session documents
-      const allSessionDocs = await storage.getSessionDocuments(sessionId);
-      
-      // Filter to only selected documents if specified
-      const sessionDocs = selectedDocumentIds && selectedDocumentIds.length > 0
-        ? allSessionDocs.filter((doc: any) => selectedDocumentIds.includes(doc.id))
-        : allSessionDocs;
+      // Get session documents (only if includeUserDocuments is true)
+      let documentContent = '';
+      if (includeUserDocuments !== false) {
+        const allSessionDocs = await storage.getSessionDocuments(sessionId);
         
-      if (sessionDocs.length === 0) {
-        return res.status(400).json({ error: 'No documents selected for task generation' });
+        // Filter to only selected documents if specified
+        const sessionDocs = selectedDocumentIds && selectedDocumentIds.length > 0
+          ? allSessionDocs.filter((doc: any) => selectedDocumentIds.includes(doc.id))
+          : allSessionDocs;
+        
+        if (sessionDocs.length > 0) {
+          documentContent = sessionDocs
+            .map(doc => `--- ${doc.fileName} ---\n${doc.extractedContent || ''}`)
+            .join('\n\n');
+        }
+      }
+
+      // Get reference data from other steps if specified
+      let referenceDataContent = '';
+      if (referenceStepIds && referenceStepIds.length > 0) {
+        const session = await storage.getSession(sessionId);
+        if (session) {
+          for (const refStepId of referenceStepIds) {
+            const stepData = await storage.getWorkflowStep(refStepId);
+            if (stepData) {
+              // Get field validations for this step
+              const validations = await storage.getFieldValidations(sessionId, refStepId);
+              if (validations && validations.length > 0) {
+                referenceDataContent += `\n\n--- Extracted Data from ${stepData.stepName} ---\n`;
+                // Group by identifierId for table data
+                const groupedData = new Map<string, any>();
+                for (const v of validations) {
+                  if (!groupedData.has(v.identifierId)) {
+                    groupedData.set(v.identifierId, {});
+                  }
+                  const stepValue = await storage.getStepValue(v.fieldId);
+                  const fieldName = stepValue?.valueName || 'Field';
+                  groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                }
+                referenceDataContent += JSON.stringify(Array.from(groupedData.values()), null, 2);
+              }
+            }
+          }
+        }
+      }
+
+      // Get data source content if specified
+      let dataSourceContent = '';
+      if (dataSourceId) {
+        try {
+          const dataSource = await storage.getApiDataSource(dataSourceId);
+          if (dataSource && dataSource.endpointUrl) {
+            const headers: Record<string, string> = { 'Accept': 'application/json' };
+            if (dataSource.headers && typeof dataSource.headers === 'object') {
+              Object.assign(headers, dataSource.headers);
+            }
+            if (dataSource.authToken) {
+              headers['Authorization'] = dataSource.authToken.startsWith('Bearer ') 
+                ? dataSource.authToken 
+                : `Bearer ${dataSource.authToken}`;
+            }
+            
+            const dsResponse = await fetch(dataSource.endpointUrl, { headers });
+            if (dsResponse.ok) {
+              const dsData = await dsResponse.json();
+              // Extract data array (handling nested structures like BRYTER)
+              let dataArray: any[] = [];
+              if (Array.isArray(dsData)) {
+                dataArray = dsData;
+              } else if (dsData.data?.entries) {
+                dataArray = dsData.data.entries;
+              } else if (dsData.data && Array.isArray(dsData.data)) {
+                dataArray = dsData.data;
+              } else if (dsData.entries && Array.isArray(dsData.entries)) {
+                dataArray = dsData.entries;
+              }
+              
+              // Limit to first 100 records for context (with filtering instructions for AI)
+              const limitedData = dataArray.slice(0, 100);
+              dataSourceContent = `\n\n--- Data Source: ${dataSource.name} (${dataArray.length} total records, showing first ${limitedData.length}) ---\n`;
+              if (dataSourceInstructions) {
+                dataSourceContent += `FILTERING INSTRUCTIONS: ${dataSourceInstructions}\n`;
+              }
+              dataSourceContent += JSON.stringify(limitedData, null, 2);
+            }
+          }
+        } catch (dsError) {
+          console.error('Error fetching data source for task generation:', dsError);
+        }
       }
 
       // Get knowledge documents if specified
@@ -11227,20 +11315,23 @@ def extract_function(Column_Name, Excel_File):
         }
       }
 
-      // Combine session document content
-      const documentContent = sessionDocs
-        .map(doc => `--- ${doc.fileName} ---\n${doc.extractedContent || ''}`)
-        .join('\n\n');
+      // Check if we have any content to analyze
+      if (!documentContent && !referenceDataContent && !dataSourceContent && !knowledgeContent) {
+        return res.status(400).json({ error: 'No content available for task generation. Please select documents, reference data, or a data source.' });
+      }
 
       // Build the prompt
-      const prompt = `You are a task extraction assistant. Analyze the following documents and extract actionable tasks.
+      const prompt = `You are a task extraction assistant. Analyze the following content and extract actionable tasks.
 
-${aiInstructions ? `INSTRUCTIONS FROM USER: ${aiInstructions}` : 'Extract all action items, tasks, and work items from the documents.'}
+${aiInstructions ? `INSTRUCTIONS FROM USER: ${aiInstructions}` : 'Extract all action items, tasks, and work items from the provided content.'}
 
 ${knowledgeContent ? `REFERENCE DOCUMENTS FOR CONTEXT:${knowledgeContent}` : ''}
 
-DOCUMENTS TO ANALYZE:
-${documentContent}
+${referenceDataContent ? `EXTRACTED DATA FROM PREVIOUS STEPS:${referenceDataContent}` : ''}
+
+${dataSourceContent ? `EXTERNAL DATA SOURCE:${dataSourceContent}` : ''}
+
+${documentContent ? `DOCUMENTS TO ANALYZE:\n${documentContent}` : ''}
 
 AVAILABLE STATUS COLUMNS: ${(statusColumns || ['To Do', 'In Progress', 'Done']).join(', ')}
 

@@ -5296,7 +5296,11 @@ Thank you for your assistance.`;
                             aiInstructions: kanbanConfig.aiInstructions,
                             knowledgeDocumentIds: kanbanConfig.knowledgeDocumentIds,
                             statusColumns: kanbanConfig.statusColumns,
-                            selectedDocumentIds
+                            selectedDocumentIds,
+                            includeUserDocuments: kanbanConfig.includeUserDocuments !== false,
+                            referenceStepIds: kanbanConfig.referenceStepIds,
+                            dataSourceId: kanbanConfig.dataSourceId,
+                            dataSourceInstructions: kanbanConfig.dataSourceInstructions
                           })
                         });
                         queryClient.invalidateQueries({ queryKey: [`/api/sessions/${session.id}/steps/${currentStep.id}/kanban-cards`] });

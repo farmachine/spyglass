@@ -70,6 +70,11 @@ interface WorkflowStep {
     statusColumns: string[];
     aiInstructions?: string;
     knowledgeDocumentIds?: string[];
+    includeUserDocuments?: boolean;
+    referenceStepIds?: string[];
+    dataSourceId?: string;
+    dataSourceInstructions?: string;
+    actions?: Array<{ name: string; aiInstructions: string; link: string }>;
   };
   // Original data reference
   originalId?: string;
@@ -798,6 +803,120 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Additional context for AI task generation
+                        </p>
+                      </div>
+
+                      {/* Include User Documents Toggle */}
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={selectedStep.kanbanConfig?.includeUserDocuments !== false}
+                            onCheckedChange={(checked) => {
+                              updateStep(selectedStep.id, {
+                                kanbanConfig: {
+                                  ...selectedStep.kanbanConfig,
+                                  statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                  includeUserDocuments: checked === true
+                                }
+                              });
+                            }}
+                          />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Include User Uploaded Documents
+                          </span>
+                        </label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          Use session documents as input for task generation
+                        </p>
+                      </div>
+
+                      {/* Reference Data from Previous Steps */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Reference Data (Optional)
+                        </label>
+                        <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
+                          {steps.filter(s => s.id !== selectedStep.id && s.type !== 'kanban').length === 0 ? (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">No other steps available</p>
+                          ) : (
+                            steps.filter(s => s.id !== selectedStep.id && s.type !== 'kanban').map((step) => (
+                              <label key={step.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                                <Checkbox
+                                  checked={selectedStep.kanbanConfig?.referenceStepIds?.includes(step.id) || false}
+                                  onCheckedChange={(checked) => {
+                                    const currentIds = selectedStep.kanbanConfig?.referenceStepIds || [];
+                                    const newIds = checked 
+                                      ? [...currentIds, step.id]
+                                      : currentIds.filter(id => id !== step.id);
+                                    updateStep(selectedStep.id, {
+                                      kanbanConfig: {
+                                        ...selectedStep.kanbanConfig,
+                                        statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                        referenceStepIds: newIds
+                                      }
+                                    });
+                                  }}
+                                />
+                                <span className="flex items-center gap-1">
+                                  {step.type === 'page' ? '📄' : '📊'} {step.name}
+                                </span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Include extracted data from other steps as context
+                        </p>
+                      </div>
+
+                      {/* Data Source Selection */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Data Source (Optional)
+                        </label>
+                        <Select
+                          value={selectedStep.kanbanConfig?.dataSourceId || 'none'}
+                          onValueChange={(value) => {
+                            updateStep(selectedStep.id, {
+                              kanbanConfig: {
+                                ...selectedStep.kanbanConfig,
+                                statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                dataSourceId: value === 'none' ? undefined : value
+                              }
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a data source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No data source</SelectItem>
+                            {dataSources.filter(ds => ds.isActive).map((ds) => (
+                              <SelectItem key={ds.id} value={ds.id}>{ds.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedStep.kanbanConfig?.dataSourceId && (
+                          <div className="mt-2">
+                            <Textarea
+                              value={selectedStep.kanbanConfig?.dataSourceInstructions || ''}
+                              onChange={(e) => {
+                                updateStep(selectedStep.id, {
+                                  kanbanConfig: {
+                                    ...selectedStep.kanbanConfig,
+                                    statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                    dataSourceInstructions: e.target.value
+                                  }
+                                });
+                              }}
+                              placeholder="Instructions for filtering the data source. For example: 'Filter by city to find matching profit centers.'"
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          External data source for AI reference during task generation
                         </p>
                       </div>
 
