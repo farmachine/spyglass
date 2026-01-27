@@ -19,6 +19,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { spawn } from "child_process";
+import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, asc } from "drizzle-orm";
@@ -1788,10 +1789,93 @@ except Exception as e:
     }
   });
 
-  // API Data Sources
+  // API Data Sources - Helper to validate URL is safe (SSRF protection)
+  const isUrlSafe = (url: string): boolean => {
+    try {
+      const parsed = new URL(url);
+      // Only allow https in production, http allowed in development
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction && parsed.protocol !== 'https:') {
+        return false;
+      }
+      if (!['https:', 'http:'].includes(parsed.protocol)) {
+        return false;
+      }
+      // Block localhost and loopback addresses (IPv4 and IPv6)
+      const hostname = parsed.hostname.toLowerCase();
+      const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', '[::]'];
+      if (blockedHosts.includes(hostname)) {
+        return false;
+      }
+      // Block IPv6 link-local and unique-local addresses
+      if (hostname.startsWith('fe80:') || hostname.startsWith('[fe80:') ||
+          hostname.startsWith('fc') || hostname.startsWith('[fc') ||
+          hostname.startsWith('fd') || hostname.startsWith('[fd')) {
+        return false;
+      }
+      // Block private IPv4 ranges
+      const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+      if (ipv4Match) {
+        const [, a, b, c, d] = ipv4Match.map(Number);
+        // 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 169.254.x.x (link-local)
+        if (a === 10 || (a === 172 && b >= 16 && b <= 31) || 
+            (a === 192 && b === 168) || (a === 169 && b === 254)) {
+          return false;
+        }
+        // Block loopback range 127.x.x.x
+        if (a === 127) {
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Helper to verify project access
+  const verifyProjectAccess = async (projectId: string, user: any): Promise<boolean> => {
+    const project = await storage.getProject(projectId);
+    if (!project) return false;
+    // Admin can access all projects in their org, or published projects
+    if (user.role === 'admin') return true;
+    return project.organizationId === user.organizationId;
+  };
+
+  // Data source validation schema - strict to reject unknown keys
+  const dataSourceSchema = z.object({
+    name: z.string().min(1, "Name is required").max(200),
+    description: z.string().max(500).nullable().optional(),
+    endpointUrl: z.string().url("Invalid URL format"),
+    authType: z.enum(["none", "bearer", "basic", "api_key"]).default("bearer"),
+    authToken: z.string().max(2000).nullable().optional(),
+    authHeader: z.string().max(100).nullable().optional(),
+    headers: z.record(z.string()).nullable().optional(),
+    queryParams: z.record(z.string()).nullable().optional()
+  }).strict();
+  
+  // Update schema - explicitly whitelist allowed fields to prevent projectId injection
+  const dataSourceUpdateSchema = z.object({
+    name: z.string().min(1).max(200).optional(),
+    description: z.string().max(500).nullable().optional(),
+    endpointUrl: z.string().url().optional(),
+    authType: z.enum(["none", "bearer", "basic", "api_key"]).optional(),
+    authToken: z.string().max(2000).nullable().optional(),
+    authHeader: z.string().max(100).nullable().optional(),
+    headers: z.record(z.string()).nullable().optional(),
+    queryParams: z.record(z.string()).nullable().optional(),
+    isActive: z.boolean().optional()
+  }).strict();
+
   app.get("/api/projects/:projectId/data-sources", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
+      
+      // Verify user has access to project
+      if (!await verifyProjectAccess(projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied to this project" });
+      }
+      
       const dataSources = await storage.getApiDataSources(projectId);
       res.json(dataSources);
     } catch (error) {
@@ -1803,10 +1887,23 @@ except Exception as e:
   app.post("/api/projects/:projectId/data-sources", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { projectId } = req.params;
-      const { name, description, endpointUrl, authType, authToken, authHeader, headers, queryParams } = req.body;
       
-      if (!name || !endpointUrl) {
-        return res.status(400).json({ message: "Name and endpoint URL are required" });
+      // Verify user has access to project
+      if (!await verifyProjectAccess(projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied to this project" });
+      }
+      
+      // Validate input
+      const result = dataSourceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      
+      const { name, description, endpointUrl, authType, authToken, authHeader, headers, queryParams } = result.data;
+      
+      // SSRF protection
+      if (!isUrlSafe(endpointUrl)) {
+        return res.status(400).json({ message: "Invalid endpoint URL. Must be a valid HTTPS URL to an external host." });
       }
       
       const dataSource = await storage.createApiDataSource({
@@ -1814,7 +1911,7 @@ except Exception as e:
         name,
         description: description || null,
         endpointUrl,
-        authType: authType || 'bearer',
+        authType,
         authToken: authToken || null,
         authHeader: authHeader || null,
         headers: headers || null,
@@ -1832,13 +1929,29 @@ except Exception as e:
   app.patch("/api/data-sources/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
       
-      const dataSource = await storage.updateApiDataSource(id, updates);
-      if (!dataSource) {
+      // Get existing data source and verify access
+      const existing = await storage.getApiDataSource(id);
+      if (!existing) {
         return res.status(404).json({ message: "Data source not found" });
       }
       
+      if (!await verifyProjectAccess(existing.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Validate allowed update fields only (projectId cannot be changed)
+      const result = dataSourceUpdateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      
+      // SSRF protection for URL updates
+      if (result.data.endpointUrl && !isUrlSafe(result.data.endpointUrl)) {
+        return res.status(400).json({ message: "Invalid endpoint URL" });
+      }
+      
+      const dataSource = await storage.updateApiDataSource(id, result.data);
       res.json(dataSource);
     } catch (error) {
       console.error("Error updating data source:", error);
@@ -1849,6 +1962,17 @@ except Exception as e:
   app.delete("/api/data-sources/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;
+      
+      // Get existing data source and verify access
+      const existing = await storage.getApiDataSource(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      if (!await verifyProjectAccess(existing.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
       const success = await storage.deleteApiDataSource(id);
       if (!success) {
         return res.status(404).json({ message: "Data source not found" });
@@ -1868,6 +1992,16 @@ except Exception as e:
       const dataSource = await storage.getApiDataSource(id);
       if (!dataSource) {
         return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      // Verify user has access to the project that owns this data source
+      if (!await verifyProjectAccess(dataSource.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // SSRF protection - verify URL is still safe
+      if (!isUrlSafe(dataSource.endpointUrl)) {
+        return res.status(400).json({ message: "Invalid endpoint URL configured" });
       }
       
       // Build headers

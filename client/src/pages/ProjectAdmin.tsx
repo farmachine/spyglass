@@ -14,6 +14,7 @@ import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import Tools from "@/components/Tools";
+import DataSourcesPanel from "@/components/DataSourcesPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface ProjectAdminProps {
@@ -135,17 +136,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       case "publish":
         return <Publishing project={project} />;
       case "connect":
-        return (
-          <div className="w-full">
-            <div className="mb-8 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect Your Data</h1>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400">
-              Send your extrapl data to your other tools...
-            </p>
-          </div>
-        );
+        return <DataSourcesPanel projectId={projectId} />;
       default:
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
     }
