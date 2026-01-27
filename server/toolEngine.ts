@@ -1801,12 +1801,18 @@ OUTPUT FORMAT (JSON):
           const filterResult = await filterModel.generateContent(filterPrompt);
           const filterResponse = JSON.parse(filterResult.response.text());
           
-          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 200) || 'Generated'}`);
+          console.log(`   🎯 Filter reasoning: ${filterResponse.reasoning?.substring(0, 300) || 'No reasoning provided'}`);
           if (filterResponse.columnMapping) {
             console.log(`   📍 Column mapping: ${JSON.stringify(filterResponse.columnMapping)}`);
           }
           if (filterResponse.filters?.length) {
-            console.log(`   📍 Generated ${filterResponse.filters.length} filters`);
+            console.log(`   📍 Generated ${filterResponse.filters.length} filters:`);
+            filterResponse.filters.forEach((f: any, idx: number) => {
+              const valuesPreview = Array.isArray(f.values) 
+                ? `[${f.values.slice(0, 5).join(', ')}${f.values.length > 5 ? '...' : ''}] (${f.values.length} values)`
+                : f.value || 'none';
+              console.log(`      Filter ${idx + 1}: column="${f.column}", operator="${f.operator}", values=${valuesPreview}`);
+            });
           }
           
           if (filterResponse.filters && filterResponse.filters.length > 0) {
@@ -1877,6 +1883,15 @@ OUTPUT FORMAT (JSON):
         // Limit candidates for AI matching
         const limitedCandidates = filteredData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
         console.log(`   ✅ Phase 1 complete: ${limitedCandidates.length} candidate records for matching`);
+        
+        // Debug: Show sample of candidates to verify correct data was captured
+        if (limitedCandidates.length > 0) {
+          console.log(`   📋 Sample candidates (first 3):`);
+          limitedCandidates.slice(0, 3).forEach((c: any, idx: number) => {
+            const preview = Object.entries(c).slice(0, 5).map(([k, v]) => `${k}="${String(v).substring(0, 30)}"`).join(', ');
+            console.log(`      [${idx}]: ${preview}`);
+          });
+        }
         
         // PHASE 2: Match ALL input items against ALL candidates in ONE call
         console.log('\n📍 PHASE 2: Matching ALL input items against candidates...');
