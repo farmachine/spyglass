@@ -1710,8 +1710,9 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         
         const allResults: any[] = [];
         
-        // Process items in batches to balance API calls vs accuracy
-        const BATCH_SIZE = 5; // Process 5 items at a time with same filter
+        // Process each item individually for maximum accuracy
+        // Each item gets its own filter based on its unique address
+        const BATCH_SIZE = 1;
         
         for (let batchStart = 0; batchStart < inputArray.length; batchStart += BATCH_SIZE) {
           const batchItems = inputArray.slice(batchStart, batchStart + BATCH_SIZE);
