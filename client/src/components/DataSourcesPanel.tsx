@@ -94,6 +94,11 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   };
 
   const formatColumnHeader = (key: string): string => {
+    // Keep technical field names (c_text_0001, etc.) as-is
+    if (/^c_[a-z]+_\d+$/.test(key)) {
+      return key;
+    }
+    // Format other keys for readability
     return key
       .replace(/([A-Z])/g, ' $1')
       .replace(/_/g, ' ')
