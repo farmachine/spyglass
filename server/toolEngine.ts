@@ -1682,7 +1682,39 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         return mappedName ? `${mappedName} (${col})` : col;
       }).join(', ');
       
-      const aiPrompt = tool.aiPrompt || 'Look up and match records from the data source.';
+      // Extract ALL AI instructions from various sources
+      const instructionSources: string[] = [];
+      
+      // 1. Tool's built-in AI prompt
+      if (tool.aiPrompt) {
+        instructionSources.push(tool.aiPrompt);
+      }
+      
+      // 2. AI Instructions from input parameters (step configuration)
+      for (const key of Object.keys(inputs)) {
+        const value = inputs[key];
+        if (typeof value === 'string' && value.length > 10 && value.length < 2000) {
+          // Check if this looks like an instruction (not document content or data)
+          const lowerKey = key.toLowerCase();
+          if (lowerKey.includes('instruction') || lowerKey.includes('query') || 
+              lowerKey.includes('prompt') || lowerKey.includes('ai ')) {
+            instructionSources.push(value);
+            console.log(`   📝 Found AI instruction in "${key}": ${value.substring(0, 100)}...`);
+          }
+        }
+      }
+      
+      // 3. Data source specific instructions (if configured)
+      if (dataSource.description) {
+        instructionSources.push(`Data source context: ${dataSource.description}`);
+      }
+      
+      // Combine all instructions
+      const aiPrompt = instructionSources.length > 0 
+        ? instructionSources.join('\n\n')
+        : 'Look up and match records from the data source based on the input data fields.';
+      
+      console.log(`   📋 Combined AI instructions (${instructionSources.length} sources, ${aiPrompt.length} chars)`);
       
       // Initialize AI client
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
