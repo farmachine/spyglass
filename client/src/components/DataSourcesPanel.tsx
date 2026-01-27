@@ -37,11 +37,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const { data: dataSources = [], isLoading } = useQuery<ApiDataSource[]>({
     queryKey: ["/api/projects", projectId, "data-sources"],
     queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/data-sources`, {
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("Failed to fetch data sources");
-      return res.json();
+      return apiRequest(`/api/projects/${projectId}/data-sources`);
     }
   });
 
