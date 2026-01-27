@@ -1,0 +1,56 @@
+Recommended Approach for Extrapl
+Given your constraints (20k records, AI costs, need for accuracy), I'd suggest:
+Two-Stage Intelligent Filtering
+Stage 1: Deterministic Blocking (Reduce 20k → ~100-500)
+Let the AI analyze the columns and suggest blocking strategies:
+"Based on this address data, I should filter by:
+- First 3 chars of postcode (narrows to ~500 records)
+- City name exact match (narrows further to ~100)
+- OR street name contains first word (backup strategy)"
+The AI prompt might be:
+Given input address: {address}
+Available database columns: {column_names}
+Sample data: {sample_rows}
+
+Determine the optimal filtering strategy to reduce 20,000 
+records to approximately 50-200 candidates. Consider:
+- Postal code prefixes
+- City/region names
+- Street name keywords
+- Building numbers/ranges
+
+Return SQL-like filter conditions.
+Stage 2: AI Fuzzy Matching (100-500 → 1)
+Send only the filtered candidates to AI with full context:
+"Match this address to the most likely candidate:
+Input: {full_input_address}
+
+Candidates:
+1. {candidate_1_full_data}
+2. {candidate_2_full_data}
+...
+
+Return the ID of the best match and confidence score."
+Why This Works
+
+Cost Effective - Only sends ~100 records to AI instead of 20k
+Accurate - AI sees full context for final decision but works with manageable set
+Adaptive - AI determines filtering logic based on actual data structure
+Explainable - You can show users which filters were applied
+
+Implementation in BRYTER/Extrapl
+1. Pull schema + sample from datasource (5 rows)
+2. AI call: "Generate filtering strategy" → returns criteria
+3. Apply filters to datasource → get filtered list
+4. AI call: "Match from these candidates" → returns best match
+5. Return matched record
+Alternative: Embedding-Based Approach
+If you want something more sophisticated:
+
+Pre-compute embeddings for all 20k addresses (one-time cost)
+Convert input to embedding
+Vector similarity search → top 50 candidates
+AI final matching on those 50
+
+This is what Pinecone/Weaviate do, but adds complexity.
+My recommendation: Start with the two-stage approach. It's proven, cost-effective, and you can optimize the blocking strategy over time based on actual match quality. The AI determining its own filtering strategy is elegant and makes the feature more adaptable to different datasets.
