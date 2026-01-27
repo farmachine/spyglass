@@ -93,50 +93,94 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     createMutation.mutate(formData);
   };
 
+  const formatColumnHeader = (key: string): string => {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/_/g, ' ')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  };
+
+  const formatCellValue = (value: any): string => {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "object") {
+      if (Array.isArray(value)) return `[${value.length} items]`;
+      return JSON.stringify(value);
+    }
+    const str = String(value);
+    if (str.match(/^\d{4}-\d{2}-\d{2}T/)) {
+      try {
+        return new Date(str).toLocaleString();
+      } catch { return str; }
+    }
+    return str;
+  };
+
   const renderJsonTable = (data: any): JSX.Element => {
     if (!data) return <p className="text-gray-500">No data</p>;
 
-    if (Array.isArray(data)) {
-      if (data.length === 0) {
+    let parsedData = data;
+    if (typeof data === "string") {
+      try {
+        parsedData = JSON.parse(data);
+      } catch {
+        return <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm overflow-auto whitespace-pre-wrap">{data}</pre>;
+      }
+    }
+
+    if (Array.isArray(parsedData)) {
+      if (parsedData.length === 0) {
         return <p className="text-gray-500">Empty array</p>;
       }
 
-      const firstItem = data[0];
+      const firstItem = parsedData[0];
       if (typeof firstItem === "object" && firstItem !== null) {
-        const columns = Object.keys(firstItem);
+        const allKeys = new Set<string>();
+        parsedData.slice(0, 20).forEach(item => {
+          if (item && typeof item === "object") {
+            Object.keys(item).forEach(k => allKeys.add(k));
+          }
+        });
+        const columns = Array.from(allKeys);
+        
         return (
-          <div className="overflow-x-auto border rounded-lg">
+          <div className="overflow-x-auto border rounded-lg max-h-[500px] overflow-y-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <TableRow>
+                  <TableHead className="font-semibold text-gray-500 w-12">#</TableHead>
                   {columns.map((col) => (
                     <TableHead key={col} className="font-semibold whitespace-nowrap">
-                      {col}
+                      {formatColumnHeader(col)}
                     </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.slice(0, 100).map((row, idx) => (
-                  <TableRow key={idx}>
+                {parsedData.slice(0, 100).map((row, idx) => (
+                  <TableRow key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableCell className="text-gray-400 text-sm">{idx + 1}</TableCell>
                     {columns.map((col) => (
-                      <TableCell key={col} className="max-w-xs truncate">
-                        {typeof row[col] === "object" ? JSON.stringify(row[col]) : String(row[col] ?? "")}
+                      <TableCell key={col} className="max-w-[300px]" title={formatCellValue(row[col])}>
+                        <span className="block truncate">{formatCellValue(row[col])}</span>
                       </TableCell>
                     ))}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            {data.length > 100 && (
-              <p className="text-sm text-gray-500 p-2 text-center">Showing first 100 of {data.length} records</p>
+            {parsedData.length > 100 && (
+              <p className="text-sm text-gray-500 p-2 text-center border-t">
+                Showing first 100 of {parsedData.length} records
+              </p>
             )}
           </div>
         );
       } else {
         return (
           <div className="space-y-1">
-            {data.slice(0, 50).map((item, idx) => (
+            {parsedData.slice(0, 50).map((item, idx) => (
               <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-sm">
                 {String(item)}
               </div>
@@ -146,26 +190,50 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       }
     }
 
-    if (typeof data === "object") {
-      const entries = Object.entries(data);
-      const arrayEntries = entries.filter(([, v]) => Array.isArray(v));
-      const simpleEntries = entries.filter(([, v]) => !Array.isArray(v));
+    if (typeof parsedData === "object" && parsedData !== null) {
+      const entries = Object.entries(parsedData);
+      const arrayEntries = entries.filter(([, v]) => Array.isArray(v) && (v as any[]).length > 0);
+      const simpleEntries = entries.filter(([, v]) => !Array.isArray(v) || (v as any[]).length === 0);
+
+      if (arrayEntries.length === 1 && simpleEntries.filter(([, v]) => v !== null && v !== undefined).length <= 3) {
+        const [key, value] = arrayEntries[0];
+        return (
+          <div className="space-y-3">
+            {simpleEntries.length > 0 && simpleEntries.some(([, v]) => v !== null) && (
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {simpleEntries.filter(([, v]) => v !== null && v !== undefined).map(([k, v]) => (
+                  <span key={k}>
+                    <span className="font-medium">{formatColumnHeader(k)}:</span>{" "}
+                    {formatCellValue(v)}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div>
+              <h4 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
+                {formatColumnHeader(key)} ({(value as any[]).length} records)
+              </h4>
+              {renderJsonTable(value)}
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="space-y-4">
           {simpleEntries.length > 0 && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {simpleEntries.map(([key, value]) => (
-                <div key={key} className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                  <span className="font-medium text-sm">{key}:</span>{" "}
-                  <span className="text-sm">{typeof value === "object" ? JSON.stringify(value) : String(value ?? "")}</span>
+                <div key={key} className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                  <span className="font-medium text-sm text-gray-600 dark:text-gray-400">{formatColumnHeader(key)}</span>
+                  <div className="text-sm mt-1">{formatCellValue(value)}</div>
                 </div>
               ))}
             </div>
           )}
           {arrayEntries.map(([key, value]) => (
             <div key={key}>
-              <h4 className="font-medium mb-2">{key} ({(value as any[]).length} items)</h4>
+              <h4 className="font-medium mb-2">{formatColumnHeader(key)} ({(value as any[]).length} items)</h4>
               {renderJsonTable(value)}
             </div>
           ))}
@@ -173,7 +241,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       );
     }
 
-    return <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
+    return <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm overflow-auto">{JSON.stringify(parsedData, null, 2)}</pre>;
   };
 
   return (
