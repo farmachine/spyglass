@@ -1695,13 +1695,25 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       // 5. TWO-PASS AI FILTERING SYSTEM
       const MAX_RECORDS_FOR_AI = 200;
       let filteredData = dataSourceData;
+      let filteringMethod = 'NONE';
+      let filterCriteria: any = null;
+      
+      console.log('━'.repeat(80));
+      console.log('🔍 DATABASE LOOKUP FILTERING ANALYSIS');
+      console.log('━'.repeat(80));
+      console.log(`📊 Total records in data source: ${dataSourceData.length}`);
+      console.log(`📊 MAX_RECORDS_FOR_AI threshold: ${MAX_RECORDS_FOR_AI}`);
+      console.log(`📊 Filtering required: ${dataSourceData.length > MAX_RECORDS_FOR_AI ? 'YES' : 'NO'}`);
       
       // PASS 1: Generate intelligent filter if dataset is too large
       if (dataSourceData.length > MAX_RECORDS_FOR_AI) {
+        filteringMethod = 'AI_FILTER';
         console.log('🔍 PASS 1: Generating intelligent filter for large dataset...');
         
         // Sample the data for filter generation (first 10 records as examples)
         const sampleData = dataSourceData.slice(0, 10);
+        console.log('📋 Sample data columns:', Object.keys(sampleData[0] || {}));
+        console.log('📋 First sample record:', JSON.stringify(sampleData[0], null, 2));
         
         const filterPrompt = `You are a database filter assistant. Analyze the lookup instructions and input data to generate filter criteria that will narrow down a large dataset to relevant records.
 
@@ -1752,8 +1764,13 @@ If no meaningful filter can be applied, return:
         try {
           const filterResult = await filterModel.generateContent(filterPrompt);
           const filterResponse = JSON.parse(filterResult.response.text());
+          filterCriteria = filterResponse;
           
-          console.log(`📋 AI Filter criteria: ${filterResponse.reasoning}`);
+          console.log('━'.repeat(60));
+          console.log('🤖 AI FILTER GENERATION RESULT:');
+          console.log('━'.repeat(60));
+          console.log('📋 Reasoning:', filterResponse.reasoning);
+          console.log('📋 Filters generated:', JSON.stringify(filterResponse.filters, null, 2));
           
           if (filterResponse.filters && filterResponse.filters.length > 0) {
             // Validate and filter only valid filters (column must exist)
@@ -1843,9 +1860,13 @@ If no meaningful filter can be applied, return:
             }
           }
         } catch (filterError) {
+          filteringMethod = 'ERROR_FALLBACK';
           console.error('Filter generation failed, using truncated dataset:', filterError);
           filteredData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
         }
+      } else {
+        filteringMethod = 'NO_FILTER_NEEDED';
+        console.log(`✅ Dataset size (${dataSourceData.length}) is within threshold - no filtering needed`);
       }
       
       // Ensure we don't exceed the limit even after filtering
@@ -1853,6 +1874,25 @@ If no meaningful filter can be applied, return:
       if (filteredData.length > MAX_RECORDS_FOR_AI) {
         console.log(`⚠️ Filtered data still large (${filteredData.length}), using first ${MAX_RECORDS_FOR_AI} records`);
       }
+      
+      // Log summary of filtering results
+      console.log('━'.repeat(60));
+      console.log('📊 FILTERING SUMMARY:');
+      console.log('━'.repeat(60));
+      console.log(`   Method used: ${filteringMethod}`);
+      console.log(`   Original records: ${dataSourceData.length}`);
+      console.log(`   Filtered records: ${filteredData.length}`);
+      console.log(`   Records sent to AI: ${limitedData.length}`);
+      if (filterCriteria) {
+        console.log(`   Filter criteria: ${JSON.stringify(filterCriteria.filters || [], null, 2)}`);
+      }
+      
+      // Log sample of filtered records
+      console.log('📋 FILTERED RECORDS (first 5):');
+      limitedData.slice(0, 5).forEach((record: any, idx: number) => {
+        console.log(`   [${idx}]: ${JSON.stringify(record)}`);
+      });
+      console.log('━'.repeat(60));
       
       // PASS 2: Fuzzy matching on filtered data
       console.log('🔍 PASS 2: Performing fuzzy matching lookup...');
