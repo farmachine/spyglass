@@ -81,7 +81,7 @@ The system maintains data chain integrity for multi-column extraction:
 - **Debounce**: 300ms delay before search requests to reduce API load
 - **Request Cancellation**: Uses AbortController to cancel stale requests and prevent race conditions
 - **Filter Context**: Built from all configured `_searchByColumns` for AND filtering (city + street)
-- **Target Column**: Uses `_outputColumn` from tool configuration, with fallback heuristics
+- **Target Column**: Uses `_outputColumn` from tool configuration (set via dropdown in WorkflowBuilder), with fallback heuristics
 - **State Management**: Proper React state (`dbLookupSelectedRecord`) instead of global variables
 - **AI Reasoning**: Selected records store full matched data in validation's AI reasoning field
 

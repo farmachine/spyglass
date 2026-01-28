@@ -1697,6 +1697,42 @@ function ValueCard({
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Click to add columns. First column = primary filter (most restrictive).
                       </p>
+                      
+                      {/* Output Column Selector */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                          Output Column *
+                        </Label>
+                        <Select
+                          value={(value.inputValues as Record<string, any>)?._outputColumn || ''}
+                          onValueChange={(v) => onUpdate({
+                            inputValues: {
+                              ...(value.inputValues as Record<string, any> || {}),
+                              _outputColumn: v
+                            }
+                          })}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder="Select output column..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {columns.map((col) => {
+                              const displayName = columnMappings[col] || col;
+                              return (
+                                <SelectItem key={col} value={col}>
+                                  {displayName}
+                                  {col !== displayName && (
+                                    <span className="ml-1 text-gray-400 text-xs">({col})</span>
+                                  )}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          The column value to save when a match is found.
+                        </p>
+                      </div>
                     </div>
                   );
                 })()}
