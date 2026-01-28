@@ -313,8 +313,7 @@ export default function AllData({ project }: AllDataProps) {
         v.extractedValue !== '-'
       );
       const validCount = matchingValidations.filter(v => v.validationStatus === 'valid').length;
-      const totalCount = matchingValidations.length;
-      return totalCount > 0 ? `${validCount}/${totalCount}` : '-';
+      return validCount > 0 ? `${validCount}` : '-';
     }
     
     // Find validation that matches the column (info page fields)
