@@ -5277,6 +5277,7 @@ Thank you for your assistance.`;
                       sessionId={session.id}
                       stepId={currentStep.id}
                       statusColumns={kanbanConfig.statusColumns}
+                      columnColors={kanbanConfig.columnColors}
                       stepValues={(currentStep as any).values || []}
                       sessionDocuments={sessionDocuments?.map(doc => ({
                         id: doc.id,

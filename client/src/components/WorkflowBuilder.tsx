@@ -57,6 +57,17 @@ import type {
 import { useKnowledgeDocuments } from "@/hooks/useKnowledge";
 import { v4 as uuidv4 } from 'uuid';
 
+// Color palette for kanban columns - complements the extrapl purple (#4F63A4)
+const KANBAN_COLUMN_COLORS = [
+  '#4F63A4', // Primary purple
+  '#5B8DBD', // Blue
+  '#4F9A94', // Teal
+  '#5EA47B', // Green
+  '#C4A35A', // Gold
+  '#C47B5A', // Orange
+  '#A45B73', // Rose
+];
+
 interface WorkflowStep {
   id: string;
   type: 'list' | 'page' | 'kanban';
@@ -68,6 +79,7 @@ interface WorkflowStep {
   // Kanban-specific configuration
   kanbanConfig?: {
     statusColumns: string[];
+    columnColors?: string[];
     aiInstructions?: string;
     knowledgeDocumentIds?: string[];
     includeUserDocuments?: boolean;
@@ -686,51 +698,116 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           Status Columns
                         </label>
                         <div className="space-y-2">
-                          {(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((col, colIndex) => (
-                            <div key={colIndex} className="flex gap-2">
-                              <Input
-                                value={col}
-                                onChange={(e) => {
-                                  const newColumns = [...(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'])];
-                                  newColumns[colIndex] = e.target.value;
-                                  updateStep(selectedStep.id, {
-                                    kanbanConfig: {
-                                      ...selectedStep.kanbanConfig,
-                                      statusColumns: newColumns
-                                    }
-                                  });
-                                }}
-                                placeholder="Column name"
-                                className="flex-1"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const newColumns = (selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).filter((_, i) => i !== colIndex);
-                                  updateStep(selectedStep.id, {
-                                    kanbanConfig: {
-                                      ...selectedStep.kanbanConfig,
-                                      statusColumns: newColumns
-                                    }
-                                  });
-                                }}
-                                className="text-red-500 hover:text-red-700"
-                                disabled={(selectedStep.kanbanConfig?.statusColumns || []).length <= 2}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                          {(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((col, colIndex) => {
+                            const currentColors = selectedStep.kanbanConfig?.columnColors || [];
+                            const currentColor = currentColors[colIndex] || KANBAN_COLUMN_COLORS[colIndex % KANBAN_COLUMN_COLORS.length];
+                            return (
+                              <div key={colIndex} className="flex gap-2 items-center">
+                                <div className="relative">
+                                  <Select
+                                    value={currentColor}
+                                    onValueChange={(newColor) => {
+                                      const newColors = [...currentColors];
+                                      while (newColors.length <= colIndex) {
+                                        newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
+                                      }
+                                      newColors[colIndex] = newColor;
+                                      updateStep(selectedStep.id, {
+                                        kanbanConfig: {
+                                          ...selectedStep.kanbanConfig,
+                                          columnColors: newColors
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-12 h-9 p-1">
+                                      <div 
+                                        className="w-6 h-6 rounded-md border border-gray-300 dark:border-gray-600"
+                                        style={{ backgroundColor: currentColor }}
+                                      />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <div className="flex gap-1 p-1">
+                                        {KANBAN_COLUMN_COLORS.map((color) => (
+                                          <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() => {
+                                              const newColors = [...currentColors];
+                                              while (newColors.length <= colIndex) {
+                                                newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
+                                              }
+                                              newColors[colIndex] = color;
+                                              updateStep(selectedStep.id, {
+                                                kanbanConfig: {
+                                                  ...selectedStep.kanbanConfig,
+                                                  columnColors: newColors
+                                                }
+                                              });
+                                            }}
+                                            className={`w-7 h-7 rounded-md border-2 transition-all ${
+                                              currentColor === color 
+                                                ? 'border-gray-800 dark:border-white scale-110' 
+                                                : 'border-transparent hover:border-gray-400'
+                                            }`}
+                                            style={{ backgroundColor: color }}
+                                          />
+                                        ))}
+                                      </div>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Input
+                                  value={col}
+                                  onChange={(e) => {
+                                    const newColumns = [...(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'])];
+                                    newColumns[colIndex] = e.target.value;
+                                    updateStep(selectedStep.id, {
+                                      kanbanConfig: {
+                                        ...selectedStep.kanbanConfig,
+                                        statusColumns: newColumns
+                                      }
+                                    });
+                                  }}
+                                  placeholder="Column name"
+                                  className="flex-1"
+                                  style={{ borderLeftColor: currentColor, borderLeftWidth: '3px' }}
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newColumns = (selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).filter((_, i) => i !== colIndex);
+                                    const newColors = (selectedStep.kanbanConfig?.columnColors || []).filter((_, i) => i !== colIndex);
+                                    updateStep(selectedStep.id, {
+                                      kanbanConfig: {
+                                        ...selectedStep.kanbanConfig,
+                                        statusColumns: newColumns,
+                                        columnColors: newColors
+                                      }
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700"
+                                  disabled={(selectedStep.kanbanConfig?.statusColumns || []).length <= 2}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newColumns = [...(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']), 'New Status'];
+                              const currentColumns = selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'];
+                              const currentColors = selectedStep.kanbanConfig?.columnColors || [];
+                              const newColumns = [...currentColumns, 'New Status'];
+                              const newColors = [...currentColors, KANBAN_COLUMN_COLORS[newColumns.length % KANBAN_COLUMN_COLORS.length]];
                               updateStep(selectedStep.id, {
                                 kanbanConfig: {
                                   ...selectedStep.kanbanConfig,
-                                  statusColumns: newColumns
+                                  statusColumns: newColumns,
+                                  columnColors: newColors
                                 }
                               });
                             }}

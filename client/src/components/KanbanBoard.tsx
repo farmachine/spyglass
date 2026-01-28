@@ -61,10 +61,22 @@ interface KanbanAction {
   link: string;
 }
 
+// Color palette for kanban columns - matches WorkflowBuilder
+const KANBAN_COLUMN_COLORS = [
+  '#4F63A4', // Primary purple
+  '#5B8DBD', // Blue
+  '#4F9A94', // Teal
+  '#5EA47B', // Green
+  '#C4A35A', // Gold
+  '#C47B5A', // Orange
+  '#A45B73', // Rose
+];
+
 interface KanbanBoardProps {
   sessionId: string;
   stepId: string;
   statusColumns: string[];
+  columnColors?: string[];
   sessionDocuments?: SessionDocument[];
   isLoadingDocuments?: boolean;
   aiInstructions?: string;
@@ -81,6 +93,7 @@ export function KanbanBoard({
   sessionId, 
   stepId, 
   statusColumns,
+  columnColors = [],
   sessionDocuments = [],
   isLoadingDocuments = false,
   aiInstructions,
@@ -92,6 +105,14 @@ export function KanbanBoard({
   stepValues = [],
   actions = []
 }: KanbanBoardProps) {
+  // Helper to get column color by status name
+  const getColumnColor = (status: string): string => {
+    const colIndex = statusColumns.indexOf(status);
+    if (colIndex >= 0 && columnColors[colIndex]) {
+      return columnColors[colIndex];
+    }
+    return KANBAN_COLUMN_COLORS[colIndex >= 0 ? colIndex % KANBAN_COLUMN_COLORS.length : 0];
+  };
   const { toast } = useToast();
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [isAddingCard, setIsAddingCard] = useState<string | null>(null);
@@ -510,15 +531,17 @@ export function KanbanBoard({
                 <div className="space-y-2 min-h-[100px]">
                 {columnCards.map((card) => {
                   const cardAssigneeIds = (card.assigneeIds as string[]) || [];
+                  const cardColor = getColumnColor(status);
                   return (
                     <div
                       key={card.id}
                       draggable
                       onDragStart={() => handleDragStart(card.id)}
                       onClick={() => openCardDetail(card)}
-                      className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-[#4F63A4] ${
+                      className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
                         draggedCard === card.id ? 'opacity-50' : ''
                       }`}
+                      style={{ borderLeftColor: cardColor }}
                     >
                       <div className="flex items-start gap-2">
                         <GripVertical className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0 cursor-grab" />
