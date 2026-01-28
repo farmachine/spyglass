@@ -1037,26 +1037,46 @@ export default function AllData({ project }: AllDataProps) {
                   <h4 className="text-sm font-medium mb-3 text-center">{chart.title}</h4>
                   <div className="h-[180px]">
                     {chart.type === 'pie' ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPie>
-                          <Pie
-                            data={chart.data}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={30}
-                            outerRadius={60}
-                            paddingAngle={2}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            labelLine={false}
-                          >
-                            {chart.data.map((entry, i) => (
-                              <Cell key={`cell-${i}`} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </RechartsPie>
-                      </ResponsiveContainer>
+                      <div className="flex h-full gap-2">
+                        <div className="flex-1">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPie>
+                              <Pie
+                                data={chart.data}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={25}
+                                outerRadius={50}
+                                paddingAngle={2}
+                                dataKey="value"
+                                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                labelLine={false}
+                              >
+                                {chart.data.map((entry, i) => (
+                                  <Cell key={`cell-${i}`} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                            </RechartsPie>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="w-[120px] flex flex-col justify-center gap-1 overflow-y-auto">
+                          {chart.data.map((entry, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs">
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                                style={{ backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length] }}
+                              />
+                              <span className="truncate flex-1">{entry.name}</span>
+                              <span className="font-medium text-muted-foreground">{entry.value}</span>
+                            </div>
+                          ))}
+                          <div className="border-t pt-1 mt-1 flex items-center gap-2 text-xs font-medium">
+                            <span className="flex-1">Total</span>
+                            <span>{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chart.data} layout="vertical">
