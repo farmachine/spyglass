@@ -516,7 +516,7 @@ export function KanbanBoard({
                       draggable
                       onDragStart={() => handleDragStart(card.id)}
                       onClick={() => openCardDetail(card)}
-                      className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
+                      className={`bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-[#4F63A4] ${
                         draggedCard === card.id ? 'opacity-50' : ''
                       }`}
                     >
@@ -532,16 +532,8 @@ export function KanbanBoard({
                             </p>
                           )}
                           
-                          {/* Card footer with badges and assignees */}
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-2">
-                              {card.aiGenerated && (
-                                <div className="flex items-center gap-0.5">
-                                  <Sparkles className="h-3 w-3 text-purple-500" />
-                                  <span className="text-xs text-purple-500">AI</span>
-                                </div>
-                              )}
-                            </div>
+                          {/* Card footer with assignees */}
+                          <div className="flex items-center justify-end mt-2">
                             
                             {/* Assignee avatars */}
                             {cardAssigneeIds.length > 0 && (
