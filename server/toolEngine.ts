@@ -1785,18 +1785,16 @@ YOUR TASK:
 3. Generate filter criteria using the specified columns${hasSearchByConfig ? ` (${searchByColumns.join(', ')})` : ''}
 
 CRITICAL - EXTRACT ALL VALUES FROM INPUT:
-- The input data has "City" and "Street" fields
-- You MUST create a filter for CITIES using column c_text_0002
-- You MUST create a filter for STREETS using column c_text_0001
-- Extract EVERY unique city from the input: Dilsen-Stokkem, Ham, Olen, Moorslede, Brugge, Ixelles, Genk, etc.
-- Extract EVERY unique street name from the input
+- Look at the input data fields (like "City", "Street", etc.)
+- For EACH search column configured, extract ALL unique values from the input
+- Create a separate filter for EACH search column
+- Include EVERY unique value - do not skip any cities or streets
 
 FILTERING STRATEGY:
-- Create TWO filters: one for c_text_0002 (cities), one for c_text_0001 (streets)
-- Include ALL unique city values from input in the city filter
-- Include ALL unique street values (core name only) in the street filter
-- Use partial/contains matching for streets (straat/str, weg/w variations)
-- Be MORE inclusive to avoid missing matches
+- Create one filter per search column (e.g., one for city column, one for street column)
+- Include ALL unique values from input in each filter
+- Use partial/contains matching for street names (straat/str, weg/w variations)
+- Be MORE inclusive to avoid missing matches - include all input values
 
 OUTPUT FORMAT (JSON):
 {
