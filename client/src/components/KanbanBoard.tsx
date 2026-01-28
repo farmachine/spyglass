@@ -503,7 +503,7 @@ export function KanbanBoard({
 
               {/* Scrollable Cards Area */}
               <div
-                className="flex-1 overflow-y-auto p-3 min-h-0"
+                className="flex-1 overflow-y-auto p-3 min-h-0 scrollbar-hide"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status)}
               >
