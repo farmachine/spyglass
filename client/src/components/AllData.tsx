@@ -32,6 +32,7 @@ interface ColumnConfig {
   valueId?: string;
   stepId?: string;
   fieldIdentifierId?: string;
+  isDataTable?: boolean;
 }
 
 interface AllDataProps {
@@ -130,7 +131,7 @@ export default function AllData({ project }: AllDataProps) {
   const infoPageFields = useMemo(() => {
     if (!workflowData?.steps) return [];
     
-    const fields: { id: string; name: string; valueId: string; stepId: string; fieldIdentifierId?: string }[] = [];
+    const fields: { id: string; name: string; valueId: string; stepId: string; fieldIdentifierId?: string; isDataTable?: boolean }[] = [];
     
     for (const step of workflowData.steps) {
       if (step.stepType === 'page') {
@@ -143,7 +144,8 @@ export default function AllData({ project }: AllDataProps) {
                 name: field.name,
                 valueId: value.id,
                 stepId: step.id,
-                fieldIdentifierId: field.identifierId
+                fieldIdentifierId: field.identifierId,
+                isDataTable: false
               });
             }
           } else {
@@ -152,7 +154,8 @@ export default function AllData({ project }: AllDataProps) {
               id: value.id,
               name: value.valueName,
               valueId: value.id,
-              stepId: step.id
+              stepId: step.id,
+              isDataTable: false
             });
           }
         }
@@ -161,6 +164,35 @@ export default function AllData({ project }: AllDataProps) {
     
     return fields;
   }, [workflowData]);
+
+  // Extract data table fields from workflow (list type steps)
+  const dataTableFields = useMemo(() => {
+    if (!workflowData?.steps) return [];
+    
+    const fields: { id: string; name: string; valueId: string; stepId: string; stepName: string; isDataTable: boolean }[] = [];
+    
+    for (const step of workflowData.steps) {
+      if (step.stepType === 'list') {
+        for (const value of (step.values || [])) {
+          fields.push({
+            id: `dt-${value.id}`,
+            name: value.valueName,
+            valueId: value.id,
+            stepId: step.id,
+            stepName: step.stepName,
+            isDataTable: true
+          });
+        }
+      }
+    }
+    
+    return fields;
+  }, [workflowData]);
+
+  // Combined fields for column settings and analytics
+  const allConfigurableFields = useMemo(() => {
+    return [...infoPageFields, ...dataTableFields];
+  }, [infoPageFields, dataTableFields]);
 
   // Load column settings from localStorage
   useEffect(() => {
@@ -175,16 +207,16 @@ export default function AllData({ project }: AllDataProps) {
     }
   }, [project.id]);
 
-  // Initialize and sync column configs when info page fields change
+  // Initialize and sync column configs when fields change
   useEffect(() => {
-    if (infoPageFields.length === 0) return;
+    if (allConfigurableFields.length === 0) return;
     
     const savedSettings = localStorage.getItem(`column-settings-${project.id}`);
     
     if (savedSettings && columnConfigs.length > 0) {
       // Merge new fields from workflow that aren't in saved settings
       const existingIds = new Set(columnConfigs.map(c => c.id));
-      const newFields = infoPageFields.filter(f => !existingIds.has(f.id));
+      const newFields = allConfigurableFields.filter(f => !existingIds.has(f.id));
       
       if (newFields.length > 0) {
         const maxOrderIndex = Math.max(...columnConfigs.map(c => c.orderIndex), -1);
@@ -195,25 +227,27 @@ export default function AllData({ project }: AllDataProps) {
           orderIndex: maxOrderIndex + 1 + index,
           valueId: field.valueId,
           stepId: field.stepId,
-          fieldIdentifierId: field.fieldIdentifierId
+          fieldIdentifierId: (field as any).fieldIdentifierId,
+          isDataTable: field.isDataTable
         }));
         const merged = [...columnConfigs, ...newConfigs];
         saveColumnSettings(merged);
       }
     } else if (!savedSettings && columnConfigs.length === 0) {
       // Initialize with all fields hidden by default
-      const initialConfigs = infoPageFields.map((field, index) => ({
+      const initialConfigs = allConfigurableFields.map((field, index) => ({
         id: field.id,
         name: field.name,
         visible: false,
         orderIndex: index,
         valueId: field.valueId,
         stepId: field.stepId,
-        fieldIdentifierId: field.fieldIdentifierId
+        fieldIdentifierId: (field as any).fieldIdentifierId,
+        isDataTable: field.isDataTable
       }));
       setColumnConfigs(initialConfigs);
     }
-  }, [infoPageFields, project.id]);
+  }, [allConfigurableFields, project.id]);
 
   // Save column settings to localStorage
   const saveColumnSettings = (configs: ColumnConfig[]) => {
@@ -270,14 +304,27 @@ export default function AllData({ project }: AllDataProps) {
   const getExtractedValue = (sessionId: string, column: ColumnConfig): string => {
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
     
-    // Find validation that matches the column
+    // Handle data table fields - show count of valid values
+    if (column.isDataTable) {
+      const matchingValidations = sessionValidations.filter(v => 
+        v.fieldId === column.valueId && 
+        v.extractedValue && 
+        v.extractedValue !== 'null' && 
+        v.extractedValue !== '-'
+      );
+      const validCount = matchingValidations.filter(v => v.validationStatus === 'valid').length;
+      const totalCount = matchingValidations.length;
+      return totalCount > 0 ? `${validCount}/${totalCount}` : '-';
+    }
+    
+    // Find validation that matches the column (info page fields)
     const validation = sessionValidations.find(v => {
       if (column.fieldIdentifierId) {
         // Multi-field: match by identifierId (the unique field identifier)
         return v.identifierId === column.fieldIdentifierId;
       } else {
         // Single-field: match by valueId
-        return v.valueId === column.valueId;
+        return v.fieldId === column.valueId;
       }
     });
     
@@ -421,6 +468,32 @@ export default function AllData({ project }: AllDataProps) {
 
   // Get all data for selected fields from sessions
   const getFieldDataForAnalytics = (fieldId: string): { values: string[], fieldName: string } => {
+    // Check if it's a data table field
+    const dataTableField = dataTableFields.find(f => f.id === fieldId);
+    if (dataTableField) {
+      // For data table fields, get all extracted values across all sessions
+      const values: string[] = [];
+      const validSessions = (project.sessions || []).filter(s => s && s.id);
+      
+      for (const session of validSessions) {
+        const sessionValidations = allValidations.filter(v => 
+          v.sessionId === session.id && 
+          v.fieldId === dataTableField.valueId &&
+          v.extractedValue && 
+          v.extractedValue !== 'null' && 
+          v.extractedValue !== '-'
+        );
+        for (const v of sessionValidations) {
+          if (v.extractedValue) {
+            values.push(v.extractedValue);
+          }
+        }
+      }
+      
+      return { values, fieldName: dataTableField.name };
+    }
+    
+    // Info page fields
     const column = columnConfigs.find(c => c.id === fieldId) || infoPageFields.find(f => f.id === fieldId);
     if (!column) return { values: [], fieldName: 'Unknown' };
     
@@ -783,11 +856,11 @@ export default function AllData({ project }: AllDataProps) {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
             <p className="text-sm text-muted-foreground mb-4">
-              Show or hide info page fields as columns. Drag to reorder.
+              Show or hide fields as columns. Drag to reorder.
             </p>
             {columnConfigs.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No info page fields configured in this project.
+                No fields configured in this project.
               </p>
             ) : (
               <div className="space-y-1">
@@ -808,6 +881,9 @@ export default function AllData({ project }: AllDataProps) {
                     >
                       <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1 text-sm truncate">{column.name}</span>
+                      {column.isDataTable && (
+                        <Badge variant="secondary" className="text-xs">Count</Badge>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -846,7 +922,7 @@ export default function AllData({ project }: AllDataProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
-            {infoPageFields.length === 0 && (!kanbanProgressData?.kanbanSteps || kanbanProgressData.kanbanSteps.length === 0) ? (
+            {allConfigurableFields.length === 0 && (!kanbanProgressData?.kanbanSteps || kanbanProgressData.kanbanSteps.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No fields configured in this project.
               </p>
@@ -862,6 +938,21 @@ export default function AllData({ project }: AllDataProps) {
                       onCheckedChange={() => toggleAnalyticsField(field.id)}
                     />
                     <span className="flex-1 text-sm">{field.name}</span>
+                  </label>
+                ))}
+                {dataTableFields.map((field) => (
+                  <label
+                    key={field.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
+                  >
+                    <Checkbox
+                      checked={selectedAnalyticsFields.has(field.id)}
+                      onCheckedChange={() => toggleAnalyticsField(field.id)}
+                    />
+                    <span className="flex-1 text-sm flex items-center gap-2">
+                      {field.name}
+                      <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/30">Data</Badge>
+                    </span>
                   </label>
                 ))}
                 {kanbanProgressData?.kanbanSteps?.map((step) => (
