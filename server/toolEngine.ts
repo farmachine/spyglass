@@ -1932,17 +1932,22 @@ ${aiPrompt}
 INPUT ITEMS TO MATCH (${inputArray.length} items):
 ${JSON.stringify(inputArray, null, 2)}
 
-MATCHING RULES:
-1. For EACH input item, find the BEST matching candidate based on the search columns (street, city, etc.)
-2. Use fuzzy matching for spelling variations (straat/str, weg/w, different cases)
-3. Both street AND city should match for a valid match
-4. If no good match, return null for extractedValue with "invalid" status
+MATCHING RULES - STRICT REQUIREMENTS:
+1. For EACH input item, find a candidate where BOTH city AND street match
+2. CITY MUST MATCH: The candidate's city (c_text_0002) must match the input city
+   - "Moorslede" input must match "Moorslede" candidate (not "HAM", not "Ixelles")
+   - Do NOT match across different cities
+3. STREET MUST ALSO MATCH: The candidate's street (c_text_0001) should match the input street
+   - Use fuzzy matching for variations (straat/str, weg/w, different cases)
+4. If CITY does not match, the record is NOT a valid match - return null
+5. If no candidate has matching city AND street, return null with "invalid" status
 
 CRITICAL - extractedValue MUST BE EXACT:
 - The extractedValue MUST be the EXACT "id" field value from the matched candidate record
 - DO NOT modify, truncate, or abbreviate the ID
 - DO NOT invent or hallucinate IDs
-- Example: If the matched candidate has "id": "5240 GK Slagmolenweg", return EXACTLY "5240 GK Slagmolenweg"
+- Example: Input "Moorslede, Kortrijksestraat" should match candidate with city="Moorslede" and street containing "Kortrijk"
+- If matched candidate has "id": "20331248 MOOR Kor 91", return EXACTLY "20331248 MOOR Kor 91"
 - If no match found, return null (not a made-up value)
 
 Return EXACTLY ${inputArray.length} results in the SAME ORDER as input items.
