@@ -2189,6 +2189,140 @@ except Exception as e:
     }
   });
 
+  // Live search data source for DATABASE_LOOKUP manual editing
+  app.post("/api/data-sources/:id/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { query, filterContext, limit = 20 } = req.body;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const dataSource = await storage.getApiDataSource(id);
+      if (!dataSource) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      // Verify user has access to the project that owns this data source
+      if (!await verifyProjectAccess(dataSource.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get cached data - if not available, return empty
+      let dataSourceData: any[] = [];
+      if (dataSource.cachedData) {
+        let parsedData = dataSource.cachedData;
+        if (typeof parsedData === 'string') {
+          try {
+            parsedData = JSON.parse(parsedData);
+          } catch (e) {
+            parsedData = [];
+          }
+        }
+        
+        // Extract array from nested structure if needed
+        const extractArray = (data: any): any[] => {
+          if (Array.isArray(data)) return data;
+          if (typeof data === 'object' && data !== null) {
+            const keys = ['data', 'entries', 'items', 'results', 'records', 'rows'];
+            for (const key of keys) {
+              if (data[key] && Array.isArray(data[key])) return data[key];
+            }
+            if (data.data && typeof data.data === 'object') {
+              for (const key of keys) {
+                if (data.data[key] && Array.isArray(data.data[key])) return data.data[key];
+              }
+            }
+          }
+          return [];
+        };
+        
+        dataSourceData = extractArray(parsedData);
+      }
+      
+      if (dataSourceData.length === 0) {
+        return res.json({ results: [], message: "No data available. Please refresh the data source first." });
+      }
+      
+      // Get column mappings for friendly names
+      const columnMappings = (dataSource.columnMappings || {}) as Record<string, string>;
+      const reverseMapping: Record<string, string> = {};
+      for (const [rawCol, friendlyName] of Object.entries(columnMappings)) {
+        reverseMapping[friendlyName.toLowerCase()] = rawCol;
+      }
+      
+      // Normalize search query
+      const searchLower = query.toLowerCase().trim();
+      
+      // Filter by context first (e.g., city filter)
+      let candidateData = dataSourceData;
+      if (filterContext && typeof filterContext === 'object') {
+        // filterContext should be like { columnName: "value" } or { City: "Brussels" }
+        const filterEntries = Object.entries(filterContext);
+        if (filterEntries.length > 0) {
+          candidateData = dataSourceData.filter(record => {
+            return filterEntries.every(([colName, colValue]) => {
+              if (!colValue) return true;
+              // Try to find the raw column name
+              const rawCol = reverseMapping[colName.toLowerCase()] || colName;
+              const recordValue = record[rawCol] || record[colName] || '';
+              const valueStr = String(recordValue).toLowerCase();
+              const filterStr = String(colValue).toLowerCase();
+              return valueStr.includes(filterStr) || filterStr.includes(valueStr);
+            });
+          });
+          
+          console.log(`   🔍 Context filter applied: ${JSON.stringify(filterContext)} - ${candidateData.length} of ${dataSourceData.length} records`);
+        }
+      }
+      
+      // If no candidates match the filter, fall back to searching all records
+      if (candidateData.length === 0 && filterContext) {
+        console.log(`   ⚠️ No records match filter context, falling back to all records`);
+        candidateData = dataSourceData;
+      }
+      
+      // Search across all fields
+      const results = candidateData.filter(record => {
+        // Search in all string fields
+        for (const value of Object.values(record)) {
+          if (typeof value === 'string' && value.toLowerCase().includes(searchLower)) {
+            return true;
+          }
+        }
+        return false;
+      }).slice(0, Math.min(limit, 50));
+      
+      // Transform results to include friendly column names
+      const transformedResults = results.map(record => {
+        const transformed: Record<string, any> = {};
+        for (const [rawCol, value] of Object.entries(record)) {
+          const friendlyName = columnMappings[rawCol] || rawCol;
+          transformed[friendlyName] = value;
+          // Also keep raw column for reference
+          if (friendlyName !== rawCol) {
+            transformed[`_raw_${rawCol}`] = value;
+          }
+        }
+        return {
+          _original: record,
+          display: transformed
+        };
+      });
+      
+      res.json({ 
+        results: transformedResults, 
+        totalCandidates: candidateData.length,
+        totalRecords: dataSourceData.length,
+        filterApplied: !!filterContext && candidateData.length < dataSourceData.length
+      });
+    } catch (error: any) {
+      console.error("Error searching data source:", error);
+      res.status(500).json({ message: "Failed to search data", error: error.message });
+    }
+  });
+
   // Dashboard Statistics
   app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
     try {

@@ -1624,6 +1624,14 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [editingTableField, setEditingTableField] = useState<string | null>(null);
   const [editTableValue, setEditTableValue] = useState("");
+  const [dbLookupResults, setDbLookupResults] = useState<any[]>([]);
+  const [dbLookupLoading, setDbLookupLoading] = useState(false);
+  const [dbLookupDataSourceId, setDbLookupDataSourceId] = useState<string | null>(null);
+  const [dbLookupFilterContext, setDbLookupFilterContext] = useState<Record<string, string>>({});
+  const [dbLookupTargetColumn, setDbLookupTargetColumn] = useState<string | null>(null);
+  const [dbLookupSelectedRecord, setDbLookupSelectedRecord] = useState<any>(null);
+  const dbLookupSearchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const dbLookupAbortController = useRef<AbortController | null>(null);
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   
@@ -1732,6 +1740,141 @@ export default function SessionView() {
     } else {
       setEditTableValue(validation.extractedValue || "");
       console.log('Setting edit value to:', validation.extractedValue);
+    }
+  };
+  
+  // Search database for DATABASE_LOOKUP fields (with debounce and cancellation)
+  const searchDatabaseLookup = (searchQuery: string) => {
+    // Clear previous timeout
+    if (dbLookupSearchTimeout.current) {
+      clearTimeout(dbLookupSearchTimeout.current);
+    }
+    
+    // Cancel any pending request
+    if (dbLookupAbortController.current) {
+      dbLookupAbortController.current.abort();
+    }
+    
+    if (!dbLookupDataSourceId || searchQuery.length < 2) {
+      setDbLookupResults([]);
+      setDbLookupLoading(false);
+      return;
+    }
+    
+    setDbLookupLoading(true);
+    
+    // Debounce: wait 300ms before searching
+    dbLookupSearchTimeout.current = setTimeout(async () => {
+      // Create new abort controller for this request
+      const controller = new AbortController();
+      dbLookupAbortController.current = controller;
+      
+      try {
+        const response = await fetch(`/api/data-sources/${dbLookupDataSourceId}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          signal: controller.signal,
+          body: JSON.stringify({
+            query: searchQuery,
+            filterContext: Object.keys(dbLookupFilterContext).length > 0 ? dbLookupFilterContext : undefined,
+            limit: 20
+          })
+        });
+        
+        if (!response.ok) throw new Error('Search failed');
+        const data = await response.json();
+        
+        // Only update if this request wasn't aborted
+        if (!controller.signal.aborted && data.results) {
+          setDbLookupResults(data.results);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Database lookup search error:', error);
+          setDbLookupResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setDbLookupLoading(false);
+        }
+      }
+    }, 300);
+  };
+  
+  // Handle selecting a database lookup result
+  const handleSelectDbLookupResult = (result: any) => {
+    const displayData = result.display || {};
+    let selectedValue = '';
+    
+    // Use configured target column if available
+    if (dbLookupTargetColumn) {
+      // Try exact match first
+      if (displayData[dbLookupTargetColumn]) {
+        selectedValue = String(displayData[dbLookupTargetColumn]);
+      } else {
+        // Try case-insensitive match
+        for (const [key, value] of Object.entries(displayData)) {
+          if (key.toLowerCase() === dbLookupTargetColumn.toLowerCase()) {
+            selectedValue = String(value || '');
+            break;
+          }
+        }
+      }
+    }
+    
+    // Fallback: try common patterns if no target column or no match
+    if (!selectedValue) {
+      for (const [key, value] of Object.entries(displayData)) {
+        if (key.toLowerCase().includes('profit') || key.toLowerCase().includes('name') || key.toLowerCase().includes('center')) {
+          selectedValue = String(value || '');
+          break;
+        }
+      }
+    }
+    
+    // Final fallback: first non-id column
+    if (!selectedValue) {
+      for (const [key, value] of Object.entries(displayData)) {
+        if (!key.startsWith('_') && !key.toLowerCase().includes('id') && value) {
+          selectedValue = String(value);
+          break;
+        }
+      }
+    }
+    
+    setEditTableValue(selectedValue);
+    setDbLookupResults([]);
+    
+    // Build AI reasoning with full record data
+    const reasoningParts: string[] = ['Matched record from database:'];
+    for (const [key, value] of Object.entries(displayData)) {
+      if (!key.startsWith('_') && value !== null && value !== undefined) {
+        reasoningParts.push(`${key}: ${value}`);
+      }
+    }
+    
+    // Store the selected record for use in save function
+    setDbLookupSelectedRecord({
+      value: selectedValue,
+      reasoning: reasoningParts.join('\n'),
+      fullRecord: displayData
+    });
+  };
+  
+  // Clear database lookup state
+  const clearDbLookupState = () => {
+    setDbLookupDataSourceId(null);
+    setDbLookupFilterContext({});
+    setDbLookupTargetColumn(null);
+    setDbLookupResults([]);
+    setDbLookupSelectedRecord(null);
+    if (dbLookupSearchTimeout.current) {
+      clearTimeout(dbLookupSearchTimeout.current);
+    }
+    if (dbLookupAbortController.current) {
+      dbLookupAbortController.current.abort();
+      dbLookupAbortController.current = null;
     }
   };
 
@@ -1852,6 +1995,13 @@ export default function SessionView() {
         // Get the data type from the step value
         const dataType = stepValue?.valueType || 'text';
         
+        // Check if we have database lookup reasoning from selected record
+        const reasoningText = dbLookupSelectedRecord?.reasoning || 'Manually entered value';
+        const documentSourceText = dbLookupSelectedRecord ? 'Database Lookup' : 'Manual Entry';
+        
+        // Clear the database lookup state
+        clearDbLookupState();
+        
         const newValidation = {
           validationType: 'collection_property',
           dataType: dataType,
@@ -1863,13 +2013,13 @@ export default function SessionView() {
           extractedValue: currentValue,
           originalExtractedValue: currentValue,
           originalConfidenceScore: 100,
-          originalAiReasoning: 'Manually entered value',
+          originalAiReasoning: reasoningText,
           validationStatus: 'valid',
-          aiReasoning: 'Manually entered value',
+          aiReasoning: reasoningText,
           manuallyVerified: true,
           manuallyUpdated: true,
           confidenceScore: 100,
-          documentSource: 'Manual Entry',
+          documentSource: documentSourceText,
           documentSections: null
         };
         
@@ -1905,6 +2055,7 @@ export default function SessionView() {
   const handleCancelTableFieldEdit = () => {
     setEditingTableField(null);
     setEditTableValue("");
+    clearDbLookupState();
   };
 
   // Handler to open AI extraction modal
@@ -6519,8 +6670,11 @@ Thank you for your assistance.`;
                                               const isEditingThisField = editingTableField === fieldKey;
                                               
                                               if (isEditingThisField) {
+                                                // Check if this is a DATABASE_LOOKUP field
+                                                const isDbLookup = dbLookupDataSourceId !== null;
+                                                
                                                 return (
-                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
+                                                  <div className={`absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500 ${isDbLookup ? 'overflow-visible' : ''}`}>
                                                     <div className="relative h-full">
                                                       {columnType === 'TEXTAREA' ? (
                                                         <textarea
@@ -6537,20 +6691,65 @@ Thank you for your assistance.`;
                                                           }}
                                                         />
                                                       ) : (
-                                                        <input
-                                                          type={columnType === 'NUMBER' ? 'number' : columnType === 'DATE' ? 'date' : 'text'}
-                                                          value={editTableValue}
-                                                          onChange={(e) => setEditTableValue(e.target.value)}
-                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-20"
-                                                          autoFocus
-                                                          onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                              handleSaveTableFieldEdit();
-                                                            } else if (e.key === 'Escape') {
-                                                              handleCancelTableFieldEdit();
-                                                            }
-                                                          }}
-                                                        />
+                                                        <>
+                                                          <input
+                                                            type={columnType === 'NUMBER' ? 'number' : columnType === 'DATE' ? 'date' : 'text'}
+                                                            value={editTableValue}
+                                                            onChange={(e) => {
+                                                              setEditTableValue(e.target.value);
+                                                              // If this is a database lookup field, trigger search
+                                                              if (isDbLookup && e.target.value.length >= 2) {
+                                                                searchDatabaseLookup(e.target.value);
+                                                              } else if (isDbLookup) {
+                                                                setDbLookupResults([]);
+                                                              }
+                                                            }}
+                                                            className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-20"
+                                                            autoFocus
+                                                            placeholder={isDbLookup ? "Type to search database..." : ""}
+                                                            onKeyDown={(e) => {
+                                                              if (e.key === 'Enter' && !isDbLookup) {
+                                                                handleSaveTableFieldEdit();
+                                                              } else if (e.key === 'Escape') {
+                                                                handleCancelTableFieldEdit();
+                                                                setDbLookupResults([]);
+                                                              }
+                                                            }}
+                                                          />
+                                                          
+                                                          {/* Database lookup results dropdown */}
+                                                          {isDbLookup && dbLookupResults.length > 0 && (
+                                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto z-50">
+                                                              {dbLookupResults.map((result, idx) => {
+                                                                const displayData = result.display || {};
+                                                                const previewParts: string[] = [];
+                                                                for (const [key, value] of Object.entries(displayData)) {
+                                                                  if (!key.startsWith('_') && value) {
+                                                                    previewParts.push(`${key}: ${value}`);
+                                                                  }
+                                                                }
+                                                                return (
+                                                                  <div
+                                                                    key={idx}
+                                                                    onClick={() => handleSelectDbLookupResult(result)}
+                                                                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                                                                  >
+                                                                    <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                                                                      {previewParts.slice(0, 3).join(' | ')}
+                                                                    </div>
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
+                                                          )}
+                                                          
+                                                          {/* Loading indicator */}
+                                                          {isDbLookup && dbLookupLoading && (
+                                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-center text-sm text-gray-500">
+                                                              Searching...
+                                                            </div>
+                                                          )}
+                                                        </>
                                                       )}
                                                       
                                                       {/* Save/Cancel buttons */}
@@ -6565,7 +6764,11 @@ Thank you for your assistance.`;
                                                         <Button
                                                           size="sm"
                                                           variant="outline"
-                                                          onClick={handleCancelTableFieldEdit}
+                                                          onClick={() => {
+                                                            handleCancelTableFieldEdit();
+                                                            setDbLookupResults([]);
+                                                            setDbLookupDataSourceId(null);
+                                                          }}
                                                           className="h-6 px-2 text-xs"
                                                         >
                                                           ×
@@ -6587,6 +6790,39 @@ Thank you for your assistance.`;
                                                         rowIdentifierId,
                                                         hasValidation: !!validation
                                                       });
+                                                      
+                                                      // Clear previous lookup state
+                                                      clearDbLookupState();
+                                                      
+                                                      // Check if this column uses a DATABASE_LOOKUP tool
+                                                      const workflowStep = workflow?.steps?.find(s => s.stepName === collection.collectionName);
+                                                      const stepValue = workflowStep?.values?.find((sv: any) => sv.valueName === columnName);
+                                                      const tool = stepValue?.tool;
+                                                      
+                                                      if (tool?.toolType === 'DATABASE_LOOKUP') {
+                                                        // Get data source ID from inputValues
+                                                        const dataSourceId = stepValue?.inputValues?._dataSourceId;
+                                                        if (dataSourceId) {
+                                                          setDbLookupDataSourceId(dataSourceId);
+                                                          
+                                                          // Get target output column from tool configuration
+                                                          const outputColumn = stepValue?.inputValues?._outputColumn || stepValue?.valueName;
+                                                          setDbLookupTargetColumn(outputColumn);
+                                                          
+                                                          // Get filter context from all searchByColumns (for AND filtering)
+                                                          const searchByColumns = stepValue?.inputValues?._searchByColumns || [];
+                                                          if (searchByColumns.length > 0 && rowData) {
+                                                            const filterContext: Record<string, string> = {};
+                                                            // Build filter context from all configured search columns
+                                                            for (const colName of searchByColumns) {
+                                                              if (rowData[colName]) {
+                                                                filterContext[colName] = rowData[colName];
+                                                              }
+                                                            }
+                                                            setDbLookupFilterContext(filterContext);
+                                                          }
+                                                        }
+                                                      }
                                                       
                                                       if (validation) {
                                                         console.log('Editing existing validation:', validation);

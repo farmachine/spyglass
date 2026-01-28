@@ -73,6 +73,25 @@ The system maintains data chain integrity for multi-column extraction:
 - `EXCEL_FUNCTION_GENERATOR` prompt (prompts/all_prompts.py:350-400) provides clear guidance on reference vs update data distinction
 - Code tools handle identifier arrays the same way AI tools do for consistency
 
+### Database Lookup Manual Search (Jan 2026)
+**Live Search for DATABASE_LOOKUP Fields**: When manually editing a cell that uses a DATABASE_LOOKUP tool, a live search dropdown appears allowing users to search the connected data source.
+
+**Implementation Details**:
+- **API Endpoint**: `POST /api/data-sources/:id/search` - Searches cached data source with filter context
+- **Debounce**: 300ms delay before search requests to reduce API load
+- **Request Cancellation**: Uses AbortController to cancel stale requests and prevent race conditions
+- **Filter Context**: Built from all configured `_searchByColumns` for AND filtering (city + street)
+- **Target Column**: Uses `_outputColumn` from tool configuration, with fallback heuristics
+- **State Management**: Proper React state (`dbLookupSelectedRecord`) instead of global variables
+- **AI Reasoning**: Selected records store full matched data in validation's AI reasoning field
+
+**Data Flow**:
+1. User clicks edit on DATABASE_LOOKUP cell → State cleared, new context loaded
+2. User types 2+ characters → Debounced search with filter context
+3. Dropdown shows matching records with column previews
+4. User selects record → Target column value saved, full record stored in AI reasoning
+5. On save/cancel → All lookup state cleared
+
 ### UI/UX Architecture
 The design system uses Slate Blue (#4F63A4) as the primary color and features comprehensive dark mode theming. Loading states are managed via an overlay with a spinner. Components include modals with collapsible sections, fixed-width tables, and forms built with React Hook Form and Zod validation.
 
