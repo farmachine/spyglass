@@ -1759,10 +1759,11 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         // PHASE 1: Generate ONE comprehensive filter from ALL input items
         // Build search columns instruction
         const searchColumnsInstruction = hasSearchByConfig 
-          ? `\nIMPORTANT: You MUST filter on these specific columns: ${searchByColumns.map(c => {
+          ? `\nIMPORTANT: You MUST filter on these specific columns IN THIS ORDER (first = highest priority):
+${searchByColumns.map((c, i) => {
               const mapped = (columnMappings as Record<string, string>)[c];
-              return mapped ? `${mapped} (${c})` : c;
-            }).join(', ')}`
+              return `  ${i + 1}. ${mapped ? `${mapped} (${c})` : c}${i === 0 ? ' - PRIMARY FILTER (most restrictive)' : ''}`;
+            }).join('\n')}`
           : '';
         
         const filterPrompt = `You are a smart database filter assistant. Your job is to analyze input data and generate optimal filter criteria to find potential matches in a large database.
@@ -1791,7 +1792,8 @@ CRITICAL - EXTRACT ALL VALUES FROM INPUT:
 - Include EVERY unique value - do not skip any cities or streets
 
 FILTERING STRATEGY:
-- Create one filter per search column (e.g., one for city column, one for street column)
+- Create one filter per search column, OUTPUT THEM IN PRIORITY ORDER (first column first in the array)
+- The FIRST filter in your output should be for the PRIMARY column (reduces data the most - e.g., city)
 - Include ALL unique values from input in each filter
 - Use partial/contains matching for street names (straat/str, weg/w variations)
 - Be MORE inclusive to avoid missing matches - include all input values
