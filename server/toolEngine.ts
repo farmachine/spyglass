@@ -1950,17 +1950,21 @@ CRITICAL - extractedValue MUST BE EXACT:
 - If matched candidate has "id": "20331248 MOOR Kor 91", return EXACTLY "20331248 MOOR Kor 91"
 - If no match found, return null (not a made-up value)
 
-Return EXACTLY ${inputArray.length} results in the SAME ORDER as input items.
+CRITICAL - IDENTIFIER ALIGNMENT:
+- Each input item has an "identifierId" field (UUID like "bf182744-a59a-478c-b8a2-9cdfe0801a26")
+- You MUST copy the EXACT identifierId from each input to its corresponding output
+- This links the result to the correct row - DO NOT mix up identifierIds between rows
+- Return EXACTLY ${inputArray.length} results, one for each input item
 
-OUTPUT FORMAT:
+OUTPUT FORMAT (one result per input, preserving identifierId):
 [
   {
+    "identifierId": "COPY EXACTLY from the input item's identifierId field",
     "extractedValue": "EXACT id from matched candidate record, or null if no match",
     "validationStatus": "valid" if confident match, "invalid" if no match,
-    "aiReasoning": "Brief: matched X to Y because street and city align",
+    "aiReasoning": "Brief: matched [input city+street] to [candidate city+street]",
     "confidenceScore": 0-100,
-    "documentSource": "Name of matched record",
-    "identifierId": "COPY EXACTLY from input item"
+    "documentSource": "Name of matched record"
   }
 ]`;
 
