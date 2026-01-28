@@ -11379,7 +11379,11 @@ Example format:
   }
 ]
 
-IMPORTANT: Follow the user's instructions carefully. Generate comprehensive, detailed descriptions and relevant checklists for each task.
+CRITICAL RULES:
+1. If the user specifies a naming convention for task titles (e.g., "task name should be 'Damage Report - {{Reference}}'"), you MUST follow it exactly, replacing {{placeholders}} with actual values from the data.
+2. If the user specifies which tasks go to which status column, follow those rules precisely.
+3. Generate comprehensive, detailed descriptions and relevant checklists for each task.
+4. Create ONE task per data item when processing extracted data rows.
 
 Return ONLY the JSON array, no other text.`;
 
