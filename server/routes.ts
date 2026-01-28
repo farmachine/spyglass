@@ -11233,7 +11233,7 @@ def extract_function(Column_Name, Excel_File):
       // Get reference data from other steps if specified
       let referenceDataContent = '';
       if (referenceStepIds && referenceStepIds.length > 0) {
-        const session = await storage.getSession(sessionId);
+        const session = await storage.getExtractionSession(sessionId);
         if (session) {
           for (const refStepId of referenceStepIds) {
             const stepData = await storage.getWorkflowStep(refStepId);
