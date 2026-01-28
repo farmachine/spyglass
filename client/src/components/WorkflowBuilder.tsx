@@ -1529,39 +1529,96 @@ function ValueCard({
                   return (
                     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                       <Label className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">
-                        Search By Columns (for matching)
+                        Search By Columns (filter priority order)
                       </Label>
-                      <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto bg-white dark:bg-gray-800 p-2 rounded border">
-                        {columns.map((col) => {
+                      
+                      {/* Selected columns with order */}
+                      {selectedColumns.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          {selectedColumns.map((col: string, index: number) => {
+                            const displayName = columnMappings[col] || col;
+                            return (
+                              <div key={col} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 p-2 rounded border border-blue-200 dark:border-blue-800">
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">
+                                  {index + 1}
+                                </span>
+                                <span className="flex-1 text-xs truncate" title={col !== displayName ? `${displayName} (${col})` : col}>
+                                  {displayName}
+                                  {index === 0 && <span className="ml-1 text-blue-600 dark:text-blue-400">(Primary)</span>}
+                                </span>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    onClick={() => {
+                                      if (index > 0) {
+                                        const newColumns = [...selectedColumns];
+                                        [newColumns[index - 1], newColumns[index]] = [newColumns[index], newColumns[index - 1]];
+                                        onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                                      }
+                                    }}
+                                    className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-30"
+                                    title="Move up"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={index === selectedColumns.length - 1}
+                                    onClick={() => {
+                                      if (index < selectedColumns.length - 1) {
+                                        const newColumns = [...selectedColumns];
+                                        [newColumns[index], newColumns[index + 1]] = [newColumns[index + 1], newColumns[index]];
+                                        onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                                      }
+                                    }}
+                                    className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-30"
+                                    title="Move down"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newColumns = selectedColumns.filter((c: string) => c !== col);
+                                      onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                                    }}
+                                    className="p-1 text-red-500 hover:text-red-700"
+                                    title="Remove"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Available columns to add */}
+                      <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto bg-white dark:bg-gray-800 p-2 rounded border">
+                        {columns.filter(col => !selectedColumns.includes(col)).map((col) => {
                           const displayName = columnMappings[col] || col;
-                          const isSelected = selectedColumns.includes(col);
                           return (
-                            <label key={col} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  const newColumns = e.target.checked
-                                    ? [...selectedColumns, col]
-                                    : selectedColumns.filter((c: string) => c !== col);
-                                  onUpdate({
-                                    inputValues: {
-                                      ...(value.inputValues as Record<string, any> || {}),
-                                      _searchByColumns: newColumns
-                                    }
-                                  });
-                                }}
-                                className="rounded border-gray-300"
-                              />
+                            <button
+                              key={col}
+                              type="button"
+                              onClick={() => {
+                                const newColumns = [...selectedColumns, col];
+                                onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                              }}
+                              className="flex items-center gap-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded"
+                            >
+                              <span className="text-green-500">+</span>
                               <span className="truncate" title={col !== displayName ? `${displayName} (${col})` : col}>
                                 {displayName}
                               </span>
-                            </label>
+                            </button>
                           );
                         })}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Select which columns to use for matching. Leave empty to auto-detect.
+                        Click to add columns. First column = primary filter (most restrictive).
                       </p>
                     </div>
                   );
