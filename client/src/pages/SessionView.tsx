@@ -6794,33 +6794,30 @@ Thank you for your assistance.`;
                                                       // Clear previous lookup state
                                                       clearDbLookupState();
                                                       
-                                                      // Check if this column uses a DATABASE_LOOKUP tool
+                                                      // Check if this column uses a DATABASE_LOOKUP tool (has data source configured)
                                                       const workflowStep = project?.workflowSteps?.find(s => s.stepName === collection.collectionName);
                                                       const stepValue = workflowStep?.values?.find((sv: any) => sv.valueName === columnName);
-                                                      const tool = stepValue?.tool;
                                                       
-                                                      if (tool?.toolType === 'DATABASE_LOOKUP') {
-                                                        // Get data source ID from inputValues
-                                                        const dataSourceId = stepValue?.inputValues?._dataSourceId;
-                                                        if (dataSourceId) {
-                                                          setDbLookupDataSourceId(dataSourceId);
-                                                          
-                                                          // Get target output column from tool configuration
-                                                          const outputColumn = stepValue?.inputValues?._outputColumn || stepValue?.valueName;
-                                                          setDbLookupTargetColumn(outputColumn);
-                                                          
-                                                          // Get filter context from all searchByColumns (for AND filtering)
-                                                          const searchByColumns = stepValue?.inputValues?._searchByColumns || [];
-                                                          if (searchByColumns.length > 0 && rowData) {
-                                                            const filterContext: Record<string, string> = {};
-                                                            // Build filter context from all configured search columns
-                                                            for (const colName of searchByColumns) {
-                                                              if (rowData[colName]) {
-                                                                filterContext[colName] = rowData[colName];
-                                                              }
+                                                      // Check for DATABASE_LOOKUP by looking for _dataSourceId in inputValues
+                                                      const dataSourceId = stepValue?.inputValues?._dataSourceId;
+                                                      if (dataSourceId) {
+                                                        setDbLookupDataSourceId(dataSourceId);
+                                                        
+                                                        // Get target output column from tool configuration
+                                                        const outputColumn = stepValue?.inputValues?._outputColumn || stepValue?.valueName;
+                                                        setDbLookupTargetColumn(outputColumn);
+                                                        
+                                                        // Get filter context from all searchByColumns (for AND filtering)
+                                                        const searchByColumns = stepValue?.inputValues?._searchByColumns || [];
+                                                        if (searchByColumns.length > 0 && rowData) {
+                                                          const filterContext: Record<string, string> = {};
+                                                          // Build filter context from all configured search columns
+                                                          for (const colName of searchByColumns) {
+                                                            if (rowData[colName]) {
+                                                              filterContext[colName] = rowData[colName];
                                                             }
-                                                            setDbLookupFilterContext(filterContext);
                                                           }
+                                                          setDbLookupFilterContext(filterContext);
                                                         }
                                                       }
                                                       
