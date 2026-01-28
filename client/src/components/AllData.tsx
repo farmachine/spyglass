@@ -1031,22 +1031,22 @@ export default function AllData({ project }: AllDataProps) {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{ maxHeight: '280px', overflow: 'auto' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {generatedCharts.map((chart, index) => (
-                <div key={index} className="border rounded-lg p-4 bg-background">
-                  <h4 className="text-sm font-medium mb-3 text-center">{chart.title}</h4>
-                  <div className="h-[180px]">
+                <div key={index} className="border rounded-lg p-6 bg-background">
+                  <h4 className="text-base font-medium mb-4 text-center">{chart.title}</h4>
+                  <div className="h-[220px]">
                     {chart.type === 'pie' ? (
-                      <div className="flex h-full gap-2">
-                        <div className="flex-1">
+                      <div className="flex h-full gap-6 items-center">
+                        <div className="w-1/2 h-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <RechartsPie>
                               <Pie
                                 data={chart.data}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={25}
-                                outerRadius={50}
+                                innerRadius={50}
+                                outerRadius={90}
                                 paddingAngle={2}
                                 dataKey="value"
                                 label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
@@ -1060,20 +1060,20 @@ export default function AllData({ project }: AllDataProps) {
                             </RechartsPie>
                           </ResponsiveContainer>
                         </div>
-                        <div className="w-[120px] flex flex-col justify-center gap-1 overflow-y-auto">
+                        <div className="w-1/2 flex flex-col justify-center gap-3">
                           {chart.data.map((entry, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs">
+                            <div key={i} className="flex items-center gap-3 text-sm">
                               <div 
-                                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length] }}
                               />
-                              <span className="truncate flex-1">{entry.name}</span>
-                              <span className="font-medium text-muted-foreground">{entry.value}</span>
+                              <span className="flex-1">{entry.name}</span>
+                              <span className="font-semibold text-lg">{entry.value}</span>
                             </div>
                           ))}
-                          <div className="border-t pt-1 mt-1 flex items-center gap-2 text-xs font-medium">
+                          <div className="border-t pt-3 mt-2 flex items-center gap-3 text-sm font-semibold">
                             <span className="flex-1">Total</span>
-                            <span>{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
+                            <span className="text-lg">{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
                           </div>
                         </div>
                       </div>
