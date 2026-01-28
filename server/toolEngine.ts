@@ -1840,9 +1840,9 @@ OUTPUT FORMAT (JSON):
           }
           
           if (filterResponse.filters && filterResponse.filters.length > 0) {
-            // Apply filters with OR logic (any filter matches)
+            // Apply filters with AND logic (ALL filters must match)
             filteredData = dataSourceData.filter((record: any) => {
-              return filterResponse.filters.some((filter: any) => {
+              return filterResponse.filters.every((filter: any) => {
                 if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
                 const value = record[filter.column];
                 if (value === undefined || value === null) return false;
