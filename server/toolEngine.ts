@@ -1921,38 +1921,41 @@ OUTPUT FORMAT (JSON):
         // PHASE 2: Match ALL input items against ALL candidates in ONE call
         console.log('\n📍 PHASE 2: Matching ALL input items against candidates...');
         
-        const matchPrompt = `You are a smart database lookup assistant. Your task is to match each input item to its best matching record from the candidate database.
+        const matchPrompt = `You are a database lookup assistant. Match each input item to a record from the candidate database.
 
 CANDIDATE DATABASE RECORDS (${limitedCandidates.length} pre-filtered records):
 ${JSON.stringify(limitedCandidates, null, 2)}
 
-USER MATCHING INSTRUCTIONS (FOLLOW CAREFULLY):
+USER MATCHING INSTRUCTIONS:
 ${aiPrompt}
 
 INPUT ITEMS TO MATCH (${inputArray.length} items):
 ${JSON.stringify(inputArray, null, 2)}
 
-MATCHING INSTRUCTIONS:
-1. For EACH input item, find the BEST matching candidate record based on the user instructions above
-2. Use intelligent fuzzy matching:
-   - Handle spelling variations (e.g., "straat"/"str", "weg"/"w", different cases)
-   - Handle abbreviations and formatting differences
-   - Match semantically equivalent values
-3. A match is VALID only when the key identifying fields match (both should match, not just one)
-4. If no good match exists, return null for extractedValue with "invalid" status
-5. Be strict about matching quality - only mark as "valid" when you're confident in the match
+MATCHING RULES:
+1. For EACH input item, find the BEST matching candidate based on the search columns (street, city, etc.)
+2. Use fuzzy matching for spelling variations (straat/str, weg/w, different cases)
+3. Both street AND city should match for a valid match
+4. If no good match, return null for extractedValue with "invalid" status
 
-CRITICAL: Return EXACTLY ${inputArray.length} results in the SAME ORDER as the input items.
+CRITICAL - extractedValue MUST BE EXACT:
+- The extractedValue MUST be the EXACT "id" field value from the matched candidate record
+- DO NOT modify, truncate, or abbreviate the ID
+- DO NOT invent or hallucinate IDs
+- Example: If the matched candidate has "id": "5240 GK Slagmolenweg", return EXACTLY "5240 GK Slagmolenweg"
+- If no match found, return null (not a made-up value)
 
-OUTPUT FORMAT (JSON array):
+Return EXACTLY ${inputArray.length} results in the SAME ORDER as input items.
+
+OUTPUT FORMAT:
 [
   {
-    "extractedValue": "The extracted value as specified by user instructions, or null if no match",
-    "validationStatus": "valid" only if confident match, "invalid" if no match or uncertain,
-    "aiReasoning": "Brief explanation: what matched or why no match was found",
-    "confidenceScore": 0-100 (high only for clear matches),
-    "documentSource": "Identifier or name of matched record",
-    "identifierId": "COPY EXACTLY from input item's identifierId"
+    "extractedValue": "EXACT id from matched candidate record, or null if no match",
+    "validationStatus": "valid" if confident match, "invalid" if no match,
+    "aiReasoning": "Brief: matched X to Y because street and city align",
+    "confidenceScore": 0-100,
+    "documentSource": "Name of matched record",
+    "identifierId": "COPY EXACTLY from input item"
   }
 ]`;
 
