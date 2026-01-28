@@ -1615,13 +1615,13 @@ function ValueCard({
                           {selectedColumns.map((col: string, index: number) => {
                             const displayName = columnMappings[col] || col;
                             return (
-                              <div key={col} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 p-2 rounded border border-blue-200 dark:border-blue-800">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">
+                              <div key={col} className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded border border-slate-200 dark:border-slate-700">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4F63A4] text-white text-[10px] flex items-center justify-center font-medium">
                                   {index + 1}
                                 </span>
                                 <span className="flex-1 text-xs truncate" title={col !== displayName ? `${displayName} (${col})` : col}>
                                   {displayName}
-                                  {index === 0 && <span className="ml-1 text-blue-600 dark:text-blue-400">(Primary)</span>}
+                                  {index === 0 && <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">(Primary)</span>}
                                 </span>
                                 <div className="flex gap-1">
                                   <button
@@ -1697,6 +1697,33 @@ function ValueCard({
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Click to add columns. First column = primary filter (most restrictive).
                       </p>
+                      
+                      {/* Output Column Selector */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1.5 block">
+                          Output Column
+                        </Label>
+                        <select
+                          value={(value.inputValues as Record<string, any>)?._outputColumn || ''}
+                          onChange={(e) => {
+                            onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _outputColumn: e.target.value } });
+                          }}
+                          className="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        >
+                          <option value="">Select output column...</option>
+                          {columns.map((col) => {
+                            const displayName = columnMappings[col] || col;
+                            return (
+                              <option key={col} value={col}>
+                                {displayName} {col !== displayName ? `(${col})` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          The column value to extract when a match is found.
+                        </p>
+                      </div>
                     </div>
                   );
                 })()}
