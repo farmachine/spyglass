@@ -1784,20 +1784,19 @@ YOUR TASK:
 2. Parse the input data to extract individual values (e.g., if "Address" contains "Street 123, 1234 City", extract street name and city separately)
 3. Generate filter criteria using the specified columns${hasSearchByConfig ? ` (${searchByColumns.join(', ')})` : ''}
 
-CRITICAL PARSING RULES:
-- If input has combined address fields (e.g., "Kerkeneikestraat 3A, 3945 Ham"), parse into components:
-  - Street name (without number): "Kerkeneikestraat"
-  - City: "Ham"
-  - Postal code: "3945"
-- Extract the core street name without house numbers for better fuzzy matching
-- Be generous - include partial matches and variations
+CRITICAL - EXTRACT ALL VALUES FROM INPUT:
+- The input data has "City" and "Street" fields
+- You MUST create a filter for CITIES using column c_text_0002
+- You MUST create a filter for STREETS using column c_text_0001
+- Extract EVERY unique city from the input: Dilsen-Stokkem, Ham, Olen, Moorslede, Brugge, Ixelles, Genk, etc.
+- Extract EVERY unique street name from the input
 
 FILTERING STRATEGY:
-- Create separate filters for each search column
-- Extract ALL unique values from ALL input items
-- Use partial/contains matching - extract core words, not full strings
-- Account for spelling variations, abbreviations (straat/str, weg/w)
-- When in doubt, be MORE inclusive rather than risk missing matches
+- Create TWO filters: one for c_text_0002 (cities), one for c_text_0001 (streets)
+- Include ALL unique city values from input in the city filter
+- Include ALL unique street values (core name only) in the street filter
+- Use partial/contains matching for streets (straat/str, weg/w variations)
+- Be MORE inclusive to avoid missing matches
 
 OUTPUT FORMAT (JSON):
 {
