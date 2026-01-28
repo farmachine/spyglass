@@ -6795,7 +6795,7 @@ Thank you for your assistance.`;
                                                       clearDbLookupState();
                                                       
                                                       // Check if this column uses a DATABASE_LOOKUP tool
-                                                      const workflowStep = workflow?.steps?.find(s => s.stepName === collection.collectionName);
+                                                      const workflowStep = project?.workflowSteps?.find(s => s.stepName === collection.collectionName);
                                                       const stepValue = workflowStep?.values?.find((sv: any) => sv.valueName === columnName);
                                                       const tool = stepValue?.tool;
                                                       
