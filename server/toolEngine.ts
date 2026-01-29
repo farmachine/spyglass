@@ -2022,11 +2022,15 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
             if (result?.extractedValue && result?.validationStatus === 'valid') {
               const matchedRecord = candidateById.get(result.extractedValue);
               if (matchedRecord) {
-                // Format the matched record as readable key-value pairs
+                // Format the matched record using friendly column names when available
                 const recordDetails = Object.entries(matchedRecord)
                   .filter(([key]) => !key.startsWith('_'))
                   .slice(0, 15) // Limit to 15 fields
-                  .map(([key, value]) => `${key}: ${String(value || '-')}`)
+                  .map(([key, value]) => {
+                    // Use columnMappings to get friendly name, fallback to raw key
+                    const friendlyName = (columnMappings as Record<string, string>)[key] || key;
+                    return `${friendlyName}: ${String(value || '-')}`;
+                  })
                   .join('\n');
                 enhancedReasoning = `${enhancedReasoning}\n\n--- Matched Record ---\n${recordDetails}`;
               }
