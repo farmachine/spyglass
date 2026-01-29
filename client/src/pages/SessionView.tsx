@@ -6622,19 +6622,25 @@ Thank you for your assistance.`;
                                                       size="sm"
                                                       variant="ghost"
                                                       onClick={async () => {
+                                                        // Get the datasource ID from column inputValues (where it's actually stored)
+                                                        const inputValues = column.inputValues || column.input_values || {};
+                                                        const dataSourceId = inputValues._dataSourceId || columnTool?.dataSourceId || columnTool?.data_source_id;
+                                                        
                                                         console.log('Database lookup clicked for:', {
                                                           collectionName: collection.collectionName,
                                                           columnName,
                                                           originalIndex,
                                                           rowIdentifierId,
-                                                          tool: columnTool
+                                                          tool: columnTool,
+                                                          dataSourceId,
+                                                          inputValues
                                                         });
                                                         
                                                         // Get the datasource data
-                                                        if (columnTool.dataSourceId) {
+                                                        if (dataSourceId) {
                                                           try {
-                                                            const datasourceResponse = await apiRequest(`/api/data-sources/${columnTool.dataSourceId}/data`);
-                                                            const datasourceInfo = await apiRequest(`/api/data-sources/${columnTool.dataSourceId}`);
+                                                            const datasourceResponse = await apiRequest(`/api/data-sources/${dataSourceId}/data`);
+                                                            const datasourceInfo = await apiRequest(`/api/data-sources/${dataSourceId}`);
                                                             
                                                             // Get filter configuration from the column's inputValues
                                                             const inputValues = column.inputValues || {};
@@ -6687,6 +6693,13 @@ Thank you for your assistance.`;
                                                               variant: "destructive"
                                                             });
                                                           }
+                                                        } else {
+                                                          console.error('No data source configured for this lookup tool');
+                                                          toast({
+                                                            title: "Configuration Error",
+                                                            description: "No data source is configured for this database lookup",
+                                                            variant: "destructive"
+                                                          });
                                                         }
                                                       }}
                                                       className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
