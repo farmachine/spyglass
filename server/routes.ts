@@ -1984,6 +1984,29 @@ except Exception as e:
     }
   });
 
+  // Get a single data source by ID (metadata only)
+  app.get("/api/data-sources/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      
+      const dataSource = await storage.getApiDataSource(id);
+      if (!dataSource) {
+        return res.status(404).json({ message: "Data source not found" });
+      }
+      
+      if (!await verifyProjectAccess(dataSource.projectId, req.user)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Return data source metadata (without cached data for performance)
+      const { cachedData, ...metadata } = dataSource;
+      res.json(metadata);
+    } catch (error) {
+      console.error("Error getting data source:", error);
+      res.status(500).json({ message: "Failed to get data source" });
+    }
+  });
+
   // Get cached data from a data source
   app.get("/api/data-sources/:id/data", authenticateToken, async (req: AuthRequest, res) => {
     try {
