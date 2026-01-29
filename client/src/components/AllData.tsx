@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,7 +109,7 @@ export default function AllData({ project }: AllDataProps) {
   });
 
   // Fetch kanban progress for all sessions (supports multiple kanban steps)
-  const { data: kanbanProgressData } = useQuery<{
+  const { data: kanbanProgressData, refetch: refetchKanbanProgress, isRefetching: isRefetchingKanban } = useQuery<{
     hasKanban: boolean;
     kanbanSteps: Array<{
       stepId: string;
@@ -648,6 +648,37 @@ export default function AllData({ project }: AllDataProps) {
     setSelectedAnalyticsFields(new Set());
   };
 
+  // Refresh analytics - refetch data and regenerate charts
+  const refreshAnalytics = async () => {
+    setIsGeneratingCharts(true);
+    try {
+      await refetchKanbanProgress();
+      // Wait a tick for state to update, then regenerate charts
+      setTimeout(() => {
+        const charts: ChartConfig[] = [];
+        
+        // Regenerate charts for selected kanban fields
+        for (const fieldId of selectedAnalyticsFields) {
+          if (fieldId.startsWith('kanban-')) {
+            const stepId = fieldId.replace('kanban-', '');
+            const kanbanChart = generateKanbanChartData(stepId);
+            if (kanbanChart) {
+              charts.push(kanbanChart);
+            }
+          }
+        }
+        
+        if (charts.length > 0) {
+          setGeneratedCharts(charts);
+        }
+        setIsGeneratingCharts(false);
+      }, 100);
+    } catch (error) {
+      console.error('Failed to refresh analytics:', error);
+      setIsGeneratingCharts(false);
+    }
+  };
+
   // Get verification progress for a session (for non-kanban projects)
   const getSessionProgress = (sessionId: string) => {
     // Safety check for sessionId
@@ -1011,6 +1042,15 @@ export default function AllData({ project }: AllDataProps) {
                 Analytics
               </CardTitle>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshAnalytics}
+                  disabled={isGeneratingCharts || isRefetchingKanban}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
