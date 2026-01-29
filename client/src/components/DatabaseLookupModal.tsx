@@ -53,10 +53,12 @@ export function DatabaseLookupModal({
     }
   }, [isOpen, initialFilters, currentInputValues]);
 
+  const safeData = Array.isArray(datasourceData) ? datasourceData : [];
+  
   const columns = useMemo(() => {
-    if (datasourceData.length === 0) return [];
-    return Object.keys(datasourceData[0]);
-  }, [datasourceData]);
+    if (safeData.length === 0) return [];
+    return Object.keys(safeData[0]);
+  }, [safeData]);
 
   const getDisplayName = (col: string) => columnMappings[col] || col;
 
@@ -142,7 +144,7 @@ export function DatabaseLookupModal({
   const activeFilterCount = filters.filter(f => f.inputValue && f.inputValue.trim() !== "").length;
   
   const filteredData = useMemo(() => {
-    let result = [...datasourceData];
+    let result = [...safeData];
     
     // Only apply filters that have input values
     filters.forEach(filter => {
@@ -165,7 +167,7 @@ export function DatabaseLookupModal({
     }
     
     return result.slice(0, 100);
-  }, [datasourceData, filters, searchTerm, columns]);
+  }, [safeData, filters, searchTerm, columns]);
 
   const updateFilterFuzziness = (index: number, fuzziness: number) => {
     const newFilters = [...filters];
@@ -266,13 +268,13 @@ export function DatabaseLookupModal({
               />
             </div>
             <span className="text-sm text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md whitespace-nowrap">
-              {filteredData.length === 100 && datasourceData.length > 100 
-                ? `Showing 100 of ${datasourceData.length}` 
-                : `${filteredData.length} of ${datasourceData.length}`} records
+              {filteredData.length === 100 && safeData.length > 100 
+                ? `Showing 100 of ${safeData.length}` 
+                : `${filteredData.length} of ${safeData.length}`} records
             </span>
           </div>
           
-          {datasourceData.length > 1000 && (
+          {safeData.length > 1000 && (
             <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
               Large dataset: Adjust filters to narrow results. Showing up to 100 matches.
             </div>
