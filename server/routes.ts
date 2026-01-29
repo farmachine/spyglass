@@ -11291,20 +11291,23 @@ def extract_function(Column_Name, Excel_File):
                 referenceDataContent += `\n\n--- Extracted Data from ${stepData.stepName} ---\n`;
                 
                 // Build a map of field IDs to step values and identify DATABASE_LOOKUP fields
-                const stepValues = await storage.getStepValues(refStepId);
+                const stepValuesData = await storage.getStepValues(refStepId);
                 const fieldIdToStepValue = new Map<string, any>();
                 const databaseLookupFields = new Map<string, { dataSourceId: string; outputColumn: string }>();
                 
-                for (const sv of stepValues) {
+                for (const sv of stepValuesData) {
                   fieldIdToStepValue.set(sv.id, sv);
-                  // Check if this is a DATABASE_LOOKUP field
-                  if (sv.toolType === 'DATABASE_LOOKUP' && sv.dataSourceId) {
-                    const inputValues = sv.inputValues as any;
-                    const outputColumn = inputValues?._outputColumn || 'id';
-                    databaseLookupFields.set(sv.id, { 
-                      dataSourceId: sv.dataSourceId, 
-                      outputColumn 
-                    });
+                  // Check if this step value has a tool - fetch the tool to check if it's DATABASE_LOOKUP
+                  if (sv.toolId) {
+                    const tool = await storage.getExcelWizardryFunction(sv.toolId);
+                    if (tool && tool.toolType === 'DATABASE_LOOKUP' && tool.dataSourceId) {
+                      const inputValues = sv.inputValues as any;
+                      const outputColumn = inputValues?._outputColumn || 'id';
+                      databaseLookupFields.set(sv.id, { 
+                        dataSourceId: tool.dataSourceId, 
+                        outputColumn 
+                      });
+                    }
                   }
                 }
                 
