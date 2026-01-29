@@ -11289,15 +11289,80 @@ def extract_function(Column_Name, Excel_File):
               const validations = await storage.getFieldValidations(sessionId, refStepId);
               if (validations && validations.length > 0) {
                 referenceDataContent += `\n\n--- Extracted Data from ${stepData.stepName} ---\n`;
+                
+                // Build a map of field IDs to step values and identify DATABASE_LOOKUP fields
+                const stepValues = await storage.getStepValues(refStepId);
+                const fieldIdToStepValue = new Map<string, any>();
+                const databaseLookupFields = new Map<string, { dataSourceId: string; outputColumn: string }>();
+                
+                for (const sv of stepValues) {
+                  fieldIdToStepValue.set(sv.id, sv);
+                  // Check if this is a DATABASE_LOOKUP field
+                  if (sv.toolType === 'DATABASE_LOOKUP' && sv.dataSourceId) {
+                    const inputValues = sv.inputValues as any;
+                    const outputColumn = inputValues?._outputColumn || 'id';
+                    databaseLookupFields.set(sv.id, { 
+                      dataSourceId: sv.dataSourceId, 
+                      outputColumn 
+                    });
+                  }
+                }
+                
+                // Cache data sources to avoid multiple fetches
+                const dataSourceCache = new Map<string, { data: any[]; columnMappings: Record<string, string> }>();
+                
                 // Group by identifierId for table data
                 const groupedData = new Map<string, any>();
                 for (const v of validations) {
                   if (!groupedData.has(v.identifierId)) {
                     groupedData.set(v.identifierId, {});
                   }
-                  const stepValue = await storage.getStepValue(v.fieldId);
+                  const stepValue = fieldIdToStepValue.get(v.fieldId);
                   const fieldName = stepValue?.valueName || 'Field';
-                  groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                  
+                  // Check if this field is a DATABASE_LOOKUP and enrich with full record data
+                  const lookupInfo = databaseLookupFields.get(v.fieldId);
+                  if (lookupInfo && v.extractedValue) {
+                    // Get or fetch the data source
+                    if (!dataSourceCache.has(lookupInfo.dataSourceId)) {
+                      const ds = await storage.getApiDataSource(lookupInfo.dataSourceId);
+                      if (ds) {
+                        dataSourceCache.set(lookupInfo.dataSourceId, {
+                          data: ds.cachedData || [],
+                          columnMappings: (ds.columnMappings as Record<string, string>) || {}
+                        });
+                      }
+                    }
+                    
+                    const dsInfo = dataSourceCache.get(lookupInfo.dataSourceId);
+                    if (dsInfo && dsInfo.data.length > 0) {
+                      // Find the matching record by output column value
+                      const matchedRecord = dsInfo.data.find((record: any) => 
+                        record[lookupInfo.outputColumn]?.toString() === v.extractedValue?.toString()
+                      );
+                      
+                      if (matchedRecord) {
+                        // Add the matched value
+                        groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                        
+                        // Add all columns from the matched record with friendly names
+                        const enrichedData: Record<string, any> = {};
+                        for (const [col, val] of Object.entries(matchedRecord)) {
+                          if (col !== 'created_at' && col !== 'updated_at' && val !== null && val !== '') {
+                            const friendlyName = dsInfo.columnMappings[col] || col;
+                            enrichedData[friendlyName] = val;
+                          }
+                        }
+                        groupedData.get(v.identifierId)[`${fieldName}_FullRecord`] = enrichedData;
+                      } else {
+                        groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                      }
+                    } else {
+                      groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                    }
+                  } else {
+                    groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
+                  }
                 }
                 referenceDataContent += JSON.stringify(Array.from(groupedData.values()), null, 2);
               }
