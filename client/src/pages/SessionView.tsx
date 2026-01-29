@@ -6445,7 +6445,7 @@ Thank you for your assistance.`;
                                     backgroundColor: displayIndex % 2 === 0 
                                       ? 'transparent' 
                                       : 'rgba(79, 99, 164, 0.03)',
-                                    boxShadow: 'inset 0 -1px 0 0 #e5e7eb, inset 0 1px 0 0 #e5e7eb'
+                                    boxShadow: 'inset 0 -1px 0 0 rgba(229, 231, 235, 0.5)'
                                   }}
                                 >
                                   {/* Spacer cell for left padding */}
