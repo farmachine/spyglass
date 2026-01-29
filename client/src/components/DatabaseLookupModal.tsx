@@ -288,12 +288,6 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
             </span>
           </div>
           
-          {safeData.length > 1000 && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
-              Large dataset: Adjust filters to narrow results. Showing up to 100 matches.
-            </div>
-          )}
-
           <div className="flex-1 overflow-auto border rounded-lg">
             <div className="overflow-x-auto">
               <Table className="min-w-max">
