@@ -7309,6 +7309,9 @@ Thank you for your assistance.`;
               const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
                 method: 'POST',
                 body: JSON.stringify({
+                  validationType: 'collection',
+                  dataType: 'text',
+                  fieldId: column.id,
                   collectionName,
                   fieldName,
                   recordIndex,
