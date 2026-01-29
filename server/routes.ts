@@ -6016,6 +6016,7 @@ print(json.dumps(results))
         toolId: value.toolId || null,  // Convert empty string to null
         inputValues: value.inputValues,
         fields: value.fields || null, // Add fields for multi-field Info Page values
+        color: value.color || null, // Column color for visual styling
         autoVerificationConfidence: value.autoVerificationConfidence,
         choiceOptions: value.choiceOptions
       };
@@ -6030,6 +6031,7 @@ print(json.dumps(results))
           toolId: value.toolId || null,
           inputValues: value.inputValues,
           fields: value.fields || null, // Add fields for multi-field Info Page values
+          color: value.color || null, // Column color for visual styling
           autoVerificationConfidence: value.autoVerificationConfidence,
           choiceOptions: value.choiceOptions,
           orderIndex: consistentOrderIndex // ALWAYS update orderIndex to maintain correct order
