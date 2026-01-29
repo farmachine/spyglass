@@ -6553,6 +6553,8 @@ Thank you for your assistance.`;
                                               const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP';
                                               
                                               let matchedRecord: Record<string, any> | null = null;
+                                              let aiReasoningText: string | null = null;
+                                              
                                               if (isDatabaseLookup && validation?.aiReasoning) {
                                                 try {
                                                   const parsed = JSON.parse(validation.aiReasoning);
@@ -6560,25 +6562,27 @@ Thank you for your assistance.`;
                                                     matchedRecord = parsed.matchedRecord;
                                                   }
                                                 } catch (e) {
-                                                  // Not JSON, ignore
+                                                  // Not JSON - use it as plain text reasoning
+                                                  aiReasoningText = validation.aiReasoning;
                                                 }
                                               }
                                               
                                               const formattedValue = formatValueForDisplay(displayValue, columnType);
                                               const isNotFound = formattedValue === 'Not Found';
+                                              const hasValidMatch = isDatabaseLookup && !isNotFound && validation?.validationStatus === 'valid';
                                               
                                               const valueSpan = (
                                                 <span className={`
                                                   ${isNotFound ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
                                                   ${columnIndex === 0 ? 'font-bold text-gray-900 dark:text-white' : ''}
-                                                  ${isDatabaseLookup && matchedRecord ? 'cursor-help underline decoration-dotted decoration-gray-400 dark:decoration-gray-500' : ''}
+                                                  ${hasValidMatch ? 'cursor-help underline decoration-dotted decoration-gray-400 dark:decoration-gray-500' : ''}
                                                 `.trim()}>
                                                   {formattedValue}
                                                 </span>
                                               );
                                               
-                                              // If DATABASE_LOOKUP with matched record, wrap in Tooltip
-                                              if (isDatabaseLookup && matchedRecord && !isNotFound) {
+                                              // If DATABASE_LOOKUP with valid match, wrap in Tooltip
+                                              if (hasValidMatch && (matchedRecord || aiReasoningText)) {
                                                 return (
                                                   <TooltipProvider>
                                                     <Tooltip>
@@ -6591,22 +6595,30 @@ Thank you for your assistance.`;
                                                       >
                                                         <div className="text-xs space-y-1">
                                                           <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2 border-b pb-1">
-                                                            Matched Record
+                                                            {matchedRecord ? 'Matched Record' : 'Match Details'}
                                                           </div>
-                                                          {Object.entries(matchedRecord)
-                                                            .filter(([key]) => !key.startsWith('_'))
-                                                            .slice(0, 10)
-                                                            .map(([key, value]) => (
-                                                              <div key={key} className="flex gap-2">
-                                                                <span className="font-medium text-gray-600 dark:text-gray-400 min-w-[80px]">{key}:</span>
-                                                                <span className="text-gray-900 dark:text-gray-100 truncate max-w-[250px]" title={String(value)}>
-                                                                  {String(value || '-')}
-                                                                </span>
-                                                              </div>
-                                                            ))}
-                                                          {Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length > 10 && (
-                                                            <div className="text-gray-400 italic mt-1">
-                                                              +{Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length - 10} more fields...
+                                                          {matchedRecord ? (
+                                                            <>
+                                                              {Object.entries(matchedRecord)
+                                                                .filter(([key]) => !key.startsWith('_'))
+                                                                .slice(0, 10)
+                                                                .map(([key, value]) => (
+                                                                  <div key={key} className="flex gap-2">
+                                                                    <span className="font-medium text-gray-600 dark:text-gray-400 min-w-[80px]">{key}:</span>
+                                                                    <span className="text-gray-900 dark:text-gray-100 truncate max-w-[250px]" title={String(value)}>
+                                                                      {String(value || '-')}
+                                                                    </span>
+                                                                  </div>
+                                                                ))}
+                                                              {Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length > 10 && (
+                                                                <div className="text-gray-400 italic mt-1">
+                                                                  +{Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length - 10} more fields...
+                                                                </div>
+                                                              )}
+                                                            </>
+                                                          ) : (
+                                                            <div className="text-gray-700 dark:text-gray-300">
+                                                              {aiReasoningText}
                                                             </div>
                                                           )}
                                                         </div>
