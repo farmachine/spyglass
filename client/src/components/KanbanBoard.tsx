@@ -1100,18 +1100,21 @@ export function KanbanBoard({
                           action.link && 
                           selectedCard && 
                           (action.applicableStatuses?.length === 0 || action.applicableStatuses?.includes(selectedCard.status))
-                        ).map((action, index) => (
-                          <Button
-                            key={index}
-                            variant="outline"
-                            size="sm"
-                            className="w-full justify-start h-10 text-[#4F63A4] hover:text-[#3d4f80] hover:bg-[#4F63A4]/10 border-[#4F63A4]/30"
-                            onClick={() => window.open(action.link, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            {action.name}
-                          </Button>
-                        ))}
+                        ).map((action, index) => {
+                          const processedLink = action.link.replace(/\{\{task_name\}\}/g, encodeURIComponent(selectedCard?.title || ''));
+                          return (
+                            <Button
+                              key={index}
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-start h-10 text-[#4F63A4] hover:text-[#3d4f80] hover:bg-[#4F63A4]/10 border-[#4F63A4]/30"
+                              onClick={() => window.open(processedLink, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              {action.name}
+                            </Button>
+                          );
+                        })}
                         {/* Delete button */}
                         <Button
                           variant="outline"
