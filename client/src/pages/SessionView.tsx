@@ -31,7 +31,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import { SiMicrosoft } from "react-icons/si";
 import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
@@ -6608,6 +6608,93 @@ Thank you for your assistance.`;
                                                   </div>
                                                 );
                                               } else {
+                                                // Check if this column uses a DATABASE_LOOKUP tool
+                                                const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
+                                                const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP';
+                                                
+                                                if (isDatabaseLookup) {
+                                                  // Show search icon for database lookup columns
+                                                  return (
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      onClick={async () => {
+                                                        console.log('Database lookup clicked for:', {
+                                                          collectionName: collection.collectionName,
+                                                          columnName,
+                                                          originalIndex,
+                                                          rowIdentifierId,
+                                                          tool: columnTool
+                                                        });
+                                                        
+                                                        // Get the datasource data
+                                                        if (columnTool.dataSourceId) {
+                                                          try {
+                                                            const datasourceResponse = await apiRequest(`/api/data-sources/${columnTool.dataSourceId}/data`);
+                                                            const datasourceInfo = await apiRequest(`/api/data-sources/${columnTool.dataSourceId}`);
+                                                            
+                                                            // Get filter configuration from the column's inputValues
+                                                            const inputValues = column.inputValues || {};
+                                                            const rawFilters = inputValues._searchByColumns || [];
+                                                            const outputColumn = inputValues._outputColumn || '';
+                                                            
+                                                            // Normalize filters
+                                                            const filters = rawFilters.map((f: any) => 
+                                                              typeof f === 'string' 
+                                                                ? { column: f, operator: 'equals', inputField: '', fuzziness: 0 }
+                                                                : { ...f, fuzziness: f.fuzziness ?? 0 }
+                                                            );
+                                                            
+                                                            // Get current input values from the row's previous columns
+                                                            const currentInputValues: Record<string, string> = {};
+                                                            if (workflowStep?.values) {
+                                                              workflowStep.values.forEach((v: any) => {
+                                                                if (v.orderIndex < column.orderIndex) {
+                                                                  const val = validations.find(vd => 
+                                                                    vd.collectionName === collection.collectionName &&
+                                                                    vd.valueId === v.id &&
+                                                                    vd.identifierId === rowIdentifierId
+                                                                  );
+                                                                  if (val?.extractedValue) {
+                                                                    currentInputValues[v.valueName] = val.extractedValue;
+                                                                  }
+                                                                }
+                                                              });
+                                                            }
+                                                            
+                                                            setDatabaseLookupModal({
+                                                              isOpen: true,
+                                                              validation: validation || null,
+                                                              column,
+                                                              rowIdentifierId,
+                                                              datasourceData: datasourceResponse?.entries || datasourceResponse || [],
+                                                              columnMappings: datasourceInfo?.columnMappings || {},
+                                                              filters,
+                                                              outputColumn,
+                                                              currentInputValues,
+                                                              fieldName: columnName,
+                                                              collectionName: collection.collectionName,
+                                                              recordIndex: originalIndex
+                                                            });
+                                                          } catch (error) {
+                                                            console.error('Error loading datasource:', error);
+                                                            toast({
+                                                              title: "Error",
+                                                              description: "Failed to load database for lookup",
+                                                              variant: "destructive"
+                                                            });
+                                                          }
+                                                        }
+                                                      }}
+                                                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                      title="Search database for match"
+                                                    >
+                                                      <Search className="h-3 w-3 text-[#4F63A4]" />
+                                                    </Button>
+                                                  );
+                                                }
+                                                
+                                                // Regular edit button for non-database-lookup columns
                                                 return (
                                                   <Button
                                                     size="sm"
@@ -7182,6 +7269,66 @@ Thank you for your assistance.`;
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Database Lookup Modal */}
+      {databaseLookupModal && (
+        <DatabaseLookupModal
+          isOpen={databaseLookupModal.isOpen}
+          onClose={() => setDatabaseLookupModal(null)}
+          onSelect={async (selectedValue: string) => {
+            if (!databaseLookupModal) return;
+            
+            const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = databaseLookupModal;
+            
+            console.log('Database lookup value selected:', {
+              selectedValue,
+              fieldName,
+              collectionName,
+              recordIndex,
+              rowIdentifierId
+            });
+            
+            try {
+              // Save the selected value as a field validation
+              const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  collectionName,
+                  fieldName,
+                  recordIndex,
+                  identifierId: rowIdentifierId,
+                  valueId: column.id,
+                  extractedValue: selectedValue,
+                  validationStatus: 'valid',
+                  manuallyUpdated: true,
+                  aiReasoning: 'Manually selected from database lookup',
+                  confidenceScore: 100
+                })
+              });
+              
+              // Invalidate validations to refresh the UI
+              await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+              
+              toast({
+                title: "Value Updated",
+                description: `Selected: ${selectedValue}`,
+              });
+            } catch (error) {
+              console.error('Error saving database lookup value:', error);
+              toast({
+                title: "Error",
+                description: "Failed to save selected value",
+                variant: "destructive"
+              });
+            }
+          }}
+          datasourceData={databaseLookupModal.datasourceData}
+          columnMappings={databaseLookupModal.columnMappings}
+          initialFilters={databaseLookupModal.filters}
+          outputColumn={databaseLookupModal.outputColumn}
+          currentInputValues={databaseLookupModal.currentInputValues}
+        />
+      )}
 
       {/* Session Chat */}
       {session && validations && (
