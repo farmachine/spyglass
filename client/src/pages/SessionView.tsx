@@ -6191,19 +6191,20 @@ Thank you for your assistance.`;
                                     return (
                                       <TableHead 
                                         key={columnId} 
-                                        className={`relative h-8 py-1 px-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
+                                        className={`relative h-10 py-2 px-3 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
                                         style={{ 
-                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                            columnType === 'TEXTAREA' ? 500 : 
-                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 450 :
-                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 350 :
-                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 250 :
-                                            columnType === 'TEXT' ? 200 : 
+                                          width: isLastColumn ? 'auto' : `${columnWidths[`${collection.id}-${columnId}`] || (
+                                            columnName.toLowerCase().includes('description') ? 180 :
+                                            columnName.toLowerCase().includes('summary') ? 180 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 200 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                            columnType === 'TEXT' ? 160 : 
                                             columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
-                                            columnName.toLowerCase().includes('status') ? 150 :
-                                      200
+                                            columnName.toLowerCase().includes('status') ? 130 :
+                                      160
                                     )}px`,
-                                    minWidth: columnType === 'TEXTAREA' || columnName.toLowerCase().includes('description') ? '400px' : '150px'
+                                    minWidth: isLastColumn ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
+                                    ...(isLastColumn ? { flex: 1 } : {})
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
@@ -6439,15 +6440,16 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }, displayIndex) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+                                  className="border-b-2 border-gray-200 dark:border-gray-700 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
                                   style={{
                                     backgroundColor: displayIndex % 2 === 0 
-                                      ? 'transparent' 
-                                      : 'rgba(79, 99, 164, 0.03)'
+                                      ? 'rgba(255, 255, 255, 0.7)' 
+                                      : 'rgba(79, 99, 164, 0.04)'
                                   }}
                                 >
-                                  {/* Spacer cell for left padding */}
-                                  <TableCell className="w-1.5 py-2.5 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
+                                  {/* Spacer cell for left padding with row indicator */}
+                                  <TableCell className="w-2 py-4 border-r-0 relative" style={{ width: '8px', minWidth: '8px', maxWidth: '8px' }}>
+                                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#4F63A4]/20 group-hover/row:bg-[#4F63A4]/60 rounded-r transition-colors" />
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -6515,22 +6517,25 @@ Thank you for your assistance.`;
                                       displayValue = "Not Found";
                                     }
                                     
+                                    const isLastColumnCell = columnIndex === columnsToDisplay.length - 1;
+                                    
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative py-2.5 px-3"
+                                        className="relative py-4 px-3"
                                         style={{ 
-                                          width: `${columnWidths[`${collection.id}-${columnId}`] || (
-                                            columnType === 'TEXTAREA' ? 500 : 
-                                            columnName.toLowerCase().includes('summary') || columnName.toLowerCase().includes('description') ? 450 :
-                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 350 :
-                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 250 :
-                                            columnType === 'TEXT' ? 200 : 
+                                          width: isLastColumnCell ? 'auto' : `${columnWidths[`${collection.id}-${columnId}`] || (
+                                            columnName.toLowerCase().includes('description') ? 180 :
+                                            columnName.toLowerCase().includes('summary') ? 180 :
+                                            columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 200 :
+                                            columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
+                                            columnType === 'TEXT' ? 160 : 
                                             columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
-                                            columnName.toLowerCase().includes('status') ? 150 :
-                                            200
+                                            columnName.toLowerCase().includes('status') ? 130 :
+                                            160
                                           )}px`,
-                                          minWidth: columnType === 'TEXTAREA' || columnName.toLowerCase().includes('description') ? '400px' : '150px'
+                                          minWidth: isLastColumnCell ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
+                                          ...(isLastColumnCell ? { flex: 1 } : {})
                                         }}
                                       >
                                         <div className="relative w-full h-full">
