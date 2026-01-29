@@ -104,6 +104,8 @@ interface WorkflowValue {
   orderIndex: number;
   // Multi-field support for Info Page values
   fields?: Array<{name: string; dataType: string; description: string}>;
+  // Visual styling
+  color?: string; // Optional color for column left edge indicator
   // Original data reference
   originalId?: string;
 }
@@ -185,7 +187,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 inputValues: serverValue.inputValues || {},
                 orderIndex: serverValue.orderIndex || 0,
                 fields: serverValue.fields || (serverStep.stepType === 'page' ? [] : null),
-                outputDescription: serverValue.outputDescription
+                outputDescription: serverValue.outputDescription,
+                color: serverValue.color
             })) : []
           }));
           
@@ -1445,6 +1448,57 @@ function ValueCard({
                 className="h-8 text-sm"
               />
             </div>
+            
+            {/* Color picker for Data Table columns */}
+            {step.type === 'list' && (
+              <div>
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Column Color</Label>
+                <div className="flex items-center gap-2">
+                  <Select value={value.color || ''} onValueChange={(v) => onUpdate({ color: v || undefined })}>
+                    <SelectTrigger className="h-8 w-full text-sm">
+                      <div className="flex items-center gap-2">
+                        {value.color ? (
+                          <>
+                            <div 
+                              className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600" 
+                              style={{ backgroundColor: value.color }}
+                            />
+                            <span>{value.color}</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-500">No color</span>
+                        )}
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">
+                        <span className="text-gray-500">No color</span>
+                      </SelectItem>
+                      <div className="flex gap-1 p-1 flex-wrap">
+                        {KANBAN_COLUMN_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => onUpdate({ color })}
+                            className={`w-6 h-6 rounded border-2 transition-all ${value.color === color ? 'border-white ring-2 ring-offset-1 ring-gray-400' : 'border-transparent hover:border-gray-300'}`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </SelectContent>
+                  </Select>
+                  {value.color && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdate({ color: undefined })}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    >
+                      <X className="h-4 w-4 text-gray-500" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Data Type for Data Table */}
             {step.type === 'list' && (

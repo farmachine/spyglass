@@ -105,6 +105,8 @@ export const stepValues = pgTable("step_values", {
   inputValues: jsonb("input_values"), // Stores the input mappings including @references
   // Multi-field support for Info Page values
   fields: jsonb("fields"), // Array of field definitions for Info Pages: [{name, dataType, description}]
+  // Visual styling
+  color: text("color"), // Optional color for column left edge indicator in session view
   // Legacy fields for backward compatibility
   autoVerificationConfidence: integer("auto_verification_confidence").default(80),
   choiceOptions: jsonb("choice_options"),

@@ -6187,6 +6187,7 @@ Thank you for your assistance.`;
                                     const columnName = workflowStep ? column.valueName : (column as any).propertyName;
                                     const columnType = workflowStep ? column.dataType : (column as any).propertyType;
                                     const isLastColumn = index === columnsToDisplay.length - 1;
+                                    const headerColumnColor = (column as any).color;
                                     
                                     return (
                                       <TableHead 
@@ -6204,7 +6205,8 @@ Thank you for your assistance.`;
                                       160
                                     )}px`,
                                     minWidth: isLastColumn ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
-                                    ...(isLastColumn ? { flex: 1 } : {})
+                                    ...(isLastColumn ? { flex: 1 } : {}),
+                                    ...(headerColumnColor ? { borderLeft: `3px solid ${headerColumnColor}` } : {})
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
@@ -6518,6 +6520,7 @@ Thank you for your assistance.`;
                                     }
                                     
                                     const isLastColumnCell = columnIndex === columnsToDisplay.length - 1;
+                                    const columnColor = (column as any).color;
                                     
                                     return (
                                       <TableCell 
@@ -6535,7 +6538,8 @@ Thank you for your assistance.`;
                                             160
                                           )}px`,
                                           minWidth: isLastColumnCell ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
-                                          ...(isLastColumnCell ? { flex: 1 } : {})
+                                          ...(isLastColumnCell ? { flex: 1 } : {}),
+                                          ...(columnColor ? { borderLeft: `3px solid ${columnColor}` } : {})
                                         }}
                                       >
                                         <div className="relative w-full h-full">
