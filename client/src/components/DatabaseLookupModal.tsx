@@ -295,65 +295,67 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
           )}
 
           <div className="flex-1 overflow-auto border rounded-lg">
-            <Table>
-              <TableHeader className="sticky top-0 bg-white dark:bg-slate-900 z-10">
-                <TableRow className="border-b-2">
-                  <TableHead className="w-10 py-2 px-2"></TableHead>
-                  {columns.slice(0, 8).map(col => (
-                    <TableHead key={col} className="py-2 px-3 text-xs font-semibold">
-                      <div className="flex flex-col">
-                        <span className={col === outputColumn ? 'text-[#4F63A4] font-bold' : ''}>
-                          {getDisplayName(col)}
-                        </span>
-                        {col === outputColumn && (
-                          <span className="text-[10px] text-[#4F63A4] font-normal">Output Column</span>
-                        )}
-                      </div>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={Math.min(columns.length, 8) + 1} className="text-center py-8 text-gray-500">
-                      No matching records found. Try adjusting your filters or increasing fuzziness.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredData.map((record, idx) => {
-                    const isSelected = selectedRecord === record;
-                    return (
-                      <TableRow 
-                        key={idx}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected 
-                            ? 'bg-[#4F63A4]/10 border-l-2 border-l-[#4F63A4]' 
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                        }`}
-                        onClick={() => handleSelectRecord(record)}
-                      >
-                        <TableCell className="w-10 py-2 px-2">
-                          {isSelected && (
-                            <Check className="h-4 w-4 text-[#4F63A4]" />
+            <div className="overflow-x-auto">
+              <Table className="min-w-max">
+                <TableHeader className="sticky top-0 bg-white dark:bg-slate-900 z-10">
+                  <TableRow className="border-b-2">
+                    <TableHead className="w-10 py-2 px-2 sticky left-0 bg-white dark:bg-slate-900 z-20"></TableHead>
+                    {columns.map(col => (
+                      <TableHead key={col} className="py-2 px-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">
+                        <div className="flex flex-col">
+                          <span className={col === outputColumn ? 'text-[#4F63A4] font-bold' : ''}>
+                            {getDisplayName(col)}
+                          </span>
+                          {col === outputColumn && (
+                            <span className="text-[10px] text-[#4F63A4] font-normal">Output Column</span>
                           )}
-                        </TableCell>
-                        {columns.slice(0, 8).map(col => (
-                          <TableCell 
-                            key={col} 
-                            className={`py-2 px-3 text-sm ${col === outputColumn ? 'font-medium text-[#4F63A4]' : ''}`}
-                          >
-                            <span className="line-clamp-2" title={record[col]?.toString()}>
-                              {record[col]?.toString() || '-'}
-                            </span>
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length + 1} className="text-center py-8 text-gray-500">
+                        No matching records found. Try adjusting your filters or increasing fuzziness.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredData.map((record, idx) => {
+                      const isSelected = selectedRecord === record;
+                      return (
+                        <TableRow 
+                          key={idx}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'bg-[#4F63A4]/10 border-l-2 border-l-[#4F63A4]' 
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                          }`}
+                          onClick={() => handleSelectRecord(record)}
+                        >
+                          <TableCell className="w-10 py-2 px-2 sticky left-0 bg-white dark:bg-slate-900">
+                            {isSelected && (
+                              <Check className="h-4 w-4 text-[#4F63A4]" />
+                            )}
                           </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                          {columns.map(col => (
+                            <TableCell 
+                              key={col} 
+                              className={`py-2 px-3 text-sm whitespace-nowrap ${col === outputColumn ? 'font-medium text-[#4F63A4]' : ''}`}
+                            >
+                              <span className="max-w-[200px] truncate inline-block" title={record[col]?.toString()}>
+                                {record[col]?.toString() || '-'}
+                              </span>
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
 
