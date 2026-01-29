@@ -68,6 +68,17 @@ const KANBAN_COLUMN_COLORS = [
   '#A45B73', // Rose
 ];
 
+// Lighter color palette for column indicators - subtle pastel shades
+const COLUMN_INDICATOR_COLORS = [
+  '#A8B4D4', // Light purple
+  '#A3C4DB', // Light blue
+  '#9DCDC9', // Light teal
+  '#A8D4B8', // Light green
+  '#E2D4A8', // Light gold
+  '#E2BBA8', // Light orange
+  '#D4A8B8', // Light rose
+];
+
 interface WorkflowStep {
   id: string;
   type: 'list' | 'page' | 'kanban';
@@ -1475,7 +1486,7 @@ function ValueCard({
                         <span className="text-gray-500">No color</span>
                       </SelectItem>
                       <div className="flex gap-1 p-1 flex-wrap">
-                        {KANBAN_COLUMN_COLORS.map((color) => (
+                        {COLUMN_INDICATOR_COLORS.map((color) => (
                           <button
                             key={color}
                             type="button"
