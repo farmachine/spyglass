@@ -1998,9 +1998,8 @@ except Exception as e:
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Return cached data if available - disable caching for fresh data
+      // Return cached data if available
       const cachedData = dataSource.cachedData || [];
-      console.log(`Returning ${Array.isArray(cachedData) ? cachedData.length : 0} cached records for datasource ${id}`);
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.json(cachedData);
     } catch (error) {

@@ -6640,12 +6640,6 @@ Thank you for your assistance.`;
                                                         if (dataSourceId) {
                                                           try {
                                                             const datasourceResponse = await apiRequest(`/api/data-sources/${dataSourceId}/data`);
-                                                            console.log('Datasource response:', { 
-                                                              type: typeof datasourceResponse, 
-                                                              isArray: Array.isArray(datasourceResponse),
-                                                              length: Array.isArray(datasourceResponse) ? datasourceResponse.length : 'N/A',
-                                                              sample: Array.isArray(datasourceResponse) ? datasourceResponse.slice(0, 2) : datasourceResponse
-                                                            });
                                                             const datasourceInfo = await apiRequest(`/api/data-sources/${dataSourceId}`);
                                                             
                                                             // Get filter configuration from the column's inputValues
@@ -6682,7 +6676,7 @@ Thank you for your assistance.`;
                                                               validation: validation || null,
                                                               column,
                                                               rowIdentifierId,
-                                                              datasourceData: datasourceResponse?.entries || datasourceResponse || [],
+                                                              datasourceData: Array.isArray(datasourceResponse) ? datasourceResponse : [],
                                                               columnMappings: datasourceInfo?.columnMappings || {},
                                                               filters,
                                                               outputColumn,

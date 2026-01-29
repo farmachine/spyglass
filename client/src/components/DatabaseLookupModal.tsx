@@ -25,16 +25,18 @@ interface DatabaseLookupModalProps {
   currentInputValues: Record<string, string>;
 }
 
-export function DatabaseLookupModal({
-  isOpen,
-  onClose,
-  onSelect,
-  datasourceData,
-  columnMappings,
-  initialFilters,
-  outputColumn,
-  currentInputValues
-}: DatabaseLookupModalProps) {
+export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
+  const {
+    isOpen,
+    onClose,
+    onSelect,
+    datasourceData,
+    columnMappings,
+    initialFilters,
+    outputColumn,
+    currentInputValues
+  } = props;
+  
   const [filters, setFilters] = useState<FilterConfig[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
@@ -54,13 +56,6 @@ export function DatabaseLookupModal({
   }, [isOpen, initialFilters, currentInputValues]);
 
   const safeData = Array.isArray(datasourceData) ? datasourceData : [];
-  
-  console.log('DatabaseLookupModal received:', {
-    datasourceData_type: typeof datasourceData,
-    datasourceData_isArray: Array.isArray(datasourceData),
-    datasourceData_length: Array.isArray(datasourceData) ? datasourceData.length : 'N/A',
-    safeData_length: safeData.length
-  });
   
   const columns = useMemo(() => {
     if (safeData.length === 0) return [];
