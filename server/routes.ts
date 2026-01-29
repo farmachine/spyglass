@@ -11303,10 +11303,8 @@ def extract_function(Column_Name, Excel_File):
                     const inputValues = sv.inputValues as any;
                     // dataSourceId can be on the tool OR in the step value's inputValues
                     const dataSourceId = tool?.dataSourceId || inputValues?._dataSourceId;
-                    console.log(`[DEBUG] Step value ${sv.valueName} has tool: ${tool?.name}, type: ${tool?.toolType}, dsId: ${dataSourceId}`);
                     if (tool && tool.toolType === 'DATABASE_LOOKUP' && dataSourceId) {
                       const outputColumn = inputValues?._outputColumn || 'id';
-                      console.log(`[DEBUG] DATABASE_LOOKUP field found: ${sv.valueName}, outputColumn: ${outputColumn}, dsId: ${dataSourceId}`);
                       databaseLookupFields.set(sv.id, { 
                         dataSourceId: dataSourceId, 
                         outputColumn 
@@ -11506,10 +11504,15 @@ CRITICAL RULES:
 
 Return ONLY the JSON array, no other text.`;
 
-      // Call Gemini AI
+      // Call Gemini AI with increased token limit for large task lists
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        generationConfig: {
+          maxOutputTokens: 32768  // Increased for large task lists with detailed descriptions
+        }
+      });
       
       const result = await model.generateContent(prompt);
       const response = await result.response;
