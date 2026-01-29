@@ -148,7 +148,19 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
   const filteredData = useMemo(() => {
     let result = [...safeData];
     
-    // Only apply filters that have input values
+    // First, exclude records with blank values in any filter column
+    // (regardless of whether the filter has an input value)
+    const activeFilterColumns = filters.map(f => f.column);
+    if (activeFilterColumns.length > 0) {
+      result = result.filter(record => {
+        return activeFilterColumns.every(col => {
+          const val = record[col];
+          return val !== null && val !== undefined && val.toString().trim() !== "";
+        });
+      });
+    }
+    
+    // Then apply filter matching for filters that have input values
     filters.forEach(filter => {
       if (!filter.inputValue || filter.inputValue.trim() === "") return;
       
