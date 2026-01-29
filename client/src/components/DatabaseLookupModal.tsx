@@ -60,18 +60,44 @@ export function DatabaseLookupModal({
 
   const getDisplayName = (col: string) => columnMappings[col] || col;
 
-  const applyFuzzyMatch = (value: string, searchValue: string, fuzziness: number): boolean => {
+  const applyOperator = (value: string, searchValue: string, operator: string): boolean => {
+    if (!value || !searchValue) return false;
+    
+    const normalizedValue = value.toString().toLowerCase().trim();
+    const normalizedSearch = searchValue.toString().toLowerCase().trim();
+    
+    switch (operator) {
+      case 'equals':
+        return normalizedValue === normalizedSearch;
+      case 'contains':
+        return normalizedValue.includes(normalizedSearch);
+      case 'startsWith':
+        return normalizedValue.startsWith(normalizedSearch);
+      case 'endsWith':
+        return normalizedValue.endsWith(normalizedSearch);
+      default:
+        return normalizedValue === normalizedSearch;
+    }
+  };
+
+  const applyFuzzyMatch = (value: string, searchValue: string, operator: string, fuzziness: number): boolean => {
     if (!value || !searchValue) return false;
     
     const normalizedValue = value.toString().toLowerCase().trim();
     const normalizedSearch = searchValue.toString().toLowerCase().trim();
     
     if (fuzziness === 0) {
-      return normalizedValue === normalizedSearch;
+      return applyOperator(value, searchValue, operator);
     }
     
-    if (normalizedValue.includes(normalizedSearch) || normalizedSearch.includes(normalizedValue)) {
+    if (applyOperator(value, searchValue, operator)) {
       return true;
+    }
+    
+    if (operator === 'contains' || operator === 'equals') {
+      if (normalizedValue.includes(normalizedSearch) || normalizedSearch.includes(normalizedValue)) {
+        return true;
+      }
     }
     
     if (fuzziness >= 30) {
@@ -120,7 +146,7 @@ export function DatabaseLookupModal({
       
       result = result.filter(record => {
         const recordValue = record[filter.column];
-        return applyFuzzyMatch(recordValue, filter.inputValue!, filter.fuzziness);
+        return applyFuzzyMatch(recordValue, filter.inputValue!, filter.operator, filter.fuzziness);
       });
     });
     
@@ -236,9 +262,17 @@ export function DatabaseLookupModal({
               />
             </div>
             <span className="text-sm text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md whitespace-nowrap">
-              {filteredData.length} of {datasourceData.length} records
+              {filteredData.length === 100 && datasourceData.length > 100 
+                ? `Showing 100 of ${datasourceData.length}` 
+                : `${filteredData.length} of ${datasourceData.length}`} records
             </span>
           </div>
+          
+          {datasourceData.length > 1000 && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+              Large dataset: Adjust filters to narrow results. Showing up to 100 matches.
+            </div>
+          )}
 
           <div className="flex-1 overflow-auto border rounded-lg">
             <Table>
