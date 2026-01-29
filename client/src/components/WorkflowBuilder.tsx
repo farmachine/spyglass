@@ -1454,7 +1454,7 @@ function ValueCard({
               <div>
                 <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Column Color</Label>
                 <div className="flex items-center gap-2">
-                  <Select value={value.color || ''} onValueChange={(v) => onUpdate({ color: v || undefined })}>
+                  <Select value={value.color || 'none'} onValueChange={(v) => onUpdate({ color: v === 'none' ? undefined : v })}>
                     <SelectTrigger className="h-8 w-full text-sm">
                       <div className="flex items-center gap-2">
                         {value.color ? (
@@ -1471,7 +1471,7 @@ function ValueCard({
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="none">
                         <span className="text-gray-500">No color</span>
                       </SelectItem>
                       <div className="flex gap-1 p-1 flex-wrap">
