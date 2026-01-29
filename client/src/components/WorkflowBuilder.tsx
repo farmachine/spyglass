@@ -86,7 +86,7 @@ interface WorkflowStep {
     referenceStepIds?: string[];
     dataSourceId?: string;
     dataSourceInstructions?: string;
-    actions?: Array<{ name: string; aiInstructions: string; link: string }>;
+    actions?: Array<{ name: string; applicableStatuses: string[]; link: string }>;
   };
   // Original data reference
   originalId?: string;
@@ -1003,7 +1003,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           Task Actions
                         </label>
                         <div className="space-y-3">
-                          {(selectedStep.kanbanConfig?.actions || []).map((action: { name: string; aiInstructions: string; link: string }, actionIndex: number) => (
+                          {(selectedStep.kanbanConfig?.actions || []).map((action: { name: string; applicableStatuses: string[]; link: string }, actionIndex: number) => (
                             <div key={actionIndex} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 space-y-2">
                               <div className="flex justify-between items-start">
                                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Action {actionIndex + 1}</span>
@@ -1038,26 +1038,43 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                                     }
                                   });
                                 }}
-                                placeholder="Action Name (e.g., Generate Document)"
+                                placeholder="Action Name (e.g., Process Payment)"
                                 className="text-sm"
                               />
-                              <Textarea
-                                value={action.aiInstructions}
-                                onChange={(e) => {
-                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
-                                  newActions[actionIndex] = { ...newActions[actionIndex], aiInstructions: e.target.value };
-                                  updateStep(selectedStep.id, {
-                                    kanbanConfig: {
-                                      ...selectedStep.kanbanConfig,
-                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                      actions: newActions
-                                    }
-                                  });
-                                }}
-                                placeholder="AI Instructions: When should this action be available? (e.g., Tasks that require document drafting)"
-                                rows={2}
-                                className="text-sm"
-                              />
+                              <div className="space-y-1">
+                                <label className="text-xs text-gray-500 dark:text-gray-400">Show for cards in:</label>
+                                <div className="flex flex-wrap gap-2">
+                                  {(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((status: string) => {
+                                    const isSelected = (action.applicableStatuses || []).includes(status);
+                                    return (
+                                      <label key={status} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
+                                            const currentStatuses = newActions[actionIndex].applicableStatuses || [];
+                                            if (e.target.checked) {
+                                              newActions[actionIndex] = { ...newActions[actionIndex], applicableStatuses: [...currentStatuses, status] };
+                                            } else {
+                                              newActions[actionIndex] = { ...newActions[actionIndex], applicableStatuses: currentStatuses.filter((s: string) => s !== status) };
+                                            }
+                                            updateStep(selectedStep.id, {
+                                              kanbanConfig: {
+                                                ...selectedStep.kanbanConfig,
+                                                statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                                actions: newActions
+                                              }
+                                            });
+                                          }}
+                                          className="rounded border-gray-300 text-[#4F63A4] focus:ring-[#4F63A4]"
+                                        />
+                                        <span className="text-gray-700 dark:text-gray-300">{status}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                               <Input
                                 value={action.link}
                                 onChange={(e) => {
@@ -1080,7 +1097,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newActions = [...(selectedStep.kanbanConfig?.actions || []), { name: '', aiInstructions: '', link: '' }];
+                              const newActions = [...(selectedStep.kanbanConfig?.actions || []), { name: '', applicableStatuses: [], link: '' }];
                               updateStep(selectedStep.id, {
                                 kanbanConfig: {
                                   ...selectedStep.kanbanConfig,

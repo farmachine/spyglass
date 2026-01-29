@@ -57,7 +57,7 @@ interface SessionDocument {
 
 interface KanbanAction {
   name: string;
-  aiInstructions: string;
+  applicableStatuses: string[];
   link: string;
 }
 
@@ -1094,8 +1094,13 @@ export function KanbanBoard({
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                       <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Actions</label>
                       <div className="space-y-2">
-                        {/* Configured action buttons */}
-                        {actions.filter(action => action.name && action.link).map((action, index) => (
+                        {/* Configured action buttons - only show for applicable statuses */}
+                        {actions.filter(action => 
+                          action.name && 
+                          action.link && 
+                          selectedCard && 
+                          (action.applicableStatuses?.length === 0 || action.applicableStatuses?.includes(selectedCard.status))
+                        ).map((action, index) => (
                           <Button
                             key={index}
                             variant="outline"
