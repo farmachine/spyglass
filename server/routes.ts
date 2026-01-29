@@ -11300,9 +11300,11 @@ def extract_function(Column_Name, Excel_File):
                   // Check if this step value has a tool - fetch the tool to check if it's DATABASE_LOOKUP
                   if (sv.toolId) {
                     const tool = await storage.getExcelWizardryFunction(sv.toolId);
+                    console.log(`[DEBUG] Step value ${sv.valueName} has tool: ${tool?.name}, type: ${tool?.toolType}, dsId: ${tool?.dataSourceId}`);
                     if (tool && tool.toolType === 'DATABASE_LOOKUP' && tool.dataSourceId) {
                       const inputValues = sv.inputValues as any;
                       const outputColumn = inputValues?._outputColumn || 'id';
+                      console.log(`[DEBUG] DATABASE_LOOKUP field found: ${sv.valueName}, outputColumn: ${outputColumn}`);
                       databaseLookupFields.set(sv.id, { 
                         dataSourceId: tool.dataSourceId, 
                         outputColumn 
