@@ -488,12 +488,12 @@ export function KanbanBoard({
             {(isGenerating || localIsGenerating) ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
+                Generating tasks...
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4 mr-2" />
-                Generate Tasks with AI
+                Generate Tasks
               </>
             )}
           </Button>
@@ -515,7 +515,7 @@ export function KanbanBoard({
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
                     {status}
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge className="text-xs bg-[#4F63A4] text-white hover:bg-[#3d4f80]">
                       {columnCards.length}
                     </Badge>
                   </h3>
@@ -1170,10 +1170,10 @@ export function KanbanBoard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-[#4F63A4]" />
-              Generate Tasks with AI
+              Generate Tasks
             </DialogTitle>
             <DialogDescription>
-              Select the documents you want AI to analyze and generate tasks from.
+              Select the documents to analyze and generate tasks from.
             </DialogDescription>
           </DialogHeader>
           
