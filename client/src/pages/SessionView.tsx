@@ -6206,7 +6206,7 @@ Thank you for your assistance.`;
                                     )}px`,
                                     minWidth: isLastColumn ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
                                     ...(isLastColumn ? { flex: 1 } : {}),
-                                    ...(headerColumnColor ? { borderLeft: `3px solid ${headerColumnColor}` } : {})
+                                    ...(headerColumnColor ? { borderLeft: `2px solid ${headerColumnColor}` } : {})
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
@@ -6539,7 +6539,7 @@ Thank you for your assistance.`;
                                           )}px`,
                                           minWidth: isLastColumnCell ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
                                           ...(isLastColumnCell ? { flex: 1 } : {}),
-                                          ...(columnColor ? { borderLeft: `3px solid ${columnColor}` } : {})
+                                          ...(columnColor ? { borderLeft: `2px solid ${columnColor}` } : {})
                                         }}
                                       >
                                         <div className="relative w-full h-full">
