@@ -2230,10 +2230,10 @@ export default function SessionView() {
     enabled: !!projectId // Only run this query when we have a projectId
   });
 
-  // Get project tools to identify DATABASE_LOOKUP tools
+  // Get project tools (Excel Wizardry Functions) to identify DATABASE_LOOKUP tools
   const { data: projectTools = [] } = useQuery<any[]>({
-    queryKey: ['/api/projects', projectId, 'tools'],
-    queryFn: () => apiRequest(`/api/projects/${projectId}/tools`),
+    queryKey: ['/api/projects', projectId, 'excel-functions'],
+    queryFn: () => apiRequest(`/api/projects/${projectId}/excel-functions`),
     enabled: !!projectId
   });
 
@@ -6612,7 +6612,8 @@ Thank you for your assistance.`;
                                               } else {
                                                 // Check if this column uses a DATABASE_LOOKUP tool
                                                 const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
-                                                const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP';
+                                                // Check both camelCase and snake_case since API serialization may vary
+                                                const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP';
                                                 
                                                 if (isDatabaseLookup) {
                                                   // Show search icon for database lookup columns
