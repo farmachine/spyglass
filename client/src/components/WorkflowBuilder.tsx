@@ -1601,12 +1601,12 @@ function ValueCard({
                   const columnMappings = (selectedDataSource?.columnMappings as Record<string, string>) || {};
                   const rawSelectedColumns = (value.inputValues as Record<string, any>)?._searchByColumns || [];
                   
-                  // Normalize to new format: {column, operator, inputField}
-                  const selectedColumns: Array<{column: string, operator: string, inputField: string}> = 
+                  // Normalize to new format: {column, operator, inputField, fuzziness}
+                  const selectedColumns: Array<{column: string, operator: string, inputField: string, fuzziness: number}> = 
                     rawSelectedColumns.map((item: any) => 
                       typeof item === 'string' 
-                        ? { column: item, operator: 'equals', inputField: '' }
-                        : item
+                        ? { column: item, operator: 'equals', inputField: '', fuzziness: 0 }
+                        : { ...item, fuzziness: item.fuzziness ?? 0 }
                     );
                   
                   // Get available input fields from previous values in step
@@ -1635,13 +1635,16 @@ function ValueCard({
                         <div className="mb-2 space-y-1.5">
                           {selectedColumns.map((filterConfig, index: number) => {
                             const displayName = columnMappings[filterConfig.column] || filterConfig.column;
+                            const fuzzinessLabel = filterConfig.fuzziness === 0 ? 'Exact' : 
+                                                   filterConfig.fuzziness <= 30 ? 'Low' :
+                                                   filterConfig.fuzziness <= 60 ? 'Medium' : 'High';
                             return (
                               <div key={filterConfig.column} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-2">
                                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#4F63A4] text-white text-[10px] flex items-center justify-center font-medium">
                                     {index + 1}
                                   </span>
-                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[80px]" title={filterConfig.column !== displayName ? `${displayName} (${filterConfig.column})` : filterConfig.column}>
+                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[60px]" title={filterConfig.column !== displayName ? `${displayName} (${filterConfig.column})` : filterConfig.column}>
                                     {displayName}
                                     {index === 0 && <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">(Primary)</span>}
                                   </span>
@@ -1721,6 +1724,32 @@ function ValueCard({
                                     </button>
                                   </div>
                                 </div>
+                                
+                                {/* Fuzziness slider */}
+                                <div className="flex items-center gap-2 mt-1.5 pl-7">
+                                  <span className="text-[10px] text-gray-500 dark:text-gray-400 w-[45px]">Fuzziness:</span>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="10"
+                                    value={filterConfig.fuzziness}
+                                    onChange={(e) => {
+                                      const newColumns = [...selectedColumns];
+                                      newColumns[index] = { ...filterConfig, fuzziness: parseInt(e.target.value) };
+                                      onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                                    }}
+                                    className="flex-1 h-1 accent-[#4F63A4]"
+                                  />
+                                  <span className={`text-[10px] min-w-[40px] text-right ${
+                                    filterConfig.fuzziness === 0 ? 'text-green-600 dark:text-green-400' :
+                                    filterConfig.fuzziness <= 30 ? 'text-blue-600 dark:text-blue-400' :
+                                    filterConfig.fuzziness <= 60 ? 'text-yellow-600 dark:text-yellow-400' : 
+                                    'text-orange-600 dark:text-orange-400'
+                                  }`}>
+                                    {fuzzinessLabel}
+                                  </span>
+                                </div>
                               </div>
                             );
                           })}
@@ -1736,7 +1765,7 @@ function ValueCard({
                               key={col}
                               type="button"
                               onClick={() => {
-                                const newColumns = [...selectedColumns, { column: col, operator: 'equals', inputField: '' }];
+                                const newColumns = [...selectedColumns, { column: col, operator: 'equals', inputField: '', fuzziness: 0 }];
                                 onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
                               }}
                               className="flex items-center gap-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded"
@@ -1793,6 +1822,15 @@ function ValueCard({
                   // Determine the actual parameter type
                   const paramType = param.type?.toLowerCase() || 'text';
                   const paramName = param.name?.toLowerCase() || '';
+                  
+                  // For DATABASE_LOOKUP tools, hide AI Instructions and Document parameters
+                  // as filtering is now done via the Search By Columns config with fuzziness
+                  if (selectedTool.toolType === 'DATABASE_LOOKUP') {
+                    if (paramName.includes('instruction') || paramName.includes('prompt') || 
+                        paramType === 'document' || paramName.includes('document')) {
+                      return null;
+                    }
+                  }
                   
                   // Check for document types
                   const isUserDocument = paramType === 'document' || paramType.includes('user_document') || 
