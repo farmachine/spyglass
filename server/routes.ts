@@ -11504,13 +11504,13 @@ CRITICAL RULES:
 
 Return ONLY the JSON array, no other text.`;
 
-      // Call Gemini AI with increased token limit for large task lists
+      // Call Gemini AI with high token limit for large task lists with detailed descriptions
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
+        model: "gemini-1.5-pro",
         generationConfig: {
-          maxOutputTokens: 32768  // Increased for large task lists with detailed descriptions
+          maxOutputTokens: 65536  // Use 1.5-pro for higher output token limit
         }
       });
       
