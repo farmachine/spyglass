@@ -297,11 +297,11 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
                     {columns.map(col => (
                       <TableHead key={col} className="py-2 px-3 text-xs font-semibold whitespace-nowrap min-w-[120px]">
                         <div className="flex flex-col">
-                          <span className={col === outputColumn ? 'text-[#4F63A4] font-bold' : ''}>
+                          <span className={col === outputColumn ? 'text-[#4F63A4] dark:text-[#7B8FD4] font-bold' : ''}>
                             {getDisplayName(col)}
                           </span>
                           {col === outputColumn && (
-                            <span className="text-[10px] text-[#4F63A4] font-normal">Output Column</span>
+                            <span className="text-[10px] text-[#4F63A4] dark:text-[#7B8FD4] font-normal">Output Column</span>
                           )}
                         </div>
                       </TableHead>
@@ -336,7 +336,7 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
                           {columns.map(col => (
                             <TableCell 
                               key={col} 
-                              className={`py-2 px-3 text-sm whitespace-nowrap ${col === outputColumn ? 'font-medium text-[#4F63A4]' : ''}`}
+                              className={`py-2 px-3 text-sm whitespace-nowrap ${col === outputColumn ? 'font-medium text-[#4F63A4] dark:text-[#7B8FD4]' : ''}`}
                             >
                               <span className="max-w-[200px] truncate inline-block" title={record[col]?.toString()}>
                                 {record[col]?.toString() || '-'}
