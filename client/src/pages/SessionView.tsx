@@ -66,6 +66,7 @@ import SessionLinkingModal from "@/components/SessionLinkingModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { DatabaseLookupModal } from "@/components/DatabaseLookupModal";
 
 import type { 
   ExtractionSession, 
@@ -1688,6 +1689,22 @@ export default function SessionView() {
   } | null>(null);
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
 
+  // Database lookup modal state
+  const [databaseLookupModal, setDatabaseLookupModal] = useState<{
+    isOpen: boolean;
+    validation: FieldValidation | null;
+    column: any;
+    rowIdentifierId: string | null;
+    datasourceData: any[];
+    columnMappings: Record<string, string>;
+    filters: Array<{column: string; operator: string; inputField: string; fuzziness: number}>;
+    outputColumn: string;
+    currentInputValues: Record<string, string>;
+    fieldName: string;
+    collectionName: string;
+    recordIndex: number;
+  } | null>(null);
+
   // Helper function to find schema field data
   const findSchemaField = (validation: FieldValidation) => {
     if (validation.validationType !== 'schema_field' || !project?.schemaFields) return null;
@@ -2212,6 +2229,22 @@ export default function SessionView() {
     queryFn: () => apiRequest(`/api/projects/${projectId}`),
     enabled: !!projectId // Only run this query when we have a projectId
   });
+
+  // Get project tools to identify DATABASE_LOOKUP tools
+  const { data: projectTools = [] } = useQuery<any[]>({
+    queryKey: ['/api/projects', projectId, 'tools'],
+    queryFn: () => apiRequest(`/api/projects/${projectId}/tools`),
+    enabled: !!projectId
+  });
+
+  // Create a map of toolId to tool info for quick lookup
+  const toolsMap = useMemo(() => {
+    const map = new Map<string, any>();
+    projectTools.forEach(tool => {
+      map.set(tool.id, tool);
+    });
+    return map;
+  }, [projectTools]);
 
   // Set dynamic page title based on session and project data
   usePageTitle(session?.sessionName && project?.name ? 
