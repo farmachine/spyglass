@@ -17,7 +17,7 @@ interface FilterConfig {
 interface DatabaseLookupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (value: string, record: Record<string, any>) => void;
+  onSelect: (value: string) => void;
   datasourceData: any[];
   columnMappings: Record<string, string>;
   initialFilters: FilterConfig[];
@@ -200,8 +200,8 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
   };
 
   const handleUpdate = () => {
-    if (selectedValue && selectedRecord) {
-      onSelect(selectedValue, selectedRecord);
+    if (selectedValue) {
+      onSelect(selectedValue);
       onClose();
     }
   };

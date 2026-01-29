@@ -6547,89 +6547,12 @@ Thank you for your assistance.`;
                                           <div className={`table-cell-content w-full pl-6 pr-6 ${
                                             columnType === 'TEXTAREA' ? 'min-h-[40px] py-2' : 'py-1.5'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative text-sm dark:text-gray-200`}>
-                                            {(() => {
-                                              // Check if this is a DATABASE_LOOKUP column with matched record data
-                                              const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
-                                              const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP';
-                                              
-                                              let matchedRecord: Record<string, any> | null = null;
-                                              let aiReasoningText: string | null = null;
-                                              
-                                              if (isDatabaseLookup && validation?.aiReasoning) {
-                                                try {
-                                                  const parsed = JSON.parse(validation.aiReasoning);
-                                                  if (parsed.type === 'DATABASE_LOOKUP_MATCH' && parsed.matchedRecord) {
-                                                    matchedRecord = parsed.matchedRecord;
-                                                  }
-                                                } catch (e) {
-                                                  // Not JSON - use it as plain text reasoning
-                                                  aiReasoningText = validation.aiReasoning;
-                                                }
-                                              }
-                                              
-                                              const formattedValue = formatValueForDisplay(displayValue, columnType);
-                                              const isNotFound = formattedValue === 'Not Found';
-                                              const hasValidMatch = isDatabaseLookup && !isNotFound && validation?.validationStatus === 'valid';
-                                              
-                                              const valueSpan = (
-                                                <span className={`
-                                                  ${isNotFound ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
-                                                  ${columnIndex === 0 ? 'font-bold text-gray-900 dark:text-white' : ''}
-                                                  ${hasValidMatch ? 'cursor-help underline decoration-dotted decoration-gray-400 dark:decoration-gray-500' : ''}
-                                                `.trim()}>
-                                                  {formattedValue}
-                                                </span>
-                                              );
-                                              
-                                              // If DATABASE_LOOKUP with valid match, wrap in Tooltip
-                                              if (hasValidMatch && (matchedRecord || aiReasoningText)) {
-                                                return (
-                                                  <TooltipProvider>
-                                                    <Tooltip>
-                                                      <TooltipTrigger asChild>
-                                                        {valueSpan}
-                                                      </TooltipTrigger>
-                                                      <TooltipContent 
-                                                        side="bottom" 
-                                                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 max-w-[400px] shadow-lg z-50"
-                                                      >
-                                                        <div className="text-xs space-y-1">
-                                                          <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2 border-b pb-1">
-                                                            {matchedRecord ? 'Matched Record' : 'Match Details'}
-                                                          </div>
-                                                          {matchedRecord ? (
-                                                            <>
-                                                              {Object.entries(matchedRecord)
-                                                                .filter(([key]) => !key.startsWith('_'))
-                                                                .slice(0, 10)
-                                                                .map(([key, value]) => (
-                                                                  <div key={key} className="flex gap-2">
-                                                                    <span className="font-medium text-gray-600 dark:text-gray-400 min-w-[80px]">{key}:</span>
-                                                                    <span className="text-gray-900 dark:text-gray-100 truncate max-w-[250px]" title={String(value)}>
-                                                                      {String(value || '-')}
-                                                                    </span>
-                                                                  </div>
-                                                                ))}
-                                                              {Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length > 10 && (
-                                                                <div className="text-gray-400 italic mt-1">
-                                                                  +{Object.keys(matchedRecord).filter(k => !k.startsWith('_')).length - 10} more fields...
-                                                                </div>
-                                                              )}
-                                                            </>
-                                                          ) : (
-                                                            <div className="text-gray-700 dark:text-gray-300">
-                                                              {aiReasoningText}
-                                                            </div>
-                                                          )}
-                                                        </div>
-                                                      </TooltipContent>
-                                                    </Tooltip>
-                                                  </TooltipProvider>
-                                                );
-                                              }
-                                              
-                                              return valueSpan;
-                                            })()}
+                                            <span className={`
+                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
+                                              ${columnIndex === 0 ? 'font-bold text-gray-900 dark:text-white' : ''}
+                                            `.trim()}>
+                                              {formatValueForDisplay(displayValue, columnType)}
+                                            </span>
                                             
                                             {/* Inline editing or edit button */}
                                             {(() => {
@@ -7377,14 +7300,13 @@ Thank you for your assistance.`;
         <DatabaseLookupModal
           isOpen={databaseLookupModal.isOpen}
           onClose={() => setDatabaseLookupModal(null)}
-          onSelect={async (selectedValue: string, matchedRecord: Record<string, any>) => {
+          onSelect={async (selectedValue: string) => {
             if (!databaseLookupModal) return;
             
             const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = databaseLookupModal;
             
             console.log('Database lookup value selected:', {
               selectedValue,
-              matchedRecord,
               fieldName,
               collectionName,
               recordIndex,
@@ -7392,12 +7314,6 @@ Thank you for your assistance.`;
             });
             
             try {
-              // Store the matched record as JSON in aiReasoning for hover display
-              const aiReasoning = JSON.stringify({ 
-                type: 'DATABASE_LOOKUP_MATCH',
-                matchedRecord 
-              });
-              
               // Save the selected value as a field validation
               const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
                 method: 'POST',
@@ -7413,7 +7329,7 @@ Thank you for your assistance.`;
                   extractedValue: selectedValue,
                   validationStatus: 'valid',
                   manuallyUpdated: true,
-                  aiReasoning,
+                  aiReasoning: 'Manually selected from database lookup',
                   confidenceScore: 100
                 })
               });

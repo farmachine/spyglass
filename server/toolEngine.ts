@@ -1997,6 +1997,14 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
             }
           });
           
+          // Build a lookup map for candidate records by ID
+          const candidateById = new Map<string, any>();
+          limitedCandidates.forEach((candidate: any) => {
+            if (candidate.id) {
+              candidateById.set(candidate.id, candidate);
+            }
+          });
+          
           // Align results: prefer identifierId matching, fallback to index order
           const processedResults = inputArray.map((inputItem: any, idx: number) => {
             // Try to find result by identifierId first
@@ -2007,11 +2015,28 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
               result = matchResults[idx];
             }
             
+            // Build enhanced aiReasoning with matched record details
+            let enhancedReasoning = result?.aiReasoning || "No matching result from AI";
+            
+            // If we have a valid match, look up the full record and append details
+            if (result?.extractedValue && result?.validationStatus === 'valid') {
+              const matchedRecord = candidateById.get(result.extractedValue);
+              if (matchedRecord) {
+                // Format the matched record as readable key-value pairs
+                const recordDetails = Object.entries(matchedRecord)
+                  .filter(([key]) => !key.startsWith('_'))
+                  .slice(0, 15) // Limit to 15 fields
+                  .map(([key, value]) => `${key}: ${String(value || '-')}`)
+                  .join('\n');
+                enhancedReasoning = `${enhancedReasoning}\n\n--- Matched Record ---\n${recordDetails}`;
+              }
+            }
+            
             // Format the result
             return {
               extractedValue: result?.extractedValue ?? null,
               validationStatus: result?.validationStatus || (result?.extractedValue ? "valid" : "invalid"),
-              aiReasoning: result?.aiReasoning || "No matching result from AI",
+              aiReasoning: enhancedReasoning,
               confidenceScore: result?.confidenceScore ?? (result?.extractedValue ? 85 : 0),
               documentSource: result?.documentSource || dataSource.name,
               identifierId: inputItem.identifierId
