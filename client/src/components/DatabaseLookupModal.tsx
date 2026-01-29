@@ -55,6 +55,13 @@ export function DatabaseLookupModal({
 
   const safeData = Array.isArray(datasourceData) ? datasourceData : [];
   
+  console.log('DatabaseLookupModal received:', {
+    datasourceData_type: typeof datasourceData,
+    datasourceData_isArray: Array.isArray(datasourceData),
+    datasourceData_length: Array.isArray(datasourceData) ? datasourceData.length : 'N/A',
+    safeData_length: safeData.length
+  });
+  
   const columns = useMemo(() => {
     if (safeData.length === 0) return [];
     return Object.keys(safeData[0]);
