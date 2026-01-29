@@ -6440,16 +6440,16 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }, displayIndex) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b-2 border-gray-200 dark:border-gray-700 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
+                                  className="border-b border-gray-200 dark:border-gray-700/50 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
                                   style={{
                                     backgroundColor: displayIndex % 2 === 0 
-                                      ? 'rgba(255, 255, 255, 0.7)' 
-                                      : 'rgba(79, 99, 164, 0.04)'
+                                      ? 'transparent' 
+                                      : 'rgba(79, 99, 164, 0.03)'
                                   }}
                                 >
                                   {/* Spacer cell for left padding with row indicator */}
-                                  <TableCell className="w-2 py-4 border-r-0 relative" style={{ width: '8px', minWidth: '8px', maxWidth: '8px' }}>
-                                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#4F63A4]/20 group-hover/row:bg-[#4F63A4]/60 rounded-r transition-colors" />
+                                  <TableCell className="w-2 py-5 border-r-0 relative" style={{ width: '8px', minWidth: '8px', maxWidth: '8px' }}>
+                                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-[#4F63A4]/15 dark:bg-[#4F63A4]/25 group-hover/row:bg-[#4F63A4]/50 dark:group-hover/row:bg-[#4F63A4]/60 rounded-r transition-colors" />
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -6522,7 +6522,7 @@ Thank you for your assistance.`;
                                     return (
                                       <TableCell 
                                         key={columnId} 
-                                        className="relative py-4 px-3"
+                                        className="relative py-5 px-3"
                                         style={{ 
                                           width: isLastColumnCell ? 'auto' : `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnName.toLowerCase().includes('description') ? 180 :
@@ -6541,11 +6541,11 @@ Thank you for your assistance.`;
                                         <div className="relative w-full h-full">
                                           {/* Content */}
                                           <div className={`table-cell-content w-full pl-6 pr-6 ${
-                                            columnType === 'TEXTAREA' ? 'min-h-[40px] py-1' : 'py-0.5'
-                                          } break-words whitespace-normal overflow-wrap-anywhere leading-snug group relative text-sm`}>
+                                            columnType === 'TEXTAREA' ? 'min-h-[40px] py-2' : 'py-1.5'
+                                          } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative text-sm dark:text-gray-200`}>
                                             <span className={`
-                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 italic text-xs' : ''}
-                                              ${columnIndex === 0 ? 'font-medium' : ''}
+                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
+                                              ${columnIndex === 0 ? 'font-semibold text-gray-900 dark:text-white' : ''}
                                             `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
