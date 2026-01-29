@@ -138,9 +138,13 @@ export function DatabaseLookupModal({
     return false;
   };
 
+  // Count how many filters have actual values
+  const activeFilterCount = filters.filter(f => f.inputValue && f.inputValue.trim() !== "").length;
+  
   const filteredData = useMemo(() => {
     let result = [...datasourceData];
     
+    // Only apply filters that have input values
     filters.forEach(filter => {
       if (!filter.inputValue || filter.inputValue.trim() === "") return;
       
@@ -195,7 +199,7 @@ export function DatabaseLookupModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-[#4F63A4]" />
