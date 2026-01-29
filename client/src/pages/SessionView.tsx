@@ -2240,9 +2240,11 @@ export default function SessionView() {
   // Create a map of toolId to tool info for quick lookup
   const toolsMap = useMemo(() => {
     const map = new Map<string, any>();
-    projectTools.forEach(tool => {
-      map.set(tool.id, tool);
-    });
+    if (projectTools && Array.isArray(projectTools)) {
+      projectTools.forEach(tool => {
+        map.set(tool.id, tool);
+      });
+    }
     return map;
   }, [projectTools]);
 
