@@ -6445,13 +6445,11 @@ Thank you for your assistance.`;
                                     backgroundColor: displayIndex % 2 === 0 
                                       ? 'transparent' 
                                       : 'rgba(79, 99, 164, 0.03)',
-                                    borderTop: '1px solid #d1d5db',
-                                    borderBottom: '1px solid #d1d5db'
+                                    boxShadow: 'inset 0 -1px 0 0 #e5e7eb, inset 0 1px 0 0 #e5e7eb'
                                   }}
                                 >
-                                  {/* Spacer cell for left padding with row indicator */}
-                                  <TableCell className="w-2 py-5 border-r-0 relative" style={{ width: '8px', minWidth: '8px', maxWidth: '8px' }}>
-                                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-[#4F63A4]/15 dark:bg-[#4F63A4]/25 group-hover/row:bg-[#4F63A4]/50 dark:group-hover/row:bg-[#4F63A4]/60 rounded-r transition-colors" />
+                                  {/* Spacer cell for left padding */}
+                                  <TableCell className="w-2 py-5 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                                   </TableCell>
                                   {columnsToDisplay
                                     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
