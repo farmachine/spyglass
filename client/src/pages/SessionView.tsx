@@ -6440,11 +6440,13 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }, displayIndex) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-t border-b border-gray-300 dark:border-gray-600 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
+                                  className="hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
                                   style={{
                                     backgroundColor: displayIndex % 2 === 0 
                                       ? 'transparent' 
-                                      : 'rgba(79, 99, 164, 0.03)'
+                                      : 'rgba(79, 99, 164, 0.03)',
+                                    borderTop: '1px solid #d1d5db',
+                                    borderBottom: '1px solid #d1d5db'
                                   }}
                                 >
                                   {/* Spacer cell for left padding with row indicator */}
