@@ -6440,7 +6440,7 @@ Thank you for your assistance.`;
                               return filteredItems.map(({ item, originalIndex }, displayIndex) => (
                                 <TableRow 
                                   key={originalIndex} 
-                                  className="border-b border-gray-200 dark:border-gray-700/50 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
+                                  className="border-t border-b border-gray-300 dark:border-gray-600 hover:bg-[#4F63A4]/5 dark:hover:bg-[#4F63A4]/10 transition-all duration-150 group/row"
                                   style={{
                                     backgroundColor: displayIndex % 2 === 0 
                                       ? 'transparent' 
@@ -6545,7 +6545,7 @@ Thank you for your assistance.`;
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative text-sm dark:text-gray-200`}>
                                             <span className={`
                                               ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
-                                              ${columnIndex === 0 ? 'font-semibold text-gray-900 dark:text-white' : ''}
+                                              ${columnIndex === 0 ? 'font-bold text-gray-900 dark:text-white' : ''}
                                             `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
                                             </span>
