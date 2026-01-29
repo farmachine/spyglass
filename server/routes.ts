@@ -11317,15 +11317,18 @@ def extract_function(Column_Name, Excel_File):
                 const dataSourceCache = new Map<string, { data: any[]; columnMappings: Record<string, string> }>();
                 
                 // Group by identifierId for table data
+                // Also build enrichment map for placeholder replacement later
                 const groupedData = new Map<string, any>();
+                const enrichmentMap = new Map<string, { identifierId: string; fieldName: string; record: Record<string, any> }>();
+                
                 for (const v of validations) {
                   if (!groupedData.has(v.identifierId)) {
-                    groupedData.set(v.identifierId, {});
+                    groupedData.set(v.identifierId, { __identifierId: v.identifierId });
                   }
                   const stepValue = fieldIdToStepValue.get(v.fieldId);
                   const fieldName = stepValue?.valueName || 'Field';
                   
-                  // Check if this field is a DATABASE_LOOKUP and enrich with full record data
+                  // Check if this field is a DATABASE_LOOKUP and store enrichment data
                   const lookupInfo = databaseLookupFields.get(v.fieldId);
                   if (lookupInfo && v.extractedValue) {
                     // Get or fetch the data source
@@ -11347,18 +11350,23 @@ def extract_function(Column_Name, Excel_File):
                       );
                       
                       if (matchedRecord) {
-                        // Add the matched value
+                        // Store the extracted value for AI context
                         groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
                         
-                        // Add all columns from the matched record with friendly names
-                        const enrichedData: Record<string, any> = {};
+                        // Build enriched record with friendly names for later replacement
+                        const enrichedRecord: Record<string, any> = {};
                         for (const [col, val] of Object.entries(matchedRecord)) {
                           if (col !== 'created_at' && col !== 'updated_at' && val !== null && val !== '') {
                             const friendlyName = dsInfo.columnMappings[col] || col;
-                            enrichedData[friendlyName] = val;
+                            enrichedRecord[friendlyName] = val;
                           }
                         }
-                        groupedData.get(v.identifierId)[`${fieldName}_FullRecord`] = enrichedData;
+                        // Store in enrichment map for placeholder replacement
+                        enrichmentMap.set(v.identifierId, {
+                          identifierId: v.identifierId,
+                          fieldName: fieldName,
+                          record: enrichedRecord
+                        });
                       } else {
                         groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
                       }
@@ -11369,6 +11377,10 @@ def extract_function(Column_Name, Excel_File):
                     groupedData.get(v.identifierId)[fieldName] = v.extractedValue;
                   }
                 }
+                
+                // Store enrichment map in request context for later use
+                (req as any).__enrichmentMap = enrichmentMap;
+                
                 referenceDataContent += JSON.stringify(Array.from(groupedData.values()), null, 2);
               }
             }
@@ -11501,17 +11513,15 @@ CRITICAL RULES:
 2. If the user specifies which tasks go to which status column, follow those rules precisely.
 3. Generate comprehensive, detailed descriptions and relevant checklists for each task.
 4. Create ONE task per data item when processing extracted data rows.
+5. IMPORTANT: For records that have matched reference data (e.g., matched profit center), include the placeholder {{REFERENCE_DATA:identifierId}} in the description where identifierId is the __identifierId value from the data. The system will replace this placeholder with the full formatted reference data after you respond. This keeps your response compact.
 
 Return ONLY the JSON array, no other text.`;
 
-      // Call Gemini AI with high token limit for large task lists with detailed descriptions
+      // Call Gemini AI - using placeholder approach keeps responses compact
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-pro",
-        generationConfig: {
-          maxOutputTokens: 65536  // Use 1.5-pro for higher output token limit
-        }
+        model: "gemini-2.0-flash"
       });
       
       const result = await model.generateContent(prompt);
@@ -11531,6 +11541,28 @@ Return ONLY the JSON array, no other text.`;
 
       if (!Array.isArray(tasks)) {
         return res.status(500).json({ error: 'AI did not return a valid task array' });
+      }
+      
+      // Replace {{REFERENCE_DATA:identifierId}} placeholders with formatted data
+      const enrichmentMap = (req as any).__enrichmentMap as Map<string, { identifierId: string; fieldName: string; record: Record<string, any> }> | undefined;
+      if (enrichmentMap && enrichmentMap.size > 0) {
+        for (const task of tasks) {
+          if (task.description && typeof task.description === 'string') {
+            // Find all placeholders in the description
+            const placeholderRegex = /\{\{REFERENCE_DATA:([^}]+)\}\}/g;
+            task.description = task.description.replace(placeholderRegex, (match: string, identifierId: string) => {
+              const enrichment = enrichmentMap.get(identifierId);
+              if (enrichment && enrichment.record) {
+                // Format the record as readable text
+                const lines = Object.entries(enrichment.record)
+                  .filter(([_, val]) => val !== null && val !== '')
+                  .map(([key, val]) => `${key}: ${val}`);
+                return `\n\n--- ${enrichment.fieldName} Details ---\n${lines.join('\n')}`;
+              }
+              return match; // Keep original if not found
+            });
+          }
+        }
       }
 
       // Create the kanban cards with checklists
