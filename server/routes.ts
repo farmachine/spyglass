@@ -10939,11 +10939,12 @@ def extract_function(Column_Name, Excel_File):
       // Get all sessions for the project
       const sessions = await storage.getExtractionSessions(projectId);
       
-      // Build kanban step info with status columns
+      // Build kanban step info with status columns and colors
       const kanbanStepInfo: Array<{
         stepId: string;
         stepName: string;
         statusColumns: string[];
+        columnColors: string[];
         lastColumn: string;
       }> = [];
       
@@ -10958,15 +10959,18 @@ def extract_function(Column_Name, Excel_File):
       
       for (const kanbanStep of kanbanSteps) {
         const kanbanConfig = (kanbanStep as any).kanbanConfig || {
-          statusColumns: ['To Do', 'In Progress', 'Done']
+          statusColumns: ['To Do', 'In Progress', 'Done'],
+          columnColors: []
         };
         const statusColumns: string[] = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
+        const columnColors: string[] = kanbanConfig.columnColors || [];
         const lastColumn = statusColumns[statusColumns.length - 1];
         
         kanbanStepInfo.push({
           stepId: kanbanStep.id,
           stepName: kanbanStep.stepName,
           statusColumns,
+          columnColors,
           lastColumn
         });
         

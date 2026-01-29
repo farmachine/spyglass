@@ -115,6 +115,7 @@ export default function AllData({ project }: AllDataProps) {
       stepId: string;
       stepName: string;
       statusColumns: string[];
+      columnColors: string[];
       lastColumn: string;
     }>;
     progress: Record<string, Record<string, { 
@@ -540,11 +541,11 @@ export default function AllData({ project }: AllDataProps) {
       }
     }
     
-    // Build chart data
+    // Build chart data using configured column colors
     const data = step.statusColumns.map((status, index) => ({
       name: status,
       value: aggregatedCounts[status] || 0,
-      color: CHART_COLORS[index % CHART_COLORS.length]
+      color: step.columnColors?.[index] || CHART_COLORS[index % CHART_COLORS.length]
     })).filter(d => d.value > 0);
     
     if (data.length === 0) return null;
