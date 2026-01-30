@@ -453,30 +453,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                 </div>
               </div>
             </div>
-
-            {/* Statistics Cards */}
-            {project.sessions.length > 0 && (
-              <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700 dark:text-slate-400" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {verificationStats.in_progress + verificationStats.pending}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {verificationStats.verified}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

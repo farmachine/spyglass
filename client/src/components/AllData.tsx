@@ -820,18 +820,6 @@ export default function AllData({ project }: AllDataProps) {
           </Button>
         )}
 
-        {/* Close Analytics Button - only show when analytics are visible */}
-        {showAnalyticsPane && generatedCharts.length > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={clearAnalytics}
-            title="Close Analytics"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-
         {/* Column Settings Button */}
         <Button
           variant="outline"
