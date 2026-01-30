@@ -66,6 +66,8 @@ export const projects = pgTable("projects", {
   mainObjectDescription: text("main_object_description"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
+  inboxEmailAddress: text("inbox_email_address"), // AgentMail inbox for receiving emails
+  inboxId: text("inbox_id"), // AgentMail inbox ID for API calls
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

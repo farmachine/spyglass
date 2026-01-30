@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2 } from "lucide-react";
 import type { ApiDataSource } from "@shared/schema";
+import { useProject } from "@/hooks/useProjects";
 
 interface DataSourcesPanelProps {
   projectId: string;
@@ -26,6 +27,37 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [fetchedData, setFetchedData] = useState<Record<string, any>>({});
   const [editingColumn, setEditingColumn] = useState<{ sourceId: string; column: string } | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  
+  const { data: project, refetch: refetchProject } = useProject(projectId);
+
+  const createInboxMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/projects/${projectId}/inbox`, {
+        method: "POST"
+      });
+    },
+    onSuccess: (data) => {
+      refetchProject();
+      toast({ 
+        title: "Email inbox created", 
+        description: `Sessions can now be created by emailing ${data.email}` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to create email inbox", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const copyEmailToClipboard = () => {
+    if (project?.inboxEmailAddress) {
+      navigator.clipboard.writeText(project.inboxEmailAddress);
+      toast({ title: "Copied to clipboard" });
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -476,6 +508,76 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect Your Data</h1>
+        </div>
+      </div>
+
+      {/* Email Inbox Section */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Mail className="w-5 h-5" style={{ color: '#4F63A4' }} />
+            <CardTitle className="text-lg">Email Inbox</CardTitle>
+          </div>
+          <CardDescription>
+            Create sessions automatically by sending emails to this project's inbox
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {project?.inboxEmailAddress ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="font-mono text-sm">{project.inboxEmailAddress}</span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyEmailToClipboard}
+                className="flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+                No inbox configured. Create one to receive documents via email.
+              </p>
+              <Button
+                onClick={() => createInboxMutation.mutate()}
+                disabled={createInboxMutation.isPending}
+                style={{ backgroundColor: '#4F63A4' }}
+              >
+                {createInboxMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Inbox
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          {project?.inboxEmailAddress && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              Email attachments will automatically be uploaded as session documents
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Data Sources Section */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Database className="w-5 h-5" style={{ color: '#4F63A4' }} />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">API Data Sources</h2>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>

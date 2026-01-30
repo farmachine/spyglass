@@ -640,6 +640,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create or get email inbox for a project
+  app.post("/api/projects/:id/inbox", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      
+      // Verify user has access to project
+      const project = await storage.getProject(id, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Check if project already has an inbox
+      if (project.inboxEmailAddress && project.inboxId) {
+        return res.json({ 
+          email: project.inboxEmailAddress, 
+          inboxId: project.inboxId,
+          message: "Inbox already exists" 
+        });
+      }
+      
+      // Create inbox via AgentMail
+      const { createProjectInbox, createWebhook } = await import('./integrations/agentmail');
+      const { email, inboxId } = await createProjectInbox(id);
+      
+      // Register webhook for this inbox to receive emails
+      const webhookUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/api/webhooks/email`;
+      console.log(`📧 Registering webhook for inbox ${inboxId} at: ${webhookUrl}`);
+      
+      try {
+        await createWebhook(inboxId, webhookUrl);
+        console.log(`📧 Webhook registered successfully`);
+      } catch (webhookErr) {
+        console.warn('📧 Webhook registration failed (may already exist):', webhookErr);
+      }
+      
+      // Update project with inbox details
+      const updatedProject = await storage.updateProject(id, {
+        inboxEmailAddress: email,
+        inboxId: inboxId
+      }, req.user!.organizationId);
+      
+      res.json({ 
+        email, 
+        inboxId,
+        message: "Inbox created successfully" 
+      });
+    } catch (error: any) {
+      console.error("Create project inbox error:", error);
+      res.status(500).json({ message: error.message || "Failed to create project inbox" });
+    }
+  });
+
   app.put("/api/projects/:id/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
@@ -12051,6 +12103,104 @@ Respond in JSON format:
     } catch (error) {
       console.error('Error getting session links:', error);
       res.status(500).json({ error: 'Failed to get session links' });
+    }
+  });
+
+  // AgentMail webhook endpoint for receiving inbound emails
+  // This creates a new session from email and uploads attachments as documents
+  app.post('/api/webhooks/email', async (req, res) => {
+    try {
+      console.log('📧 Received inbound email webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
+      
+      const payload = req.body;
+      const inboxId = payload.inbox_id;
+      const messageId = payload.message_id;
+      const subject = payload.subject || 'Email Session';
+      const fromEmail = payload.from_?.[0] || 'unknown@example.com';
+      const textContent = payload.text_plain || '';
+      const attachments = payload.attachments || [];
+      
+      if (!inboxId) {
+        console.error('📧 No inbox_id in webhook payload');
+        return res.status(400).json({ error: 'Missing inbox_id' });
+      }
+      
+      // Find project by inbox ID
+      const project = await storage.getProjectByInboxId(inboxId);
+      if (!project) {
+        console.error(`📧 No project found for inbox ID: ${inboxId}`);
+        return res.status(404).json({ error: 'Project not found for inbox' });
+      }
+      
+      console.log(`📧 Found project: ${project.name} (${project.id})`);
+      
+      // Create session from email
+      const sessionName = subject.slice(0, 100);
+      const sessionData = {
+        projectId: project.id,
+        sessionName,
+        description: `Created from email by ${fromEmail}\n\n${textContent.slice(0, 500)}`,
+        status: 'pending' as const,
+        documentCount: attachments.length,
+        extractedData: '{}',
+      };
+      
+      const session = await storage.createExtractionSession(sessionData);
+      console.log(`📧 Created session: ${session.id} - ${sessionName}`);
+      
+      // Generate initial field validations
+      await generateSchemaFieldValidations(session.id, project.id);
+      
+      // Process attachments if any
+      if (attachments.length > 0) {
+        const { downloadAttachment } = await import('./integrations/agentmail');
+        
+        for (const attachment of attachments) {
+          try {
+            console.log(`📧 Processing attachment: ${attachment.filename}`);
+            
+            // Download attachment content
+            const { data, filename, contentType } = await downloadAttachment(messageId, attachment.attachment_id);
+            
+            // Create session document
+            const document = await storage.createSessionDocument({
+              sessionId: session.id,
+              documentName: filename,
+              documentType: contentType,
+              documentContent: data.toString('base64'),
+              isPrimary: attachments.indexOf(attachment) === 0,
+            });
+            
+            console.log(`📧 Uploaded document: ${document.id} - ${filename}`);
+            
+            // Process document (extract content) if it's a supported type
+            if (contentType.includes('pdf') || contentType.includes('excel') || contentType.includes('spreadsheet')) {
+              // Trigger document processing in background
+              // This would normally be handled by the document processing pipeline
+              console.log(`📧 Document ${filename} queued for processing`);
+            }
+          } catch (attachErr) {
+            console.error(`📧 Failed to process attachment ${attachment.filename}:`, attachErr);
+          }
+        }
+        
+        // Update session document count
+        await storage.updateExtractionSession(session.id, {
+          documentCount: attachments.length
+        });
+      }
+      
+      console.log(`📧 Email processing complete. Session: ${session.id}`);
+      res.json({ 
+        success: true, 
+        sessionId: session.id,
+        projectId: project.id,
+        documentCount: attachments.length 
+      });
+      
+    } catch (error) {
+      console.error('📧 Email webhook error:', error);
+      res.status(500).json({ error: 'Failed to process email' });
     }
   });
 

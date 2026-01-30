@@ -185,6 +185,7 @@ export interface IStorage {
   getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
   getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]>;
   getProject(id: string, organizationId?: string): Promise<Project | undefined>;
+  getProjectByInboxId(inboxId: string): Promise<Project | undefined>;
   getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: string, project: Partial<InsertProject>, organizationId?: string): Promise<Project | undefined>;
@@ -1045,6 +1046,15 @@ export class MemStorage implements IStorage {
     }
     
     return project;
+  }
+
+  async getProjectByInboxId(inboxId: string): Promise<Project | undefined> {
+    for (const project of this.projects.values()) {
+      if (project.inboxId === inboxId) {
+        return project;
+      }
+    }
+    return undefined;
   }
 
   async getProjectWithDetails(id: number, organizationId?: number): Promise<ProjectWithDetails | undefined> {
@@ -2831,6 +2841,15 @@ class PostgreSQLStorage implements IStorage {
         .where(eq(projects.id, id))
         .limit(1);
     }
+    return result[0];
+  }
+
+  async getProjectByInboxId(inboxId: string): Promise<Project | undefined> {
+    const result = await this.db
+      .select()
+      .from(projects)
+      .where(eq(projects.inboxId, inboxId))
+      .limit(1);
     return result[0];
   }
 
