@@ -789,14 +789,8 @@ export default function AllData({ project }: AllDataProps) {
 
   return (
     <div>
-      <div className="mb-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">{project.mainObjectName || "Session"}s</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Collect, validate & manage all {project.mainObjectName || "session"} documents & data.
-            </p>
-          </div>
+      <div className="mb-4">
+        <div className="flex items-start justify-end">
           <div className="flex items-center gap-2">
             {/* Analytics Button */}
             <Button
