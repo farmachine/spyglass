@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -787,59 +788,72 @@ export default function AllData({ project }: AllDataProps) {
     });
   }, [project.sessions, sortField, sortDirection, allValidations]);
 
-  return (
-    <div>
-      {/* Action Buttons Row */}
-      <div className="flex items-center justify-end gap-2 mb-4 sticky top-0 bg-background z-10 py-2">
-        {/* Analytics Button */}
+  // Portal target for header action buttons
+  const headerSlot = typeof document !== 'undefined' ? document.getElementById('header-actions-slot') : null;
+
+  // Action buttons to render in header
+  const actionButtons = (
+    <>
+      {/* Analytics Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowAnalyticsModal(true)}
+        disabled={isGeneratingCharts}
+        className="flex items-center gap-2"
+      >
+        {isGeneratingCharts ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <BarChart3 className="h-4 w-4" />
+        )}
+        Analytics
+      </Button>
+
+      {/* Refresh Analytics Button - only show when analytics are visible */}
+      {showAnalyticsPane && generatedCharts.length > 0 && (
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setShowAnalyticsModal(true)}
-          disabled={isGeneratingCharts}
-          className="flex items-center gap-2"
+          onClick={refreshAnalytics}
+          disabled={isGeneratingCharts || isRefetchingKanban}
         >
-          {isGeneratingCharts ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <BarChart3 className="h-4 w-4" />
-          )}
-          Analytics
+          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
+          Refresh
         </Button>
+      )}
 
-        {/* Refresh Analytics Button - only show when analytics are visible */}
-        {showAnalyticsPane && generatedCharts.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refreshAnalytics}
-            disabled={isGeneratingCharts || isRefetchingKanban}
+      {/* Column Settings Button */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => setShowColumnSettings(true)}
+        title="Column Settings"
+      >
+        <Settings2 className="h-4 w-4" />
+      </Button>
+      
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogTrigger asChild>
+          <Button 
+            onClick={handleCreateNewSession}
+            className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
-            Refresh
+            <Plus className="h-4 w-4" />
+            New {project.mainObjectName || "Session"}
           </Button>
-        )}
+        </DialogTrigger>
+      </Dialog>
+    </>
+  );
 
-        {/* Column Settings Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setShowColumnSettings(true)}
-          title="Column Settings"
-        >
-          <Settings2 className="h-4 w-4" />
-        </Button>
-        
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-              <DialogTrigger asChild>
-                <Button 
-                  onClick={handleCreateNewSession}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  New {project.mainObjectName || "Session"}
-                </Button>
-              </DialogTrigger>
+  return (
+    <div>
+      {/* Render action buttons into header slot via portal */}
+      {headerSlot && createPortal(actionButtons, headerSlot)}
+
+      {/* Create Session Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
@@ -881,8 +895,7 @@ export default function AllData({ project }: AllDataProps) {
                 </div>
               </div>
             </DialogContent>
-        </Dialog>
-      </div>
+      </Dialog>
 
       {/* Column Settings Modal */}
       <Dialog open={showColumnSettings} onOpenChange={setShowColumnSettings}>

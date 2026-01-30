@@ -380,18 +380,22 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center space-x-2 flex-1 group">
-                      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{project.name}</h2>
-                      {canEditProject && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleTitleEdit}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      )}
+                    <div className="flex items-center justify-between flex-1 group">
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{project.name}</h2>
+                        {canEditProject && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleTitleEdit}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {/* Action buttons slot - rendered by AllData via portal */}
+                      <div id="header-actions-slot" className="flex items-center gap-2"></div>
                     </div>
                   )}
                 </div>
