@@ -790,7 +790,7 @@ export default function AllData({ project }: AllDataProps) {
   return (
     <div>
       {/* Action Buttons Row */}
-      <div className="flex items-center justify-end gap-2 mb-4">
+      <div className="flex items-center justify-end gap-2 mb-4 sticky top-0 bg-background z-10 py-2">
         {/* Analytics Button */}
         <Button
           variant="outline"
