@@ -1677,7 +1677,31 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       const dataSourceColumns = dataSourceData.length > 0 ? Object.keys(dataSourceData[0]) : [];
       
       // Extract search-by columns configuration (user-specified columns to match on)
-      const searchByColumns: string[] = inputs._searchByColumns || [];
+      // This can be either a simple array of column names OR an array of filter config objects
+      const rawSearchByColumns = inputs._searchByColumns || [];
+      
+      // Parse the search-by columns configuration
+      interface SearchByColumnConfig {
+        column: string;
+        operator?: string;
+        fuzziness?: number;
+        inputField?: string;
+      }
+      
+      let searchByColumnsConfig: SearchByColumnConfig[] = [];
+      let searchByColumns: string[] = [];
+      
+      if (Array.isArray(rawSearchByColumns) && rawSearchByColumns.length > 0) {
+        // Check if it's an array of objects (new format) or strings (old format)
+        if (typeof rawSearchByColumns[0] === 'object' && rawSearchByColumns[0].column) {
+          searchByColumnsConfig = rawSearchByColumns as SearchByColumnConfig[];
+          searchByColumns = searchByColumnsConfig.map(c => c.column);
+          console.log(`   📋 Parsed search-by columns config: ${JSON.stringify(searchByColumnsConfig)}`);
+        } else {
+          searchByColumns = rawSearchByColumns as string[];
+        }
+      }
+      
       const hasSearchByConfig = searchByColumns.length > 0;
       
       // Build a description of available columns (prioritize search-by columns if configured)
@@ -1750,10 +1774,151 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       console.log('━'.repeat(80));
       console.log(`📊 Total records in data source: ${dataSourceData.length}`);
       console.log(`📊 Input items to process: ${inputArray.length}`);
-      console.log(`📊 Processing mode: ${dataSourceData.length > MAX_RECORDS_FOR_AI ? 'TWO-PHASE (FILTER → MATCH)' : 'DIRECT MATCHING'}`);
       
-      // If we have input items and a large database, use two-phase approach
-      if (inputArray.length > 0 && dataSourceData.length > MAX_RECORDS_FOR_AI) {
+      // PHASE 0: Pre-filter using configured search-by columns with fuzziness
+      // This uses the user's configured filter settings to narrow down candidates BEFORE AI
+      let preFilteredData = dataSourceData;
+      
+      if (searchByColumnsConfig.length > 0 && inputArray.length > 0) {
+        console.log('\n📍 PHASE 0: Applying configured filter rules with fuzziness...');
+        
+        // Levenshtein distance function for fuzzy matching
+        const levenshteinDistance = (a: string, b: string): number => {
+          if (a.length === 0) return b.length;
+          if (b.length === 0) return a.length;
+          
+          const matrix: number[][] = [];
+          for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+          }
+          for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+          }
+          
+          for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+              if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+              } else {
+                matrix[i][j] = Math.min(
+                  matrix[i - 1][j - 1] + 1,
+                  matrix[i][j - 1] + 1,
+                  matrix[i - 1][j] + 1
+                );
+              }
+            }
+          }
+          return matrix[b.length][a.length];
+        };
+        
+        // Calculate similarity percentage (0-100)
+        const calculateSimilarity = (a: string, b: string): number => {
+          const aLower = a.toLowerCase().trim();
+          const bLower = b.toLowerCase().trim();
+          
+          if (aLower === bLower) return 100;
+          if (aLower.includes(bLower) || bLower.includes(aLower)) return 80;
+          
+          const maxLen = Math.max(aLower.length, bLower.length);
+          if (maxLen === 0) return 100;
+          
+          const distance = levenshteinDistance(aLower, bLower);
+          return Math.max(0, (1 - distance / maxLen) * 100);
+        };
+        
+        // Extract unique input values for each configured filter column
+        const inputValuesByColumn: Map<string, Set<string>> = new Map();
+        
+        for (const config of searchByColumnsConfig) {
+          const inputField = config.inputField;
+          if (!inputField) continue;
+          
+          const values = new Set<string>();
+          for (const item of inputArray) {
+            const val = item[inputField];
+            if (val && typeof val === 'string' && val.trim()) {
+              values.add(val.trim().toLowerCase());
+            }
+          }
+          
+          if (values.size > 0) {
+            inputValuesByColumn.set(config.column, values);
+            console.log(`   📋 Filter "${config.inputField}" → "${config.column}": ${values.size} unique values (fuzziness: ${config.fuzziness || 0}%)`);
+            console.log(`      Sample values: ${Array.from(values).slice(0, 5).join(', ')}${values.size > 5 ? '...' : ''}`);
+          }
+        }
+        
+        // Apply pre-filtering if we have input values to match
+        if (inputValuesByColumn.size > 0) {
+          preFilteredData = dataSourceData.filter((record: any) => {
+            // Record must match AT LEAST ONE filter column
+            for (const config of searchByColumnsConfig) {
+              const inputValues = inputValuesByColumn.get(config.column);
+              if (!inputValues || inputValues.size === 0) continue;
+              
+              const recordValue = record[config.column];
+              if (!recordValue) continue;
+              
+              const recordValueStr = String(recordValue).toLowerCase().trim();
+              const fuzziness = config.fuzziness || 0;
+              const minSimilarity = 100 - fuzziness; // e.g., 20% fuzziness = 80% min similarity
+              
+              // Check if record value matches any input value within fuzziness threshold
+              for (const inputVal of inputValues) {
+                const similarity = calculateSimilarity(recordValueStr, inputVal);
+                if (similarity >= minSimilarity) {
+                  return true; // This record passes the filter
+                }
+              }
+            }
+            return false; // Record doesn't match any filter
+          });
+          
+          console.log(`   📊 Pre-filtered: ${dataSourceData.length} → ${preFilteredData.length} candidates`);
+          
+          // If pre-filter is too restrictive, try looser matching
+          if (preFilteredData.length === 0) {
+            console.log(`   ⚠️ No matches with configured fuzziness, trying looser matching...`);
+            
+            // Try with 50% minimum similarity
+            preFilteredData = dataSourceData.filter((record: any) => {
+              for (const config of searchByColumnsConfig) {
+                const inputValues = inputValuesByColumn.get(config.column);
+                if (!inputValues || inputValues.size === 0) continue;
+                
+                const recordValue = record[config.column];
+                if (!recordValue) continue;
+                
+                const recordValueStr = String(recordValue).toLowerCase().trim();
+                
+                for (const inputVal of inputValues) {
+                  const similarity = calculateSimilarity(recordValueStr, inputVal);
+                  if (similarity >= 50) return true;
+                }
+              }
+              return false;
+            });
+            
+            console.log(`   📊 Looser filter (50% similarity): ${preFilteredData.length} candidates`);
+          }
+          
+          // Show sample of pre-filtered candidates
+          if (preFilteredData.length > 0 && preFilteredData.length < 100) {
+            console.log(`   📋 Sample pre-filtered candidates:`);
+            preFilteredData.slice(0, 5).forEach((c: any, idx: number) => {
+              const relevantCols = searchByColumnsConfig.map(cfg => `${cfg.column}="${c[cfg.column] || 'N/A'}"`).join(', ');
+              console.log(`      [${idx}]: id="${c.id}", ${relevantCols}`);
+            });
+          }
+        }
+      }
+      
+      // Log the final pre-filtered count and processing mode
+      console.log(`📊 Processing mode: ${preFilteredData.length > MAX_RECORDS_FOR_AI ? 'TWO-PHASE (FILTER → MATCH)' : 'DIRECT MATCHING (pre-filtered)'}`);
+      console.log(`📊 Pre-filtered candidates: ${preFilteredData.length} (from ${dataSourceData.length} total)`);
+      
+      // If we have input items and still too many candidates, use AI filter
+      if (inputArray.length > 0 && preFilteredData.length > MAX_RECORDS_FOR_AI) {
         console.log('\n📍 PHASE 1: Generating unified filter for ALL input items...');
         
         // PHASE 1: Generate ONE comprehensive filter from ALL input items
@@ -1769,9 +1934,9 @@ ${searchByColumns.map((c, i) => {
         const filterPrompt = `You are a smart database filter assistant. Your job is to analyze input data and generate optimal filter criteria to find potential matches in a large database.
 
 DATABASE STRUCTURE:
-- Total records: ${dataSourceData.length}
+- Total records: ${preFilteredData.length}
 - Available columns: ${columnDescriptions}
-- Sample records: ${JSON.stringify(sampleDbRecords, null, 2)}
+- Sample records: ${JSON.stringify(preFilteredData.slice(0, 5), null, 2)}
 ${searchColumnsInstruction}
 
 USER INSTRUCTIONS (follow these carefully):
@@ -1819,7 +1984,7 @@ OUTPUT FORMAT (JSON):
           generationConfig: { responseMimeType: "application/json" }
         });
         
-        let filteredData = dataSourceData;
+        let filteredData = preFilteredData;
         
         try {
           const filterResult = await filterModel.generateContent(filterPrompt);
@@ -1841,7 +2006,7 @@ OUTPUT FORMAT (JSON):
           
           if (filterResponse.filters && filterResponse.filters.length > 0) {
             // Apply filters with AND logic (ALL filters must match)
-            filteredData = dataSourceData.filter((record: any) => {
+            filteredData = preFilteredData.filter((record: any) => {
               return filterResponse.filters.every((filter: any) => {
                 if (!filter.column || !dataSourceColumns.includes(filter.column)) return false;
                 const value = record[filter.column];
@@ -1863,7 +2028,7 @@ OUTPUT FORMAT (JSON):
               });
             });
             
-            console.log(`   📊 Filtered: ${dataSourceData.length} → ${filteredData.length} candidate records`);
+            console.log(`   📊 Filtered: ${preFilteredData.length} → ${filteredData.length} candidate records`);
           }
           
           // Fallback if filter is too restrictive
@@ -1882,7 +2047,7 @@ OUTPUT FORMAT (JSON):
             
             if (allFilterValues.length > 0) {
               // Try matching ANY column against ANY filter value (very loose)
-              filteredData = dataSourceData.filter((record: any) => {
+              filteredData = preFilteredData.filter((record: any) => {
                 return dataSourceColumns.some(col => {
                   const val = record[col];
                   if (val === undefined || val === null) return false;
@@ -1894,14 +2059,14 @@ OUTPUT FORMAT (JSON):
             }
           }
           
-          // If still no matches, use a proportional sample
+          // If still no matches, use pre-filtered data as fallback
           if (filteredData.length === 0) {
-            console.log(`   ⚠️ Using sample of full dataset as fallback`);
-            filteredData = dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
+            console.log(`   ⚠️ Using pre-filtered dataset as fallback`);
+            filteredData = preFilteredData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
           }
         } catch (filterError) {
           console.error(`   ❌ Filter generation failed:`, filterError);
-          filteredData = dataSourceData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
+          filteredData = preFilteredData.slice(0, MAX_CANDIDATES_FOR_MATCHING);
         }
         
         // Limit candidates for AI matching
@@ -2071,9 +2236,9 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
         }
       }
       
-      // For small databases or no input array, use original approach
-      const limitedData = dataSourceData.slice(0, MAX_RECORDS_FOR_AI);
-      console.log(`📊 Using direct matching with ${limitedData.length} records`);
+      // For small pre-filtered datasets or no input array, use direct matching approach
+      const limitedData = preFilteredData.slice(0, MAX_RECORDS_FOR_AI);
+      console.log(`📊 Using direct matching with ${limitedData.length} pre-filtered records (skipped Phase 1 AI filter)`);
       
       // PASS 2: Fuzzy matching on filtered data (for small datasets without per-item processing)
       console.log('🔍 PASS 2: Performing fuzzy matching lookup...');
