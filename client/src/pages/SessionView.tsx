@@ -521,6 +521,32 @@ const FieldSelectionModalContent = ({
   );
 };
 
+// Helper to render AI reasoning with bold field names
+function formatReasoningWithBoldFields(text: string): JSX.Element[] {
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    // Match pattern "FieldName: value" or "--- Section ---"
+    const fieldMatch = line.match(/^([^:]+):\s*(.*)$/);
+    const sectionMatch = line.match(/^---\s*(.+?)\s*---$/);
+    
+    if (sectionMatch) {
+      return (
+        <div key={idx} className="font-semibold text-gray-600 dark:text-gray-400 mt-2 mb-1">
+          --- {sectionMatch[1]} ---
+        </div>
+      );
+    } else if (fieldMatch) {
+      return (
+        <div key={idx}>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{fieldMatch[1]}:</span>
+          <span className="text-gray-600 dark:text-gray-400"> {fieldMatch[2]}</span>
+        </div>
+      );
+    }
+    return <div key={idx}>{line || '\u00A0'}</div>;
+  });
+}
+
 // AI Reasoning and Verification Modal Component
 const AIReasoningModal = ({ 
   isOpen, 
@@ -5638,7 +5664,7 @@ Thank you for your assistance.`;
                                             </div>
                                             <div className="whitespace-pre-line leading-relaxed">
                                               {fieldValidation?.aiReasoning && (
-                                                <div className="mb-2">{fieldValidation.aiReasoning}</div>
+                                                <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(fieldValidation.aiReasoning)}</div>
                                               )}
                                               <div className="mb-2">Verified with {score}% confidence</div>
                                               <div className="text-xs text-blue-700 dark:text-blue-300">Click to unverify</div>
@@ -5673,7 +5699,7 @@ Thank you for your assistance.`;
                                             </div>
                                             <div className="whitespace-pre-line leading-relaxed">
                                               {fieldValidation.aiReasoning && (
-                                                <div className="mb-2">{fieldValidation.aiReasoning}</div>
+                                                <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(fieldValidation.aiReasoning)}</div>
                                               )}
                                               {fieldValidation.confidenceScore && (
                                                 <div className="mb-2 font-medium">Confidence: {Math.round(fieldValidation.confidenceScore)}%</div>
@@ -5834,7 +5860,7 @@ Thank you for your assistance.`;
                                                           </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
                                                             {validation?.aiReasoning && (
-                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                              <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(validation.aiReasoning)}</div>
                                                             )}
                                                             <div className="mb-2">Verified with {score}% confidence</div>
                                                             <div className="text-xs text-blue-700 dark:text-blue-300">Click to unverify</div>
@@ -5868,7 +5894,7 @@ Thank you for your assistance.`;
                                                           </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
                                                             {validation.aiReasoning && (
-                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                              <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(validation.aiReasoning)}</div>
                                                             )}
                                                             {validation.confidenceScore && (
                                                               <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
@@ -6800,7 +6826,7 @@ Thank you for your assistance.`;
                                                           </div>
                                                           <div className="whitespace-pre-line leading-relaxed">
                                                             {validation.aiReasoning && (
-                                                              <div className="mb-2">{validation.aiReasoning}</div>
+                                                              <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(validation.aiReasoning)}</div>
                                                             )}
                                                             <div className="mb-2 font-medium">Confidence: {score}%</div>
                                                             <div className="text-xs text-[#4F63A4]">Click indicator to mark as pending</div>
@@ -6837,7 +6863,7 @@ Thank you for your assistance.`;
                                                             </div>
                                                             <div className="whitespace-pre-line leading-relaxed">
                                                               {validation.aiReasoning && (
-                                                                <div className="mb-2">{validation.aiReasoning}</div>
+                                                                <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(validation.aiReasoning)}</div>
                                                               )}
                                                               {validation.confidenceScore && (
                                                                 <div className="mb-2 font-medium">Confidence: {Math.round(validation.confidenceScore)}%</div>
@@ -6867,7 +6893,7 @@ Thank you for your assistance.`;
                                                                 <span className="text-sm font-semibold">Analysis</span>
                                                               </div>
                                                               <div className="whitespace-pre-line leading-relaxed">
-                                                                <div className="mb-2">{validation.aiReasoning}</div>
+                                                                <div className="mb-2 space-y-0.5">{formatReasoningWithBoldFields(validation.aiReasoning)}</div>
                                                                 <div className="text-xs font-bold" style={{ color: '#4F63A4' }}>Click indicator to validate</div>
                                                               </div>
                                                             </TooltipContent>
