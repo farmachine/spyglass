@@ -8111,7 +8111,8 @@ def extract_function(Column_Name, Excel_File):
       
       // Special handling for AI tools that expect List Item or Input Data but have null input
       // This is for cases like Standard Equivalent where previousData contains the merged column data
-      if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY') {
+      // DATABASE_LOOKUP tools are AI-based and need the same filtering treatment
+      if (tool.toolType === 'AI' || tool.toolType === 'AI_ONLY' || tool.toolType === 'DATABASE_LOOKUP') {
         const listItemParam = tool.inputParameters?.find(p => p.name === 'List Item');
         const inputDataParam = tool.inputParameters?.find(p => p.name === 'Input Data' && p.type === 'data');
         // Also check for generic 'data' type parameters that could receive the input data
