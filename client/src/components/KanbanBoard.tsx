@@ -49,6 +49,32 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { KanbanCard as KanbanCardType, User as UserType, KanbanComment, KanbanChecklistItem, KanbanAttachment, StepValue } from "@shared/schema";
 
+// Helper to render description with bold field names
+function formatDescriptionWithBoldFields(text: string): JSX.Element[] {
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    // Match pattern "FieldName: value" or "--- Section ---"
+    const fieldMatch = line.match(/^([^:]+):\s*(.*)$/);
+    const sectionMatch = line.match(/^---\s*(.+?)\s*---$/);
+    
+    if (sectionMatch) {
+      return (
+        <div key={idx} className="font-semibold text-gray-600 dark:text-gray-400 mt-2 mb-1">
+          --- {sectionMatch[1]} ---
+        </div>
+      );
+    } else if (fieldMatch) {
+      return (
+        <div key={idx}>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{fieldMatch[1]}:</span>
+          <span className="text-gray-600 dark:text-gray-400"> {fieldMatch[2]}</span>
+        </div>
+      );
+    }
+    return <div key={idx}>{line || '\u00A0'}</div>;
+  });
+}
+
 interface SessionDocument {
   id: string;
   fileName: string;
@@ -127,6 +153,7 @@ export function KanbanBoard({
   const [cardAssignees, setCardAssignees] = useState<string[]>([]);
   const [cardFieldValues, setCardFieldValues] = useState<Record<string, string>>({});
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
 
   // Fetch organization users for assignee dropdown and card avatars
   const { data: users = [] } = useQuery<UserType[]>({
@@ -640,7 +667,7 @@ export function KanbanBoard({
       </div>
 
       {/* Card Detail Dialog - Trello-like Workspace */}
-      <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
+      <Dialog open={isCardDialogOpen} onOpenChange={(open) => { setIsCardDialogOpen(open); if (!open) setIsEditingDescription(false); }}>
         <DialogContent className="max-w-6xl w-[98vw] h-[92vh] overflow-hidden flex flex-col p-0">
           {/* Card Header */}
           <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] px-10 py-8 text-white">
@@ -683,19 +710,45 @@ export function KanbanBoard({
                   <div className="col-span-3 space-y-5">
                     {/* Description Section */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                      <label className="text-sm font-semibold flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
-                        <div className="bg-[#4F63A4]/10 rounded-lg p-1.5">
-                          <FileText className="h-4 w-4 text-[#4F63A4]" />
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                          <div className="bg-[#4F63A4]/10 rounded-lg p-1.5">
+                            <FileText className="h-4 w-4 text-[#4F63A4]" />
+                          </div>
+                          Description
+                        </label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsEditingDescription(!isEditingDescription)}
+                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          {isEditingDescription ? 'Done' : 'Edit'}
+                        </Button>
+                      </div>
+                      {isEditingDescription ? (
+                        <Textarea
+                          value={selectedCard.description || ''}
+                          onChange={(e) => setSelectedCard({ ...selectedCard, description: e.target.value })}
+                          rows={5}
+                          placeholder="Add a more detailed description..."
+                          className="resize-y min-h-[120px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
+                          autoFocus
+                        />
+                      ) : (
+                        <div 
+                          className="min-h-[120px] p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          onClick={() => setIsEditingDescription(true)}
+                        >
+                          {selectedCard.description ? (
+                            <div className="space-y-0.5">
+                              {formatDescriptionWithBoldFields(selectedCard.description)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500 italic">Click to add a description...</span>
+                          )}
                         </div>
-                        Description
-                      </label>
-                      <Textarea
-                        value={selectedCard.description || ''}
-                        onChange={(e) => setSelectedCard({ ...selectedCard, description: e.target.value })}
-                        rows={5}
-                        placeholder="Add a more detailed description..."
-                        className="resize-y min-h-[120px] bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600"
-                      />
+                      )}
                       
                       {/* Step Value Fields - Inside description container */}
                       {stepValues.length > 0 && (
