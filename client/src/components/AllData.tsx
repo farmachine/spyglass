@@ -789,35 +789,60 @@ export default function AllData({ project }: AllDataProps) {
 
   return (
     <div>
-      <div className="mb-4">
-        <div className="flex items-start justify-end">
-          <div className="flex items-center gap-2">
-            {/* Analytics Button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowAnalyticsModal(true)}
-              disabled={isGeneratingCharts}
-              className="flex items-center gap-2"
-            >
-              {isGeneratingCharts ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <BarChart3 className="h-4 w-4" />
-              )}
-              Analytics
-            </Button>
+      {/* Action Buttons Row */}
+      <div className="flex items-center justify-end gap-2 mb-4">
+        {/* Analytics Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAnalyticsModal(true)}
+          disabled={isGeneratingCharts}
+          className="flex items-center gap-2"
+        >
+          {isGeneratingCharts ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <BarChart3 className="h-4 w-4" />
+          )}
+          Analytics
+        </Button>
 
-            {/* Column Settings Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowColumnSettings(true)}
-              title="Column Settings"
-            >
-              <Settings2 className="h-4 w-4" />
-            </Button>
-            
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        {/* Refresh Analytics Button - only show when analytics are visible */}
+        {showAnalyticsPane && generatedCharts.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshAnalytics}
+            disabled={isGeneratingCharts || isRefetchingKanban}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        )}
+
+        {/* Close Analytics Button - only show when analytics are visible */}
+        {showAnalyticsPane && generatedCharts.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={clearAnalytics}
+            title="Close Analytics"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Column Settings Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowColumnSettings(true)}
+          title="Column Settings"
+        >
+          <Settings2 className="h-4 w-4" />
+        </Button>
+        
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
               <DialogTrigger asChild>
                 <Button 
                   onClick={handleCreateNewSession}
@@ -868,9 +893,7 @@ export default function AllData({ project }: AllDataProps) {
                 </div>
               </div>
             </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+        </Dialog>
       </div>
 
       {/* Column Settings Modal */}
@@ -1030,42 +1053,7 @@ export default function AllData({ project }: AllDataProps) {
       {/* Analytics Pane - Shows generated charts */}
       {showAnalyticsPane && generatedCharts.length > 0 && (
         <Card className="w-full mb-6">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Analytics
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={refreshAnalytics}
-                  disabled={isGeneratingCharts || isRefetchingKanban}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAnalyticsModal(true)}
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Regenerate
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={clearAnalytics}
-                  title="Close Analytics"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {generatedCharts.map((chart, index) => (
                 <div key={index} className="border rounded-lg p-6 bg-background">
