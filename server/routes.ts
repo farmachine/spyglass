@@ -12159,8 +12159,8 @@ Respond in JSON format:
           try {
             console.log(`📧 Processing attachment: ${attachment.filename}`);
             
-            // Download attachment content
-            const { data, filename, contentType } = await downloadAttachment(messageId, attachment.attachment_id);
+            // Download attachment content (inboxId, messageId, attachmentId)
+            const { data, filename, contentType } = await downloadAttachment(inboxId, messageId, attachment.attachment_id);
             
             // Create session document
             const document = await storage.createSessionDocument({

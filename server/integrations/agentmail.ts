@@ -1,4 +1,4 @@
-import { AgentMail } from 'agentmail';
+import { AgentMailClient } from 'agentmail';
 
 let connectionSettings: any;
 
@@ -32,8 +32,7 @@ async function getCredentials() {
 
 export async function getAgentMailClient() {
   const { apiKey } = await getCredentials();
-  return new AgentMail({
-    baseUrl: "https://api.agentmail.to",
+  return new AgentMailClient({
     apiKey: apiKey
   });
 }
@@ -41,43 +40,40 @@ export async function getAgentMailClient() {
 export async function createProjectInbox(projectId: string): Promise<{ email: string; inboxId: string }> {
   const client = await getAgentMailClient();
   
+  const username = `extrapl-${projectId.slice(0, 8)}`;
   const inbox = await client.inboxes.create({
-    username: `extrapl-${projectId.slice(0, 8)}`,
-    clientId: `extrapl-project-${projectId}`, // Idempotent - prevents duplicate inboxes
+    username: username,
+    clientId: `extrapl-project-${projectId}`,
   });
   
+  const email = `${username}@agentmail.to`;
+  
   return {
-    email: inbox.email || '',
-    inboxId: inbox.inboxId || ''
+    email: email,
+    inboxId: inbox.inboxId
   };
 }
 
 export async function getInboxMessages(inboxId: string) {
   const client = await getAgentMailClient();
-  const messages = await client.inboxes.messages.list(inboxId);
-  return messages.items || [];
+  const response = await client.inboxes.messages.list(inboxId);
+  return (response as any).items || [];
 }
 
-export async function getMessage(messageId: string) {
+export async function getMessage(inboxId: string, messageId: string) {
   const client = await getAgentMailClient();
-  const message = await client.messages.get(messageId);
+  const message = await client.inboxes.messages.get(inboxId, messageId);
   return message;
 }
 
-export async function getMessageAttachments(messageId: string) {
+export async function downloadAttachment(inboxId: string, messageId: string, attachmentId: string): Promise<{ data: Buffer; filename: string; contentType: string }> {
   const client = await getAgentMailClient();
-  const message = await client.messages.get(messageId);
-  return message.attachments || [];
-}
-
-export async function downloadAttachment(messageId: string, attachmentId: string): Promise<{ data: Buffer; filename: string; contentType: string }> {
-  const client = await getAgentMailClient();
-  const attachment = await client.messages.attachments.download(messageId, attachmentId);
+  const attachment = await client.inboxes.messages.getAttachment(inboxId, messageId, attachmentId) as any;
   
   return {
     data: Buffer.from(attachment.content || '', 'base64'),
     filename: attachment.filename || 'attachment',
-    contentType: attachment.content_type || 'application/octet-stream'
+    contentType: attachment.contentType || 'application/octet-stream'
   };
 }
 
@@ -88,11 +84,11 @@ export async function createWebhook(inboxId: string, webhookUrl: string): Promis
     url: webhookUrl,
     eventTypes: ['message.received'],
     inboxIds: [inboxId],
-    clientId: `extrapl-webhook-${inboxId}`, // Idempotent
+    clientId: `extrapl-webhook-${inboxId}`,
   });
   
   return {
-    webhookId: webhook.id || ''
+    webhookId: webhook.webhookId
   };
 }
 
