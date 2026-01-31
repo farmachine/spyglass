@@ -60,6 +60,34 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
     }
   };
 
+  const processEmailsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/projects/${projectId}/inbox/process`);
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      if (data.sessionsCreated > 0) {
+        toast({ 
+          title: "Emails processed", 
+          description: `Created ${data.sessionsCreated} new session(s) from emails` 
+        });
+      } else {
+        toast({ 
+          title: "No new emails", 
+          description: "No new emails found to process" 
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to process emails", 
+        variant: "destructive" 
+      });
+    }
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -540,6 +568,20 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               >
                 <Copy className="w-4 h-4" />
                 Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => processEmailsMutation.mutate()}
+                disabled={processEmailsMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {processEmailsMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Check for Emails
               </Button>
             </div>
           ) : (

@@ -692,6 +692,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manually process emails from inbox (polling approach)
+  app.post("/api/projects/:id/inbox/process", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      if (!project.inboxId) {
+        return res.status(400).json({ message: "No inbox configured for this project" });
+      }
+      
+      console.log(`📧 Processing emails for project: ${project.name} (inbox: ${project.inboxId})`);
+      
+      const { getInboxMessages, getMessage, downloadAttachment } = await import('./integrations/agentmail');
+      const messages = await getInboxMessages(project.inboxId);
+      
+      console.log(`📧 Found ${messages.length} messages in inbox`);
+      
+      let sessionsCreated = 0;
+      
+      // Get existing sessions to avoid duplicates (by checking session description for message ID)
+      const existingSessions = await storage.getExtractionSessions(id);
+      const processedMessageIds = new Set(
+        existingSessions
+          .filter(s => s.description?.includes('Message ID:'))
+          .map(s => {
+            const match = s.description?.match(/Message ID: ([a-zA-Z0-9_-]+)/);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean)
+      );
+      
+      for (const msg of messages) {
+        const messageId = msg.messageId || msg.id;
+        
+        // Skip already processed messages
+        if (processedMessageIds.has(messageId)) {
+          console.log(`📧 Skipping already processed message: ${messageId}`);
+          continue;
+        }
+        
+        console.log(`📧 Processing message: ${messageId} - ${msg.subject}`);
+        
+        // Get full message details
+        const fullMessage = await getMessage(project.inboxId!, messageId);
+        const subject = (fullMessage as any).subject || 'Email Session';
+        const fromEmail = (fullMessage as any).from_?.[0] || (fullMessage as any).from || 'unknown@example.com';
+        const textContent = (fullMessage as any).textPlain || (fullMessage as any).text_plain || '';
+        const attachments = (fullMessage as any).attachments || [];
+        
+        // Create session from email
+        const sessionName = subject.slice(0, 100);
+        const sessionData = {
+          projectId: project.id,
+          sessionName,
+          description: `Created from email by ${fromEmail}\nMessage ID: ${messageId}\n\n${textContent.slice(0, 500)}`,
+          status: 'pending' as const,
+          documentCount: attachments.length,
+          extractedData: '{}',
+        };
+        
+        const session = await storage.createExtractionSession(sessionData);
+        console.log(`📧 Created session: ${session.id} - ${sessionName}`);
+        sessionsCreated++;
+        
+        // Generate initial field validations
+        await generateSchemaFieldValidations(session.id, project.id);
+        
+        // Process attachments if any
+        if (attachments.length > 0) {
+          for (const attachment of attachments) {
+            try {
+              const attachmentId = attachment.attachmentId || attachment.attachment_id || attachment.id;
+              console.log(`📧 Downloading attachment: ${attachment.filename || attachment.fileName}`);
+              
+              const { data, filename, contentType } = await downloadAttachment(
+                project.inboxId!,
+                messageId,
+                attachmentId
+              );
+              
+              // Create document record
+              const document = await storage.createSessionDocument({
+                sessionId: session.id,
+                fileName: filename,
+                fileType: contentType,
+                fileSize: data.length,
+                filePath: '',
+                uploadedAt: new Date(),
+              });
+              
+              // Save file
+              const fs = await import('fs/promises');
+              const path = await import('path');
+              const uploadDir = path.join(process.cwd(), 'uploads', session.id);
+              await fs.mkdir(uploadDir, { recursive: true });
+              const filePath = path.join(uploadDir, `${document.id}_${filename}`);
+              await fs.writeFile(filePath, data);
+              
+              // Update document with file path
+              await storage.updateSessionDocument(document.id, { filePath });
+              
+              console.log(`📧 Saved attachment: ${filename}`);
+            } catch (attachErr) {
+              console.error(`📧 Failed to process attachment:`, attachErr);
+            }
+          }
+        }
+      }
+      
+      res.json({ 
+        messagesFound: messages.length,
+        sessionsCreated,
+        message: sessionsCreated > 0 
+          ? `Created ${sessionsCreated} session(s) from emails` 
+          : "No new emails to process"
+      });
+    } catch (error: any) {
+      console.error("Process inbox emails error:", error);
+      res.status(500).json({ message: error.message || "Failed to process inbox emails" });
+    }
+  });
+
+  // Debug endpoint to check inbox messages
+  app.get("/api/projects/:id/inbox/messages", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      if (!project.inboxId) {
+        return res.status(400).json({ message: "No inbox configured for this project" });
+      }
+      
+      console.log(`📧 Checking messages for inbox: ${project.inboxId}`);
+      
+      const { getInboxMessages } = await import('./integrations/agentmail');
+      const messages = await getInboxMessages(project.inboxId);
+      
+      console.log(`📧 Found ${messages.length} messages in inbox`);
+      
+      res.json({ 
+        inboxId: project.inboxId,
+        email: project.inboxEmailAddress,
+        messageCount: messages.length,
+        messages: messages.map((m: any) => ({
+          id: m.messageId || m.id,
+          subject: m.subject,
+          from: m.from_ || m.from,
+          date: m.createdAt || m.date,
+          hasAttachments: (m.attachments?.length || 0) > 0
+        }))
+      });
+    } catch (error: any) {
+      console.error("Get inbox messages error:", error);
+      res.status(500).json({ message: error.message || "Failed to get inbox messages" });
+    }
+  });
+
   app.put("/api/projects/:id/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id;
