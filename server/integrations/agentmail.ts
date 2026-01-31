@@ -56,20 +56,24 @@ export async function createProjectInbox(projectId: string): Promise<{ email: st
 
 export async function getInboxMessages(inboxId: string) {
   const client = await getAgentMailClient();
-  console.log(`📧 Fetching messages for inbox: ${inboxId}`);
-  const response = await client.inboxes.messages.list(inboxId);
+  // AgentMail SDK expects just the username, not the full email
+  const normalizedInboxId = inboxId.replace('@agentmail.to', '');
+  console.log(`📧 Fetching messages for inbox: ${normalizedInboxId} (from: ${inboxId})`);
+  const response = await client.inboxes.messages.list(normalizedInboxId);
   return (response as any).items || [];
 }
 
 export async function getMessage(inboxId: string, messageId: string) {
   const client = await getAgentMailClient();
-  const message = await client.inboxes.messages.get(inboxId, messageId);
+  const normalizedInboxId = inboxId.replace('@agentmail.to', '');
+  const message = await client.inboxes.messages.get(normalizedInboxId, messageId);
   return message;
 }
 
 export async function downloadAttachment(inboxId: string, messageId: string, attachmentId: string): Promise<{ data: Buffer; filename: string; contentType: string }> {
   const client = await getAgentMailClient();
-  const attachment = await client.inboxes.messages.getAttachment(inboxId, messageId, attachmentId) as any;
+  const normalizedInboxId = inboxId.replace('@agentmail.to', '');
+  const attachment = await client.inboxes.messages.getAttachment(normalizedInboxId, messageId, attachmentId) as any;
   
   return {
     data: Buffer.from(attachment.content || '', 'base64'),
