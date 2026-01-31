@@ -1209,9 +1209,9 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="createdAt" className="py-3 w-[130px] min-w-[130px]">Created</SortableHeader>
-                    <SortableHeader field="sessionName" className="py-3 w-[200px] min-w-[200px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
-                    <SortableHeader field="documentCount" className="py-3 w-[60px] min-w-[60px] text-center">Docs</SortableHeader>
+                    <SortableHeader field="sessionName" className="py-3 w-auto min-w-[180px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
+                    <SortableHeader field="createdAt" className="py-3 w-auto whitespace-nowrap">Created</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 w-auto text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
                     {visibleColumns.map(column => (
                       <TableHead key={column.id} className="py-3 w-[150px] min-w-[150px]">
@@ -1244,27 +1244,29 @@ export default function AllData({ project }: AllDataProps) {
                   return (
                     <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <TableCell className="py-3">
-                        <div className="text-xs text-gray-800 dark:text-gray-400">
-                          <div>{session.createdAt ? new Date(session.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}</div>
-                          <div className="text-gray-500 dark:text-gray-500">{session.createdAt ? new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                          <div className="cursor-pointer hover:text-primary transition-colors flex items-center gap-2">
-                            {!(session as any).isViewed && (
-                              <Circle className="h-2.5 w-2.5 fill-blue-500 text-blue-500 flex-shrink-0" />
-                            )}
+                          <div className="cursor-pointer hover:text-primary transition-colors flex items-center gap-1.5">
+                            <Circle className={`h-2 w-2 flex-shrink-0 ${
+                              (session as any).isViewed 
+                                ? 'fill-[#4F63A4] text-[#4F63A4]' 
+                                : 'fill-green-500 text-green-500'
+                            }`} />
                             <div className="min-w-0">
                               <p className="font-medium text-sm truncate">{session.sessionName || 'Untitled Session'}</p>
                               {session.description && (
-                                <p className="text-xs text-muted-foreground truncate">
+                                <p className="text-xs text-muted-foreground truncate max-w-[300px]">
                                   {session.description}
                                 </p>
                               )}
                             </div>
                           </div>
                         </Link>
+                      </TableCell>
+                      <TableCell className="py-3 whitespace-nowrap">
+                        <div className="text-xs text-gray-800 dark:text-gray-400">
+                          <span>{session.createdAt ? new Date(session.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}</span>
+                          <span className="text-gray-500 dark:text-gray-500 ml-1">{session.createdAt ? new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
