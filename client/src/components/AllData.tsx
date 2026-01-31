@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw, Mail, Circle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -650,10 +650,26 @@ export default function AllData({ project }: AllDataProps) {
     setSelectedAnalyticsFields(new Set());
   };
 
-  // Refresh analytics - refetch data and regenerate charts
+  // Refresh analytics - refetch data, check emails, and regenerate charts
   const refreshAnalytics = async () => {
     setIsGeneratingCharts(true);
     try {
+      // Check for new emails if the project has an inbox
+      if (project.inboxEmailAddress) {
+        try {
+          const emailResult = await apiRequest(`/api/projects/${project.id}/inbox/process`, { method: "POST" });
+          if (emailResult?.sessionsCreated > 0) {
+            toast({
+              title: "New emails processed",
+              description: `Created ${emailResult.sessionsCreated} new session(s) from email`,
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+          }
+        } catch (emailError) {
+          console.error('Failed to check emails:', emailError);
+        }
+      }
+      
       await refetchKanbanProgress();
       // Wait a tick for state to update, then regenerate charts
       setTimeout(() => {
@@ -1193,6 +1209,7 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
+                    <SortableHeader field="createdAt" className="py-3 w-[130px] min-w-[130px]">Created</SortableHeader>
                     <SortableHeader field="sessionName" className="py-3 w-[200px] min-w-[200px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
                     <SortableHeader field="documentCount" className="py-3 w-[60px] min-w-[60px] text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
@@ -1216,7 +1233,6 @@ export default function AllData({ project }: AllDataProps) {
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
                     </SortableHeader>
-                    <SortableHeader field="createdAt" className="py-3 w-[100px] min-w-[100px]">Created</SortableHeader>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1228,14 +1244,25 @@ export default function AllData({ project }: AllDataProps) {
                   return (
                     <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <TableCell className="py-3">
+                        <div className="text-xs text-gray-800 dark:text-gray-400">
+                          <div>{session.createdAt ? new Date(session.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown'}</div>
+                          <div className="text-gray-500 dark:text-gray-500">{session.createdAt ? new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
-                          <div className="cursor-pointer hover:text-primary transition-colors">
-                            <p className="font-medium text-sm truncate">{session.sessionName || 'Untitled Session'}</p>
-                            {session.description && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {session.description}
-                              </p>
+                          <div className="cursor-pointer hover:text-primary transition-colors flex items-center gap-2">
+                            {!(session as any).isViewed && (
+                              <Circle className="h-2.5 w-2.5 fill-blue-500 text-blue-500 flex-shrink-0" />
                             )}
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{session.sessionName || 'Untitled Session'}</p>
+                              {session.description && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {session.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </Link>
                       </TableCell>
@@ -1298,11 +1325,6 @@ export default function AllData({ project }: AllDataProps) {
                           ) : (
                             <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-600" />
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="text-xs text-gray-800 dark:text-gray-400">
-                          {session.createdAt ? formatDate(session.createdAt).split(',')[0] : 'Unknown'}
                         </div>
                       </TableCell>
                     </TableRow>

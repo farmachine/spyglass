@@ -178,6 +178,7 @@ export const extractionSessions = pgTable("extraction_sessions", {
   aiResponse: text("ai_response"), // Store the raw AI response before parsing
   inputTokenCount: integer("input_tokens"), // Number of input tokens used
   outputTokenCount: integer("output_tokens"), // Number of output tokens generated
+  isViewed: boolean("is_viewed").default(false).notNull(), // Track if session has been opened
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

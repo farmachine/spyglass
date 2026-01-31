@@ -3006,6 +3006,20 @@ except Exception as e:
     }
   });
 
+  // Mark session as viewed
+  app.post("/api/sessions/:id/mark-viewed", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const session = await storage.updateExtractionSession(id, { isViewed: true });
+      if (!session) {
+        return res.status(404).json({ message: "Extraction session not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark session as viewed" });
+    }
+  });
+
   // Update extracted data for a session
   app.patch("/api/sessions/:sessionId/data", async (req, res) => {
     try {

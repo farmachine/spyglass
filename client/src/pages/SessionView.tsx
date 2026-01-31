@@ -2249,6 +2249,14 @@ export default function SessionView() {
   // Extract projectId from session data
   const projectId = session?.projectId;
 
+  // Mark session as viewed when it's loaded
+  useEffect(() => {
+    if (session && sessionId && !(session as any).isViewed) {
+      apiRequest(`/api/sessions/${sessionId}/mark-viewed`, { method: 'POST' })
+        .catch((err: Error) => console.error('Failed to mark session as viewed:', err));
+    }
+  }, [session, sessionId]);
+
   // Then get the project using projectId from session data
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
     queryKey: ['/api/projects', projectId],
