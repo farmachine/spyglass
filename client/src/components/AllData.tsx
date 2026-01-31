@@ -1206,12 +1206,12 @@ export default function AllData({ project }: AllDataProps) {
             </div>
           ) : (
             <div className="border-t">
-              <Table className="w-auto">
+              <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName" className="py-3 w-auto min-w-[180px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
-                    <SortableHeader field="createdAt" className="py-3 w-auto whitespace-nowrap">Created</SortableHeader>
-                    <SortableHeader field="documentCount" className="py-3 w-auto text-center">Docs</SortableHeader>
+                    <SortableHeader field="sessionName" className="py-3 w-1/3">{project.mainObjectName || 'Session'} Name</SortableHeader>
+                    <SortableHeader field="createdAt" className="py-3 whitespace-nowrap">Created</SortableHeader>
+                    <SortableHeader field="documentCount" className="py-3 text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
                     {visibleColumns.map(column => (
                       <TableHead key={column.id} className="py-3 whitespace-nowrap">
