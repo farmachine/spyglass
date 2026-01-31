@@ -80,11 +80,12 @@ export async function downloadAttachment(inboxId: string, messageId: string, att
 export async function createWebhook(inboxId: string, webhookUrl: string): Promise<{ webhookId: string }> {
   const client = await getAgentMailClient();
   
+  const cleanInboxId = inboxId.replace(/[^A-Za-z0-9._~-]/g, '');
   const webhook = await client.webhooks.create({
     url: webhookUrl,
     eventTypes: ['message.received'],
     inboxIds: [inboxId],
-    clientId: `extrapl-webhook-${inboxId}`,
+    clientId: `extrapl-wh-${cleanInboxId}`,
   });
   
   return {

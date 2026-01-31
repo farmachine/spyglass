@@ -37,6 +37,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       });
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       refetchProject();
       toast({ 
         title: "Email inbox created", 
@@ -574,26 +575,28 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       </Card>
 
       {/* Data Sources Section */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Database className="w-5 h-5" style={{ color: '#4F63A4' }} />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">API Data Sources</h2>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button style={{ backgroundColor: '#4F63A4' }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Data Source
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add REST API Data Source</DialogTitle>
-              <DialogDescription>
-                Configure a connection to fetch data from an external REST API.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5" style={{ color: '#4F63A4' }} />
+              <CardTitle className="text-lg">API Data Sources</CardTitle>
+            </div>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button style={{ backgroundColor: '#4F63A4' }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Data Source
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Add REST API Data Source</DialogTitle>
+                  <DialogDescription>
+                    Configure a connection to fetch data from an external REST API.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -694,137 +697,127 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#4F63A4' }}>
                   {createMutation.isPending ? "Creating..." : "Create Data Source"}
                 </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Connect to external REST APIs to import data into your project. Configure GET endpoints with authentication.
-      </p>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
-        </div>
-      ) : dataSources.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Database className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Data Sources</h3>
-            <p className="text-gray-500 text-center mb-4">
-              Add your first REST API connection to start importing external data.
-            </p>
-            <Button onClick={() => setIsAddDialogOpen(true)} style={{ backgroundColor: '#4F63A4' }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Data Source
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {dataSources.map((source) => (
-            <Card key={source.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-0 h-auto"
-                      onClick={() => setExpandedSource(expandedSource === source.id ? null : source.id)}
-                    >
-                      {expandedSource === source.id ? (
-                        <ChevronDown className="w-5 h-5" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5" />
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <CardDescription>
+            Connect to external REST APIs to import data into your project
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : dataSources.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 border border-dashed rounded-lg">
+              <Database className="w-10 h-10 text-gray-400 mb-3" />
+              <p className="text-gray-500 text-sm text-center">
+                No API data sources configured yet
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dataSources.map((source) => (
+                <div key={source.id} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-0 h-auto"
+                        onClick={() => setExpandedSource(expandedSource === source.id ? null : source.id)}
+                      >
+                        {expandedSource === source.id ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5" />
+                        )}
+                      </Button>
+                      <div>
+                        <h4 className="font-medium">{source.name}</h4>
+                        {source.description && (
+                          <p className="text-sm text-gray-500">{source.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {source.lastFetchStatus === "success" && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Connected
+                        </Badge>
                       )}
-                    </Button>
-                    <div>
-                      <CardTitle className="text-lg">{source.name}</CardTitle>
-                      {source.description && (
-                        <CardDescription>{source.description}</CardDescription>
+                      {source.lastFetchStatus === "error" && (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Error
+                        </Badge>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchDataMutation.mutate(source.id)}
+                        disabled={fetchDataMutation.isPending}
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-1 ${fetchDataMutation.isPending ? "animate-spin" : ""}`} />
+                        Fetch
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => deleteMutation.mutate(source.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {source.lastFetchStatus === "success" && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Connected
-                      </Badge>
-                    )}
-                    {source.lastFetchStatus === "error" && (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        <XCircle className="w-3 h-3 mr-1" />
-                        Error
-                      </Badge>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchDataMutation.mutate(source.id)}
-                      disabled={fetchDataMutation.isPending}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-1 ${fetchDataMutation.isPending ? "animate-spin" : ""}`} />
-                      Fetch
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => deleteMutation.mutate(source.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div className="text-sm text-gray-500 mb-2">
+                    <span className="font-medium">Endpoint:</span>{" "}
+                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">
+                      {source.endpointUrl}
+                    </code>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-gray-500 mb-2">
-                  <span className="font-medium">Endpoint:</span>{" "}
-                  <code className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                    {source.endpointUrl}
-                  </code>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>
-                    <span className="font-medium">Auth:</span>{" "}
-                    {source.authType === "bearer" ? "Bearer Token" :
-                     source.authType === "api_key" ? "API Key" :
-                     source.authType === "basic" ? "Basic Auth" : "None"}
-                  </span>
-                  {source.lastFetchedAt && (
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span>
-                      <span className="font-medium">Last fetched:</span>{" "}
-                      {new Date(source.lastFetchedAt).toLocaleString()}
+                      <span className="font-medium">Auth:</span>{" "}
+                      {source.authType === "bearer" ? "Bearer Token" :
+                       source.authType === "api_key" ? "API Key" :
+                       source.authType === "basic" ? "Basic Auth" : "None"}
                     </span>
+                    {source.lastFetchedAt && (
+                      <span>
+                        <span className="font-medium">Last fetched:</span>{" "}
+                        {new Date(source.lastFetchedAt).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {source.lastFetchError && (
+                    <div className="mt-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                      {source.lastFetchError}
+                    </div>
+                  )}
+                  {expandedSource === source.id && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="font-medium mb-3">Data Preview</h4>
+                      {fetchedData[source.id] || source.cachedData ? (
+                        renderJsonTable(fetchedData[source.id] || source.cachedData, source)
+                      ) : (
+                        <p className="text-gray-500 text-sm">
+                          Click "Fetch" to load data from the API.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-                {source.lastFetchError && (
-                  <div className="mt-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                    {source.lastFetchError}
-                  </div>
-                )}
-
-                {expandedSource === source.id && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-medium mb-3">Data Preview</h4>
-                    {fetchedData[source.id] || source.cachedData ? (
-                      renderJsonTable(fetchedData[source.id] || source.cachedData, source)
-                    ) : (
-                      <p className="text-gray-500 text-sm">
-                        Click "Fetch" to load data from the API.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
