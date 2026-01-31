@@ -1206,7 +1206,7 @@ export default function AllData({ project }: AllDataProps) {
             </div>
           ) : (
             <div className="border-t">
-              <Table className="table-fixed">
+              <Table className="w-auto">
                 <TableHeader>
                   <TableRow>
                     <SortableHeader field="sessionName" className="py-3 w-auto min-w-[180px]">{project.mainObjectName || 'Session'} Name</SortableHeader>
@@ -1214,21 +1214,21 @@ export default function AllData({ project }: AllDataProps) {
                     <SortableHeader field="documentCount" className="py-3 w-auto text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
                     {visibleColumns.map(column => (
-                      <TableHead key={column.id} className="py-3 w-[150px] min-w-[150px]">
-                        <span className="text-xs font-medium text-muted-foreground truncate">{column.name}</span>
+                      <TableHead key={column.id} className="py-3 whitespace-nowrap">
+                        <span className="text-xs font-medium text-muted-foreground">{column.name}</span>
                       </TableHead>
                     ))}
                     {/* Kanban progress columns - one per kanban step */}
                     {kanbanProgressData?.kanbanSteps?.map((step) => (
-                      <TableHead key={`kanban-header-${step.stepId}`} className="py-3 w-[140px] min-w-[140px]">
-                        <span className="text-xs font-medium text-muted-foreground truncate">{step.stepName}</span>
+                      <TableHead key={`kanban-header-${step.stepId}`} className="py-3 whitespace-nowrap">
+                        <span className="text-xs font-medium text-muted-foreground">{step.stepName}</span>
                       </TableHead>
                     ))}
                     {/* Fallback progress column for non-kanban projects */}
                     {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
-                      <SortableHeader field="progress" className="py-3 w-[120px] min-w-[120px]">Progress</SortableHeader>
+                      <SortableHeader field="progress" className="py-3 whitespace-nowrap">Progress</SortableHeader>
                     )}
-                    <SortableHeader field="status" className="py-3 w-[50px] min-w-[50px] text-center">
+                    <SortableHeader field="status" className="py-3 text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       </div>
@@ -1246,13 +1246,13 @@ export default function AllData({ project }: AllDataProps) {
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors flex items-center gap-1.5">
-                            <Circle className={`h-2 w-2 flex-shrink-0 ${
-                              (session as any).isViewed 
-                                ? 'fill-[#4F63A4] text-[#4F63A4]' 
-                                : 'fill-green-500 text-green-500'
-                            }`} />
                             <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">{session.sessionName || 'Untitled Session'}</p>
+                              <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                                {session.sessionName || 'Untitled Session'}
+                                {!(session as any).isViewed && (
+                                  <Circle className="h-2 w-2 flex-shrink-0 fill-[#4F63A4] text-[#4F63A4]" />
+                                )}
+                              </p>
                               {session.description && (
                                 <p className="text-xs text-muted-foreground truncate max-w-[300px]">
                                   {session.description}
@@ -1273,9 +1273,9 @@ export default function AllData({ project }: AllDataProps) {
                       </TableCell>
                       {/* Dynamic column values */}
                       {visibleColumns.map(column => (
-                        <TableCell key={column.id} className="py-3">
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate block max-w-[140px]" title={getExtractedValue(session.id, column)}>
-                            {getExtractedValue(session.id, column)}
+                        <TableCell key={column.id} className="py-3 whitespace-nowrap">
+                          <span className="text-sm text-gray-700 dark:text-gray-300" title={getExtractedValue(session.id, column)}>
+                            {getExtractedValue(session.id, column) || '-'}
                           </span>
                         </TableCell>
                       ))}
