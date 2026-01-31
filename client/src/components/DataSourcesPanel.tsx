@@ -63,6 +63,10 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const processEmailsMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", `/api/projects/${projectId}/inbox/process`);
+      if (!response || !response.ok) {
+        const errorData = response ? await response.json().catch(() => ({})) : {};
+        throw new Error(errorData.message || "Failed to process emails");
+      }
       return response.json();
     },
     onSuccess: (data: any) => {
