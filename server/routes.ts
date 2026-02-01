@@ -725,6 +725,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Refresh/update webhook URL for inbox
+  app.post("/api/projects/:id/inbox/refresh-webhook", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      if (!project.inboxId) {
+        return res.status(400).json({ message: "No inbox configured for this project" });
+      }
+      
+      const { createWebhook } = await import('./integrations/agentmail');
+      
+      // Register webhook with correct domain
+      const domain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS || (process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000');
+      const webhookUrl = `https://${domain}/api/webhooks/email`;
+      console.log(`📧 Refreshing webhook for inbox ${project.inboxId} at: ${webhookUrl}`);
+      
+      await createWebhook(project.inboxId, webhookUrl);
+      console.log(`📧 Webhook refreshed successfully`);
+      
+      res.json({ 
+        success: true, 
+        message: "Webhook updated successfully",
+        webhookUrl 
+      });
+    } catch (error: any) {
+      console.error("Refresh webhook error:", error);
+      res.status(500).json({ message: error.message || "Failed to refresh webhook" });
+    }
+  });
+
   // Manually process emails from inbox (polling approach)
   app.post("/api/projects/:id/inbox/process", authenticateToken, async (req: AuthRequest, res) => {
     try {

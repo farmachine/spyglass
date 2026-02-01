@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2 } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2, Settings } from "lucide-react";
 import type { ApiDataSource } from "@shared/schema";
 import { useProject } from "@/hooks/useProjects";
 
@@ -59,6 +59,26 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       toast({ title: "Copied to clipboard" });
     }
   };
+
+  const refreshWebhookMutation = useMutation({
+    mutationFn: async () => {
+      const data = await apiRequest(`/api/projects/${projectId}/inbox/refresh-webhook`, { method: "POST" });
+      return data;
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Webhook updated", 
+        description: "Email webhook has been refreshed. Try sending an email again." 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to refresh webhook",
+        variant: "destructive" 
+      });
+    }
+  });
 
   const processEmailsMutation = useMutation({
     mutationFn: async () => {
@@ -582,6 +602,21 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   <RefreshCw className="w-4 h-4" />
                 )}
                 Check for Emails
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refreshWebhookMutation.mutate()}
+                disabled={refreshWebhookMutation.isPending}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+                title="Refresh webhook URL for real-time email notifications"
+              >
+                {refreshWebhookMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Settings className="w-4 h-4" />
+                )}
+                Fix Webhook
               </Button>
             </div>
           ) : (
