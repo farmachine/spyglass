@@ -1829,11 +1829,77 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
         // Extract unique input values for each configured filter column
         const inputValuesByColumn: Map<string, Set<string>> = new Map();
         
+        // Helper function to resolve field references (e.g., "Claim Info.City" or "valueId::City")
+        const resolveFieldReference = (fieldRef: string): string | null => {
+          // Check if it's a dot-notation reference like "Claim Info.City"
+          if (fieldRef.includes('.')) {
+            const [valueName, fieldName] = fieldRef.split('.');
+            // Look for the value in inputs that matches this pattern
+            for (const key of Object.keys(inputs)) {
+              if (key === valueName || inputs[key]?.name === valueName) {
+                // Found the value, now look for the field
+                const value = inputs[key];
+                if (typeof value === 'object' && value !== null) {
+                  if (value[fieldName]) return String(value[fieldName]);
+                  // Check in extractedValues or fields array
+                  if (value.extractedValue) return String(value.extractedValue);
+                }
+              }
+            }
+            // Also check in the inputs directly using the dot notation as key
+            if (inputs[fieldRef]) return String(inputs[fieldRef]);
+          }
+          
+          // Check if it's a :: reference like "valueId::fieldName"
+          if (fieldRef.includes('::')) {
+            const [valueId, fieldName] = fieldRef.split('::');
+            // Look for the value by ID in inputs
+            for (const key of Object.keys(inputs)) {
+              const value = inputs[key];
+              if (typeof value === 'object' && value !== null) {
+                if (value.id === valueId || value.valueId === valueId) {
+                  if (value[fieldName]) return String(value[fieldName]);
+                  if (value.fields && Array.isArray(value.fields)) {
+                    const field = value.fields.find((f: any) => f.name === fieldName);
+                    if (field?.value) return String(field.value);
+                  }
+                }
+              }
+            }
+            // Check __infoPageFieldValues for resolved field values
+            if (inputs.__infoPageFieldValues && inputs.__infoPageFieldValues[fieldRef]) {
+              return String(inputs.__infoPageFieldValues[fieldRef]);
+            }
+          }
+          
+          return null;
+        };
+        
         for (const config of searchByColumnsConfig) {
           const inputField = config.inputField;
           if (!inputField) continue;
           
           const values = new Set<string>();
+          
+          // First, check if this is an info page field reference (contains . or ::)
+          if (inputField.includes('.') || inputField.includes('::')) {
+            const resolvedValue = resolveFieldReference(inputField);
+            if (resolvedValue && resolvedValue.trim()) {
+              values.add(resolvedValue.trim().toLowerCase());
+              console.log(`   🔗 Resolved info page field "${inputField}" → "${resolvedValue}"`);
+            }
+            
+            // Also check __infoPageFieldValues passed from routes
+            if (inputs.__infoPageFieldValues) {
+              const fieldValue = inputs.__infoPageFieldValues[inputField];
+              if (fieldValue && String(fieldValue).trim()) {
+                values.add(String(fieldValue).trim().toLowerCase());
+                console.log(`   🔗 Found info page field value "${inputField}" → "${fieldValue}"`);
+              }
+            }
+          }
+          
+          // Standard: check input array items
           for (const item of inputArray) {
             const val = item[inputField];
             if (val && typeof val === 'string' && val.trim()) {

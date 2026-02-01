@@ -3471,6 +3471,63 @@ except Exception as e:
         // Log what we're passing to the tool
         console.log(`📊 Target fields being passed to tool:`, JSON.stringify(target_fields, null, 2));
         
+        // Resolve info page field references for database lookups
+        // This handles references like "Claim Info.City" in _searchByColumns config
+        const searchByColumns = (value.inputValues as any)?._searchByColumns;
+        if (searchByColumns && Array.isArray(searchByColumns)) {
+          const infoPageFieldValues: Record<string, string> = {};
+          
+          for (const config of searchByColumns) {
+            const inputField = config.inputField;
+            if (!inputField) continue;
+            
+            // Check for dot notation (ValueName.FieldName) or :: notation
+            if (inputField.includes('.') || inputField.includes('::')) {
+              let valueName: string, fieldName: string;
+              
+              if (inputField.includes('::')) {
+                [valueName, fieldName] = inputField.split('::');
+              } else {
+                [valueName, fieldName] = inputField.split('.');
+              }
+              
+              // Look up the value from existing validations
+              const existingValidations = await storage.getFieldValidations(sessionId);
+              
+              // Find validation that matches this field
+              for (const validation of existingValidations) {
+                // Match by field name containing the field name (e.g., "Claim Info" step, "City" field)
+                if (validation.fieldName?.includes(fieldName) || 
+                    validation.identifierId?.includes(fieldName)) {
+                  if (validation.extractedValue) {
+                    infoPageFieldValues[inputField] = validation.extractedValue;
+                    console.log(`🔗 Resolved info page field "${inputField}" → "${validation.extractedValue}"`);
+                    break;
+                  }
+                }
+              }
+              
+              // Also try to match by stepId and identifierId pattern
+              if (!infoPageFieldValues[inputField]) {
+                // Look for validations from info page steps
+                const infoPageValidation = existingValidations.find(v => 
+                  v.identifierId && v.identifierId.includes(fieldName) && v.extractedValue
+                );
+                if (infoPageValidation?.extractedValue) {
+                  infoPageFieldValues[inputField] = infoPageValidation.extractedValue;
+                  console.log(`🔗 Resolved info page field by pattern "${inputField}" → "${infoPageValidation.extractedValue}"`);
+                }
+              }
+            }
+          }
+          
+          // Pass resolved values to tool engine
+          if (Object.keys(infoPageFieldValues).length > 0) {
+            toolInputs.__infoPageFieldValues = infoPageFieldValues;
+            console.log(`📋 Passing ${Object.keys(infoPageFieldValues).length} resolved info page field values`);
+          }
+        }
+        
         // CRITICAL DEBUG: Log the actual toolInputs being passed to toolEngine
         console.log(`🚨 CRITICAL DEBUG - toolInputs before toolEngine call:`);
         for (const [key, value] of Object.entries(toolInputs)) {

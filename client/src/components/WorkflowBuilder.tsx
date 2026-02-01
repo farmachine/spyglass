@@ -1281,22 +1281,44 @@ function ValueCard({
   }, [selectedTool, value.toolId]);
 
   // Get available values for referencing
-  const getAvailableValues = () => {
-    const availableValues: Array<{id: string; valueId: string; name: string; stepName: string}> = [];
+  // When expandInfoPageFields=true, also includes individual fields from info page values
+  const getAvailableValues = (expandInfoPageFields: boolean = false) => {
+    const availableValues: Array<{id: string; valueId: string; name: string; stepName: string; fieldName?: string}> = [];
     
     // Get current step index
     const currentStepIndex = allSteps.findIndex(s => s.id === step.id);
+    
+    // Helper to add a value (and optionally its fields)
+    const addValue = (v: any, stepName: string, stepType: string) => {
+      // Add the value itself
+      availableValues.push({
+        id: v.id,
+        valueId: v.id,
+        name: v.name,
+        stepName: stepName
+      });
+      
+      // For info page values with fields, also add individual fields
+      if (expandInfoPageFields && stepType === 'page' && v.fields && Array.isArray(v.fields)) {
+        v.fields.forEach((field: { name: string; type: string }) => {
+          if (field.name) {
+            availableValues.push({
+              id: `${v.id}::${field.name}`,
+              valueId: `${v.id}::${field.name}`,
+              name: `${v.name}.${field.name}`,
+              stepName: stepName,
+              fieldName: field.name
+            });
+          }
+        });
+      }
+    };
     
     // Add all values from previous steps
     for (let i = 0; i < currentStepIndex; i++) {
       const prevStep = allSteps[i];
       prevStep.values.forEach(v => {
-        availableValues.push({
-          id: v.id,
-          valueId: v.id,
-          name: v.name,
-          stepName: prevStep.name
-        });
+        addValue(v, prevStep.name, prevStep.type);
       });
     }
     
@@ -1306,12 +1328,7 @@ function ValueCard({
     step.values.forEach(v => {
       const vOrderIndex = v.orderIndex !== undefined ? v.orderIndex : step.values.indexOf(v);
       if (vOrderIndex < currentOrderIndex && v.id !== value.id) {
-        availableValues.push({
-          id: v.id,
-          valueId: v.id,
-          name: v.name,
-          stepName: step.name
-        });
+        addValue(v, step.name, step.type);
       }
     });
     
@@ -1691,8 +1708,8 @@ function ValueCard({
                         : { ...item, fuzziness: item.fuzziness ?? 0 }
                     );
                   
-                  // Get available input fields from previous values in step
-                  const availableInputFields = getAvailableValues();
+                  // Get available input fields from previous values in step (expand info page fields for database lookup)
+                  const availableInputFields = getAvailableValues(true);
                   
                   const operators = [
                     { value: 'equals', label: '=' },
