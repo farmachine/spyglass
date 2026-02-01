@@ -804,6 +804,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const msg of messages) {
         const messageId = msg.messageId || msg.id;
         
+        // Skip sent emails (from our own inbox)
+        const labels = msg.labels || [];
+        if (labels.includes('sent') && !labels.includes('received')) {
+          console.log(`📧 Skipping sent message: ${messageId}`);
+          continue;
+        }
+        
+        // Skip emails from our own inbox address
+        const fromAddr = (msg.from || '').toLowerCase();
+        if (fromAddr.includes(project.inboxId!.toLowerCase()) || fromAddr.includes('agentmail.to')) {
+          console.log(`📧 Skipping self-addressed message: ${messageId}`);
+          continue;
+        }
+        
         // Skip already processed messages
         if (processedMessageIds.has(messageId)) {
           console.log(`📧 Skipping already processed message: ${messageId}`);
@@ -904,15 +918,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             for (const [, attachData] of attachmentContents) {
               try {
+                // Skip inline images (signature logos etc)
+                if (attachData.contentType?.startsWith('image/') && attachData.filename?.toLowerCase().includes('outlook')) {
+                  console.log(`📧 Skipping email signature image: ${attachData.filename}`);
+                  continue;
+                }
+                
+                console.log(`📧 Validating file: ${attachData.filename} (${attachData.contentType})`);
+                console.log(`📧 Content preview: ${attachData.content?.slice(0, 200) || 'No content extracted'}`);
+                
                 const validationPrompt = `You are validating if a document matches an expected document type.
+Be lenient - if the document seems related to the topic, consider it a match.
 
 Document Type Required: "${docType.name}"
 Description: "${docType.description}"
 
-Document Content (first 3000 chars):
-${attachData.content ? attachData.content.slice(0, 3000) : `Filename: ${attachData.filename}\nFile type: ${attachData.contentType}`}
+Document being validated:
+Filename: ${attachData.filename}
+File type: ${attachData.contentType}
+Content (first 3000 chars):
+${attachData.content ? attachData.content.slice(0, 3000) : 'Content could not be extracted, use filename to judge.'}
 
-Does this document match the required document type? Respond with JSON:
+Does this document match or relate to the required document type? Be generous - if it's in the same domain (e.g. a repair document for a damage claim), count it as a match.
+Respond with JSON only:
 {"matches": true/false, "confidence": 0.0-1.0, "reasoning": "brief explanation"}`;
 
                 const response = await Promise.race([
@@ -922,10 +950,12 @@ Does this document match the required document type? Respond with JSON:
                 
                 if (response) {
                   const text = (response as any).text || '';
+                  console.log(`📧 AI validation response: ${text.slice(0, 300)}`);
                   const jsonMatch = text.match(/\{[\s\S]*\}/);
                   if (jsonMatch) {
                     const parsed = JSON.parse(jsonMatch[0]);
-                    if (parsed.matches && parsed.confidence >= 0.6) {
+                    console.log(`📧 Parsed: matches=${parsed.matches}, confidence=${parsed.confidence}, reason=${parsed.reasoning}`);
+                    if (parsed.matches && parsed.confidence >= 0.5) {
                       matched = true;
                       matchedFile = attachData.filename;
                       break;
