@@ -248,6 +248,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const saveWorkflow = async () => {
     try {
       await onSave(steps);
+      // Also save document types when saving extraction config
+      onDocumentTypesChange?.(documentTypes);
       toast({
         title: "Success",
         description: "Workflow saved successfully"
@@ -427,16 +429,17 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   // Document Types state
-  // Use props directly as source of truth - parent manages the state
-  const documentTypes = requiredDocumentTypes;
+  // Local state for document types - only saved when clicking "Save Extraction"
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(requiredDocumentTypes);
   const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
 
-  // Only update expanded state when document types change
+  // Sync from props only on initial load or when props change externally
   useEffect(() => {
+    setDocumentTypes(requiredDocumentTypes);
     if (requiredDocumentTypes.length > 0) {
       setIsDocumentTypesExpanded(true);
     }
-  }, [requiredDocumentTypes.length]);
+  }, [requiredDocumentTypes]);
 
   const addDocumentType = () => {
     const newDocType: DocumentType = {
@@ -444,18 +447,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       name: '',
       description: ''
     };
-    const updated = [...documentTypes, newDocType];
-    onDocumentTypesChange?.(updated);
+    setDocumentTypes(prev => [...prev, newDocType]);
   };
 
   const updateDocumentType = (id: string, updates: Partial<DocumentType>) => {
-    const updated = documentTypes.map(dt => dt.id === id ? { ...dt, ...updates } : dt);
-    onDocumentTypesChange?.(updated);
+    setDocumentTypes(prev => prev.map(dt => dt.id === id ? { ...dt, ...updates } : dt));
   };
 
   const deleteDocumentType = (id: string) => {
-    const updated = documentTypes.filter(dt => dt.id !== id);
-    onDocumentTypesChange?.(updated);
+    setDocumentTypes(prev => prev.filter(dt => dt.id !== id));
   };
 
   return (
