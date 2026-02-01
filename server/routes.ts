@@ -3473,7 +3473,7 @@ except Exception as e:
         
         // Resolve info page field references for database lookups
         // This handles references like "Claim Info.City" in _searchByColumns config
-        const searchByColumns = (value.inputValues as any)?._searchByColumns;
+        const searchByColumns = (workflowValue.inputValues as any)?._searchByColumns;
         if (searchByColumns && Array.isArray(searchByColumns)) {
           const infoPageFieldValues: Record<string, string> = {};
           
