@@ -132,6 +132,24 @@ The design system uses Slate Blue (#4F63A4) as the primary color and features co
 - Copies cards, checklists, comments (marked as "previous session"), and attachments
 - Non-relevant tasks are excluded, new requirement tasks are auto-generated
 
+### Email-to-Session Feature (Feb 2026)
+**AgentMail Integration**: Each project can have its own email inbox to receive documents via email.
+
+**Architecture**:
+- **Database Schema**: `processed_emails` table tracks processed message IDs to prevent duplicates
+- **Integration**: `server/integrations/agentmail.ts` provides AgentMail SDK wrapper
+- **Webhook**: `POST /api/webhooks/email` receives inbound emails and creates sessions
+
+**Key Implementation Details**:
+- Projects store `inboxEmailAddress` for their unique inbox (format: `extrapl-{projectId}@agentmail.to`)
+- Duplicate prevention: Each message ID is tracked in `processed_emails` table
+- Attachment processing: Uses same `document_extractor.py` as manual uploads for text extraction
+- Sessions created with email subject as name, sender info in description
+
+**API Endpoints**:
+- `POST /api/projects/:projectId/generate-inbox` - Creates unique inbox for project
+- `POST /api/webhooks/email` - Webhook for receiving inbound emails
+
 ### Database Schema
 Core tables include:
 *   `workflow_steps`: Defines extraction steps (Info Pages, Data Tables, Kanban) with `id`, `project_id`, `step_name`, `step_type`, `value_count`, `identifier_id`, and `kanban_config` (JSONB).
@@ -141,6 +159,7 @@ Core tables include:
 *   `kanban_checklist_items`: Stores checklist items per card with `id`, `card_id`, `text`, `completed`.
 *   `kanban_comments`: Stores comments per card with `id`, `card_id`, `user_id`, `content`, `created_at`.
 *   `kanban_attachments`: Stores file attachments per card with `id`, `card_id`, `file_name`, `file_url`.
+*   `processed_emails`: Tracks processed email messages with `id`, `project_id`, `message_id`, `inbox_id`, `session_id`, `subject`, `from_email`.
 
 ## External Dependencies
 *   **Database**: PostgreSQL (specifically Neon for hosting)

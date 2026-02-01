@@ -319,6 +319,18 @@ export const sessionLinks = pgTable("session_links", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Processed Emails - tracks which email messages have been processed to avoid duplicates
+export const processedEmails = pgTable("processed_emails", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  messageId: text("message_id").notNull(), // AgentMail message ID
+  inboxId: text("inbox_id").notNull(), // AgentMail inbox ID
+  sessionId: uuid("session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Created session
+  subject: text("subject"),
+  fromEmail: text("from_email"),
+  processedAt: timestamp("processed_at").defaultNow().notNull(),
+});
+
 export const knowledgeDocuments = pgTable("knowledge_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),

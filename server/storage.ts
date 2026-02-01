@@ -102,7 +102,8 @@ import {
   type InsertSessionLink,
   apiDataSources,
   type ApiDataSource,
-  type InsertApiDataSource
+  type InsertApiDataSource,
+  processedEmails
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -342,6 +343,10 @@ export interface IStorage {
   getSessionLinks(sessionId: string): Promise<SessionLink[]>;
   createSessionLink(link: InsertSessionLink): Promise<SessionLink>;
   getSessionsByProject(projectId: string): Promise<ExtractionSession[]>;
+  
+  // Processed Emails
+  isEmailProcessed(projectId: string, messageId: string): Promise<boolean>;
+  markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string): Promise<void>;
   
   // API Data Sources
   getApiDataSources(projectId: string): Promise<ApiDataSource[]>;
@@ -2393,6 +2398,14 @@ export class MemStorage implements IStorage {
   }
   async getSessionsByProject(_projectId: string): Promise<ExtractionSession[]> {
     return [];
+  }
+  
+  // Processed Emails (MemStorage stubs)
+  async isEmailProcessed(_projectId: string, _messageId: string): Promise<boolean> {
+    return false;
+  }
+  async markEmailProcessed(_projectId: string, _messageId: string, _inboxId: string, _sessionId: string, _subject?: string, _fromEmail?: string): Promise<void> {
+    // No-op in memory storage
   }
   
   // API Data Sources (MemStorage stubs)
@@ -4598,6 +4611,31 @@ class PostgreSQLStorage implements IStorage {
       return await this.db.select().from(extractionSessions)
         .where(eq(extractionSessions.projectId, projectId))
         .orderBy(desc(extractionSessions.createdAt));
+    });
+  }
+
+  // Processed Emails
+  async isEmailProcessed(projectId: string, messageId: string): Promise<boolean> {
+    return this.retryOperation(async () => {
+      const result = await this.db.select().from(processedEmails)
+        .where(and(
+          eq(processedEmails.projectId, projectId),
+          eq(processedEmails.messageId, messageId)
+        ));
+      return result.length > 0;
+    });
+  }
+
+  async markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string): Promise<void> {
+    return this.retryOperation(async () => {
+      await this.db.insert(processedEmails).values({
+        projectId,
+        messageId,
+        inboxId,
+        sessionId,
+        subject,
+        fromEmail
+      });
     });
   }
 

@@ -12393,6 +12393,11 @@ Respond in JSON format:
         return res.status(400).json({ error: 'Missing inbox_id' });
       }
       
+      if (!messageId) {
+        console.error('📧 No message_id in webhook payload');
+        return res.status(400).json({ error: 'Missing message_id' });
+      }
+      
       // Find project by inbox ID
       const project = await storage.getProjectByInboxId(inboxId);
       if (!project) {
@@ -12401,6 +12406,17 @@ Respond in JSON format:
       }
       
       console.log(`📧 Found project: ${project.name} (${project.id})`);
+      
+      // Check if this email has already been processed (prevent duplicates)
+      const alreadyProcessed = await storage.isEmailProcessed(project.id, messageId);
+      if (alreadyProcessed) {
+        console.log(`📧 Email ${messageId} already processed, skipping`);
+        return res.json({ 
+          success: true, 
+          message: 'Email already processed',
+          duplicate: true 
+        });
+      }
       
       // Create session from email
       const sessionName = subject.slice(0, 100);
@@ -12416,6 +12432,9 @@ Respond in JSON format:
       const session = await storage.createExtractionSession(sessionData);
       console.log(`📧 Created session: ${session.id} - ${sessionName}`);
       
+      // Mark email as processed immediately to prevent race conditions
+      await storage.markEmailProcessed(project.id, messageId, inboxId, session.id, subject, fromEmail);
+      
       // Generate initial field validations
       await generateSchemaFieldValidations(session.id, project.id);
       
@@ -12430,23 +12449,80 @@ Respond in JSON format:
             // Download attachment content (inboxId, messageId, attachmentId)
             const { data, filename, contentType } = await downloadAttachment(inboxId, messageId, attachment.attachment_id);
             
-            // Create session document
+            // Convert to data URL format for document extractor
+            const base64Content = data.toString('base64');
+            const dataUrl = `data:${contentType};base64,${base64Content}`;
+            
+            // Extract text content using document_extractor.py (same as manual upload)
+            let extractedContent = '';
+            
+            if (contentType.includes('pdf') || contentType.includes('excel') || 
+                contentType.includes('spreadsheet') || contentType.includes('word') ||
+                contentType.includes('document') || contentType.includes('text')) {
+              try {
+                const extractionData = {
+                  step: "extract_text_only",
+                  documents: [{
+                    file_name: filename,
+                    file_content: dataUrl,
+                    mime_type: contentType
+                  }]
+                };
+                
+                console.log(`📧 Extracting text from: ${filename} (${contentType})`);
+                
+                const extractedResult = await new Promise<string>((resolve, reject) => {
+                  const python = spawn('python3', ['services/document_extractor.py']);
+                  
+                  python.stdin.write(JSON.stringify(extractionData));
+                  python.stdin.end();
+                  
+                  let output = '';
+                  let error = '';
+                  
+                  python.stdout.on('data', (chunk) => {
+                    output += chunk.toString();
+                  });
+                  
+                  python.stderr.on('data', (chunk) => {
+                    error += chunk.toString();
+                  });
+                  
+                  python.on('close', (code) => {
+                    if (code !== 0) {
+                      console.error(`📧 Document extraction error for ${filename}:`, error);
+                      resolve(''); // Return empty on error, don't fail the whole process
+                    } else {
+                      try {
+                        const result = JSON.parse(output);
+                        const text = result.extracted_texts?.[0]?.text_content || '';
+                        console.log(`📧 Extracted ${text.length} chars from ${filename}`);
+                        resolve(text);
+                      } catch (parseErr) {
+                        console.error(`📧 Failed to parse extraction result for ${filename}:`, parseErr);
+                        resolve('');
+                      }
+                    }
+                  });
+                });
+                
+                extractedContent = extractedResult;
+              } catch (extractErr) {
+                console.error(`📧 Failed to extract text from ${filename}:`, extractErr);
+              }
+            }
+            
+            // Create session document with extracted content
             const document = await storage.createSessionDocument({
               sessionId: session.id,
               documentName: filename,
               documentType: contentType,
-              documentContent: data.toString('base64'),
+              documentContent: extractedContent || base64Content, // Use extracted text if available, otherwise base64
               isPrimary: attachments.indexOf(attachment) === 0,
             });
             
-            console.log(`📧 Uploaded document: ${document.id} - ${filename}`);
+            console.log(`📧 Saved document: ${document.id} - ${filename} (content: ${extractedContent ? 'extracted text' : 'base64'})`);
             
-            // Process document (extract content) if it's a supported type
-            if (contentType.includes('pdf') || contentType.includes('excel') || contentType.includes('spreadsheet')) {
-              // Trigger document processing in background
-              // This would normally be handled by the document processing pipeline
-              console.log(`📧 Document ${filename} queued for processing`);
-            }
           } catch (attachErr) {
             console.error(`📧 Failed to process attachment ${attachment.filename}:`, attachErr);
           }
