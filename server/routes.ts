@@ -12682,6 +12682,7 @@ Respond in JSON format:
 
   // AgentMail webhook endpoint for receiving inbound emails
   // This creates a new session from email and uploads attachments as documents
+  // With auto-reply: validates attachments against required document types
   app.post('/api/webhooks/email', async (req, res) => {
     try {
       console.log('📧 Received inbound email webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
@@ -12724,7 +12725,289 @@ Respond in JSON format:
         });
       }
       
-      // Create session from email
+      // Get required document types for this project
+      const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
+      console.log(`📧 Project has ${requiredDocTypes.length} required document types`);
+      
+      // Import agentmail functions for sending replies
+      const { downloadAttachment, sendEmail } = await import('./integrations/agentmail');
+      
+      // If project has required document types, validate attachments first
+      let validationResults: Array<{docType: {id: string; name: string; description: string}; matched: boolean; matchedFile?: string}> = [];
+      let attachmentContents: Map<string, {filename: string; content: string; contentType: string; base64: string}> = new Map();
+      
+      // If project requires documents but no attachments provided, reject immediately
+      if (requiredDocTypes.length > 0 && attachments.length === 0) {
+        console.log(`📧 No attachments but ${requiredDocTypes.length} document types required, sending rejection email`);
+        
+        // All document types are missing
+        const missingDocTypes = requiredDocTypes.map(dt => ({ docType: dt, matched: false }));
+        
+        // Generate AI rejection email
+        const rejectionPrompt = `Generate a professional, helpful email response for an automated document intake system.
+
+Context:
+- The sender submitted an email without any document attachments to "${project.name}"
+- This project requires specific documents to be attached
+- Original email subject: "${subject}"
+
+Missing Documents (ALL required):
+${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}
+
+Write a polite, professional email explaining:
+1. We received their email
+2. Unfortunately, no document attachments were found
+3. List each required document type and what it should contain
+4. Encourage them to reply with the correct documents attached
+
+Keep the tone helpful and professional. Format as plain text email body only (no subject line).`;
+
+        let rejectionBody = '';
+        try {
+          const aiResult = await model.generateContent(rejectionPrompt);
+          rejectionBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 Failed to generate rejection email:', err);
+          rejectionBody = `Thank you for your email to ${project.name}.
+
+Unfortunately, we could not find any document attachments in your email. To process your request, we need the following documents:
+
+${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}
+
+Please reply to this email with the required documents attached.
+
+Thank you.`;
+        }
+        
+        // Send rejection email
+        try {
+          await sendEmail({
+            fromInboxId: inboxId,
+            to: fromEmail,
+            subject: `Re: ${subject} - Documents Required`,
+            textContent: rejectionBody,
+            replyToMessageId: messageId
+          });
+          console.log(`📧 Sent rejection email to ${fromEmail} (no attachments)`);
+        } catch (err) {
+          console.error('📧 Failed to send rejection email:', err);
+        }
+        
+        // Mark email as processed but don't create session
+        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail);
+        
+        return res.json({ 
+          success: true, 
+          message: 'No attachments provided, rejection email sent',
+          rejected: true,
+          missingDocuments: requiredDocTypes.map(dt => dt.name)
+        });
+      }
+      
+      if (requiredDocTypes.length > 0 && attachments.length > 0) {
+        console.log(`📧 Validating ${attachments.length} attachments against ${requiredDocTypes.length} required document types`);
+        
+        // First, extract content from all attachments
+        for (const attachment of attachments) {
+          try {
+            const { data, filename, contentType } = await downloadAttachment(inboxId, messageId, attachment.attachment_id);
+            const base64Content = data.toString('base64');
+            const dataUrl = `data:${contentType};base64,${base64Content}`;
+            
+            // Extract text content
+            let extractedContent = '';
+            if (contentType.includes('pdf') || contentType.includes('excel') || 
+                contentType.includes('spreadsheet') || contentType.includes('word') ||
+                contentType.includes('document') || contentType.includes('text')) {
+              try {
+                const extractionData = {
+                  step: "extract_text_only",
+                  documents: [{
+                    file_name: filename,
+                    file_content: dataUrl,
+                    mime_type: contentType
+                  }]
+                };
+                
+                const extractedResult = await new Promise<string>((resolve) => {
+                  const python = spawn('python3', ['services/document_extractor.py']);
+                  
+                  // Add timeout for extraction (20 seconds)
+                  const extractTimeout = setTimeout(() => {
+                    python.kill();
+                    console.log(`📧 Extraction timeout for ${filename}`);
+                    resolve('');
+                  }, 20000);
+                  
+                  python.stdin.write(JSON.stringify(extractionData));
+                  python.stdin.end();
+                  
+                  let output = '';
+                  python.stdout.on('data', (chunk) => { output += chunk.toString(); });
+                  python.on('close', (code) => {
+                    clearTimeout(extractTimeout);
+                    if (code === 0) {
+                      try {
+                        const result = JSON.parse(output);
+                        resolve(result.extracted_texts?.[0]?.text_content || '');
+                      } catch { resolve(''); }
+                    } else { resolve(''); }
+                  });
+                  python.on('error', () => {
+                    clearTimeout(extractTimeout);
+                    resolve('');
+                  });
+                });
+                
+                extractedContent = extractedResult;
+              } catch { /* ignore extraction errors */ }
+            }
+            
+            attachmentContents.set(attachment.attachment_id, {
+              filename,
+              content: extractedContent,
+              contentType,
+              base64: base64Content
+            });
+          } catch (err) {
+            console.error(`📧 Failed to download attachment ${attachment.filename}:`, err);
+          }
+        }
+        
+        // If all attachment downloads failed, treat as missing documents
+        if (attachmentContents.size === 0) {
+          console.log(`📧 All attachment downloads failed, treating as missing documents`);
+          for (const docType of requiredDocTypes) {
+            validationResults.push({ docType, matched: false });
+          }
+        } else {
+        // Validate each required document type using AI
+        for (const docType of requiredDocTypes) {
+          let matched = false;
+          let matchedFile: string | undefined;
+          
+          // Check each attachment against this document type
+          for (const [attachId, attachData] of attachmentContents) {
+            try {
+              const validationPrompt = `You are validating if a document matches an expected document type.
+
+Document Type Required: "${docType.name}"
+Description: "${docType.description}"
+
+${attachData.content ? `Document Content (first 3000 chars):\n${attachData.content.slice(0, 3000)}` : `Document Info (content extraction failed):\nFilename: ${attachData.filename}\nFile type: ${attachData.contentType}`}
+
+Does this document match the required document type? Consider:
+1. Does the content/filename align with what "${docType.name}" should contain?
+2. Does it match the description: "${docType.description}"?
+${!attachData.content ? '\nNote: Content extraction failed, so base decision on filename and file type only. Be lenient if filename strongly suggests correct document type.' : ''}
+
+Respond with ONLY a JSON object:
+{"matches": true/false, "confidence": 0.0-1.0, "reason": "brief explanation"}`;
+              
+              // Add timeout for AI call (15 seconds)
+              const aiPromise = model.generateContent(validationPrompt);
+              const timeoutPromise = new Promise<never>((_, reject) => 
+                setTimeout(() => reject(new Error('AI validation timeout')), 15000)
+              );
+              
+              const aiResult = await Promise.race([aiPromise, timeoutPromise]);
+              const responseText = aiResult.response.text();
+              
+              // Parse AI response
+              const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (parsed.matches && parsed.confidence >= 0.6) {
+                  matched = true;
+                  matchedFile = attachData.filename;
+                  console.log(`📧 Document type "${docType.name}" matched by "${attachData.filename}"`);
+                  break;
+                }
+              }
+            } catch (err) {
+              console.error(`📧 AI validation error for ${docType.name}:`, err);
+              // On AI failure, don't match - require manual review
+            }
+          }
+          
+          validationResults.push({ docType, matched, matchedFile });
+        }
+        } // Close else block for attachmentContents.size > 0
+      }
+      
+      // Check if all required documents are present
+      const missingDocTypes = validationResults.filter(r => !r.matched);
+      const allRequirementsMet = missingDocTypes.length === 0;
+      
+      // If requirements not met and there are required document types, send rejection email
+      if (requiredDocTypes.length > 0 && !allRequirementsMet) {
+        console.log(`📧 Missing ${missingDocTypes.length} required document types, sending rejection email`);
+        
+        // Generate AI rejection email
+        const rejectionPrompt = `Generate a professional, helpful email response for an automated document intake system.
+
+Context:
+- The sender submitted documents via email to "${project.name}"
+- Some required documents are missing or don't match requirements
+- Original email subject: "${subject}"
+
+Missing Documents:
+${missingDocTypes.map(m => `- ${m.docType.name}: ${m.docType.description}`).join('\n')}
+
+Documents Received:
+${attachments.map((a: any) => `- ${a.filename}`).join('\n') || '(No attachments)'}
+
+Write a polite, professional email explaining:
+1. We received their submission
+2. Unfortunately, we cannot process it because some required documents are missing
+3. List each missing document type and what it should contain
+4. Encourage them to reply with the correct documents
+
+Keep the tone helpful and professional. Format as plain text email body only (no subject line).`;
+
+        let rejectionBody = '';
+        try {
+          const aiResult = await model.generateContent(rejectionPrompt);
+          rejectionBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 Failed to generate rejection email:', err);
+          rejectionBody = `Thank you for your submission to ${project.name}.
+
+Unfortunately, we cannot process your request because the following required documents are missing:
+
+${missingDocTypes.map(m => `- ${m.docType.name}: ${m.docType.description}`).join('\n')}
+
+Please reply to this email with the missing documents attached.
+
+Thank you.`;
+        }
+        
+        // Send rejection email
+        try {
+          await sendEmail({
+            fromInboxId: inboxId,
+            to: fromEmail,
+            subject: `Re: ${subject} - Additional Documents Required`,
+            textContent: rejectionBody,
+            replyToMessageId: messageId
+          });
+          console.log(`📧 Sent rejection email to ${fromEmail}`);
+        } catch (err) {
+          console.error('📧 Failed to send rejection email:', err);
+        }
+        
+        // Mark email as processed but don't create session
+        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail);
+        
+        return res.json({ 
+          success: true, 
+          message: 'Documents do not meet requirements, rejection email sent',
+          rejected: true,
+          missingDocuments: missingDocTypes.map(m => m.docType.name)
+        });
+      }
+      
+      // All requirements met (or no requirements) - create session
       const sessionName = subject.slice(0, 100);
       const sessionData = {
         projectId: project.id,
@@ -12746,7 +13029,6 @@ Respond in JSON format:
       
       // Process attachments if any
       if (attachments.length > 0) {
-        const { downloadAttachment } = await import('./integrations/agentmail');
         
         for (const attachment of attachments) {
           try {
@@ -12841,6 +13123,60 @@ Respond in JSON format:
       }
       
       console.log(`📧 Email processing complete. Session: ${session.id}`);
+      
+      // Send confirmation email
+      try {
+        const confirmationPrompt = `Generate a professional confirmation email for an automated document intake system.
+
+Context:
+- The sender successfully submitted documents to "${project.name}"
+- All required documents were received and a case has been created
+- Original email subject: "${subject}"
+- Session/Case ID: ${session.id.slice(0, 8)}
+
+Documents Received:
+${attachments.map((a: any) => `- ${a.filename}`).join('\n') || '(No attachments)'}
+
+Write a brief, professional confirmation email that:
+1. Thanks them for their submission
+2. Confirms we received their documents
+3. Provides the case reference number
+4. Mentions they will be contacted if additional information is needed
+
+Keep it concise and professional. Format as plain text email body only (no subject line).`;
+
+        let confirmationBody = '';
+        try {
+          const aiResult = await model.generateContent(confirmationPrompt);
+          confirmationBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 Failed to generate confirmation email:', err);
+          confirmationBody = `Thank you for your submission to ${project.name}.
+
+We have successfully received your documents and created a case for review.
+
+Case Reference: ${session.id.slice(0, 8).toUpperCase()}
+
+Documents Received:
+${attachments.map((a: any) => `- ${a.filename}`).join('\n') || '(No attachments)'}
+
+We will contact you if any additional information is needed.
+
+Thank you.`;
+        }
+        
+        await sendEmail({
+          fromInboxId: inboxId,
+          to: fromEmail,
+          subject: `Re: ${subject} - Submission Received`,
+          textContent: confirmationBody,
+          replyToMessageId: messageId
+        });
+        console.log(`📧 Sent confirmation email to ${fromEmail}`);
+      } catch (err) {
+        console.error('📧 Failed to send confirmation email:', err);
+      }
+      
       res.json({ 
         success: true, 
         sessionId: session.id,

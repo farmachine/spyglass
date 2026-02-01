@@ -47,7 +47,7 @@ The design system uses Slate Blue (#4F63A4) as the primary color, features compr
 *   **Kanban Board Feature**: Introduced a "kanban" step type with dedicated database tables (`kanban_cards`, `kanban_checklist_items`, etc.) and a `KanbanBoard.tsx` component for drag-and-drop management. AI integration supports task generation.
 *   **Analytics Pane Feature**: An analytics pane within the project overview uses AI to generate charts (pie/bar) from extracted data, leveraging Recharts for visualization.
 *   **Session Linking Feature**: Automatically scans previous sessions for similar content using AI and offers to copy relevant tasks to new sessions, including gap analysis.
-*   **Email-to-Session Feature**: Allows projects to have unique email inboxes to receive documents, which are then processed to create new sessions.
+*   **Email-to-Session Feature**: Allows projects to have unique email inboxes to receive documents, which are then processed to create new sessions. Includes auto-reply functionality that validates attachments against required document types and sends AI-generated responses (rejection with guidance if documents missing, confirmation if accepted).
 *   **Document Validation Feature**: AI-powered validation checks if uploaded documents match expected document type descriptions during session creation.
 
 ### Database Schema
