@@ -492,8 +492,12 @@ export default function AllData({ project }: AllDataProps) {
     try {
       setUploadingDocuments(true);
       
-      // First create the session
-      const newSession = await createSessionMutation.mutateAsync(sessionName.trim());
+      // Create the session without triggering navigation (bypassing mutation's onSuccess)
+      const response = await apiRequest(`/api/projects/${project.id}/sessions/create-empty`, {
+        method: 'POST',
+        body: JSON.stringify({ sessionName: sessionName.trim() })
+      });
+      const newSession = response;
       
       // Then upload all documents
       if (requiredDocumentTypes.length > 0) {
@@ -504,6 +508,14 @@ export default function AllData({ project }: AllDataProps) {
           }
         }
       }
+      
+      // Now invalidate queries and navigate after everything is done
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', newSession.id] });
+      setShowCreateModal(false);
+      setSessionName('');
+      setDocumentUploads({});
+      setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
     } catch (error: any) {
       toast({
         title: "Error",
