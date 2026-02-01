@@ -828,12 +828,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`📧 No attachments provided, sending rejection email`);
             const missingDocsList = requiredDocTypes.map((dt: any) => `- ${dt.name}: ${dt.description || 'Required'}`).join('\n');
             try {
-              await sendEmail(
-                project.inboxId!,
-                fromEmail,
-                `Re: ${subject} - Documents Required`,
-                `Thank you for your submission.\n\nUnfortunately, we could not process your request because the following required documents are missing:\n\n${missingDocsList}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`
-              );
+              await sendEmail({
+                fromInboxId: project.inboxId!,
+                to: fromEmail,
+                subject: `Re: ${subject} - Documents Required`,
+                textContent: `Thank you for your submission.\n\nUnfortunately, we could not process your request because the following required documents are missing:\n\n${missingDocsList}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`,
+                replyToMessageId: messageId
+              });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
             } catch (emailErr) {
               console.error(`📧 Failed to send rejection email:`, emailErr);
@@ -948,12 +949,13 @@ Does this document match the required document type? Respond with JSON:
             const matchedList = validationResults.filter(r => r.matched).map(r => `- ${r.docType.name} (matched: ${r.matchedFile})`).join('\n');
             
             try {
-              await sendEmail(
-                project.inboxId!,
-                fromEmail,
-                `Re: ${subject} - Additional Documents Required`,
-                `Thank you for your submission to ${project.name}.\n\nWe reviewed your attachments but the following required documents are still missing or could not be identified:\n\n${missingList}\n\n${matchedList ? `Documents we received:\n${matchedList}\n\n` : ''}Please reply to this email with the missing documents attached.\n\nThank you.`
-              );
+              await sendEmail({
+                fromInboxId: project.inboxId!,
+                to: fromEmail,
+                subject: `Re: ${subject} - Additional Documents Required`,
+                textContent: `Thank you for your submission to ${project.name}.\n\nWe reviewed your attachments but the following required documents are still missing or could not be identified:\n\n${missingList}\n\n${matchedList ? `Documents we received:\n${matchedList}\n\n` : ''}Please reply to this email with the missing documents attached.\n\nThank you.`,
+                replyToMessageId: messageId
+              });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
             } catch (emailErr) {
               console.error(`📧 Failed to send rejection email:`, emailErr);
@@ -966,12 +968,13 @@ Does this document match the required document type? Respond with JSON:
           // All documents validated - send confirmation
           console.log(`📧 All document requirements met, creating session`);
           try {
-            await sendEmail(
-              project.inboxId!,
-              fromEmail,
-              `Re: ${subject} - Submission Received`,
-              `Thank you for your submission to ${project.name}.\n\nWe have received all required documents and your submission is now being processed. You will receive updates on the status of your submission.\n\nThank you.`
-            );
+            await sendEmail({
+              fromInboxId: project.inboxId!,
+              to: fromEmail,
+              subject: `Re: ${subject} - Submission Received`,
+              textContent: `Thank you for your submission to ${project.name}.\n\nWe have received all required documents and your submission is now being processed. You will receive updates on the status of your submission.\n\nThank you.`,
+              replyToMessageId: messageId
+            });
             console.log(`📧 Confirmation email sent to ${fromEmail}`);
           } catch (emailErr) {
             console.error(`📧 Failed to send confirmation email:`, emailErr);
