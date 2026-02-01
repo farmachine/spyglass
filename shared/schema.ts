@@ -68,6 +68,7 @@ export const projects = pgTable("projects", {
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   inboxEmailAddress: text("inbox_email_address"), // AgentMail inbox for receiving emails
   inboxId: text("inbox_id"), // AgentMail inbox ID for API calls
+  requiredDocumentTypes: jsonb("required_document_types").$type<Array<{id: string; name: string; description: string}>>(), // Document types required for session creation
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
