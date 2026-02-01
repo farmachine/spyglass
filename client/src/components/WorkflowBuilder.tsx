@@ -427,20 +427,20 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   // Document Types state
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(requiredDocumentTypes);
+  // Use props directly as source of truth - parent manages the state
+  const documentTypes = requiredDocumentTypes;
   const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
   const [editingDocTypeId, setEditingDocTypeId] = useState<string | null>(null);
 
-  // Sync document types from props
+  // Only update expanded state when document types change
   useEffect(() => {
-    setDocumentTypes(requiredDocumentTypes);
     if (requiredDocumentTypes.length > 0) {
       setIsDocumentTypesExpanded(true);
     }
-  }, [requiredDocumentTypes]);
+  }, [requiredDocumentTypes.length]);
 
   const addDocumentType = () => {
-    console.log('addDocumentType called');
+    console.log('addDocumentType called, current count:', documentTypes.length);
     const newDocType: DocumentType = {
       id: uuidv4(),
       name: `Document Type ${documentTypes.length + 1}`,
@@ -449,20 +449,17 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     console.log('New doc type:', newDocType);
     const updated = [...documentTypes, newDocType];
     console.log('Updated document types:', updated);
-    setDocumentTypes(updated);
     onDocumentTypesChange?.(updated);
     setEditingDocTypeId(newDocType.id);
   };
 
   const updateDocumentType = (id: string, updates: Partial<DocumentType>) => {
     const updated = documentTypes.map(dt => dt.id === id ? { ...dt, ...updates } : dt);
-    setDocumentTypes(updated);
     onDocumentTypesChange?.(updated);
   };
 
   const deleteDocumentType = (id: string) => {
     const updated = documentTypes.filter(dt => dt.id !== id);
-    setDocumentTypes(updated);
     onDocumentTypesChange?.(updated);
   };
 
