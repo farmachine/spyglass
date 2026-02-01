@@ -795,10 +795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .filter(Boolean)
       );
       
-      // Get required document types from first workflow step
-      const workflow = await storage.getWorkflowSteps(id);
-      const firstStep = workflow.find(s => s.orderIndex === 0 && s.stepType === 'document_type');
-      const requiredDocTypes = firstStep?.documentTypes || [];
+      // Get required document types from project
+      const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
       console.log(`📧 Project requires ${requiredDocTypes.length} document types`);
       
       const { sendEmail } = await import('./integrations/agentmail');
