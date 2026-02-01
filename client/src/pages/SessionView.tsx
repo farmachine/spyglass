@@ -5821,7 +5821,7 @@ Thank you for your assistance.`;
                                     );
                                   } else {
                                         // Single-field Info Page value (original logic)
-                                        const validation = validations.find(v => v.fieldId === stepValue.id);
+                                        const validation = validations.find(v => v.fieldId === stepValue.id || v.valueId === stepValue.id);
                                         const originalValue = extractedData[fieldName];
                                         
                                         let displayValue = validation?.extractedValue ?? originalValue ?? null;
@@ -5829,8 +5829,38 @@ Thank you for your assistance.`;
                                           displayValue = null;
                                         }
                                         
+                                        // Check if this value has a valid/extracted status
+                                        const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
+                                        const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
+                                        const statusColor = hasValue && isVerified ? '#10b981' : '#4F63A4';
+                                        
                                         return (
-                                          <div key={stepValue.id} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                                          <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
+                                            <div className="flex items-center justify-between mb-4">
+                                              <h4 className="text-base font-bold text-[#3A4A7C] dark:text-white flex items-center gap-2">
+                                                <div 
+                                                  className="w-2 h-2 rounded-full" 
+                                                  style={{ backgroundColor: statusColor }}
+                                                />
+                                                {fieldName}
+                                              </h4>
+                                              <button
+                                                onClick={() => {
+                                                  // Set up extraction for this specific single-field value
+                                                  const toolGroup = {
+                                                    toolId: stepValue.toolId || 'manual',
+                                                    stepValues: [stepValue]
+                                                  };
+                                                  setCurrentToolGroup(toolGroup);
+                                                  setShowFieldSelectionModal(true);
+                                                }}
+                                                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                title={`Extract data for ${fieldName}`}
+                                              >
+                                                <Wand2 className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                                              </button>
+                                            </div>
+                                            <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                                             <div className="flex-1">
                                               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                                                 {fieldName}
@@ -6011,6 +6041,7 @@ Thank you for your assistance.`;
                                               })()}
                                               </div>
                                             </div>
+                                          </div>
                                           </div>
                                         );
                                       }
