@@ -1043,28 +1043,53 @@ Respond with JSON only:
                 attachmentId
               );
               
-              // Create document record
+              // Save file first
+              const fs = await import('fs/promises');
+              const path = await import('path');
+              const uploadDir = path.join(process.cwd(), 'uploads', session.id);
+              await fs.mkdir(uploadDir, { recursive: true });
+              const tempFilePath = path.join(uploadDir, filename);
+              await fs.writeFile(tempFilePath, data);
+              
+              // Extract content from PDF/documents using Python service
+              let extractedContent = '';
+              try {
+                const FormData = (await import('form-data')).default;
+                const formData = new FormData();
+                formData.append('file', data, { filename, contentType });
+                
+                const extractResponse = await fetch('http://localhost:5001/extract', {
+                  method: 'POST',
+                  body: formData as any,
+                  headers: formData.getHeaders ? formData.getHeaders() : {},
+                });
+                
+                if (extractResponse.ok) {
+                  const extractResult = await extractResponse.json() as any;
+                  extractedContent = extractResult.text_content || extractResult.text || '';
+                  console.log(`📧 Extracted ${extractedContent.length} chars from ${filename}`);
+                }
+              } catch (extractErr) {
+                console.error(`📧 Failed to extract content from ${filename}:`, extractErr);
+              }
+              
+              // Create document record with extracted content
               const document = await storage.createSessionDocument({
                 sessionId: session.id,
                 fileName: filename,
                 fileType: contentType,
                 fileSize: data.length,
-                filePath: '',
+                filePath: tempFilePath,
+                extractedContent: extractedContent,
                 uploadedAt: new Date(),
               });
               
-              // Save file
-              const fs = await import('fs/promises');
-              const path = await import('path');
-              const uploadDir = path.join(process.cwd(), 'uploads', session.id);
-              await fs.mkdir(uploadDir, { recursive: true });
-              const filePath = path.join(uploadDir, `${document.id}_${filename}`);
-              await fs.writeFile(filePath, data);
+              // Rename file with document ID
+              const finalPath = path.join(uploadDir, `${document.id}_${filename}`);
+              await fs.rename(tempFilePath, finalPath);
+              await storage.updateSessionDocument(document.id, { filePath: finalPath });
               
-              // Update document with file path
-              await storage.updateSessionDocument(document.id, { filePath });
-              
-              console.log(`📧 Saved attachment: ${filename}`);
+              console.log(`📧 Saved attachment: ${filename} (${extractedContent.length} chars extracted)`);
             } catch (attachErr) {
               console.error(`📧 Failed to process attachment:`, attachErr);
             }
