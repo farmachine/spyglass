@@ -467,7 +467,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     <div className="space-y-6">
       {/* Document Types Configuration */}
       <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
-        <CardHeader className="pb-3">
+        <CardHeader 
+          className="pb-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors rounded-t-lg"
+          onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
@@ -476,7 +479,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <div>
                 <CardTitle className="text-base">Required Documents</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Documents that must be uploaded when creating a new {/* session */}
+                  Documents that must be uploaded when creating a new session
                 </p>
               </div>
             </div>
@@ -484,18 +487,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <Badge variant="secondary" className="text-xs">
                 {documentTypes.length} {documentTypes.length === 1 ? 'type' : 'types'}
               </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
-              >
-                {isDocumentTypesExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
+              {isDocumentTypesExpanded ? (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
             </div>
           </div>
         </CardHeader>
