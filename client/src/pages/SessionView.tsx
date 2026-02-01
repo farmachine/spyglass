@@ -5844,21 +5844,133 @@ Thank you for your assistance.`;
                                                 />
                                                 {fieldName}
                                               </h4>
-                                              <button
-                                                onClick={() => {
-                                                  // Set up extraction for this specific single-field value
-                                                  const toolGroup = {
-                                                    toolId: stepValue.toolId || 'manual',
-                                                    stepValues: [stepValue]
-                                                  };
-                                                  setCurrentToolGroup(toolGroup);
-                                                  setShowFieldSelectionModal(true);
-                                                }}
-                                                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                                title={`Extract data for ${fieldName}`}
-                                              >
-                                                <Wand2 className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
-                                              </button>
+                                              {(() => {
+                                                // Check if this value uses a DATABASE_LOOKUP tool
+                                                const valueTool = stepValue.toolId ? toolsMap.get(stepValue.toolId) : null;
+                                                const isDatabaseLookup = valueTool?.toolType === 'DATABASE_LOOKUP' || valueTool?.tool_type === 'DATABASE_LOOKUP';
+                                                
+                                                if (isDatabaseLookup) {
+                                                  // Show search icon for database lookup values
+                                                  return (
+                                                    <button
+                                                      onClick={async () => {
+                                                        // Get the datasource ID from stepValue inputValues
+                                                        const inputValues = stepValue.inputValues || {};
+                                                        const dataSourceId = inputValues._dataSourceId || valueTool?.dataSourceId || valueTool?.data_source_id;
+                                                        
+                                                        console.log('Database lookup clicked for info page value:', {
+                                                          valueName: fieldName,
+                                                          tool: valueTool,
+                                                          dataSourceId,
+                                                          inputValues
+                                                        });
+                                                        
+                                                        if (dataSourceId) {
+                                                          try {
+                                                            const datasourceResponse = await apiRequest(`/api/data-sources/${dataSourceId}/data`);
+                                                            const datasourceInfo = await apiRequest(`/api/data-sources/${dataSourceId}`);
+                                                            
+                                                            // Get filter configuration from the value's inputValues
+                                                            const rawFilters = inputValues._searchByColumns || [];
+                                                            const outputColumn = inputValues._outputColumn || '';
+                                                            
+                                                            // Normalize filters
+                                                            const filters = rawFilters.map((f: any) => 
+                                                              typeof f === 'string' 
+                                                                ? { column: f, operator: 'equals', inputField: '', fuzziness: 0 }
+                                                                : { ...f, fuzziness: f.fuzziness ?? 0 }
+                                                            );
+                                                            
+                                                            // Get current input values from other info page values in this step
+                                                            const currentInputValues: Record<string, string> = {};
+                                                            if (currentStep?.values) {
+                                                              currentStep.values.forEach((v: any) => {
+                                                                if (v.orderIndex < stepValue.orderIndex) {
+                                                                  // For multi-field values, get all field values
+                                                                  if (v.fields && v.fields.length > 0) {
+                                                                    v.fields.forEach((field: any) => {
+                                                                      const fieldId = field.identifierId || field.id;
+                                                                      const val = validations.find(vd => 
+                                                                        vd.fieldId === fieldId || vd.identifierId === fieldId
+                                                                      );
+                                                                      if (val?.extractedValue) {
+                                                                        // Use ValueName.FieldName format
+                                                                        currentInputValues[`${v.valueName}.${field.name}`] = val.extractedValue;
+                                                                      }
+                                                                    });
+                                                                  } else {
+                                                                    // Single-field value
+                                                                    const val = validations.find(vd => 
+                                                                      vd.fieldId === v.id || vd.valueId === v.id
+                                                                    );
+                                                                    if (val?.extractedValue) {
+                                                                      currentInputValues[v.valueName] = val.extractedValue;
+                                                                    }
+                                                                  }
+                                                                }
+                                                              });
+                                                            }
+                                                            
+                                                            console.log('Opening database lookup modal with currentInputValues:', currentInputValues);
+                                                            
+                                                            setDatabaseLookupModal({
+                                                              isOpen: true,
+                                                              validation: validation || null,
+                                                              column: stepValue,
+                                                              rowIdentifierId: null,
+                                                              datasourceData: Array.isArray(datasourceResponse) ? datasourceResponse : [],
+                                                              columnMappings: datasourceInfo?.columnMappings || {},
+                                                              filters,
+                                                              outputColumn,
+                                                              currentInputValues,
+                                                              fieldName: fieldName,
+                                                              collectionName: currentStep?.stepName || '',
+                                                              recordIndex: 0
+                                                            });
+                                                          } catch (error) {
+                                                            console.error('Error loading datasource:', error);
+                                                            toast({
+                                                              title: "Error",
+                                                              description: "Failed to load database for lookup",
+                                                              variant: "destructive"
+                                                            });
+                                                          }
+                                                        } else {
+                                                          console.error('No data source configured for this lookup tool');
+                                                          toast({
+                                                            title: "Configuration Error",
+                                                            description: "No data source is configured for this database lookup",
+                                                            variant: "destructive"
+                                                          });
+                                                        }
+                                                      }}
+                                                      className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                      title={`Search database for ${fieldName}`}
+                                                    >
+                                                      <Search className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                                                    </button>
+                                                  );
+                                                }
+                                                
+                                                // Regular extraction button for non-database-lookup values
+                                                return (
+                                                  <button
+                                                    onClick={() => {
+                                                      // Set up extraction for this specific single-field value
+                                                      const toolGroup = {
+                                                        toolId: stepValue.toolId || 'manual',
+                                                        stepValues: [stepValue]
+                                                      };
+                                                      setCurrentToolGroup(toolGroup);
+                                                      setShowFieldSelectionModal(true);
+                                                    }}
+                                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                    title={`Extract data for ${fieldName}`}
+                                                  >
+                                                    <Wand2 className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                                                  </button>
+                                                );
+                                              })()}
                                             </div>
                                             <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                                             <div className="flex-1">
