@@ -430,7 +430,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   // Use props directly as source of truth - parent manages the state
   const documentTypes = requiredDocumentTypes;
   const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
-  const [editingDocTypeId, setEditingDocTypeId] = useState<string | null>(null);
 
   // Only update expanded state when document types change
   useEffect(() => {
@@ -442,12 +441,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const addDocumentType = () => {
     const newDocType: DocumentType = {
       id: uuidv4(),
-      name: `Document Type ${documentTypes.length + 1}`,
+      name: '',
       description: ''
     };
     const updated = [...documentTypes, newDocType];
     onDocumentTypesChange?.(updated);
-    setEditingDocTypeId(newDocType.id);
   };
 
   const updateDocumentType = (id: string, updates: Partial<DocumentType>) => {
@@ -501,24 +499,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   className="flex items-start gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex-1 space-y-2">
-                    {editingDocTypeId === docType.id ? (
-                      <Input
-                        value={docType.name}
-                        onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
-                        onBlur={() => setEditingDocTypeId(null)}
-                        onKeyDown={(e) => e.key === 'Enter' && setEditingDocTypeId(null)}
-                        placeholder="Document type name"
-                        className="h-8 text-sm font-medium"
-                        autoFocus
-                      />
-                    ) : (
-                      <div
-                        className="font-medium text-sm cursor-pointer hover:text-[#4F63A4] dark:hover:text-[#5A70B5]"
-                        onClick={() => setEditingDocTypeId(docType.id)}
-                      >
-                        {docType.name || 'Untitled Document Type'}
-                      </div>
-                    )}
+                    <Input
+                      value={docType.name}
+                      onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
+                      placeholder="Document type name"
+                      className="h-8 text-sm font-medium"
+                    />
                     <Textarea
                       value={docType.description}
                       onChange={(e) => updateDocumentType(docType.id, { description: e.target.value })}
