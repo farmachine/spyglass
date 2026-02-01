@@ -129,6 +129,12 @@ interface ApiDataSource {
   isActive: boolean;
 }
 
+interface DocumentType {
+  id: string;
+  name: string;
+  description: string;
+}
+
 interface WorkflowBuilderProps {
   projectId: string;
   schemaFields: ProjectSchemaField[];
@@ -138,6 +144,8 @@ interface WorkflowBuilderProps {
   dataSources?: ApiDataSource[];
   onSave: (steps: WorkflowStep[]) => Promise<void>;
   isLoading?: boolean;
+  requiredDocumentTypes?: DocumentType[];
+  onDocumentTypesChange?: (documentTypes: DocumentType[]) => void;
 }
 
 export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
@@ -148,7 +156,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   knowledgeDocuments,
   dataSources = [],
   onSave,
-  isLoading = false
+  isLoading = false,
+  requiredDocumentTypes = [],
+  onDocumentTypesChange
 }, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
@@ -416,8 +426,138 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
     });
   };
 
+  // Document Types state
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(requiredDocumentTypes);
+  const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
+  const [editingDocTypeId, setEditingDocTypeId] = useState<string | null>(null);
+
+  // Sync document types from props
+  useEffect(() => {
+    setDocumentTypes(requiredDocumentTypes);
+    if (requiredDocumentTypes.length > 0) {
+      setIsDocumentTypesExpanded(true);
+    }
+  }, [requiredDocumentTypes]);
+
+  const addDocumentType = () => {
+    const newDocType: DocumentType = {
+      id: uuidv4(),
+      name: `Document Type ${documentTypes.length + 1}`,
+      description: ''
+    };
+    const updated = [...documentTypes, newDocType];
+    setDocumentTypes(updated);
+    onDocumentTypesChange?.(updated);
+    setEditingDocTypeId(newDocType.id);
+  };
+
+  const updateDocumentType = (id: string, updates: Partial<DocumentType>) => {
+    const updated = documentTypes.map(dt => dt.id === id ? { ...dt, ...updates } : dt);
+    setDocumentTypes(updated);
+    onDocumentTypesChange?.(updated);
+  };
+
+  const deleteDocumentType = (id: string) => {
+    const updated = documentTypes.filter(dt => dt.id !== id);
+    setDocumentTypes(updated);
+    onDocumentTypesChange?.(updated);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Document Types Configuration */}
+      <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <Upload className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Required Documents</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Documents that must be uploaded when creating a new {/* session */}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {documentTypes.length} {documentTypes.length === 1 ? 'type' : 'types'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
+              >
+                {isDocumentTypesExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        {isDocumentTypesExpanded && (
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {documentTypes.map((docType) => (
+                <div
+                  key={docType.id}
+                  className="flex items-start gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                >
+                  <div className="flex-1 space-y-2">
+                    {editingDocTypeId === docType.id ? (
+                      <Input
+                        value={docType.name}
+                        onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
+                        onBlur={() => setEditingDocTypeId(null)}
+                        onKeyDown={(e) => e.key === 'Enter' && setEditingDocTypeId(null)}
+                        placeholder="Document type name"
+                        className="h-8 text-sm font-medium"
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="font-medium text-sm cursor-pointer hover:text-[#4F63A4] dark:hover:text-[#5A70B5]"
+                        onClick={() => setEditingDocTypeId(docType.id)}
+                      >
+                        {docType.name || 'Untitled Document Type'}
+                      </div>
+                    )}
+                    <Textarea
+                      value={docType.description}
+                      onChange={(e) => updateDocumentType(docType.id, { description: e.target.value })}
+                      placeholder="Describe what this document should contain (for AI validation)..."
+                      className="text-sm resize-none min-h-[60px]"
+                      rows={2}
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                    onClick={() => deleteDocumentType(docType.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addDocumentType}
+                className="w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Document Type
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Two Column Layout */}
       <div className="flex gap-20">
         {/* Left Column - Steps List */}

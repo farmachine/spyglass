@@ -248,6 +248,23 @@ export default function DefineData({
     },
   });
 
+  // Update document types mutation
+  const updateDocumentTypesMutation = useMutation({
+    mutationFn: (documentTypes: Array<{id: string; name: string; description: string}>) => 
+      apiRequest(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ requiredDocumentTypes: documentTypes }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+    },
+  });
+
+  // Handler for document types changes
+  const handleDocumentTypesChange = (documentTypes: Array<{id: string; name: string; description: string}>) => {
+    updateDocumentTypesMutation.mutate(documentTypes);
+  };
+
   // Handlers
   const handleCreateSchemaField = async (data: any) => {
     await createSchemaField.mutateAsync(data);
@@ -560,6 +577,8 @@ export default function DefineData({
         dataSources={dataSources}
         onSave={handleSaveWorkflow}
         isLoading={isWorkflowLoading}
+        requiredDocumentTypes={(project as any).requiredDocumentTypes || []}
+        onDocumentTypesChange={handleDocumentTypesChange}
       />
 
       {/* Dialogs */}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw, Mail, Circle } from "lucide-react";
+import { Database, CheckCircle, Clock, ExternalLink, Calendar, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Plus, Settings2, GripVertical, Eye, EyeOff, BarChart3, PieChart, Loader2, X, Sparkles, RefreshCw, Mail, Circle, Upload, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,11 @@ export default function AllData({ project }: AllDataProps) {
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [sessionName, setSessionName] = useState('');
   const [columnConfigs, setColumnConfigs] = useState<ColumnConfig[]>([]);
+  
+  // Document type uploads for session creation
+  const [documentUploads, setDocumentUploads] = useState<Record<string, File | null>>({});
+  const [uploadingDocuments, setUploadingDocuments] = useState(false);
+  const requiredDocumentTypes = ((project as any).requiredDocumentTypes || []) as Array<{id: string; name: string; description: string}>;
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   
   // Analytics state - load from localStorage
@@ -423,6 +428,7 @@ export default function AllData({ project }: AllDataProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/sessions', newSession.id] });
       setShowCreateModal(false);
       setSessionName('');
+      setDocumentUploads({});
       // Navigate to the new session
       setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
     },
@@ -439,7 +445,28 @@ export default function AllData({ project }: AllDataProps) {
     setShowCreateModal(true);
   };
 
-  const handleSubmitCreate = () => {
+  // Upload a document to a session
+  const uploadDocumentToSession = async (sessionId: string, file: File, documentTypeId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('documentTypeId', documentTypeId);
+    
+    const response = await fetch(`/api/sessions/${sessionId}/documents`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to upload document');
+    }
+    
+    return response.json();
+  };
+
+  const handleSubmitCreate = async () => {
     if (!sessionName.trim()) {
       toast({
         title: "Error",
@@ -448,12 +475,54 @@ export default function AllData({ project }: AllDataProps) {
       });
       return;
     }
-    createSessionMutation.mutate(sessionName.trim());
+    
+    // Check if all required documents are uploaded
+    if (requiredDocumentTypes.length > 0) {
+      const missingDocs = requiredDocumentTypes.filter(dt => !documentUploads[dt.id]);
+      if (missingDocs.length > 0) {
+        toast({
+          title: "Missing Documents",
+          description: `Please upload: ${missingDocs.map(d => d.name).join(', ')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    try {
+      setUploadingDocuments(true);
+      
+      // First create the session
+      const newSession = await createSessionMutation.mutateAsync(sessionName.trim());
+      
+      // Then upload all documents
+      if (requiredDocumentTypes.length > 0) {
+        for (const docType of requiredDocumentTypes) {
+          const file = documentUploads[docType.id];
+          if (file) {
+            await uploadDocumentToSession(newSession.id, file, docType.id);
+          }
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create session",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingDocuments(false);
+    }
   };
 
   const handleCancelCreate = () => {
     setShowCreateModal(false);
     setSessionName('');
+    setDocumentUploads({});
+  };
+  
+  const handleDocumentUpload = (docTypeId: string, file: File | null) => {
+    setDocumentUploads(prev => ({ ...prev, [docTypeId]: file }));
   };
 
   // Toggle analytics field selection
@@ -870,7 +939,7 @@ export default function AllData({ project }: AllDataProps) {
 
       {/* Create Session Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className={requiredDocumentTypes.length > 0 ? "sm:max-w-lg" : "sm:max-w-md"}>
               <DialogHeader>
                 <DialogTitle>Create New {project.mainObjectName || "Session"}</DialogTitle>
               </DialogHeader>
@@ -883,7 +952,7 @@ export default function AllData({ project }: AllDataProps) {
                     onChange={(e) => setSessionName(e.target.value)}
                     placeholder={`Enter ${(project.mainObjectName || "session").toLowerCase()} name`}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && requiredDocumentTypes.length === 0) {
                         e.preventDefault();
                         handleSubmitCreate();
                       }
@@ -894,19 +963,103 @@ export default function AllData({ project }: AllDataProps) {
                     autoFocus
                   />
                 </div>
+                
+                {/* Required Document Uploads */}
+                {requiredDocumentTypes.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-amber-600" />
+                      <Label className="text-sm font-medium">Required Documents</Label>
+                    </div>
+                    <div className="space-y-2">
+                      {requiredDocumentTypes.map((docType) => (
+                        <div
+                          key={docType.id}
+                          className={`p-3 rounded-lg border-2 border-dashed transition-colors ${
+                            documentUploads[docType.id]
+                              ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/10'
+                              : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm">{docType.name}</div>
+                              {docType.description && (
+                                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                  {docType.description}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0">
+                              {documentUploads[docType.id] ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                    <FileText className="h-4 w-4" />
+                                    <span className="text-xs truncate max-w-[100px]">
+                                      {documentUploads[docType.id]?.name}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                                    onClick={() => handleDocumentUpload(docType.id, null)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <label className="cursor-pointer">
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,.xlsx,.xls,.doc,.docx,.txt"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleDocumentUpload(docType.id, file);
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    asChild
+                                  >
+                                    <span>
+                                      <Upload className="h-3 w-3 mr-1" />
+                                      Upload
+                                    </span>
+                                  </Button>
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex justify-end space-x-2">
                   <Button 
                     variant="outline" 
                     onClick={handleCancelCreate}
-                    disabled={createSessionMutation.isPending}
+                    disabled={createSessionMutation.isPending || uploadingDocuments}
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleSubmitCreate}
-                    disabled={createSessionMutation.isPending || !sessionName.trim()}
+                    disabled={
+                      createSessionMutation.isPending || 
+                      uploadingDocuments || 
+                      !sessionName.trim() ||
+                      (requiredDocumentTypes.length > 0 && requiredDocumentTypes.some(dt => !documentUploads[dt.id]))
+                    }
                   >
-                    {createSessionMutation.isPending ? "Creating..." : "Create"}
+                    {uploadingDocuments ? "Uploading..." : createSessionMutation.isPending ? "Creating..." : "Create"}
                   </Button>
                 </div>
               </div>
