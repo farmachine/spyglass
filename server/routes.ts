@@ -2794,6 +2794,227 @@ except Exception as e:
     }
   });
 
+  // Extract document content for validation (doesn't persist the document)
+  const validationUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+  app.post("/api/extract-document-content", authenticateToken, validationUpload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      
+      const fileBuffer = file.buffer;
+      const fileName = file.originalname;
+      const mimeType = file.mimetype;
+      
+      // Use Python document extractor to get content
+      const { spawn } = await import('child_process');
+      const pythonProcess = spawn('python3', ['services/document_extractor.py'], {
+        cwd: process.cwd()
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      // Send file data to Python process in the expected format
+      const inputData = {
+        step: 'extract_text_only',
+        documents: [{
+          file_name: fileName,
+          file_content: fileBuffer.toString('base64'),
+          mime_type: mimeType
+        }]
+      };
+      
+      pythonProcess.stdin.write(JSON.stringify(inputData));
+      pythonProcess.stdin.end();
+      
+      // Add timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        pythonProcess.kill();
+      }, 30000); // 30 second timeout
+      
+      await new Promise<void>((resolve, reject) => {
+        pythonProcess.on('close', (code) => {
+          clearTimeout(timeout);
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Extraction failed with code ${code}: ${stderr}`));
+          }
+        });
+        pythonProcess.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+      
+      try {
+        const result = JSON.parse(stdout.trim());
+        if (result.success && result.extracted_texts && result.extracted_texts.length > 0) {
+          const textContent = result.extracted_texts[0].text_content || '';
+          res.json({ content: textContent });
+        } else {
+          res.json({ content: '' });
+        }
+      } catch (e) {
+        console.error('Failed to parse extraction result:', e, 'stdout:', stdout);
+        res.status(500).json({ message: "Failed to parse extraction result" });
+      }
+      
+    } catch (error) {
+      console.error("Document content extraction error:", error);
+      res.status(500).json({ message: "Failed to extract document content" });
+    }
+  });
+
+  // Validate document against document type description using AI
+  app.post("/api/validate-document", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { documentContent, documentTypeName, documentTypeDescription, fileName } = req.body;
+      
+      if (!documentContent || !documentTypeName || !documentTypeDescription) {
+        return res.status(400).json({ 
+          message: "Missing required fields: documentContent, documentTypeName, documentTypeDescription" 
+        });
+      }
+      
+      // Use Python with Gemini to validate document
+      const pythonScript = `
+import sys
+import os
+import json
+
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    print(json.dumps({"error": "google-genai package not installed"}))
+    sys.exit(1)
+
+api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+if not api_key:
+    print(json.dumps({"error": "API key not found"}))
+    sys.exit(1)
+
+client = genai.Client(api_key=api_key)
+
+document_content = '''${documentContent.replace(/'/g, "\\'")}'''
+document_type_name = '''${documentTypeName.replace(/'/g, "\\'")}'''
+document_type_description = '''${documentTypeDescription.replace(/'/g, "\\'")}'''
+file_name = '''${(fileName || 'document').replace(/'/g, "\\'")}'''
+
+prompt = f"""You are a document validation assistant. Analyze the uploaded document and determine if it matches the expected document type.
+
+EXPECTED DOCUMENT TYPE: {document_type_name}
+EXPECTED DESCRIPTION: {document_type_description}
+
+UPLOADED DOCUMENT CONTENT (first 5000 chars):
+{document_content[:5000]}
+
+TASK:
+1. Analyze if the uploaded document matches the expected document type based on the description
+2. Consider: content structure, key information present, document purpose
+
+RESPOND IN THIS EXACT JSON FORMAT:
+{{
+  "isValid": true/false,
+  "confidence": 0.0-1.0,
+  "reasoning": "Brief explanation of why this document matches or doesn't match",
+  "missingElements": ["list of required elements that are missing, if any"],
+  "guidance": "If not valid: specific guidance on what document is needed. If valid: leave empty"
+}}
+"""
+
+try:
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.2
+        )
+    )
+    
+    result_text = response.text.strip()
+    result = json.loads(result_text)
+    print(json.dumps(result))
+except Exception as e:
+    print(json.dumps({
+        "isValid": False,
+        "confidence": 0,
+        "reasoning": f"Validation error: {str(e)}",
+        "missingElements": [],
+        "guidance": "Could not validate document. Please try again."
+    }))
+`;
+
+      const { spawn } = await import('child_process');
+      
+      return new Promise((resolve) => {
+        const pythonProcess = spawn('python3', ['-c', pythonScript]);
+        
+        let stdout = '';
+        let stderr = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        pythonProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        pythonProcess.on('close', (code) => {
+          try {
+            const result = JSON.parse(stdout.trim());
+            res.json(result);
+          } catch (e) {
+            console.error('Document validation parse error:', e, 'stdout:', stdout, 'stderr:', stderr);
+            res.json({
+              isValid: false,
+              confidence: 0,
+              reasoning: "Unable to validate document",
+              missingElements: [],
+              guidance: "Please ensure the document matches the required format."
+            });
+          }
+          resolve(undefined);
+        });
+        
+        pythonProcess.on('error', (error) => {
+          console.error('Document validation process error:', error);
+          res.json({
+            isValid: false,
+            confidence: 0,
+            reasoning: "Validation service unavailable",
+            missingElements: [],
+            guidance: "Please try again later."
+          });
+          resolve(undefined);
+        });
+      });
+      
+    } catch (error) {
+      console.error("Document validation error:", error);
+      res.status(500).json({ 
+        isValid: false,
+        confidence: 0,
+        reasoning: "Server error during validation",
+        missingElements: [],
+        guidance: "Please try again."
+      });
+    }
+  });
+
   // Get session documents endpoint
   app.get("/api/sessions/:sessionId/documents", async (req, res) => {
     try {

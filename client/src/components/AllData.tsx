@@ -61,6 +61,17 @@ export default function AllData({ project }: AllDataProps) {
   const requiredDocumentTypes = ((project as any).requiredDocumentTypes || []) as Array<{id: string; name: string; description: string}>;
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   
+  // Document validation state
+  interface DocumentValidation {
+    isValid: boolean;
+    confidence: number;
+    reasoning: string;
+    missingElements: string[];
+    guidance: string;
+    isValidating?: boolean;
+  }
+  const [documentValidations, setDocumentValidations] = useState<Record<string, DocumentValidation>>({});
+  
   // Analytics state - load from localStorage
   const analyticsStorageKey = `analytics-${project.id}`;
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
@@ -429,6 +440,7 @@ export default function AllData({ project }: AllDataProps) {
       setShowCreateModal(false);
       setSessionName('');
       setDocumentUploads({});
+      setDocumentValidations({});
       // Navigate to the new session
       setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
     },
@@ -515,6 +527,7 @@ export default function AllData({ project }: AllDataProps) {
       setShowCreateModal(false);
       setSessionName('');
       setDocumentUploads({});
+      setDocumentValidations({});
       setLocation(`/projects/${project.id}/sessions/${newSession.id}`);
     } catch (error: any) {
       toast({
@@ -531,10 +544,87 @@ export default function AllData({ project }: AllDataProps) {
     setShowCreateModal(false);
     setSessionName('');
     setDocumentUploads({});
+    setDocumentValidations({});
   };
   
-  const handleDocumentUpload = (docTypeId: string, file: File | null) => {
+  // Extract document content using Python extractor (via API) and validate with AI
+  const validateDocument = async (file: File, docType: {id: string; name: string; description: string}) => {
+    // Set validating state
+    setDocumentValidations(prev => ({
+      ...prev,
+      [docType.id]: { isValid: false, confidence: 0, reasoning: '', missingElements: [], guidance: '', isValidating: true }
+    }));
+    
+    try {
+      // First, upload the file temporarily to extract its content
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const extractResponse = await fetch('/api/extract-document-content', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+      
+      if (!extractResponse.ok) {
+        throw new Error('Failed to extract document content');
+      }
+      
+      const { content } = await extractResponse.json();
+      
+      // Now validate the content against the document type description
+      const validateResponse = await apiRequest('/api/validate-document', {
+        method: 'POST',
+        body: JSON.stringify({
+          documentContent: content,
+          documentTypeName: docType.name,
+          documentTypeDescription: docType.description,
+          fileName: file.name
+        })
+      });
+      
+      setDocumentValidations(prev => ({
+        ...prev,
+        [docType.id]: { ...validateResponse, isValidating: false }
+      }));
+      
+    } catch (error) {
+      console.error('Document validation error:', error);
+      setDocumentValidations(prev => ({
+        ...prev,
+        [docType.id]: {
+          isValid: false,
+          confidence: 0,
+          reasoning: 'Could not validate document',
+          missingElements: [],
+          guidance: 'Please ensure the document is readable and try again.',
+          isValidating: false
+        }
+      }));
+    }
+  };
+
+  const handleDocumentUpload = async (docTypeId: string, file: File | null) => {
     setDocumentUploads(prev => ({ ...prev, [docTypeId]: file }));
+    
+    // If file is removed, clear validation
+    if (!file) {
+      setDocumentValidations(prev => {
+        const newState = { ...prev };
+        delete newState[docTypeId];
+        return newState;
+      });
+      return;
+    }
+    
+    // Find the document type
+    const docType = requiredDocumentTypes.find(dt => dt.id === docTypeId);
+    if (docType && docType.description) {
+      // Validate the document against its type description
+      await validateDocument(file, docType);
+    }
   };
 
   // Toggle analytics field selection
@@ -984,72 +1074,117 @@ export default function AllData({ project }: AllDataProps) {
                       <Label className="text-sm font-medium">Required Documents</Label>
                     </div>
                     <div className="space-y-2">
-                      {requiredDocumentTypes.map((docType) => (
-                        <div
-                          key={docType.id}
-                          className={`p-3 rounded-lg border-2 border-dashed transition-colors ${
-                            documentUploads[docType.id]
-                              ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/10'
-                              : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm">{docType.name}</div>
-                              {docType.description && (
-                                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                  {docType.description}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-shrink-0">
-                              {documentUploads[docType.id] ? (
+                      {requiredDocumentTypes.map((docType) => {
+                        const validation = documentValidations[docType.id];
+                        const hasFile = !!documentUploads[docType.id];
+                        const isValidating = validation?.isValidating;
+                        const isValid = validation?.isValid && !isValidating;
+                        const isInvalid = hasFile && validation && !validation.isValid && !isValidating;
+                        
+                        return (
+                          <div
+                            key={docType.id}
+                            className={`p-3 rounded-lg border-2 transition-colors ${
+                              isValidating
+                                ? 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/10 border-dashed'
+                                : isValid
+                                  ? 'border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-900/20'
+                                  : isInvalid
+                                    ? 'border-red-400 bg-red-50 dark:border-red-600 dark:bg-red-900/20'
+                                    : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 border-dashed'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                                    <FileText className="h-4 w-4" />
-                                    <span className="text-xs truncate max-w-[100px]">
-                                      {documentUploads[docType.id]?.name}
-                                    </span>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
-                                    onClick={() => handleDocumentUpload(docType.id, null)}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
+                                  {isValidating && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+                                  {isValid && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                  {isInvalid && <AlertCircle className="h-4 w-4 text-red-500" />}
+                                  <span className="font-medium text-sm">{docType.name}</span>
                                 </div>
-                              ) : (
-                                <label className="cursor-pointer">
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,.xlsx,.xls,.doc,.docx,.txt"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        handleDocumentUpload(docType.id, file);
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs"
-                                    asChild
-                                  >
-                                    <span>
-                                      <Upload className="h-3 w-3 mr-1" />
-                                      Upload
-                                    </span>
-                                  </Button>
-                                </label>
-                              )}
+                                {docType.description && !hasFile && (
+                                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                    {docType.description}
+                                  </div>
+                                )}
+                                {isValidating && (
+                                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                    Validating document...
+                                  </div>
+                                )}
+                                {isValid && (
+                                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    Document accepted
+                                  </div>
+                                )}
+                                {isInvalid && validation && (
+                                  <div className="mt-2 space-y-1">
+                                    <div className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                      Document does not match requirements
+                                    </div>
+                                    {validation.guidance && (
+                                      <div className="text-xs text-red-500 dark:text-red-400 bg-red-100 dark:bg-red-900/30 p-2 rounded">
+                                        {validation.guidance}
+                                      </div>
+                                    )}
+                                    {validation.missingElements && validation.missingElements.length > 0 && (
+                                      <div className="text-xs text-muted-foreground">
+                                        Missing: {validation.missingElements.join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0">
+                                {hasFile ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className={`flex items-center gap-1.5 ${isValid ? 'text-green-600 dark:text-green-400' : isInvalid ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                      <FileText className="h-4 w-4" />
+                                      <span className="text-xs truncate max-w-[100px]">
+                                        {documentUploads[docType.id]?.name}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                                      onClick={() => handleDocumentUpload(docType.id, null)}
+                                      disabled={isValidating}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <label className="cursor-pointer">
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept=".pdf,.xlsx,.xls,.doc,.docx,.txt"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleDocumentUpload(docType.id, file);
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      asChild
+                                    >
+                                      <span>
+                                        <Upload className="h-3 w-3 mr-1" />
+                                        Upload
+                                      </span>
+                                    </Button>
+                                  </label>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
