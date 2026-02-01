@@ -3027,6 +3027,91 @@ except Exception as e:
     }
   });
 
+  // Upload a document to a session (FormData upload)
+  const sessionDocUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+  app.post("/api/sessions/:sessionId/documents", authenticateToken, sessionDocUpload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const documentTypeId = req.body.documentTypeId;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      
+      // Extract text from the document using Python extractor
+      const { spawn } = await import('child_process');
+      const pythonProcess = spawn('python3', ['services/document_extractor.py'], {
+        cwd: process.cwd()
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      const inputData = {
+        step: 'extract_text_only',
+        documents: [{
+          file_name: file.originalname,
+          file_content: file.buffer.toString('base64'),
+          mime_type: file.mimetype
+        }]
+      };
+      
+      pythonProcess.stdin.write(JSON.stringify(inputData));
+      pythonProcess.stdin.end();
+      
+      const timeout = setTimeout(() => {
+        pythonProcess.kill();
+      }, 30000);
+      
+      await new Promise<void>((resolve, reject) => {
+        pythonProcess.on('close', (code) => {
+          clearTimeout(timeout);
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Extraction failed: ${stderr}`));
+          }
+        });
+        pythonProcess.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+      
+      let extractedText = '';
+      try {
+        const result = JSON.parse(stdout.trim());
+        if (result.success && result.extracted_texts && result.extracted_texts.length > 0) {
+          extractedText = result.extracted_texts[0].text_content || '';
+        }
+      } catch (e) {
+        console.error('Failed to parse extraction result:', e);
+      }
+      
+      // Save the document to the database
+      const document = await storage.createSessionDocument({
+        sessionId,
+        fileName: file.originalname,
+        extractedContent: extractedText,
+        documentTypeId: documentTypeId || null
+      });
+      
+      res.json(document);
+    } catch (error) {
+      console.error("Upload session document error:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
   // Delete a session document
   app.delete("/api/sessions/documents/:documentId", authenticateToken, async (req: AuthRequest, res) => {
     try {
