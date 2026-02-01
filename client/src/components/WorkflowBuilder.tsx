@@ -496,7 +496,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           </div>
         </CardHeader>
         {isDocumentTypesExpanded && (
-          <CardContent className="pt-0">
+          <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-3">
               {documentTypes.map((docType) => (
                 <div
@@ -543,7 +543,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={addDocumentType}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addDocumentType();
+                }}
                 className="w-full border-dashed"
               >
                 <Plus className="h-4 w-4 mr-2" />
