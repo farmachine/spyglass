@@ -118,3 +118,35 @@ export interface InboundEmailPayload {
     size: number;
   }>;
 }
+
+export async function sendEmail(params: {
+  fromInboxId: string;
+  to: string;
+  subject: string;
+  textContent: string;
+  htmlContent?: string;
+  replyToMessageId?: string;
+}): Promise<{ messageId: string }> {
+  const client = await getAgentMailClient();
+  const normalizedInboxId = params.fromInboxId.includes('@') ? params.fromInboxId : `${params.fromInboxId}@agentmail.to`;
+  
+  const messageParams: any = {
+    to: [params.to],
+    subject: params.subject,
+    text: params.textContent,
+  };
+  
+  if (params.htmlContent) {
+    messageParams.html = params.htmlContent;
+  }
+  
+  if (params.replyToMessageId) {
+    messageParams.inReplyTo = params.replyToMessageId;
+  }
+  
+  const result = await client.inboxes.messages.send(normalizedInboxId, messageParams);
+  
+  return {
+    messageId: (result as any).messageId || (result as any).message_id || ''
+  };
+}
