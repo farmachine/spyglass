@@ -440,12 +440,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   }, [requiredDocumentTypes]);
 
   const addDocumentType = () => {
+    console.log('addDocumentType called');
     const newDocType: DocumentType = {
       id: uuidv4(),
       name: `Document Type ${documentTypes.length + 1}`,
       description: ''
     };
+    console.log('New doc type:', newDocType);
     const updated = [...documentTypes, newDocType];
+    console.log('Updated document types:', updated);
     setDocumentTypes(updated);
     onDocumentTypesChange?.(updated);
     setEditingDocTypeId(newDocType.id);
@@ -541,13 +544,16 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 </div>
               ))}
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
+                  console.log('Button clicked!');
                   addDocumentType();
                 }}
-                className="w-full border-dashed"
+                className="w-full border-dashed relative z-10"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Document Type
