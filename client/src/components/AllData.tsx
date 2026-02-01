@@ -58,6 +58,7 @@ export default function AllData({ project }: AllDataProps) {
   // Document type uploads for session creation
   const [documentUploads, setDocumentUploads] = useState<Record<string, File | null>>({});
   const [uploadingDocuments, setUploadingDocuments] = useState(false);
+  const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
   const requiredDocumentTypes = ((project as any).requiredDocumentTypes || []) as Array<{id: string; name: string; description: string}>;
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   
@@ -1009,6 +1010,21 @@ export default function AllData({ project }: AllDataProps) {
           Refresh
         </Button>
       )}
+
+      {/* Refresh Sessions Button */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={async () => {
+          setIsRefreshingSessions(true);
+          await queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+          setTimeout(() => setIsRefreshingSessions(false), 500);
+        }}
+        title="Refresh Sessions"
+        disabled={isRefreshingSessions}
+      >
+        <RefreshCw className={`h-4 w-4 ${isRefreshingSessions ? 'animate-spin' : ''}`} />
+      </Button>
 
       {/* Column Settings Button */}
       <Button

@@ -697,7 +697,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, inboxId } = await createProjectInbox(id);
       
       // Register webhook for this inbox to receive emails
-      const webhookUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'http://localhost:5000'}/api/webhooks/email`;
+      const domain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS || (process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000');
+      const webhookUrl = `https://${domain}/api/webhooks/email`;
       console.log(`📧 Registering webhook for inbox ${inboxId} at: ${webhookUrl}`);
       
       try {
