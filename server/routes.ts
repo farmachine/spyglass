@@ -595,6 +595,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without failing the project creation
       }
       
+      // Auto-import default tools from the standard project template
+      const DEFAULT_TOOLS_PROJECT_ID = 'adcdee71-ec36-4df9-bfdb-ff84bf923a62';
+      try {
+        const defaultTools = await storage.getExcelWizardryFunctionsByProject(DEFAULT_TOOLS_PROJECT_ID);
+        if (defaultTools.length > 0) {
+          for (const tool of defaultTools) {
+            await storage.createExcelWizardryFunction({
+              projectId: project.id,
+              name: tool.name,
+              description: tool.description,
+              functionCode: tool.functionCode,
+              aiPrompt: tool.aiPrompt,
+              toolType: tool.toolType,
+              outputType: tool.outputType,
+              operationType: tool.operationType,
+              inputParameters: tool.inputParameters,
+              aiAssistanceRequired: tool.aiAssistanceRequired,
+              aiAssistancePrompt: tool.aiAssistancePrompt,
+              llmModel: tool.llmModel,
+              metadata: tool.metadata,
+              inputSchema: tool.inputSchema,
+              outputSchema: tool.outputSchema,
+              tags: tool.tags
+            });
+          }
+          console.log(`Auto-imported ${defaultTools.length} default tools to new project ${project.id}`);
+        }
+      } catch (toolsError) {
+        console.warn("Failed to auto-import default tools:", toolsError);
+        // Continue without failing the project creation
+      }
+      
       res.status(201).json(project);
     } catch (error) {
       console.error("Create project error:", error);
