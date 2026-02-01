@@ -783,18 +783,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let sessionsCreated = 0;
       
-      // Get existing sessions to avoid duplicates (by checking session description for message ID)
-      const existingSessions = await storage.getExtractionSessions(id);
-      const processedMessageIds = new Set(
-        existingSessions
-          .filter(s => s.description?.includes('Message ID:'))
-          .map(s => {
-            const match = s.description?.match(/Message ID: ([a-zA-Z0-9_-]+)/);
-            return match ? match[1] : null;
-          })
-          .filter(Boolean)
-      );
-      
       // Get required document types from project
       const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
       console.log(`📧 Project requires ${requiredDocTypes.length} document types`);
@@ -818,8 +806,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
         
-        // Skip already processed messages
-        if (processedMessageIds.has(messageId)) {
+        // Skip already processed messages (check database)
+        const alreadyProcessed = await storage.isEmailProcessed(project.id, messageId);
+        if (alreadyProcessed) {
           console.log(`📧 Skipping already processed message: ${messageId}`);
           continue;
         }
@@ -1051,26 +1040,42 @@ Respond with JSON only:
               const tempFilePath = path.join(uploadDir, filename);
               await fs.writeFile(tempFilePath, data);
               
-              // Extract content from PDF/documents using Python service
+              // Extract content from PDF/documents using Python subprocess
               let extractedContent = '';
-              try {
-                const FormData = (await import('form-data')).default;
-                const formData = new FormData();
-                formData.append('file', data, { filename, contentType });
-                
-                const extractResponse = await fetch('http://localhost:5001/extract', {
-                  method: 'POST',
-                  body: formData as any,
-                  headers: formData.getHeaders ? formData.getHeaders() : {},
-                });
-                
-                if (extractResponse.ok) {
-                  const extractResult = await extractResponse.json() as any;
-                  extractedContent = extractResult.text_content || extractResult.text || '';
+              if (contentType.includes('pdf') || contentType.includes('excel') || 
+                  contentType.includes('spreadsheet') || contentType.includes('word') ||
+                  contentType.includes('document') || contentType.includes('text')) {
+                try {
+                  const base64Content = data.toString('base64');
+                  const dataUrl = `data:${contentType};base64,${base64Content}`;
+                  const extractionData = {
+                    step: "extract_text_only",
+                    documents: [{ file_name: filename, file_content: dataUrl, mime_type: contentType }]
+                  };
+                  
+                  const { spawn } = await import('child_process');
+                  extractedContent = await new Promise<string>((resolve) => {
+                    const python = spawn('python3', ['services/document_extractor.py']);
+                    const timeout = setTimeout(() => { python.kill(); resolve(''); }, 20000);
+                    python.stdin.write(JSON.stringify(extractionData));
+                    python.stdin.end();
+                    let output = '';
+                    python.stdout.on('data', (chunk) => { output += chunk.toString(); });
+                    python.on('close', (code) => {
+                      clearTimeout(timeout);
+                      if (code === 0) {
+                        try { 
+                          const result = JSON.parse(output);
+                          resolve(result.extracted_texts?.[0]?.text_content || ''); 
+                        } catch { resolve(''); }
+                      } else { resolve(''); }
+                    });
+                    python.on('error', () => { clearTimeout(timeout); resolve(''); });
+                  });
                   console.log(`📧 Extracted ${extractedContent.length} chars from ${filename}`);
+                } catch (extractErr) {
+                  console.error(`📧 Failed to extract content from ${filename}:`, extractErr);
                 }
-              } catch (extractErr) {
-                console.error(`📧 Failed to extract content from ${filename}:`, extractErr);
               }
               
               // Create document record with extracted content
