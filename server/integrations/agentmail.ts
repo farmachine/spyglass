@@ -78,18 +78,29 @@ export async function downloadAttachment(inboxId: string, messageId: string, att
   const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@agentmail.to`;
   const attachment = await client.inboxes.messages.getAttachment(normalizedInboxId, messageId, attachmentId) as any;
   
-  // Debug: log the attachment structure to see what's returned
-  const keys = Object.keys(attachment || {});
-  console.log(`📧 Attachment keys: ${keys.join(', ')}`);
+  let fileData: Buffer;
   
-  // Try different possible property names for the content
-  const contentBase64 = attachment.content || attachment.data || attachment.body || attachment.base64 || '';
-  if (!contentBase64) {
-    console.log(`📧 Attachment object: ${JSON.stringify(attachment).slice(0, 500)}`);
+  // Check if there's a downloadUrl - if so, fetch the file from that URL
+  if (attachment.downloadUrl) {
+    console.log(`📧 Downloading from URL: ${attachment.downloadUrl.slice(0, 100)}...`);
+    const response = await fetch(attachment.downloadUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download attachment: ${response.status} ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    fileData = Buffer.from(arrayBuffer);
+    console.log(`📧 Downloaded ${fileData.length} bytes`);
+  } else if (attachment.content || attachment.data || attachment.body) {
+    // Fall back to base64 content if provided directly
+    const contentBase64 = attachment.content || attachment.data || attachment.body || '';
+    fileData = Buffer.from(contentBase64, 'base64');
+  } else {
+    console.log(`📧 No content or downloadUrl found in attachment`);
+    fileData = Buffer.alloc(0);
   }
   
   return {
-    data: Buffer.from(contentBase64, 'base64'),
+    data: fileData,
     filename: attachment.filename || attachment.fileName || 'attachment',
     contentType: attachment.contentType || attachment.content_type || 'application/octet-stream'
   };
