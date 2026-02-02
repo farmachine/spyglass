@@ -19,6 +19,8 @@ try:
     from docx import Document
     import xlrd
     from openpyxl import load_workbook
+    from pdfminer.high_level import extract_text as pdfminer_extract_text
+    from pdfminer.pdfparser import PDFSyntaxError
 except ImportError as e:
     print(f"Error: Missing required library: {e}", file=sys.stderr)
     sys.exit(1)
@@ -114,15 +116,36 @@ def merge_header_rows(header_rows):
     return merged_header
 
 def extract_pdf_text(file_content: bytes) -> str:
-    """Extract text from PDF file."""
+    """Extract text from PDF file using PyPDF2 with pdfminer fallback."""
+    text = ""
+    
+    # Try PyPDF2 first
     try:
         pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
-        text = ""
         for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
-        return text.strip()
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
     except Exception as e:
-        raise Exception(f"PDF extraction failed: {str(e)}")
+        print(f"PyPDF2 extraction failed: {str(e)}", file=sys.stderr)
+    
+    # If PyPDF2 didn't extract much text, try pdfminer as fallback
+    if len(text.strip()) < 50:
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                tmp_file.write(file_content)
+                tmp_file.flush()
+                pdfminer_text = pdfminer_extract_text(tmp_file.name)
+                os.unlink(tmp_file.name)
+                if pdfminer_text and len(pdfminer_text.strip()) > len(text.strip()):
+                    text = pdfminer_text
+        except Exception as e:
+            print(f"pdfminer extraction failed: {str(e)}", file=sys.stderr)
+    
+    if not text.strip():
+        raise Exception("PDF extraction failed: No text could be extracted (may be scanned/image-based)")
+    
+    return text.strip()
 
 def extract_docx_text(file_content: bytes) -> str:
     """Extract text from DOCX file."""

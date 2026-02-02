@@ -1056,21 +1056,27 @@ Respond with JSON only:
                   const { spawn } = await import('child_process');
                   extractedContent = await new Promise<string>((resolve) => {
                     const python = spawn('python3', ['services/document_extractor.py']);
-                    const timeout = setTimeout(() => { python.kill(); resolve(''); }, 20000);
+                    const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 20000);
                     python.stdin.write(JSON.stringify(extractionData));
                     python.stdin.end();
                     let output = '';
+                    let stderr = '';
                     python.stdout.on('data', (chunk) => { output += chunk.toString(); });
+                    python.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
                     python.on('close', (code) => {
                       clearTimeout(timeout);
+                      if (stderr) console.log(`📧 Python stderr: ${stderr}`);
                       if (code === 0) {
                         try { 
                           const result = JSON.parse(output);
-                          resolve(result.extracted_texts?.[0]?.text_content || ''); 
-                        } catch { resolve(''); }
-                      } else { resolve(''); }
+                          const text = result.extracted_texts?.[0]?.text_content || '';
+                          const error = result.extracted_texts?.[0]?.error;
+                          if (error) console.log(`📧 Extraction error for ${filename}: ${error}`);
+                          resolve(text); 
+                        } catch (e) { console.log(`📧 Failed to parse output: ${output.slice(0,200)}`); resolve(''); }
+                      } else { console.log(`📧 Python exited with code ${code}`); resolve(''); }
                     });
-                    python.on('error', () => { clearTimeout(timeout); resolve(''); });
+                    python.on('error', (err) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); resolve(''); });
                   });
                   console.log(`📧 Extracted ${extractedContent.length} chars from ${filename}`);
                 } catch (extractErr) {
