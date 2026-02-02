@@ -2838,7 +2838,8 @@ class PostgreSQLStorage implements IStorage {
           createdAt: projects.createdAt,
           inboxEmailAddress: projects.inboxEmailAddress,
           inboxId: projects.inboxId,
-          requiredDocumentTypes: projects.requiredDocumentTypes
+          requiredDocumentTypes: projects.requiredDocumentTypes,
+          emailNotificationTemplate: projects.emailNotificationTemplate
         })
         .from(projects)
         .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
