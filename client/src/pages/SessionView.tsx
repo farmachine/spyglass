@@ -31,7 +31,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import { SiMicrosoft } from "react-icons/si";
 import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
@@ -1714,6 +1714,7 @@ export default function SessionView() {
     };
   } | null>(null);
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Database lookup modal state
   const [databaseLookupModal, setDatabaseLookupModal] = useState<{
@@ -2443,6 +2444,50 @@ export default function SessionView() {
       handleSessionNameSave();
     } else if (e.key === 'Escape') {
       handleSessionNameCancel();
+    }
+  };
+
+  // Refresh session data and check for new emails
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Check for new emails if the project has an inbox
+      if (project?.inboxEmailAddress) {
+        try {
+          const emailResult = await apiRequest(`/api/projects/${projectId}/inbox/process`, { method: "POST" });
+          if (emailResult?.sessionsCreated > 0) {
+            toast({
+              title: "New emails processed",
+              description: `Created ${emailResult.sessionsCreated} new session(s) from email`,
+            });
+          }
+        } catch (emailError) {
+          console.error('Failed to check emails:', emailError);
+        }
+      }
+      
+      // Refresh all session-related data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/validations/project', projectId] }),
+      ]);
+      
+      toast({
+        title: "Refreshed",
+        description: "Session data has been updated",
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        title: "Refresh failed",
+        description: "Failed to refresh session data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -5058,6 +5103,18 @@ Thank you for your assistance.`;
                     {verificationStats.verified}
                   </span>
                 </div>
+
+                {/* Refresh button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-10"
+                  title="Refresh data and check for new emails"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
             )}
           </div>
