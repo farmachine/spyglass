@@ -76,11 +76,22 @@ export default function ExtractWizardModal({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   
+  // Filter out image files - they can't be used for text extraction
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico', '.svg'];
+  const extractableDocuments = documents.filter(doc => {
+    const name = doc.name.toLowerCase();
+    return !imageExtensions.some(ext => name.endsWith(ext));
+  });
+  
   useEffect(() => {
-    if (documents.length === 1) {
-      setSelectedDocuments([documents[0].id]);
+    // Auto-select first extractable document
+    if (extractableDocuments.length === 1) {
+      setSelectedDocuments([extractableDocuments[0].id]);
+    } else if (extractableDocuments.length > 0 && selectedDocuments.length === 0) {
+      // Auto-select the first document with content (PDF/Excel)
+      setSelectedDocuments([extractableDocuments[0].id]);
     }
-  }, [documents]);
+  }, [extractableDocuments.length]);
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -487,9 +498,14 @@ export default function ExtractWizardModal({
                             <div className="space-y-2">
                               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Select documents ({selectedDocuments.length} selected)
+                                {extractableDocuments.length < documents.length && (
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({documents.length - extractableDocuments.length} image files hidden)
+                                  </span>
+                                )}
                               </Label>
                               <div className="space-y-2 max-h-[200px] overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                                {documents.map((doc) => (
+                                {extractableDocuments.map((doc) => (
                                   <div 
                                     key={doc.id} 
                                     className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
