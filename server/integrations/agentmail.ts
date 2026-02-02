@@ -78,10 +78,20 @@ export async function downloadAttachment(inboxId: string, messageId: string, att
   const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@agentmail.to`;
   const attachment = await client.inboxes.messages.getAttachment(normalizedInboxId, messageId, attachmentId) as any;
   
+  // Debug: log the attachment structure to see what's returned
+  const keys = Object.keys(attachment || {});
+  console.log(`📧 Attachment keys: ${keys.join(', ')}`);
+  
+  // Try different possible property names for the content
+  const contentBase64 = attachment.content || attachment.data || attachment.body || attachment.base64 || '';
+  if (!contentBase64) {
+    console.log(`📧 Attachment object: ${JSON.stringify(attachment).slice(0, 500)}`);
+  }
+  
   return {
-    data: Buffer.from(attachment.content || '', 'base64'),
-    filename: attachment.filename || 'attachment',
-    contentType: attachment.contentType || 'application/octet-stream'
+    data: Buffer.from(contentBase64, 'base64'),
+    filename: attachment.filename || attachment.fileName || 'attachment',
+    contentType: attachment.contentType || attachment.content_type || 'application/octet-stream'
   };
 }
 
