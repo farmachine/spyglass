@@ -1017,10 +1017,28 @@ export default function AllData({ project }: AllDataProps) {
         size="icon"
         onClick={async () => {
           setIsRefreshingSessions(true);
-          await queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
-          setTimeout(() => setIsRefreshingSessions(false), 500);
+          try {
+            // Check for new emails if the project has an inbox
+            if (project.inboxEmailAddress) {
+              try {
+                const emailResult = await apiRequest(`/api/projects/${project.id}/inbox/process`, { method: "POST" });
+                if (emailResult?.sessionsCreated > 0) {
+                  toast({
+                    title: "New emails processed",
+                    description: `Created ${emailResult.sessionsCreated} new session(s) from email`,
+                  });
+                }
+              } catch (emailError) {
+                console.error('Failed to check emails:', emailError);
+              }
+            }
+            await queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+            await queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+          } finally {
+            setIsRefreshingSessions(false);
+          }
         }}
-        title="Refresh Sessions"
+        title="Refresh sessions and check for new emails"
         disabled={isRefreshingSessions}
       >
         <RefreshCw className={`h-4 w-4 ${isRefreshingSessions ? 'animate-spin' : ''}`} />
