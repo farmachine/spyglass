@@ -1032,13 +1032,11 @@ Respond with JSON only:
                 attachmentId
               );
               
-              // Save file first
+              // Setup upload directory
               const fs = await import('fs/promises');
               const path = await import('path');
               const uploadDir = path.join(process.cwd(), 'uploads', session.id);
               await fs.mkdir(uploadDir, { recursive: true });
-              const tempFilePath = path.join(uploadDir, filename);
-              await fs.writeFile(tempFilePath, data);
               
               // Extract content from PDF/documents using Python subprocess
               let extractedContent = '';
@@ -1084,21 +1082,22 @@ Respond with JSON only:
                 }
               }
               
+              // Generate unique filename upfront to avoid the rename/update step
+              const uniqueId = crypto.randomUUID();
+              const safeFilename = filename.replace(/[^\w\s.-]/g, '_'); // Remove special chars like emojis
+              const finalPath = path.join(uploadDir, `${uniqueId}_${safeFilename}`);
+              await fs.writeFile(finalPath, data);
+              
               // Create document record with extracted content
               const document = await storage.createSessionDocument({
                 sessionId: session.id,
-                fileName: filename,
+                fileName: filename, // Keep original filename for display
                 fileType: contentType,
                 fileSize: data.length,
-                filePath: tempFilePath,
+                filePath: finalPath,
                 extractedContent: extractedContent,
                 uploadedAt: new Date(),
               });
-              
-              // Rename file with document ID
-              const finalPath = path.join(uploadDir, `${document.id}_${filename}`);
-              await fs.rename(tempFilePath, finalPath);
-              await storage.updateSessionDocument(document.id, { filePath: finalPath });
               
               console.log(`📧 Saved attachment: ${filename} (${extractedContent.length} chars extracted)`);
             } catch (attachErr) {
