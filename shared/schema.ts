@@ -69,6 +69,7 @@ export const projects = pgTable("projects", {
   inboxEmailAddress: text("inbox_email_address"), // AgentMail inbox for receiving emails
   inboxId: text("inbox_id"), // AgentMail inbox ID for API calls
   requiredDocumentTypes: jsonb("required_document_types").$type<Array<{id: string; name: string; description: string}>>(), // Document types required for session creation
+  emailNotificationTemplate: text("email_notification_template"), // HTML template for email notifications with placeholders like {{subject}}, {{body}}, {{projectName}}
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

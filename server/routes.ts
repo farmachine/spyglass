@@ -787,7 +787,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
       console.log(`📧 Project requires ${requiredDocTypes.length} document types`);
       
-      const { sendEmail } = await import('./integrations/agentmail');
+      const { sendEmail, renderEmailTemplate } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate as string | null;
       
       for (const msg of messages) {
         const messageId = msg.messageId || msg.id;
@@ -830,12 +831,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (attachments.length === 0) {
             console.log(`📧 No attachments provided, sending rejection email`);
             const missingDocsList = requiredDocTypes.map((dt: any) => `- ${dt.name}: ${dt.description || 'Required'}`).join('\n');
+            const textBody = `Thank you for your submission.\n\nUnfortunately, we could not process your request because the following required documents are missing:\n\n${missingDocsList}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`;
             try {
               await sendEmail({
                 fromInboxId: project.inboxId!,
                 to: fromEmail,
                 subject: `Re: ${subject} - Documents Required`,
-                textContent: `Thank you for your submission.\n\nUnfortunately, we could not process your request because the following required documents are missing:\n\n${missingDocsList}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`,
+                textContent: textBody,
+                htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+                  subject: `Re: ${subject} - Documents Required`,
+                  body: textBody.replace(/\n/g, '<br>'),
+                  projectName: project.name,
+                  senderEmail: fromEmail
+                }) : undefined,
                 replyToMessageId: messageId
               });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
@@ -966,13 +974,20 @@ Respond with JSON only:
             console.log(`📧 Missing ${missingDocTypes.length} document types, sending rejection`);
             const missingList = missingDocTypes.map(r => `- ${r.docType.name}: ${r.docType.description || 'Required'}`).join('\n');
             const matchedList = validationResults.filter(r => r.matched).map(r => `- ${r.docType.name} (matched: ${r.matchedFile})`).join('\n');
+            const rejectionTextBody = `Thank you for your submission to ${project.name}.\n\nWe reviewed your attachments but the following required documents are still missing or could not be identified:\n\n${missingList}\n\n${matchedList ? `Documents we received:\n${matchedList}\n\n` : ''}Please reply to this email with the missing documents attached.\n\nThank you.`;
             
             try {
               await sendEmail({
                 fromInboxId: project.inboxId!,
                 to: fromEmail,
                 subject: `Re: ${subject} - Additional Documents Required`,
-                textContent: `Thank you for your submission to ${project.name}.\n\nWe reviewed your attachments but the following required documents are still missing or could not be identified:\n\n${missingList}\n\n${matchedList ? `Documents we received:\n${matchedList}\n\n` : ''}Please reply to this email with the missing documents attached.\n\nThank you.`,
+                textContent: rejectionTextBody,
+                htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+                  subject: `Re: ${subject} - Additional Documents Required`,
+                  body: rejectionTextBody.replace(/\n/g, '<br>'),
+                  projectName: project.name,
+                  senderEmail: fromEmail
+                }) : undefined,
                 replyToMessageId: messageId
               });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
@@ -986,12 +1001,19 @@ Respond with JSON only:
           
           // All documents validated - send confirmation
           console.log(`📧 All document requirements met, creating session`);
+          const confirmTextBody = `Thank you for your submission to ${project.name}.\n\nWe have received all required documents and your submission is now being processed. You will receive updates on the status of your submission.\n\nThank you.`;
           try {
             await sendEmail({
               fromInboxId: project.inboxId!,
               to: fromEmail,
               subject: `Re: ${subject} - Submission Received`,
-              textContent: `Thank you for your submission to ${project.name}.\n\nWe have received all required documents and your submission is now being processed. You will receive updates on the status of your submission.\n\nThank you.`,
+              textContent: confirmTextBody,
+              htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+                subject: `Re: ${subject} - Submission Received`,
+                body: confirmTextBody.replace(/\n/g, '<br>'),
+                projectName: project.name,
+                senderEmail: fromEmail
+              }) : undefined,
               replyToMessageId: messageId
             });
             console.log(`📧 Confirmation email sent to ${fromEmail}`);
@@ -13000,7 +13022,8 @@ Respond in JSON format:
       console.log(`📧 Project has ${requiredDocTypes.length} required document types`);
       
       // Import agentmail functions for sending replies
-      const { downloadAttachment, sendEmail } = await import('./integrations/agentmail');
+      const { downloadAttachment, sendEmail, renderEmailTemplate } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate as string | null;
       
       // If project has required document types, validate attachments first
       let validationResults: Array<{docType: {id: string; name: string; description: string}; matched: boolean; matchedFile?: string}> = [];
@@ -13056,6 +13079,12 @@ Thank you.`;
             to: fromEmail,
             subject: `Re: ${subject} - Documents Required`,
             textContent: rejectionBody,
+            htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+              subject: `Re: ${subject} - Documents Required`,
+              body: rejectionBody.replace(/\n/g, '<br>'),
+              projectName: project.name,
+              senderEmail: fromEmail
+            }) : undefined,
             replyToMessageId: messageId
           });
           console.log(`📧 Sent rejection email to ${fromEmail} (no attachments)`);
@@ -13259,6 +13288,12 @@ Thank you.`;
             to: fromEmail,
             subject: `Re: ${subject} - Additional Documents Required`,
             textContent: rejectionBody,
+            htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+              subject: `Re: ${subject} - Additional Documents Required`,
+              body: rejectionBody.replace(/\n/g, '<br>'),
+              projectName: project.name,
+              senderEmail: fromEmail
+            }) : undefined,
             replyToMessageId: messageId
           });
           console.log(`📧 Sent rejection email to ${fromEmail}`);
@@ -13440,6 +13475,12 @@ Thank you.`;
           to: fromEmail,
           subject: `Re: ${subject} - Submission Received`,
           textContent: confirmationBody,
+          htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+            subject: `Re: ${subject} - Submission Received`,
+            body: confirmationBody.replace(/\n/g, '<br>'),
+            projectName: project.name,
+            senderEmail: fromEmail
+          }) : undefined,
           replyToMessageId: messageId
         });
         console.log(`📧 Sent confirmation email to ${fromEmail}`);

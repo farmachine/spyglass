@@ -27,6 +27,8 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [fetchedData, setFetchedData] = useState<Record<string, any>>({});
   const [editingColumn, setEditingColumn] = useState<{ sourceId: string; column: string } | null>(null);
   const [editingColumnName, setEditingColumnName] = useState("");
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templateHtml, setTemplateHtml] = useState("");
   
   const { data: project, refetch: refetchProject } = useProject(projectId);
 
@@ -103,6 +105,31 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       toast({ 
         title: "Error", 
         description: error.message || "Failed to process emails", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const saveTemplateMutation = useMutation({
+    mutationFn: async (template: string) => {
+      return apiRequest(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ emailNotificationTemplate: template }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      refetchProject();
+      setIsTemplateModalOpen(false);
+      toast({ 
+        title: "Template saved", 
+        description: "Email notification template has been updated" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to save template", 
         variant: "destructive" 
       });
     }
@@ -648,8 +675,114 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               Email attachments will automatically be uploaded as session documents
             </p>
           )}
+          
+          {/* Email Template Button */}
+          {project?.inboxEmailAddress && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Email Notification Template</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {project?.emailNotificationTemplate 
+                      ? "Custom HTML template configured" 
+                      : "Using default plain text notifications"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setTemplateHtml(project?.emailNotificationTemplate || "");
+                    setIsTemplateModalOpen(true);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Pencil className="w-4 h-4" />
+                  {project?.emailNotificationTemplate ? "Edit Template" : "Add Template"}
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Email Template Modal */}
+      <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Email Notification Template</DialogTitle>
+            <DialogDescription>
+              Paste your HTML template for email notifications. Use placeholders: {`{{subject}}`}, {`{{body}}`}, {`{{projectName}}`}, {`{{senderEmail}}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <Textarea
+              value={templateHtml}
+              onChange={(e) => setTemplateHtml(e.target.value)}
+              placeholder={`<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #4F63A4; color: white; padding: 20px; text-align: center; }
+    .content { padding: 20px; background: #f9f9f9; }
+    .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>{{projectName}}</h1>
+    </div>
+    <div class="content">
+      <h2>{{subject}}</h2>
+      <p>{{body}}</p>
+    </div>
+    <div class="footer">
+      <p>This email was sent to {{senderEmail}}</p>
+    </div>
+  </div>
+</body>
+</html>`}
+              className="font-mono text-sm h-[400px] resize-none"
+            />
+          </div>
+          <DialogFooter className="flex gap-2">
+            {project?.emailNotificationTemplate && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  saveTemplateMutation.mutate("");
+                }}
+                disabled={saveTemplateMutation.isPending}
+              >
+                Remove Template
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setIsTemplateModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => saveTemplateMutation.mutate(templateHtml)}
+              disabled={saveTemplateMutation.isPending}
+              style={{ backgroundColor: '#4F63A4' }}
+            >
+              {saveTemplateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Template"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Data Sources Section */}
       <Card>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APK Group - Nieuwe onboardings in de komende 6 weken</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f4f4;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        .header {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            text-align: center;
+            border-bottom: 3px solid #E02218;
+        }
+        
+        .logo {
+            max-width: 261px;
+            height: auto;
+        }
+        
+        .content {
+            padding: 40px;
+            color: #333333;
+            line-height: 1.6;
+        }
+        
+        .content h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .content p {
+            font-size: 15px;
+            margin-bottom: 15px;
+            color: #555555;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+        }
+        
+        .info-table tr {
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .info-table tr:last-child {
+            border-bottom: none;
+        }
+        
+        .info-table td {
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+        
+        .info-table tr:first-child td {
+            font-weight: 600;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+        }
+        
+        .info-table td {
+            color: #555555;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #E02218;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .cta-button:hover {
+            background-color: #c01d14;
+        }
+        
+        .notice-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .footer {
+            background-color: #2c3e50;
+            color: #ffffff;
+            padding: 30px 40px;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            color: #ecf0f1;
+        }
+        
+        .footer a {
+            color: #E02218;
+            text-decoration: none;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .header, .content, .footer {
+                padding: 20px !important;
+            }
+            .logo {
+                max-width: 200px !important;
+            }
+            .content h1 {
+                font-size: 20px !important;
+            }
+            .info-table td {
+                padding: 10px !important;
+                font-size: 13px !important;
+            }
+            .cta-button {
+                display: block;
+                padding: 12px 20px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <img src="https://cdn.apkgroup.eu/wp-content/uploads/2021/09/Logo_APK-group_RGB_100px_Hoog.png"
+                 alt="APK Group"
+                 class="logo"
+                 width="261"
+                 height="100">
+        </div>
+        <div class="content">
+            <h1>Nieuwe onboardings in de komende 6 weken</h1>
+            <p>Beste Safety Officer,</p>
+            <p>De volgende personen zullen in de komende weken door jullie ge-onboarded moeten worden:</p>
+            <table class="info-table">
+                <tr>
+                    <td>Full Name</td>
+                    <td>Job Title</td>
+                    <td>BU</td>
+                    <td>Location</td>
+                    <td>Onboarding Step</td>
+                </tr>
+                <tr>
+                    <td>Full Name Value</td>
+                    <td>Job Title Value</td>
+                    <td>BU Value</td>
+                    <td>Location Value</td>
+                    <td>Onboarding Step Value</td>
+                </tr>
+            </table>
+            <p>Alvast bedankt!</p>
+            <p>Mvg,<br>
+                <strong>APK Safety</strong></p>
+        </div>
+        <div class="footer">
+            <p><strong>APK Group</strong></p>
+            <p>Together we create smart and sustainable cities</p>
+            <div style="margin: 15px 0;">
+                <p>Haltstraat 50, 3900 Pelt, Belgium</p>
+                <p>Phone: +32 11 64 71 11</p>
+                <p>Email: <a href="mailto:info@apkgroup.eu">info@apkgroup.eu</a></p>
+                <p>Website: <a href="https://apkgroup.eu">www.apkgroup.eu</a></p>
+            </div>
+            <p style="font-size: 11px; margin-top: 20px; color: #95a5a6;">
+                This email was sent to you as part of our project communication.
+                If you wish to unsubscribe, please contact us directly.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

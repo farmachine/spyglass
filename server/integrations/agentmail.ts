@@ -2,6 +2,22 @@ import { AgentMailClient } from 'agentmail';
 
 let connectionSettings: any;
 
+export function renderEmailTemplate(
+  template: string,
+  placeholders: {
+    subject: string;
+    body: string;
+    projectName: string;
+    senderEmail: string;
+  }
+): string {
+  return template
+    .replace(/\{\{subject\}\}/g, placeholders.subject)
+    .replace(/\{\{body\}\}/g, placeholders.body)
+    .replace(/\{\{projectName\}\}/g, placeholders.projectName)
+    .replace(/\{\{senderEmail\}\}/g, placeholders.senderEmail);
+}
+
 async function getCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
