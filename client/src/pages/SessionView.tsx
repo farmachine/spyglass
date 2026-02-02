@@ -7324,6 +7324,7 @@ Thank you for your assistance.`;
         onClose={() => setSessionLinkingModalOpen(false)}
         sessionId={sessionId!}
         kanbanStepId={project?.workflowSteps?.find(s => s.stepType === 'kanban')?.id}
+        mainObjectName={project?.mainObjectName || "Session"}
         onLinkComplete={() => {
           // Refresh kanban data after linking
           const kanbanStep = project?.workflowSteps?.find(s => s.stepType === 'kanban');

@@ -32,6 +32,7 @@ interface SessionLinkingModalProps {
   sessionId: string;
   kanbanStepId?: string;
   onLinkComplete?: () => void;
+  mainObjectName?: string;
 }
 
 export default function SessionLinkingModal({
@@ -39,8 +40,11 @@ export default function SessionLinkingModal({
   onClose,
   sessionId,
   kanbanStepId,
-  onLinkComplete
+  onLinkComplete,
+  mainObjectName = "Session"
 }: SessionLinkingModalProps) {
+  const objectName = mainObjectName.charAt(0).toUpperCase() + mainObjectName.slice(1).toLowerCase();
+  const objectNameLower = mainObjectName.toLowerCase();
   const [similarSessions, setSimilarSessions] = useState<SimilarSession[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchComplete, setSearchComplete] = useState(false);
@@ -86,15 +90,15 @@ export default function SessionLinkingModal({
       }
       queryClient.invalidateQueries({ queryKey: [`/api/sessions/${sessionId}/steps`] });
       toast({
-        title: "Session Linked Successfully",
-        description: `Copied ${data.copiedTaskCount} tasks from the previous session.`
+        title: `${objectName} Linked Successfully`,
+        description: `Copied ${data.copiedTaskCount} tasks from the previous ${objectNameLower}.`
       });
     },
     onError: (error) => {
       console.error('Error linking session:', error);
       toast({
         title: "Linking Failed",
-        description: "Unable to link session. Please try again.",
+        description: `Unable to link ${objectNameLower}. Please try again.`,
         variant: "destructive"
       });
     }
@@ -148,12 +152,12 @@ export default function SessionLinkingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="h-5 w-5" style={{ color: '#4F63A4' }} />
-            {linkResult ? "Session Linked" : "Link Similar Session"}
+            {linkResult ? `${objectName} Linked` : `Link Similar ${objectName}`}
           </DialogTitle>
           <DialogDescription>
             {linkResult 
-              ? "Content from the previous session has been copied to this session."
-              : "Reuse tasks and content from a similar previous session to save time."
+              ? `Content from the previous ${objectNameLower} has been copied to this ${objectNameLower}.`
+              : `Reuse tasks and content from a similar previous ${objectNameLower} to save time.`
             }
           </DialogDescription>
         </DialogHeader>
@@ -163,7 +167,7 @@ export default function SessionLinkingModal({
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="h-10 w-10 animate-spin" style={{ color: '#4F63A4' }} />
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Scanning previous sessions for similar content...
+                Scanning previous {objectNameLower}s for similar content...
               </p>
             </div>
           )}
@@ -172,7 +176,7 @@ export default function SessionLinkingModal({
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <XCircle className="h-10 w-10 text-red-500" />
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                Unable to search for similar sessions.<br />
+                Unable to search for similar {objectNameLower}s.<br />
                 Please try again.
               </p>
               <Button onClick={handleRetry} variant="outline" size="sm">
@@ -188,7 +192,7 @@ export default function SessionLinkingModal({
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <FileText className="h-10 w-10 text-gray-400" />
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    No similar sessions found in this project.<br />
+                    No similar {objectNameLower}s found in this project.<br />
                     This appears to be a unique document type.
                   </p>
                 </div>
@@ -292,7 +296,7 @@ export default function SessionLinkingModal({
                 <div className="flex items-start gap-2 text-sm text-gray-500">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>
-                    {linkResult.excludedTaskCount} task(s) from the previous session were not relevant to the new documents and were excluded.
+                    {linkResult.excludedTaskCount} task(s) from the previous {objectNameLower} were not relevant to the new documents and were excluded.
                   </span>
                 </div>
               )}
@@ -321,7 +325,7 @@ export default function SessionLinkingModal({
                   ) : (
                     <>
                       <Link2 className="h-4 w-4 mr-2" />
-                      Link Session
+                      Link {objectName}
                     </>
                   )}
                 </Button>
