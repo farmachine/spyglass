@@ -9,12 +9,13 @@ export default function ComingSoon() {
             <span className="bg-gradient-to-r from-[#4F63A4] via-[#6B7FBF] to-[#4F63A4] bg-clip-text text-transparent">
               extrapl
             </span>
+            <span className="text-[#4F63A4]">.</span>
           </h1>
           <div className="h-1 w-24 bg-gradient-to-r from-transparent via-[#4F63A4] to-transparent mx-auto mt-4"></div>
         </div>
 
         <p className="text-slate-400 text-xl md:text-2xl font-light mb-4">
-          AI-Powered Document Data Extraction
+          Reinventing Process.
         </p>
         
         <p className="text-slate-500 text-lg mb-12">
