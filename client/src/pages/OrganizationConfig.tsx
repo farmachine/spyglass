@@ -350,26 +350,33 @@ export default function OrganizationConfig() {
                     <FormField
                       control={orgForm.control}
                       name="subdomain"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subdomain</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <Input 
-                                {...field} 
-                                placeholder="acme"
-                                className="max-w-[200px]"
-                                onChange={(e) => field.onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                              />
-                              <span className="text-sm text-gray-500 dark:text-gray-400">.yourapp.com</span>
-                            </div>
-                          </FormControl>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Users will access this organization at this subdomain. Use lowercase letters, numbers, and hyphens only.
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const hasExistingSubdomain = !!organization?.subdomain;
+                        const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'extrapl.io';
+                        return (
+                          <FormItem>
+                            <FormLabel>Subdomain</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-2">
+                                <Input 
+                                  {...field} 
+                                  placeholder="acme"
+                                  className="max-w-[200px]"
+                                  disabled={hasExistingSubdomain}
+                                  onChange={(e) => field.onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                                />
+                                <span className="text-sm text-gray-500 dark:text-gray-400">.{baseDomain}</span>
+                              </div>
+                            </FormControl>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {hasExistingSubdomain 
+                                ? "Subdomain cannot be changed once set for security reasons."
+                                : "Users will access this organization at this subdomain. Use lowercase letters, numbers, and hyphens only."}
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     <Button type="submit" disabled={updateOrgMutation.isPending}>
                       {updateOrgMutation.isPending ? "Saving..." : "Save Changes"}

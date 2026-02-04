@@ -502,6 +502,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate subdomain if provided
       if (updateData.subdomain !== undefined) {
+        // Get existing organization to check if subdomain is already set
+        const existingOrg = await storage.getOrganization(orgId);
+        
+        // Prevent changing subdomain once it has been set (one-time configuration)
+        if (existingOrg?.subdomain && updateData.subdomain !== existingOrg.subdomain) {
+          return res.status(403).json({ 
+            message: "Subdomain cannot be changed once set. This is a one-time configuration for security reasons.",
+            error: "SUBDOMAIN_IMMUTABLE"
+          });
+        }
+        
         if (updateData.subdomain !== null && updateData.subdomain !== '') {
           if (!isValidSubdomain(updateData.subdomain)) {
             return res.status(400).json({ 
@@ -510,16 +521,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           
-          // Check if subdomain is already taken
-          const existingOrg = await storage.getOrganizationBySubdomain(updateData.subdomain);
-          if (existingOrg && existingOrg.id !== orgId) {
+          // Check if subdomain is already taken by another org
+          const orgWithSubdomain = await storage.getOrganizationBySubdomain(updateData.subdomain);
+          if (orgWithSubdomain && orgWithSubdomain.id !== orgId) {
             return res.status(409).json({ 
               message: "This subdomain is already in use by another organization",
               error: "SUBDOMAIN_TAKEN"
             });
           }
         } else {
-          // Allow clearing subdomain
+          // Only allow clearing subdomain if it wasn't already set
+          if (existingOrg?.subdomain) {
+            return res.status(403).json({ 
+              message: "Subdomain cannot be removed once set. This is a one-time configuration for security reasons.",
+              error: "SUBDOMAIN_IMMUTABLE"
+            });
+          }
           updateData.subdomain = null;
         }
       }

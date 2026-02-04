@@ -43,3 +43,9 @@ waitForPort = 5000
 [agent]
 expertMode = true
 integrations = ["javascript_gemini:1.0.0", "agentmail:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+BASE_DOMAIN = "extrapl.io"
+VITE_BASE_DOMAIN = "extrapl.io"
