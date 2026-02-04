@@ -271,23 +271,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password hash from response
       const { passwordHash, ...userResponse } = userWithOrg;
 
-      // Get organization subdomain for redirect
-      const org = await storage.getOrganization(user.organizationId);
+      // Get user's organization memberships
+      const userOrgs = await storage.getUserOrganizations(user.id);
       
-      // Check if user is accessing from wrong subdomain
-      if (req.tenantOrg && req.tenantOrg.id !== user.organizationId) {
-        return res.status(403).json({ 
-          message: "This account belongs to a different organization",
-          redirectSubdomain: org?.subdomain
-        });
+      // Check if user is accessing from a subdomain they belong to
+      if (req.tenantOrg) {
+        const belongsToTenant = userOrgs.some(uo => uo.organizationId === req.tenantOrg!.id);
+        if (!belongsToTenant) {
+          // User doesn't belong to this tenant, redirect to their primary org
+          const primaryOrg = await storage.getOrganization(user.organizationId);
+          return res.status(403).json({ 
+            message: "This account does not have access to this organization",
+            redirectSubdomain: primaryOrg?.subdomain
+          });
+        }
       }
+
+      // Get the subdomain for the current tenant (if on a tenant) or primary org
+      const currentOrg = req.tenantOrg 
+        ? await storage.getOrganization(req.tenantOrg.id)
+        : await storage.getOrganization(user.organizationId);
 
       res.json({ 
         user: userResponse, 
         token,
         message: "Login successful",
         requiresPasswordChange: user.isTemporaryPassword,
-        subdomain: org?.subdomain
+        subdomain: currentOrg?.subdomain
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -302,19 +312,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if user is on wrong subdomain
-      if (req.tenantOrg && req.tenantOrg.id !== user.organizationId) {
-        return res.status(403).json({ 
-          message: "Access denied: You are on the wrong organization subdomain",
-          error: "TENANT_MISMATCH"
-        });
+      // Check if user belongs to the current tenant via junction table
+      if (req.tenantOrg) {
+        const userOrgs = await storage.getUserOrganizations(user.id);
+        const belongsToTenant = userOrgs.some(uo => uo.organizationId === req.tenantOrg!.id);
+        if (!belongsToTenant) {
+          return res.status(403).json({ 
+            message: "Access denied: You do not have access to this organization",
+            error: "TENANT_MISMATCH"
+          });
+        }
       }
 
       // Remove password hash from response
       const { passwordHash, ...userResponse } = user;
       res.json({
         ...userResponse,
-        subdomain: user.organization?.subdomain
+        subdomain: req.tenantOrg?.subdomain || user.organization?.subdomain
       });
     } catch (error) {
       console.error("Get user error:", error);
