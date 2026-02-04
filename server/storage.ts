@@ -2645,51 +2645,27 @@ class PostgreSQLStorage implements IStorage {
       let projectsList;
       
       if (organizationId) {
-        // Check if user is from primary organization (system admin)
-        const organization = await this.getOrganization(organizationId);
-        
-        if (organization?.type === 'primary' && userRole === 'admin') {
-          // Primary organization admins can see ALL projects in the system
-          projectsList = await this.db
-            .select({
-              id: projects.id,
-              name: projects.name,
-              description: projects.description,
-              organizationId: projects.organizationId,
-              createdBy: projects.createdBy,
-              mainObjectName: projects.mainObjectName,
-              status: projects.status,
-              isInitialSetupComplete: projects.isInitialSetupComplete,
-              createdAt: projects.createdAt,
-              creatorName: users.name,
-              creatorOrganizationName: organizations.name
-            })
-            .from(projects)
-            .leftJoin(users, eq(projects.createdBy, users.id))
-            .leftJoin(organizations, eq(users.organizationId, organizations.id))
-            .orderBy(sql`${projects.createdAt} DESC`);
-        } else {
-          // Strict tenant isolation: only show projects owned by this organization
-          projectsList = await this.db
-            .select({
-              id: projects.id,
-              name: projects.name,
-              description: projects.description,
-              organizationId: projects.organizationId,
-              createdBy: projects.createdBy,
-              mainObjectName: projects.mainObjectName,
-              status: projects.status,
-              isInitialSetupComplete: projects.isInitialSetupComplete,
-              createdAt: projects.createdAt,
-              creatorName: users.name,
-              creatorOrganizationName: organizations.name
-            })
-            .from(projects)
-            .leftJoin(users, eq(projects.createdBy, users.id))
-            .leftJoin(organizations, eq(users.organizationId, organizations.id))
-            .where(eq(projects.organizationId, organizationId))
-            .orderBy(sql`${projects.createdAt} DESC`);
-        }
+        // Strict tenant isolation: only show projects owned by this organization
+        // Even System Admin only sees their own org's projects on the dashboard
+        projectsList = await this.db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            organizationId: projects.organizationId,
+            createdBy: projects.createdBy,
+            mainObjectName: projects.mainObjectName,
+            status: projects.status,
+            isInitialSetupComplete: projects.isInitialSetupComplete,
+            createdAt: projects.createdAt,
+            creatorName: users.name,
+            creatorOrganizationName: organizations.name
+          })
+          .from(projects)
+          .leftJoin(users, eq(projects.createdBy, users.id))
+          .leftJoin(organizations, eq(users.organizationId, organizations.id))
+          .where(eq(projects.organizationId, organizationId))
+          .orderBy(sql`${projects.createdAt} DESC`);
       } else {
         // No organization filter - return all (for system-level operations)
         projectsList = await this.db
