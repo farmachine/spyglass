@@ -424,12 +424,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.createUser(result.data);
       
+      // Also add to user_organizations junction table
+      await storage.addUserToOrganization(user.id, result.data.organizationId, result.data.role || 'user');
+      
       // Remove password hash from response
       const { passwordHash, ...userResponse } = user;
       res.status(201).json(userResponse);
     } catch (error) {
       console.error("Create user error:", error);
       res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Get organization members (via junction table for multi-org support)
+  app.get("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.params.id;
+      const members = await storage.getOrganizationMembers(organizationId);
+      
+      // Remove password hashes from response
+      const safeMembers = members.map(({ passwordHash, ...member }) => member);
+      res.json(safeMembers);
+    } catch (error) {
+      console.error("Get organization members error:", error);
+      res.status(500).json({ message: "Failed to fetch organization members" });
+    }
+  });
+
+  // Add existing user to organization
+  app.post("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.params.id;
+      const { userId, email, role } = req.body;
+      
+      let targetUser;
+      if (userId) {
+        targetUser = await storage.getUser(userId);
+      } else if (email) {
+        targetUser = await storage.getUserByEmail(email);
+      }
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const success = await storage.addUserToOrganization(targetUser.id, organizationId, role || 'user');
+      
+      if (success) {
+        res.json({ message: "User added to organization successfully", userId: targetUser.id });
+      } else {
+        res.status(400).json({ message: "Failed to add user to organization" });
+      }
+    } catch (error) {
+      console.error("Add user to organization error:", error);
+      res.status(500).json({ message: "Failed to add user to organization" });
+    }
+  });
+
+  // Remove user from organization
+  app.delete("/api/organizations/:id/members/:userId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const { id: organizationId, userId } = req.params;
+      
+      const success = await storage.removeUserFromOrganization(userId, organizationId);
+      
+      if (success) {
+        res.json({ message: "User removed from organization successfully" });
+      } else {
+        res.status(404).json({ message: "User not found in organization" });
+      }
+    } catch (error) {
+      console.error("Remove user from organization error:", error);
+      res.status(500).json({ message: "Failed to remove user from organization" });
+    }
+  });
+
+  // Get all users (for adding existing users to organizations)
+  app.get("/api/all-users", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      // Get all users for search/selection purposes
+      const allOrgs = await storage.getOrganizations();
+      const allUsers: any[] = [];
+      
+      for (const org of allOrgs) {
+        const orgUsers = await storage.getUsers(org.id);
+        for (const user of orgUsers) {
+          const { passwordHash, ...safeUser } = user;
+          allUsers.push({ ...safeUser, organizationName: org.name });
+        }
+      }
+      
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Get all users error:", error);
+      res.status(500).json({ message: "Failed to fetch all users" });
     }
   });
 

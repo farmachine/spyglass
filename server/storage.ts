@@ -37,6 +37,7 @@ import {
   fieldValidations,
   organizations,
   users,
+  userOrganizations,
   chatMessages,
   excelWizardryFunctions,
   extractionIdentifierReferences,
@@ -179,6 +180,12 @@ export interface IStorage {
   resetUserPassword(userId: string, tempPassword: string): Promise<{ tempPassword: string }>;
   updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
   updateUserProjectOrder(userId: string, projectOrder: string[]): Promise<User | undefined>;
+  
+  // Multi-organization membership
+  getOrganizationMembers(organizationId: string): Promise<(User & { orgRole: string })[]>;
+  addUserToOrganization(userId: string, organizationId: string, role?: string): Promise<boolean>;
+  removeUserFromOrganization(userId: string, organizationId: string): Promise<boolean>;
+  getUserOrganizations(userId: string): Promise<{ organizationId: string; organizationName: string; role: string }[]>;
 
   // Projects (organization-filtered / tenant-isolated)
   getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
@@ -1009,6 +1016,29 @@ export class MemStorage implements IStorage {
     };
     this.users.set(user.id, updated);
     return updated;
+  }
+
+  // Multi-organization membership (stub implementations for MemStorage)
+  async getOrganizationMembers(organizationId: string): Promise<(User & { orgRole: string })[]> {
+    return Array.from(this.users.values())
+      .filter(u => u.organizationId === organizationId)
+      .map(u => ({ ...u, orgRole: u.role }));
+  }
+
+  async addUserToOrganization(userId: string, organizationId: string, role: string = 'user'): Promise<boolean> {
+    return true;
+  }
+
+  async removeUserFromOrganization(userId: string, organizationId: string): Promise<boolean> {
+    return true;
+  }
+
+  async getUserOrganizations(userId: string): Promise<{ organizationId: string; organizationName: string; role: string }[]> {
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+    if (!user) return [];
+    const org = this.organizations.get(user.organizationId);
+    if (!org) return [];
+    return [{ organizationId: user.organizationId as string, organizationName: org.name, role: user.role }];
   }
 
   // Projects (with organization filtering)
@@ -2637,6 +2667,68 @@ class PostgreSQLStorage implements IStorage {
       .returning();
     
     return result[0];
+  }
+
+  // Multi-organization membership methods
+  async getOrganizationMembers(organizationId: string): Promise<(User & { orgRole: string })[]> {
+    const result = await this.db
+      .select({
+        id: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        name: users.name,
+        organizationId: users.organizationId,
+        role: users.role,
+        isActive: users.isActive,
+        isTemporaryPassword: users.isTemporaryPassword,
+        projectOrder: users.projectOrder,
+        createdAt: users.createdAt,
+        orgRole: userOrganizations.role,
+      })
+      .from(userOrganizations)
+      .innerJoin(users, eq(userOrganizations.userId, users.id))
+      .where(eq(userOrganizations.organizationId, organizationId));
+    
+    return result;
+  }
+
+  async addUserToOrganization(userId: string, organizationId: string, role: string = 'user'): Promise<boolean> {
+    try {
+      await this.db
+        .insert(userOrganizations)
+        .values({ userId, organizationId, role })
+        .onConflictDoNothing();
+      return true;
+    } catch (error) {
+      console.error('Error adding user to organization:', error);
+      return false;
+    }
+  }
+
+  async removeUserFromOrganization(userId: string, organizationId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(userOrganizations)
+      .where(
+        and(
+          eq(userOrganizations.userId, userId),
+          eq(userOrganizations.organizationId, organizationId)
+        )
+      );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getUserOrganizations(userId: string): Promise<{ organizationId: string; organizationName: string; role: string }[]> {
+    const result = await this.db
+      .select({
+        organizationId: userOrganizations.organizationId,
+        organizationName: organizations.name,
+        role: userOrganizations.role,
+      })
+      .from(userOrganizations)
+      .innerJoin(organizations, eq(userOrganizations.organizationId, organizations.id))
+      .where(eq(userOrganizations.userId, userId));
+    
+    return result;
   }
 
   // Get projects with strict tenant isolation - only returns projects belonging to the organization
