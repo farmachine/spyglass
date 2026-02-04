@@ -387,13 +387,13 @@ export default function OrganizationConfig() {
 
                 <div className="pt-6 border-t">
                   <h3 className="text-lg font-medium text-red-600 mb-4">Danger Zone</h3>
-                  {organization?.type === "primary" ? (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  {(organization?.type === "primary" || selectedOrg?.type === "primary") ? (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="default">Primary Organization</Badge>
+                        <Badge variant="default">System Admin</Badge>
                       </div>
-                      <p className="text-sm text-yellow-700">
-                        Primary organizations cannot be deleted. You can only modify the name, description, and manage users.
+                      <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                        The System Admin organization cannot be deleted. This is the primary administrative console for the platform.
                       </p>
                     </div>
                   ) : (
