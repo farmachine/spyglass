@@ -49,13 +49,24 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
-  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }), // Primary organization (kept for backwards compatibility)
   role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
   projectOrder: jsonb("project_order"), // Array of project IDs for custom ordering
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Junction table for multi-organization membership
+export const userOrganizations = pgTable("user_organizations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  role: text("role").default("user").notNull(), // 'admin', 'user' - role within this specific organization
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueUserOrg: uniqueIndex("user_org_unique_idx").on(table.userId, table.organizationId),
+}));
 
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -464,6 +475,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   passwordHash: true, // Don't include password hash in normal insert, handle separately
 });
 
+export const insertUserOrganizationSchema = createInsertSchema(userOrganizations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   createdAt: true,
@@ -592,6 +608,8 @@ export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UserOrganization = typeof userOrganizations.$inferSelect;
+export type InsertUserOrganization = z.infer<typeof insertUserOrganizationSchema>;
 export type Project = typeof projects.$inferSelect;
 export type ProjectWithAuthor = Project & {
   creatorName?: string;
