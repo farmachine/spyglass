@@ -37,7 +37,6 @@ import {
   fieldValidations,
   organizations,
   users,
-  projectPublishing,
   chatMessages,
   excelWizardryFunctions,
   extractionIdentifierReferences,
@@ -72,8 +71,6 @@ import {
   type InsertUser,
   type OrganizationWithUsers,
   type UserWithOrganization,
-  type ProjectPublishing,
-  type InsertProjectPublishing,
   type ChatMessage,
   type InsertChatMessage,
   type ExcelWizardryFunction,
@@ -183,9 +180,8 @@ export interface IStorage {
   updateUserPassword(userId: string, newPasswordHash: string, isTemporary: boolean): Promise<User | undefined>;
   updateUserProjectOrder(userId: string, projectOrder: string[]): Promise<User | undefined>;
 
-  // Projects (organization-filtered)
+  // Projects (organization-filtered / tenant-isolated)
   getProjects(organizationId?: string, userRole?: string): Promise<Project[]>;
-  getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]>;
   getProject(id: string, organizationId?: string): Promise<Project | undefined>;
   getProjectByInboxId(inboxId: string): Promise<Project | undefined>;
   getProjectWithDetails(id: string, organizationId?: string): Promise<ProjectWithDetails | undefined>;
@@ -260,12 +256,6 @@ export interface IStorage {
   populateMissingCollectionIds(): Promise<void>;
   getCollectionByName(collectionName: string): Promise<(ObjectCollection & { properties: CollectionProperty[] }) | undefined>;
   initializeAllValidationRecords(sessionId: string, stepId: string, identifierIds: string[]): Promise<void>;
-
-  // Project Publishing
-  getProjectPublishing(projectId: string): Promise<ProjectPublishing[]>;
-  getProjectPublishedOrganizations(projectId: string): Promise<Organization[]>;
-  publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing>;
-  unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean>;
 
   // Chat Messages
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
@@ -369,7 +359,6 @@ export class MemStorage implements IStorage {
   private knowledgeDocuments: Map<string, KnowledgeDocument>;
   private extractionRules: Map<string, ExtractionRule>;
   private fieldValidations: Map<string, FieldValidation>;
-  private projectPublishing: Map<string, ProjectPublishing>;
   private chatMessages: Map<string, ChatMessage>;
   private excelWizardryFunctions: Map<string, ExcelWizardryFunction>;
   private extractionIdentifierReferences: Map<string, ExtractionIdentifierReference>;
@@ -390,7 +379,6 @@ export class MemStorage implements IStorage {
     this.knowledgeDocuments = new Map();
     this.extractionRules = new Map();
     this.fieldValidations = new Map();
-    this.projectPublishing = new Map();
     this.chatMessages = new Map();
     this.excelWizardryFunctions = new Map();
     this.extractionIdentifierReferences = new Map();
@@ -1036,16 +1024,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getProjectsWithPublishedOrganizations(organizationId?: number, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
-    const projects = await this.getProjects(organizationId, userRole);
-    
-    // For MemStorage, just return empty published organizations since this is mainly for testing
-    return projects.map(project => ({
-      ...project,
-      publishedOrganizations: []
-    }));
-  }
-
   async getProject(id: number, organizationId?: number): Promise<Project | undefined> {
     const project = this.projects.get(id);
     if (!project) return undefined;
@@ -1373,46 +1351,9 @@ export class MemStorage implements IStorage {
       }
     }
     
-    // Duplicate Publishing Settings (project_published_orgs)
-    const originalPublishingSettings = Array.from(this.projectPublishedOrgs.values())
-      .filter(pub => pub.projectId === originalProject.id.toString());
-    
-    for (const pub of originalPublishingSettings) {
-      const duplicatedPublishing = {
-        projectId: duplicatedProject.id.toString(),
-        organizationId: pub.organizationId,
-        createdAt: new Date(),
-      };
-      const key = `${duplicatedPublishing.projectId}-${duplicatedPublishing.organizationId}`;
-      this.projectPublishedOrgs.set(key, duplicatedPublishing);
-    }
-    
     // Note: We don't duplicate sessions or validations as these are instance-specific data
     
     return duplicatedProject;
-  }
-
-  // Project Publishing methods (MemStorage stubs)
-  async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> {
-    return [];
-  }
-
-  async getProjectPublishedOrganizations(projectId: string): Promise<Organization[]> {
-    return [];
-  }
-
-  async publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing> {
-    const id = this.generateUUID();
-    const projectPublishing: ProjectPublishing = {
-      ...publishing,
-      id,
-      createdAt: new Date(),
-    };
-    return projectPublishing;
-  }
-
-  async unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean> {
-    return true;
   }
 
   // Project Schema Fields
@@ -2697,174 +2638,96 @@ class PostgreSQLStorage implements IStorage {
     return result[0];
   }
 
-  // Get published organizations for projects
-  async getProjectsWithPublishedOrganizations(organizationId?: string, userRole?: string): Promise<(Project & { publishedOrganizations: Organization[] })[]> {
-    return this.retryOperation(async () => {
-    let projectsList;
-    
-    if (organizationId) {
-      // Get organization details to check if it's primary
-      const organization = await this.getOrganization(organizationId);
-      
-      if (organization?.type === 'primary' && userRole === 'admin') {
-        // Primary organization admins can see ALL projects in the system
-        projectsList = await this.db
-          .select({
-            id: projects.id,
-            name: projects.name,
-            description: projects.description,
-            organizationId: projects.organizationId,
-            createdBy: projects.createdBy,
-            mainObjectName: projects.mainObjectName,
-            status: projects.status,
-            isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt,
-            creatorName: users.name,
-            creatorOrganizationName: organizations.name
-          })
-          .from(projects)
-          .leftJoin(users, eq(projects.createdBy, users.id))
-          .leftJoin(organizations, eq(users.organizationId, organizations.id))
-          .orderBy(sql`${projects.createdAt} DESC`);
-      } else if (organization?.type === 'primary' && userRole === 'user') {
-        // For regular users in primary organizations, only show published projects
-        projectsList = await this.db
-          .select({
-            id: projects.id,
-            name: projects.name,
-            description: projects.description,
-            organizationId: projects.organizationId,
-            createdBy: projects.createdBy,
-            mainObjectName: projects.mainObjectName,
-            status: projects.status,
-            isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt,
-            creatorName: users.name,
-            creatorOrganizationName: organizations.name
-          })
-          .from(projects)
-          .innerJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
-          .leftJoin(users, eq(projects.createdBy, users.id))
-          .leftJoin(organizations, eq(users.organizationId, organizations.id))
-          .where(eq(projectPublishing.organizationId, organizationId))
-          .orderBy(sql`${projects.createdAt} DESC`);
-      } else {
-        // For admins or users in non-primary organizations: owned OR published projects
-        const result = await this.db
-          .select({
-            id: projects.id,
-            name: projects.name,
-            description: projects.description,
-            organizationId: projects.organizationId,
-            createdBy: projects.createdBy,
-            mainObjectName: projects.mainObjectName,
-            status: projects.status,
-            isInitialSetupComplete: projects.isInitialSetupComplete,
-            createdAt: projects.createdAt,
-            creatorName: users.name,
-            creatorOrganizationName: organizations.name
-          })
-          .from(projects)
-          .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
-          .leftJoin(users, eq(projects.createdBy, users.id))
-          .leftJoin(organizations, eq(users.organizationId, organizations.id))
-          .where(
-            or(
-              eq(projects.organizationId, organizationId),
-              eq(projectPublishing.organizationId, organizationId)
-            )
-          )
-          .orderBy(sql`${projects.createdAt} DESC`);
-        
-        // Remove duplicates that might occur from the join
-        projectsList = result.reduce((acc, project) => {
-          if (!acc.find(p => p.id === project.id)) {
-            acc.push(project);
-          }
-          return acc;
-        }, [] as any[]);
-      }
-    } else {
-      projectsList = await this.db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          description: projects.description,
-          organizationId: projects.organizationId,
-          createdBy: projects.createdBy,
-          mainObjectName: projects.mainObjectName,
-          status: projects.status,
-          isInitialSetupComplete: projects.isInitialSetupComplete,
-          createdAt: projects.createdAt,
-          creatorName: users.name,
-          creatorOrganizationName: organizations.name
-        })
-        .from(projects)
-        .leftJoin(users, eq(projects.createdBy, users.id))
-        .leftJoin(organizations, eq(users.organizationId, organizations.id))
-        .orderBy(sql`${projects.createdAt} DESC`);
-    }
-
-    // For each project, get published organizations
-    const projectsWithOrgs = await Promise.all(
-      projectsList.map(async (project) => {
-        const publishedOrgs = await this.db
-          .select({
-            id: organizations.id,
-            name: organizations.name,
-            description: organizations.description,
-            type: organizations.type,
-            createdAt: organizations.createdAt
-          })
-          .from(organizations)
-          .innerJoin(projectPublishing, eq(projectPublishing.organizationId, organizations.id))
-          .where(eq(projectPublishing.projectId, project.id));
-
-        return {
-          ...project,
-          publishedOrganizations: publishedOrgs
-        };
-      })
-    );
-
-    return projectsWithOrgs;
-    });
-  }
-
-  // For now, implement minimal project methods to prevent errors
+  // Get projects with strict tenant isolation - only returns projects belonging to the organization
   async getProjects(organizationId?: string, userRole?: string): Promise<Project[]> {
-    const projectsWithOrgs = await this.getProjectsWithPublishedOrganizations(organizationId, userRole);
-    return projectsWithOrgs.map(({ publishedOrganizations, ...project }) => project);
+    return this.retryOperation(async () => {
+      let projectsList;
+      
+      if (organizationId) {
+        // Check if user is from primary organization (system admin)
+        const organization = await this.getOrganization(organizationId);
+        
+        if (organization?.type === 'primary' && userRole === 'admin') {
+          // Primary organization admins can see ALL projects in the system
+          projectsList = await this.db
+            .select({
+              id: projects.id,
+              name: projects.name,
+              description: projects.description,
+              organizationId: projects.organizationId,
+              createdBy: projects.createdBy,
+              mainObjectName: projects.mainObjectName,
+              status: projects.status,
+              isInitialSetupComplete: projects.isInitialSetupComplete,
+              createdAt: projects.createdAt,
+              creatorName: users.name,
+              creatorOrganizationName: organizations.name
+            })
+            .from(projects)
+            .leftJoin(users, eq(projects.createdBy, users.id))
+            .leftJoin(organizations, eq(users.organizationId, organizations.id))
+            .orderBy(sql`${projects.createdAt} DESC`);
+        } else {
+          // Strict tenant isolation: only show projects owned by this organization
+          projectsList = await this.db
+            .select({
+              id: projects.id,
+              name: projects.name,
+              description: projects.description,
+              organizationId: projects.organizationId,
+              createdBy: projects.createdBy,
+              mainObjectName: projects.mainObjectName,
+              status: projects.status,
+              isInitialSetupComplete: projects.isInitialSetupComplete,
+              createdAt: projects.createdAt,
+              creatorName: users.name,
+              creatorOrganizationName: organizations.name
+            })
+            .from(projects)
+            .leftJoin(users, eq(projects.createdBy, users.id))
+            .leftJoin(organizations, eq(users.organizationId, organizations.id))
+            .where(eq(projects.organizationId, organizationId))
+            .orderBy(sql`${projects.createdAt} DESC`);
+        }
+      } else {
+        // No organization filter - return all (for system-level operations)
+        projectsList = await this.db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            organizationId: projects.organizationId,
+            createdBy: projects.createdBy,
+            mainObjectName: projects.mainObjectName,
+            status: projects.status,
+            isInitialSetupComplete: projects.isInitialSetupComplete,
+            createdAt: projects.createdAt,
+            creatorName: users.name,
+            creatorOrganizationName: organizations.name
+          })
+          .from(projects)
+          .leftJoin(users, eq(projects.createdBy, users.id))
+          .leftJoin(organizations, eq(users.organizationId, organizations.id))
+          .orderBy(sql`${projects.createdAt} DESC`);
+      }
+      
+      return projectsList;
+    });
   }
 
   async getProject(id: string, organizationId?: string): Promise<Project | undefined> {
     let result;
     if (organizationId) {
-      // Check if project belongs to organization OR is published to the organization
+      // Strict tenant isolation: only return project if it belongs to the organization
       result = await this.db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          description: projects.description,
-          organizationId: projects.organizationId,
-          mainObjectName: projects.mainObjectName,
-          mainObjectDescription: projects.mainObjectDescription,
-          isInitialSetupComplete: projects.isInitialSetupComplete,
-          createdAt: projects.createdAt,
-          inboxEmailAddress: projects.inboxEmailAddress,
-          inboxId: projects.inboxId,
-          requiredDocumentTypes: projects.requiredDocumentTypes,
-          emailNotificationTemplate: projects.emailNotificationTemplate
-        })
+        .select()
         .from(projects)
-        .leftJoin(projectPublishing, eq(projectPublishing.projectId, projects.id))
         .where(
-          or(
-            eq(projects.organizationId, organizationId),
-            eq(projectPublishing.organizationId, organizationId)
+          and(
+            eq(projects.id, id),
+            eq(projects.organizationId, organizationId)
           )
         )
-        .where(eq(projects.id, id))
         .limit(1);
     } else {
       result = await this.db
@@ -3135,15 +2998,6 @@ class PostgreSQLStorage implements IStorage {
         };
         await this.createStepValue(duplicatedValue);
       }
-    }
-
-    // Duplicate Publishing Settings (project_published_orgs)
-    const originalPublishingSettings = await this.getProjectPublishedOrganizations(id);
-    for (const publishedOrg of originalPublishingSettings) {
-      await this.publishProjectToOrganization({
-        projectId: newProjectId,
-        organizationId: publishedOrg.id,
-      });
     }
 
     // Note: We don't duplicate sessions or validations as these are instance-specific data
@@ -3854,47 +3708,6 @@ class PostgreSQLStorage implements IStorage {
         }
       }
     }
-  }
-
-  // Project Publishing methods
-  async getProjectPublishing(projectId: string): Promise<ProjectPublishing[]> { 
-    const result = await this.db
-      .select()
-      .from(projectPublishing)
-      .where(eq(projectPublishing.projectId, projectId));
-    return result;
-  }
-
-  async getProjectPublishedOrganizations(projectId: string): Promise<Organization[]> { 
-    const result = await this.db
-      .select({
-        id: organizations.id,
-        name: organizations.name,
-        description: organizations.description,
-        type: organizations.type,
-        createdAt: organizations.createdAt,
-      })
-      .from(projectPublishing)
-      .innerJoin(organizations, eq(organizations.id, projectPublishing.organizationId))
-      .where(eq(projectPublishing.projectId, projectId));
-    return result;
-  }
-
-  async publishProjectToOrganization(publishing: InsertProjectPublishing): Promise<ProjectPublishing> { 
-    const result = await this.db.insert(projectPublishing).values(publishing).returning();
-    return result[0];
-  }
-
-  async unpublishProjectFromOrganization(projectId: string, organizationId: string): Promise<boolean> { 
-    const result = await this.db
-      .delete(projectPublishing)
-      .where(
-        and(
-          eq(projectPublishing.projectId, projectId),
-          eq(projectPublishing.organizationId, organizationId)
-        )
-      );
-    return result.rowCount > 0;
   }
 
   // Session Documents

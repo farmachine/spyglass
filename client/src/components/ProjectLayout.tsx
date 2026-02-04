@@ -17,7 +17,6 @@ import type { FieldValidation } from "@/types/api";
 import AllData from "./AllData";
 import KnowledgeRules from "./KnowledgeRules";
 import DefineData from "./DefineData";
-import Publishing from "./Publishing";
 import UserProfile from "./UserProfile";
 import Breadcrumb from "./Breadcrumb";
 import ExtraplLogo from "./ExtraplLogo";
@@ -29,7 +28,7 @@ interface ProjectLayoutProps {
   projectId: string;
 }
 
-type ActiveTab = "data" | "knowledge" | "define" | "publishing";
+type ActiveTab = "data" | "knowledge" | "define";
 
 export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const [, setLocation] = useLocation();
@@ -59,7 +58,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   const isAdmin = user?.role === 'admin';
   const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
   const canAccessConfigTabs = isAdmin;
-  const canAccessPublishing = isPrimaryOrgAdmin;
   const canEditProject = isAdmin;
 
   // Fetch validation data for statistics (only when project has sessions)
@@ -131,9 +129,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         case 'define-data':
         case 'define':
           if (canAccessConfigTabs) setActiveTab('define');
-          break;
-        case 'publishing':
-          if (canAccessPublishing) setActiveTab('publishing');
           break;
         default:
           setActiveTab('data');
@@ -307,9 +302,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
       { id: "knowledge" as const, label: "Knowledge Base", icon: GraduationCap, disabled: showWelcomeFlow },
       { id: "define" as const, label: "Steps", icon: StreamIcon, disabled: false }, // Steps always enabled
     ] : []),
-    ...(canAccessPublishing ? [
-      { id: "publishing" as const, label: "Publishing", icon: ShipIcon, disabled: showWelcomeFlow },
-    ] : []),
   ];
 
   const renderActiveContent = () => {
@@ -320,8 +312,6 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
         return <KnowledgeRules project={project} />;
       case "define":
         return <DefineData project={project} activeTab={schemaActiveTab} onTabChange={setSchemaActiveTab} onSetAddCollectionCallback={(callback) => { addCollectionCallbackRef.current = callback; }} />;
-      case "publishing":
-        return <Publishing project={project} />;
       default:
         return <AllData project={project} />;
     }

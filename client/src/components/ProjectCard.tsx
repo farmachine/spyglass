@@ -39,7 +39,7 @@ import type { ProjectWithAuthor, Organization, ProjectWithDetails, FieldValidati
 
 
 interface ProjectCardProps {
-  project: ProjectWithAuthor & { publishedOrganizations?: Organization[] };
+  project: ProjectWithAuthor;
   onSwapLeft?: (projectId: string) => void;
   onSwapRight?: (projectId: string) => void;
   canMoveLeft?: boolean;
@@ -63,11 +63,6 @@ export default function ProjectCard({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Use published organizations from project data
-  const publishedOrganizations = project.publishedOrganizations || [];
-  
-  // Check if user is admin from primary organization
-  const canSeeOrganizationBadges = user?.role === 'admin' && user?.organization?.type === 'primary';
 
   // Fetch project details with sessions
   const { data: projectDetails } = useQuery<ProjectWithDetails>({
@@ -335,37 +330,6 @@ export default function ProjectCard({
 
           </div>
           
-          {/* Organizations column - positioned absolutely in right side */}
-          <div className="absolute bottom-4 right-6 flex flex-col items-end justify-end gap-1 min-h-[32px]">
-            {canSeeOrganizationBadges && (
-              publishedOrganizations.length > 0 ? (
-                publishedOrganizations
-                  .sort((a: Organization & { type?: string }, b: Organization & { type?: string }) => {
-                    // Sort by type first (primary first), then by creation order (reversed for bottom-up stacking)
-                    if (a.type === 'primary' && b.type !== 'primary') return 1; // Primary goes to bottom
-                    if (b.type === 'primary' && a.type !== 'primary') return -1;
-                    return 0; // Keep relative order for same type
-                  })
-                  .map((org: Organization & { type?: string }) => (
-                    <Badge 
-                      key={org.id} 
-                      variant="secondary" 
-                      className={`text-xs font-normal px-1.5 py-0 border ${
-                        org.type === 'primary' 
-                          ? 'bg-gray-200 text-black border-gray-300' 
-                          : 'bg-green-100 text-green-700 border-green-200'
-                      }`}
-                    >
-                      {org.name}
-                    </Badge>
-                  ))
-              ) : (
-                <div className="text-xs font-medium text-black/50 dark:text-gray-500 italic">
-                  Not published
-                </div>
-              )
-            )}
-          </div>
         </CardContent>
         
         {/* Fade to white gradient overlay at the bottom */}

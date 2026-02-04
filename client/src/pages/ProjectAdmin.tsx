@@ -9,7 +9,6 @@ import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/contexts/AuthContext";
 import KnowledgeRules from "@/components/KnowledgeRules";
 import DefineData from "@/components/DefineData";
-import Publishing from "@/components/Publishing";
 import ExtraplLogo from "@/components/ExtraplLogo";
 import UserProfile from "@/components/UserProfile";
 import DarkModeToggle from "@/components/DarkModeToggle";
@@ -21,7 +20,7 @@ interface ProjectAdminProps {
   projectId: string;
 }
 
-type AdminTab = "data" | "knowledge" | "rules" | "tools" | "publish" | "connect";
+type AdminTab = "data" | "knowledge" | "rules" | "tools" | "connect";
 
 export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const [, setLocation] = useLocation();
@@ -38,7 +37,6 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   const isAdmin = user?.role === 'admin';
   const isPrimaryOrgAdmin = isAdmin && user?.organization?.type === 'primary';
   const canAccessConfigTabs = isAdmin;
-  const canAccessPublishing = isPrimaryOrgAdmin;
 
   if (error) {
     return (
@@ -115,9 +113,6 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
       { id: "rules" as const, label: "Rulebook", icon: Brain, disabled: false },
       { id: "tools" as const, label: "Toolbox", icon: Wrench, disabled: false },
     ] : []),
-    ...(canAccessPublishing ? [
-      { id: "publish" as const, label: "Publish", icon: ShipIcon, disabled: false },
-    ] : []),
     ...(canAccessConfigTabs ? [
       { id: "connect" as const, label: "Connect", icon: Link2, disabled: false },
     ] : []),
@@ -133,8 +128,6 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
         return <KnowledgeRules project={project} mode="rules" />;
       case "tools":
         return <Tools projectId={projectId} />;
-      case "publish":
-        return <Publishing project={project} />;
       case "connect":
         return <DataSourcesPanel projectId={projectId} />;
       default:

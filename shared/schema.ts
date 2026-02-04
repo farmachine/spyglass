@@ -74,7 +74,8 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Project publishing to organizations
+// DEPRECATED: Project publishing to organizations - no longer used for tenant isolation
+// Table kept for backwards compatibility, will be removed in future migration
 export const projectPublishing = pgTable("project_publishing", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),

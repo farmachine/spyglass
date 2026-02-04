@@ -10,6 +10,19 @@ extrapl is an AI-powered document data extraction platform designed for legal an
 
 ## System Architecture
 
+### Multi-Tenancy Architecture
+**Organizations are Tenants**: In this system, "organizations" represent isolated tenants with strict data boundaries:
+- Each organization has its own projects, users, and data that cannot be accessed by other organizations
+- Subdomain-based routing provides tenant identification (e.g., `acme.extrapl.com`)
+- The `authenticateToken` middleware enforces tenant validation on all authenticated routes
+- Projects can only be created and accessed within a tenant's subdomain context
+- Primary organization admins have system-wide visibility for administrative purposes
+
+**Security Enforcement**:
+- Tenant validation is integrated into authentication middleware
+- Cross-tenant access attempts return 403 TENANT_MISMATCH errors
+- Environment variables `BASE_DOMAIN` (server) and `VITE_BASE_DOMAIN` (client) configure subdomain routing
+
 ### Core Architecture Principles
 The system uses strict architectural principles including identifier-based data mapping with UUIDs, tool-based extraction where each value is tied to a single, configuration-driven tool, and clear distinctions between multi-field (Info Page Steps) and single-field (Data Table Steps) extraction. It maintains data flow integrity using `orderIndex` and employs a unified database architecture where schema fields and collections are treated as "steps" with "values."
 

@@ -39,7 +39,6 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
-  insertProjectPublishingSchema,
   insertChatMessageSchema,
   insertExcelWizardryFunctionSchema
 } from "@shared/schema";
@@ -567,24 +566,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Projects (with authentication and organization filtering)
+  // Tenant isolation: projects are strictly filtered by user's organization
   app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
+      const projects = await storage.getProjects(req.user!.organizationId, req.user!.role);
       res.json(projects);
     } catch (error) {
       console.error("Get projects error:", error);
       res.status(500).json({ message: "Failed to fetch projects" });
-    }
-  });
-
-  // Projects with published organizations
-  app.get("/api/projects-with-orgs", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
-      res.json(projects);
-    } catch (error) {
-      console.error("Get projects with orgs error:", error);
-      res.status(500).json({ message: "Failed to fetch projects with organizations" });
     }
   });
 
@@ -622,31 +611,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const project = await storage.createProject(projectData);
-      
-      // Auto-publish logic: publish to primary organization and user's organization if different
-      try {
-        const primaryOrg = await storage.getPrimaryOrganization();
-        const userOrg = await storage.getOrganization(req.user!.organizationId);
-        
-        // Always publish to primary organization if it exists
-        if (primaryOrg) {
-          await storage.publishProjectToOrganization({
-            projectId: project.id,
-            organizationId: primaryOrg.id
-          });
-        }
-        
-        // If user is from non-primary organization, also publish to their organization
-        if (userOrg && userOrg.type !== 'primary' && userOrg.id !== primaryOrg?.id) {
-          await storage.publishProjectToOrganization({
-            projectId: project.id,
-            organizationId: userOrg.id
-          });
-        }
-      } catch (publishError) {
-        console.warn("Failed to auto-publish project:", publishError);
-        // Continue without failing the project creation
-      }
       
       // Auto-import default tools from the standard project template
       const DEFAULT_TOOLS_PROJECT_ID = 'adcdee71-ec36-4df9-bfdb-ff84bf923a62';
@@ -1275,94 +1239,6 @@ Respond with JSON only:
     } catch (error) {
       console.error("Delete project error:", error);
       res.status(500).json({ message: "Failed to delete project" });
-    }
-  });
-
-  // Project Publishing Endpoints
-  app.get("/api/projects/:id/publishing", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const projectId = req.params.id;
-      
-      // Get the project to check access
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-      
-      // Get published organizations
-      const organizations = await storage.getProjectPublishedOrganizations(projectId);
-      res.json(organizations);
-    } catch (error) {
-      console.error("Get project publishing error:", error);
-      res.status(500).json({ message: "Failed to fetch published organizations" });
-    }
-  });
-
-  app.post("/api/projects/:id/publishing", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const projectId = req.params.id;
-      const { organizationId } = req.body;
-      
-      // Only admin users can publish projects
-      if (req.user!.role !== "admin") {
-        return res.status(403).json({ message: "Only administrators can publish projects" });
-      }
-      
-      if (!organizationId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
-      
-      // Check if project exists
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-      
-      // Check if organization exists
-      const organization = await storage.getOrganization(organizationId);
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-      
-      // Publish the project
-      const publishing = await storage.publishProjectToOrganization({
-        projectId,
-        organizationId
-      });
-      
-      res.status(201).json(publishing);
-    } catch (error) {
-      console.error("Publish project error:", error);
-      res.status(500).json({ message: "Failed to publish project" });
-    }
-  });
-
-  app.delete("/api/projects/:id/publishing/:organizationId", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const projectId = req.params.id;
-      const organizationId = req.params.organizationId;
-      
-      // Only admin users can unpublish projects
-      if (req.user!.role !== "admin") {
-        return res.status(403).json({ message: "Only administrators can unpublish projects" });
-      }
-      
-      // Check if project exists
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: "Project not found" });
-      }
-      
-      // Unpublish the project
-      const success = await storage.unpublishProjectFromOrganization(projectId, organizationId);
-      if (!success) {
-        return res.status(404).json({ message: "Publishing not found" });
-      }
-      
-      res.status(204).send();
-    } catch (error) {
-      console.error("Unpublish project error:", error);
-      res.status(500).json({ message: "Failed to unpublish project" });
     }
   });
 
@@ -2833,8 +2709,8 @@ except Exception as e:
   // Dashboard Statistics
   app.get("/api/dashboard/statistics", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      // Get all projects accessible to the user
-      const projects = await storage.getProjectsWithPublishedOrganizations(req.user!.organizationId, req.user!.role);
+      // Get all projects accessible to the user (tenant-isolated)
+      const projects = await storage.getProjects(req.user!.organizationId, req.user!.role);
       
       // Filter only active projects
       const activeProjects = projects.filter(project => project.status !== "inactive");

@@ -2,8 +2,8 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Project, InsertProject, ProjectWithDetails } from "@shared/schema";
 
 export const projectsApi = {
-  getAll: (): Promise<(Project & { publishedOrganizations: { id: string; name: string; description: string | null; type: string; createdAt: Date; }[] })[]> => 
-    apiRequest("/api/projects-with-orgs"),
+  getAll: (): Promise<Project[]> => 
+    apiRequest("/api/projects"),
   
   getById: (id: string): Promise<ProjectWithDetails> =>
     apiRequest(`/api/projects/${id}`),

@@ -101,12 +101,7 @@ export default function Dashboard() {
     const nameMatch = project.name.toLowerCase().includes(query);
     const descriptionMatch = project.description?.toLowerCase().includes(query);
     
-    // Check published organizations
-    const orgMatch = project.publishedOrganizations?.some(org => 
-      org.name.toLowerCase().includes(query)
-    );
-    
-    return statusFilter && (nameMatch || descriptionMatch || orgMatch);
+    return statusFilter && (nameMatch || descriptionMatch);
   }) || [];
 
   // Apply custom ordering
