@@ -351,7 +351,8 @@ export default function OrganizationConfig() {
                       control={orgForm.control}
                       name="subdomain"
                       render={({ field }) => {
-                        const hasExistingSubdomain = !!organization?.subdomain;
+                        // Check both organization (from direct query) and selectedOrg (from list) for subdomain
+                        const hasExistingSubdomain = !!(organization?.subdomain || selectedOrg?.subdomain);
                         const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'extrapl.io';
                         return (
                           <FormItem>
