@@ -19,13 +19,18 @@ import DebugView from "@/pages/DebugView";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import TenantNotFound from "@/pages/TenantNotFound";
+import ComingSoon from "@/pages/ComingSoon";
 
 function getSubdomain(): string | null {
   const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'extrapl.io';
   const hostname = window.location.hostname;
   
-  if (hostname === baseDomain || hostname === 'localhost' || hostname.includes('replit')) {
+  if (hostname === 'localhost' || hostname.includes('replit')) {
     return null;
+  }
+  
+  if (hostname === baseDomain || hostname === `www.${baseDomain}`) {
+    return 'root';
   }
   
   const parts = hostname.split('.');
@@ -38,6 +43,10 @@ function getSubdomain(): string | null {
 
 function TenantValidator({ children }: { children: React.ReactNode }) {
   const subdomain = getSubdomain();
+  
+  if (subdomain === 'root') {
+    return <ComingSoon />;
+  }
   
   const { data, isLoading, isError } = useQuery({
     queryKey: ['/api/tenant/validate', subdomain],
