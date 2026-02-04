@@ -61,11 +61,14 @@ export default function OrganizationConfig() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [addExistingUserOpen, setAddExistingUserOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [editUserOpen, setEditUserOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [existingUserEmail, setExistingUserEmail] = useState("");
+  const [existingUserRole, setExistingUserRole] = useState<"admin" | "user">("user");
 
   const organizationId = id || "";
 
@@ -85,7 +88,8 @@ export default function OrganizationConfig() {
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<any[]>({
-    queryKey: ["/api/users", organizationId],
+    queryKey: ["/api/organizations", organizationId, "members"],
+    queryFn: () => apiRequest(`/api/organizations/${organizationId}/members`),
     enabled: user?.role === "admin" && !!organizationId,
   });
 
@@ -164,6 +168,34 @@ export default function OrganizationConfig() {
       toast({ 
         title: "User Updated",
         description: "User information updated successfully.",
+      });
+    },
+  });
+
+  const addExistingUserMutation = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      return apiRequest(`/api/organizations/${organizationId}/members`, {
+        method: "POST",
+        body: JSON.stringify({ email, role }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations", organizationId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+      setAddExistingUserOpen(false);
+      setExistingUserEmail("");
+      setExistingUserRole("user");
+      toast({ 
+        title: "User Added",
+        description: "Existing user has been added to this organization.",
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error",
+        description: error.message || "Failed to add user to organization",
+        variant: "destructive",
       });
     },
   });
@@ -442,13 +474,63 @@ export default function OrganizationConfig() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Users</CardTitle>
-                <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add User
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Dialog open={addExistingUserOpen} onOpenChange={setAddExistingUserOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Users className="h-4 w-4 mr-2" />
+                        Add Existing User
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Existing User to {organization?.name || "Organization"}</DialogTitle>
+                        <DialogDescription>
+                          Add an existing user from another organization to this organization.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">User Email</label>
+                          <Input 
+                            placeholder="Enter user's email address" 
+                            value={existingUserEmail}
+                            onChange={(e) => setExistingUserEmail(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Role in this Organization</label>
+                          <Select value={existingUserRole} onValueChange={(v) => setExistingUserRole(v as "admin" | "user")}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button type="button" variant="outline" onClick={() => setAddExistingUserOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => addExistingUserMutation.mutate({ email: existingUserEmail, role: existingUserRole })}
+                            disabled={addExistingUserMutation.isPending || !existingUserEmail}
+                          >
+                            {addExistingUserMutation.isPending ? "Adding..." : "Add User"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New User
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add User to {organization?.name || "Organization"}</DialogTitle>
@@ -530,6 +612,7 @@ export default function OrganizationConfig() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (

@@ -437,9 +437,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get organization members (via junction table for multi-org support)
+  // Only primary org admins can view members of any organization
   app.get("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const organizationId = req.params.id;
+      
+      // Verify user is primary org admin (can manage all orgs) or belongs to this org
+      const userOrg = await storage.getOrganization(req.user!.organizationId);
+      if (userOrg?.type !== 'primary' && req.user!.organizationId !== organizationId) {
+        return res.status(403).json({ message: "Not authorized to view this organization's members" });
+      }
+      
       const members = await storage.getOrganizationMembers(organizationId);
       
       // Remove password hashes from response
@@ -452,10 +460,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add existing user to organization
+  // Only primary org admins can add users to any organization
   app.post("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const organizationId = req.params.id;
       const { userId, email, role } = req.body;
+      
+      // Verify user is primary org admin (can manage all orgs)
+      const userOrg = await storage.getOrganization(req.user!.organizationId);
+      if (userOrg?.type !== 'primary') {
+        return res.status(403).json({ message: "Only system administrators can add users to organizations" });
+      }
       
       let targetUser;
       if (userId) {
@@ -482,9 +497,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove user from organization
+  // Only primary org admins can remove users from any organization
   app.delete("/api/organizations/:id/members/:userId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
       const { id: organizationId, userId } = req.params;
+      
+      // Verify user is primary org admin (can manage all orgs)
+      const userOrg = await storage.getOrganization(req.user!.organizationId);
+      if (userOrg?.type !== 'primary') {
+        return res.status(403).json({ message: "Only system administrators can remove users from organizations" });
+      }
       
       const success = await storage.removeUserFromOrganization(userId, organizationId);
       
