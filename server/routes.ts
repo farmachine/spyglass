@@ -448,6 +448,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validate tenant subdomain (public endpoint - no auth required)
+  app.get("/api/tenant/validate", async (req, res) => {
+    try {
+      const subdomain = req.query.subdomain as string;
+      
+      if (!subdomain) {
+        return res.status(400).json({ valid: false, message: "Subdomain is required" });
+      }
+      
+      const organization = await storage.getOrganizationBySubdomain(subdomain);
+      
+      if (!organization) {
+        return res.status(404).json({ valid: false, message: "Organization not found" });
+      }
+      
+      res.json({ 
+        valid: true, 
+        organizationName: organization.name 
+      });
+    } catch (error) {
+      console.error("Tenant validation error:", error);
+      res.status(500).json({ valid: false, message: "Failed to validate tenant" });
+    }
+  });
+
   // Update user (Admin only)
   app.put("/api/users/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {

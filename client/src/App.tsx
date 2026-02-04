@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -8,7 +8,6 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
 import ProjectView from "@/pages/ProjectView";
-// import SessionReview from "@/pages/SessionReview";
 import SessionView from "@/pages/SessionView";
 import DocumentTextView from "@/pages/DocumentTextView";
 import SchemaView from "@/pages/SchemaView";
@@ -19,6 +18,61 @@ import OrganizationConfig from "@/pages/OrganizationConfig";
 import DebugView from "@/pages/DebugView";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
+import TenantNotFound from "@/pages/TenantNotFound";
+
+function getSubdomain(): string | null {
+  const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'extrapl.io';
+  const hostname = window.location.hostname;
+  
+  if (hostname === baseDomain || hostname === 'localhost' || hostname.includes('replit')) {
+    return null;
+  }
+  
+  const parts = hostname.split('.');
+  if (parts.length > baseDomain.split('.').length) {
+    return parts[0];
+  }
+  
+  return null;
+}
+
+function TenantValidator({ children }: { children: React.ReactNode }) {
+  const subdomain = getSubdomain();
+  
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['/api/tenant/validate', subdomain],
+    queryFn: async () => {
+      if (!subdomain) return { valid: true };
+      const res = await fetch(`/api/tenant/validate?subdomain=${subdomain}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Invalid tenant');
+      }
+      return res.json();
+    },
+    enabled: !!subdomain,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+  
+  if (!subdomain) {
+    return <>{children}</>;
+  }
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (isError || !data?.valid) {
+    return <TenantNotFound subdomain={subdomain} />;
+  }
+  
+  return <>{children}</>;
+}
 
 function Router() {
   return (
@@ -95,10 +149,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Router />
-          </AuthProvider>
+          <TenantValidator>
+            <AuthProvider>
+              <Toaster />
+              <Router />
+            </AuthProvider>
+          </TenantValidator>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
