@@ -20,11 +20,18 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { Request, Response, NextFunction } from 'express';
 import type { AuthUser, UserRole } from '@shared/schema';
+import type { SubdomainRequest } from './subdomain';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 export interface AuthRequest extends Request {
   user?: AuthUser;
+  subdomain?: string;
+  tenantOrg?: {
+    id: string;
+    name: string;
+    subdomain: string;
+  };
 }
 
 export function generateToken(user: AuthUser): string {
@@ -59,6 +66,7 @@ export function comparePassword(password: string, hashedPassword: string): Promi
 }
 
 // Middleware to authenticate requests
+// Also validates tenant access when subdomain middleware has run
 export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -73,6 +81,15 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
   }
 
   req.user = user;
+  
+  // Validate tenant access: if accessing via a subdomain, user must belong to that org
+  if (req.tenantOrg && user.organizationId !== req.tenantOrg.id) {
+    return res.status(403).json({ 
+      message: 'Access denied: You do not belong to this organization',
+      error: 'TENANT_MISMATCH'
+    });
+  }
+  
   next();
 }
 

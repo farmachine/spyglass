@@ -45,6 +45,7 @@ import {
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
 import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
+import { subdomainMiddleware, validateTenantAccess, isValidSubdomain, type SubdomainRequest } from "./subdomain";
 import { UserRole } from "@shared/schema";
 import { log } from "./vite";
 import multer from "multer";
@@ -222,6 +223,10 @@ async function processWorkflowTestAsync(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply subdomain middleware to all requests
+  const baseDomain = process.env.BASE_DOMAIN;
+  app.use(subdomainMiddleware(baseDomain));
+
   // Health check endpoint to prevent continuous HEAD request spam
   app.head("/api", (req, res) => {
     res.status(200).end();
@@ -229,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication Routes
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", async (req: SubdomainRequest, res) => {
     try {
       const result = loginSchema.safeParse(req.body);
       if (!result.success) {
@@ -267,11 +272,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password hash from response
       const { passwordHash, ...userResponse } = userWithOrg;
 
+      // Get organization subdomain for redirect
+      const org = await storage.getOrganization(user.organizationId);
+      
+      // Check if user is accessing from wrong subdomain
+      if (req.tenantOrg && req.tenantOrg.id !== user.organizationId) {
+        return res.status(403).json({ 
+          message: "This account belongs to a different organization",
+          redirectSubdomain: org?.subdomain
+        });
+      }
+
       res.json({ 
         user: userResponse, 
         token,
         message: "Login successful",
-        requiresPasswordChange: user.isTemporaryPassword
+        requiresPasswordChange: user.isTemporaryPassword,
+        subdomain: org?.subdomain
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -279,16 +296,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const user = await storage.getUserWithOrganization(req.user!.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Check if user is on wrong subdomain
+      if (req.tenantOrg && req.tenantOrg.id !== user.organizationId) {
+        return res.status(403).json({ 
+          message: "Access denied: You are on the wrong organization subdomain",
+          error: "TENANT_MISMATCH"
+        });
+      }
+
       // Remove password hash from response
       const { passwordHash, ...userResponse } = user;
-      res.json(userResponse);
+      res.json({
+        ...userResponse,
+        subdomain: user.organization?.subdomain
+      });
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ message: "Failed to get user data" });
@@ -472,6 +500,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orgId = req.params.id;
       const updateData = req.body;
+      
+      // Validate subdomain if provided
+      if (updateData.subdomain !== undefined) {
+        if (updateData.subdomain !== null && updateData.subdomain !== '') {
+          if (!isValidSubdomain(updateData.subdomain)) {
+            return res.status(400).json({ 
+              message: "Invalid subdomain format. Use 2-63 lowercase letters, numbers, and hyphens only.",
+              error: "INVALID_SUBDOMAIN"
+            });
+          }
+          
+          // Check if subdomain is already taken
+          const existingOrg = await storage.getOrganizationBySubdomain(updateData.subdomain);
+          if (existingOrg && existingOrg.id !== orgId) {
+            return res.status(409).json({ 
+              message: "This subdomain is already in use by another organization",
+              error: "SUBDOMAIN_TAKEN"
+            });
+          }
+        } else {
+          // Allow clearing subdomain
+          updateData.subdomain = null;
+        }
+      }
+      
       const updatedOrg = await storage.updateOrganization(orgId, updateData);
       
       if (!updatedOrg) {

@@ -44,10 +44,11 @@ The design system uses Slate Blue (#4F63A4) as the primary color, features compr
 *   **Infrastructure**: Deployed on Replit, database on Neon (PostgreSQL), NixOS.
 
 ### Feature Specifications
+*   **Subdomain Multi-Tenancy**: Organizations can be configured with unique subdomains (e.g., `acme.yourapp.com`). The system extracts subdomains from request host headers, validates user access, and redirects users to their organization's subdomain after login. Admin UI available at Organization Settings to configure subdomains. Environment variable `BASE_DOMAIN` configures the base domain for subdomain routing, and `VITE_BASE_DOMAIN` for frontend redirection.
 *   **Kanban Board Feature**: Introduced a "kanban" step type with dedicated database tables (`kanban_cards`, `kanban_checklist_items`, etc.) and a `KanbanBoard.tsx` component for drag-and-drop management. AI integration supports task generation.
 *   **Analytics Pane Feature**: An analytics pane within the project overview uses AI to generate charts (pie/bar) from extracted data, leveraging Recharts for visualization.
-*   **Session Linking Feature**: Automatically scans previous sessions for similar content using AI and offers to copy relevant tasks to new sessions, including gap analysis.
-*   **Email-to-Session Feature**: Allows projects to have unique email inboxes to receive documents, which are then processed to create new sessions. Includes auto-reply functionality that validates attachments against required document types and sends AI-generated responses (rejection with guidance if documents missing, confirmation if accepted).
+*   **Session Linking Feature**: Automatically scans previous sessions for similar content using AI and offers to copy relevant tasks to new sessions, including gap analysis. Uses main object name (e.g., "link tender") instead of generic "link session".
+*   **Email-to-Session Feature**: Allows projects to have unique email inboxes to receive documents, which are then processed to create new sessions. Includes auto-reply functionality that validates attachments against required document types and sends AI-generated responses (rejection with guidance if documents missing, confirmation if accepted). Supports custom HTML email templates with placeholders ({{subject}}, {{body}}, {{projectName}}, {{senderEmail}}).
 *   **Document Validation Feature**: AI-powered validation checks if uploaded documents match expected document type descriptions during session creation.
 
 ### Database Schema

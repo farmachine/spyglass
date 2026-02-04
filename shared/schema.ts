@@ -39,6 +39,7 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   description: text("description"),
   type: text("type", { enum: ["primary", "standard"] }).notNull().default("standard"),
+  subdomain: text("subdomain").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

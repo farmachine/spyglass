@@ -103,6 +103,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Clear all cached data when a new user logs in
         queryClient.clear();
         
+        // Check if user should be redirected to their org's subdomain
+        const baseDomain = import.meta.env.VITE_BASE_DOMAIN;
+        if (data.subdomain && baseDomain) {
+          const currentHost = window.location.hostname;
+          const expectedHost = `${data.subdomain}.${baseDomain}`;
+          
+          // Redirect if not on the correct subdomain
+          if (currentHost !== expectedHost && currentHost !== 'localhost') {
+            const redirectUrl = `${window.location.protocol}//${expectedHost}${window.location.pathname}`;
+            toast({
+              title: "Redirecting to your organization",
+              description: `Taking you to ${data.subdomain}.${baseDomain}`,
+            });
+            window.location.href = redirectUrl;
+            return;
+          }
+        }
+        
         // Check if user has temporary password
         if (data.requiresPasswordChange) {
           setShowPasswordDialog(true);
@@ -116,6 +134,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
             description: "Welcome back!",
           });
         }
+      } else if (response.status === 403 && data.redirectSubdomain) {
+        // User tried to login from wrong subdomain
+        const baseDomain = import.meta.env.VITE_BASE_DOMAIN;
+        if (baseDomain && data.redirectSubdomain) {
+          const redirectUrl = `${window.location.protocol}//${data.redirectSubdomain}.${baseDomain}/login`;
+          toast({
+            title: "Wrong organization",
+            description: `Redirecting you to the correct organization...`,
+          });
+          window.location.href = redirectUrl;
+          return;
+        }
+        throw new Error(data.message || "Access denied");
       } else {
         throw new Error(data.message || "Login failed");
       }

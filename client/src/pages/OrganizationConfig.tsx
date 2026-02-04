@@ -35,6 +35,16 @@ const userSchema = z.object({
 const organizationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
+  subdomain: z.string()
+    .optional()
+    .refine(
+      (val) => !val || /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(val),
+      "Subdomain must use lowercase letters, numbers, and hyphens only"
+    )
+    .refine(
+      (val) => !val || (val.length >= 2 && val.length <= 63),
+      "Subdomain must be 2-63 characters"
+    ),
 });
 
 const resetPasswordSchema = z.object({
@@ -176,6 +186,7 @@ export default function OrganizationConfig() {
     defaultValues: {
       name: "",
       description: "",
+      subdomain: "",
     },
   });
 
@@ -211,6 +222,7 @@ export default function OrganizationConfig() {
       orgForm.reset({
         name: selectedOrg?.name || "",
         description: selectedOrg?.description || "",
+        subdomain: selectedOrg?.subdomain || "",
       });
     }
   }, [organizations, organizationId, orgForm]);
@@ -331,6 +343,30 @@ export default function OrganizationConfig() {
                           <FormControl>
                             <Textarea {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={orgForm.control}
+                      name="subdomain"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subdomain</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                {...field} 
+                                placeholder="acme"
+                                className="max-w-[200px]"
+                                onChange={(e) => field.onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                              />
+                              <span className="text-sm text-gray-500 dark:text-gray-400">.yourapp.com</span>
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Users will access this organization at this subdomain. Use lowercase letters, numbers, and hyphens only.
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
