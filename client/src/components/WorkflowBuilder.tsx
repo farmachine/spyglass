@@ -607,10 +607,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         )}
       </div>
 
-      {/* Side by Side: Required Documents and Workflow Status */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Document Types Configuration */}
-        <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
+      {/* Two Column Layout: Left (1/3) - Documents & Status, Right (2/3) - Steps */}
+      <div className="flex gap-6">
+        {/* Left Column - Required Documents & Workflow Status */}
+        <div className="w-1/3 space-y-4">
+          {/* Document Types Configuration */}
+          <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
           <CardHeader 
             className="pb-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors rounded-t-lg"
             onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
@@ -784,10 +786,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           </CardContent>
         )}
       </Card>
-      </div>
+        </div>
 
-      {/* Steps Layout - Single Column with Nested Values */}
-      <div className="max-w-4xl">
+        {/* Right Column - Steps Configuration */}
+        <div className="w-2/3">
         {/* Steps List */}
         <div>
           <div className="space-y-2">
@@ -1333,6 +1335,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </Button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
