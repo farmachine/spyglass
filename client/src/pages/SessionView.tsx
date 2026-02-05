@@ -5122,33 +5122,108 @@ Thank you for your assistance.`;
                 ) : null;
               }
               
+              const nextIndex = currentIndex + 1;
+              const ctaStep = project?.workflowSteps?.find((step: any) => {
+                const ac = step.actionConfig;
+                return ac?.actionStatus && statusOptions.indexOf(ac.actionStatus) === nextIndex;
+              });
+              const ctaActionConfig = (ctaStep as any)?.actionConfig;
+
+              const handleChevronCTAClick = async () => {
+                if (!ctaActionConfig?.actionStatus) return;
+                try {
+                  await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ workflowStatus: ctaActionConfig.actionStatus })
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
+                  toast({
+                    title: "Status Updated",
+                    description: `Session status changed to "${ctaActionConfig.actionStatus}"`
+                  });
+                  if (ctaActionConfig.actionLink) {
+                    let link = ctaActionConfig.actionLink;
+                    const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
+                    if (templateMatches) {
+                      const extractedData = session?.extractedData ? JSON.parse(session.extractedData) : {};
+                      for (const match of templateMatches) {
+                        const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
+                        const validation = validations.find((v: any) => {
+                          if (v.fieldName === fieldName || v.columnName === fieldName) return true;
+                          if (v.fieldName) {
+                            const dotIdx = v.fieldName.indexOf('.');
+                            const bracketIdx = v.fieldName.indexOf('[');
+                            let valuePart = v.fieldName;
+                            if (dotIdx >= 0) valuePart = v.fieldName.substring(dotIdx + 1);
+                            if (bracketIdx >= 0) valuePart = valuePart.substring(0, valuePart.indexOf('['));
+                            if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
+                          }
+                          return false;
+                        });
+                        const value = validation?.extractedValue || extractedData[fieldName] || '';
+                        link = link.replace(match, encodeURIComponent(String(value)));
+                      }
+                    }
+                    window.open(link, '_blank');
+                  }
+                } catch (error) {
+                  console.error('Error executing CTA action:', error);
+                  toast({ title: "Error", description: "Failed to execute action", variant: "destructive" });
+                }
+              };
+
               return (
-                <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                <div className="flex items-center flex-shrink-0 ml-auto">
                   {statusOptions.map((status: string, index: number) => {
                     const isPast = index < currentIndex;
                     const isCurrent = index === currentIndex;
-                    const isFuture = index > currentIndex;
-                    
+                    const isCTA = index === nextIndex && !!ctaActionConfig;
+                    const isFuture = index > currentIndex && !isCTA;
+                    const isFirst = index === 0;
+                    const isLast = index === statusOptions.length - 1;
+
+                    const chevronPoint = 14;
+                    const clipPath = isFirst && isLast
+                      ? undefined
+                      : isFirst
+                        ? `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%)`
+                        : isLast
+                          ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${chevronPoint}px 50%)`
+                          : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
+
+                    const bgColor = isPast
+                      ? 'bg-green-600'
+                      : isCurrent
+                        ? 'bg-[#4F63A4]'
+                        : isCTA
+                          ? 'bg-green-600 hover:bg-green-700 cursor-pointer shadow-md ring-2 ring-green-400 ring-offset-1'
+                          : 'bg-gray-200 dark:bg-gray-700';
+
+                    const textColor = isPast || isCurrent || isCTA
+                      ? 'text-white'
+                      : 'text-gray-400 dark:text-gray-500';
+
                     return (
-                      <div key={status} className="flex items-center">
-                        <div 
-                          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all min-w-[100px] justify-center ${
-                            isPast 
-                              ? 'bg-green-600 text-white' 
-                              : isCurrent 
-                                ? 'bg-[#4F63A4] text-white shadow-sm' 
-                                : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
-                          }`}
-                        >
-                          {isPast && <Check className="h-3.5 w-3.5" />}
-                          {isCurrent && <Circle className="h-3 w-3 fill-current" />}
-                          {status}
-                        </div>
-                        {index < statusOptions.length - 1 && (
-                          <ChevronRight className={`h-4 w-4 mx-1 ${
-                            isPast ? 'text-green-600' : 'text-gray-300 dark:text-gray-600'
-                          }`} />
-                        )}
+                      <div
+                        key={status}
+                        onClick={isCTA ? handleChevronCTAClick : undefined}
+                        className={`relative flex items-center justify-center gap-1.5 text-sm font-semibold h-10 ${bgColor} ${textColor} transition-all select-none ${
+                          isCTA ? 'cursor-pointer' : ''
+                        }`}
+                        style={{
+                          clipPath,
+                          paddingLeft: isFirst ? '16px' : `${chevronPoint + 10}px`,
+                          paddingRight: isLast ? '16px' : `${chevronPoint + 6}px`,
+                          marginLeft: index > 0 ? '-2px' : '0',
+                          minWidth: '110px',
+                        }}
+                        title={isCTA ? `Click to ${ctaActionConfig.actionName || 'advance'}` : status}
+                      >
+                        {isPast && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                        {isCurrent && <Circle className="h-3 w-3 fill-current flex-shrink-0" />}
+                        {isCTA && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                        <span className="whitespace-nowrap">{isCTA ? (ctaActionConfig.actionName || status) : status}</span>
                       </div>
                     );
                   })}
@@ -5157,7 +5232,7 @@ Thank you for your assistance.`;
                     size="sm"
                     onClick={handleRefresh}
                     disabled={isRefreshing}
-                    className="h-10 ml-2"
+                    className="h-10 ml-3"
                     title="Refresh data and check for new emails"
                   >
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -6269,83 +6344,6 @@ Thank you for your assistance.`;
                       })()}
                     </div>
                   </CardContent>
-                  {/* Action Button for Info Page Steps */}
-                  {(() => {
-                    const actionConfig = (currentStep as any)?.actionConfig;
-                    if (!actionConfig?.actionName) return null;
-                    
-                    const handleActionClick = async () => {
-                      try {
-                        // Update session workflow status
-                        await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
-                        });
-                        
-                        // Invalidate session query with correct key format
-                        queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
-                        queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
-                        
-                        toast({
-                          title: "Status Updated",
-                          description: `Session status changed to "${actionConfig.actionStatus}"`
-                        });
-                        
-                        // Handle action link with templating
-                        if (actionConfig.actionLink) {
-                          let link = actionConfig.actionLink;
-                          // Replace {{Field Name}} placeholders with actual values
-                          const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
-                          if (templateMatches) {
-                            for (const match of templateMatches) {
-                              const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
-                              // Find the field value from validations or extracted data
-                              // Match by exact fieldName, columnName, or by value name portion (handles "StepName.ValueName[index]" format)
-                              const validation = validations.find(v => {
-                                if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
-                                // Check if the fieldName contains the requested field (e.g., "Claim Info.Reference Number[0]" contains "Reference Number")
-                                if (v.fieldName) {
-                                  // Extract value name from patterns like "StepName.ValueName[index]" or just "ValueName"
-                                  const dotIndex = v.fieldName.indexOf('.');
-                                  const bracketIndex = v.fieldName.indexOf('[');
-                                  let valuePart = v.fieldName;
-                                  if (dotIndex >= 0) {
-                                    valuePart = v.fieldName.substring(dotIndex + 1);
-                                  }
-                                  if (bracketIndex >= 0) {
-                                    valuePart = valuePart.substring(0, valuePart.indexOf('['));
-                                  }
-                                  if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
-                                }
-                                return false;
-                              });
-                              const value = validation?.extractedValue || extractedData[fieldName] || '';
-                              link = link.replace(match, encodeURIComponent(String(value)));
-                            }
-                          }
-                          window.open(link, '_blank');
-                        }
-                      } catch (error) {
-                        console.error('Error executing action:', error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to execute action",
-                          variant: "destructive"
-                        });
-                      }
-                    };
-                    
-                    return (
-                      <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
-                        <Button 
-                          onClick={handleActionClick}
-                          className="bg-green-600 hover:bg-green-700 text-white text-base font-semibold px-6 py-2"
-                        >
-                          {actionConfig.actionName}
-                        </Button>
-                      </div>
-                    );
-                  })()}
                 </Card>
                 </div>
                 );
@@ -7299,81 +7297,6 @@ Thank you for your assistance.`;
                         </Table>
                         </div>
                       </CardContent>
-                      {/* Action Button for Data Table Steps */}
-                      {(() => {
-                        const dataTableStep = project?.workflowSteps?.find(
-                          step => step.stepName === collection.collectionName
-                        );
-                        const actionConfig = (dataTableStep as any)?.actionConfig;
-                        if (!actionConfig?.actionName) return null;
-                        
-                        const handleDataTableActionClick = async () => {
-                          try {
-                            await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
-                              method: 'PATCH',
-                              body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
-                            });
-                            
-                            // Invalidate session query with correct key format
-                            queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
-                            
-                            toast({
-                              title: "Status Updated",
-                              description: `Session status changed to "${actionConfig.actionStatus}"`
-                            });
-                            
-                            if (actionConfig.actionLink) {
-                              let link = actionConfig.actionLink;
-                              const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
-                              if (templateMatches) {
-                                for (const match of templateMatches) {
-                                  const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
-                                  // Match by exact fieldName, columnName, or by value name portion (handles "StepName.ValueName[index]" format)
-                                  const validation = validations.find(v => {
-                                    if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
-                                    // Check if the fieldName contains the requested field
-                                    if (v.fieldName) {
-                                      const dotIndex = v.fieldName.indexOf('.');
-                                      const bracketIndex = v.fieldName.indexOf('[');
-                                      let valuePart = v.fieldName;
-                                      if (dotIndex >= 0) {
-                                        valuePart = v.fieldName.substring(dotIndex + 1);
-                                      }
-                                      if (bracketIndex >= 0) {
-                                        valuePart = valuePart.substring(0, valuePart.indexOf('['));
-                                      }
-                                      if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
-                                    }
-                                    return false;
-                                  });
-                                  const value = validation?.extractedValue || extractedData[fieldName] || '';
-                                  link = link.replace(match, encodeURIComponent(String(value)));
-                                }
-                              }
-                              window.open(link, '_blank');
-                            }
-                          } catch (error) {
-                            console.error('Error executing action:', error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to execute action",
-                              variant: "destructive"
-                            });
-                          }
-                        };
-                        
-                        return (
-                          <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
-                            <Button 
-                              onClick={handleDataTableActionClick}
-                              className="bg-green-600 hover:bg-green-700 text-white text-base font-semibold px-6 py-2"
-                            >
-                              {actionConfig.actionName}
-                            </Button>
-                          </div>
-                        );
-                      })()}
                     </Card>
                   </div>
                 ) : null;
