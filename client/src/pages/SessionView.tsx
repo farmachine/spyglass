@@ -5195,11 +5195,11 @@ Thank you for your assistance.`;
                           : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
 
                     const bgColor = isPast
-                      ? 'bg-green-600'
+                      ? (isLastStatus ? 'bg-green-600' : 'bg-green-600')
                       : isCurrent
                         ? 'bg-[#4F63A4]'
                         : isCTA
-                          ? 'bg-green-600 hover:bg-green-700 cursor-pointer shadow-md ring-2 ring-green-400 ring-offset-1'
+                          ? 'bg-[#8B9AD8] hover:bg-[#7A8BCF] cursor-pointer shadow-md ring-2 ring-[#4F63A4] ring-offset-1'
                           : 'bg-gray-200 dark:bg-gray-700';
 
                     const textColor = isPast || isCurrent || isCTA
