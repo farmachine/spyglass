@@ -2338,6 +2338,24 @@ export default function SessionView() {
     enabled: !!projectId
   });
 
+  const ctaKanbanStep = useMemo(() => {
+    if (!project || !session) return null;
+    const statusOptions = (project as any).workflowStatusOptions || [];
+    const currentStatus = (session as any)?.workflowStatus || (project as any).defaultWorkflowStatus || statusOptions[0] || '';
+    const currentIndex = statusOptions.indexOf(currentStatus);
+    const nextIndex = currentIndex + 1;
+    const step = project?.workflowSteps?.find((s: any) => {
+      const ac = s.actionConfig;
+      return ac?.actionStatus && statusOptions.indexOf(ac.actionStatus) === nextIndex;
+    });
+    return step?.stepType === 'kanban' ? step : null;
+  }, [project, session]);
+
+  const { data: ctaKanbanCards = [] } = useQuery<any[]>({
+    queryKey: [`/api/sessions/${sessionId}/steps/${ctaKanbanStep?.id}/kanban-cards`],
+    enabled: !!sessionId && !!ctaKanbanStep?.id
+  });
+
   // Initialize collapse state once data is loaded
   useEffect(() => {
     if (collections && validations && session && !hasInitializedCollapsed) {
@@ -5132,6 +5150,15 @@ Thank you for your assistance.`;
               const isCtaStepComplete = (() => {
                 if (!ctaStep) return false;
                 const stepId = (ctaStep as any).id;
+
+                if ((ctaStep as any).stepType === 'kanban') {
+                  const kanbanConfig = (ctaStep as any).kanbanConfig || { statusColumns: ['To Do', 'In Progress', 'Done'] };
+                  const statusColumns = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
+                  const lastColumn = statusColumns[statusColumns.length - 1];
+                  if (ctaKanbanCards.length === 0) return false;
+                  return ctaKanbanCards.every((card: any) => card.status === lastColumn);
+                }
+
                 const stepVals = (ctaStep as any).values || [];
                 if (stepVals.length === 0) return true;
                 const stepValueIds = new Set(stepVals.map((sv: any) => sv.id));
