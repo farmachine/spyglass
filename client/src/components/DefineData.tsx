@@ -602,6 +602,28 @@ export default function DefineData({
         defaultWorkflowStatus={(project as any).defaultWorkflowStatus || ''}
         workflowStatusOptions={(project as any).workflowStatusOptions || []}
         onStatusSettingsChange={handleStatusSettingsChange}
+        mainObjectName={mainObjectName}
+        onMainObjectNameChange={async (name: string) => {
+          try {
+            await apiRequest(`/api/projects/${project.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ mainObjectName: name }),
+            });
+            setMainObjectName(name);
+            queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+            toast({
+              title: "Saved",
+              description: "Main object name updated successfully"
+            });
+          } catch (error) {
+            console.error('Failed to save main object name:', error);
+            toast({
+              title: "Error",
+              description: "Failed to save main object name",
+              variant: "destructive"
+            });
+          }
+        }}
       />
 
       {/* Dialogs */}

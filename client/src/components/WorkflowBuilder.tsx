@@ -159,6 +159,8 @@ interface WorkflowBuilderProps {
   defaultWorkflowStatus?: string;
   workflowStatusOptions?: string[];
   onStatusSettingsChange?: (defaultStatus: string, statusOptions: string[]) => void;
+  mainObjectName?: string;
+  onMainObjectNameChange?: (name: string) => void;
 }
 
 export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
@@ -174,7 +176,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   onDocumentTypesChange,
   defaultWorkflowStatus = '',
   workflowStatusOptions = [],
-  onStatusSettingsChange
+  onStatusSettingsChange,
+  mainObjectName = 'Session',
+  onMainObjectNameChange
 }, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
@@ -454,6 +458,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [localDefaultStatus, setLocalDefaultStatus] = useState(defaultWorkflowStatus);
   const [localStatusOptions, setLocalStatusOptions] = useState<string[]>(workflowStatusOptions);
   const [isStatusSettingsExpanded, setIsStatusSettingsExpanded] = useState(workflowStatusOptions.length > 0);
+  
+  // Main Object Name state
+  const [localMainObjectName, setLocalMainObjectName] = useState(mainObjectName);
+  const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
+  const [tempMainObjectName, setTempMainObjectName] = useState(mainObjectName);
 
   // Sync from props only on initial load or when props change externally
   useEffect(() => {
@@ -471,6 +480,20 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       setIsStatusSettingsExpanded(true);
     }
   }, [defaultWorkflowStatus, workflowStatusOptions]);
+
+  // Sync main object name from props
+  useEffect(() => {
+    setLocalMainObjectName(mainObjectName);
+    setTempMainObjectName(mainObjectName);
+  }, [mainObjectName]);
+
+  const handleSaveMainObjectName = () => {
+    setLocalMainObjectName(tempMainObjectName);
+    setIsEditingMainObjectName(false);
+    if (onMainObjectNameChange) {
+      onMainObjectNameChange(tempMainObjectName);
+    }
+  };
 
   // Notify parent when status settings change
   const handleStatusSettingsChange = (newDefault: string, newOptions: string[]) => {
@@ -526,12 +549,72 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   return (
     <div className="space-y-6">
-      {/* Document Types Configuration */}
-      <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
-        <CardHeader 
-          className="pb-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors rounded-t-lg"
-          onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
-        >
+      {/* Main Object Name Field */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+          Main Object Name
+        </Label>
+        <p className="text-xs text-muted-foreground mb-3">
+          What are you extracting data about? (e.g., "Claim", "Invoice", "Contract")
+        </p>
+        {isEditingMainObjectName ? (
+          <div className="flex items-center gap-2">
+            <Input
+              value={tempMainObjectName}
+              onChange={(e) => setTempMainObjectName(e.target.value)}
+              placeholder="e.g., Claim, Invoice, Contract"
+              className="h-9 flex-1"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveMainObjectName();
+                if (e.key === 'Escape') {
+                  setTempMainObjectName(localMainObjectName);
+                  setIsEditingMainObjectName(false);
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleSaveMainObjectName}
+              className="h-8 px-2"
+            >
+              <Check className="h-5 w-5 text-green-500" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setTempMainObjectName(localMainObjectName);
+                setIsEditingMainObjectName(false);
+              }}
+              className="h-8 px-2"
+            >
+              <X className="h-5 w-5 text-red-500" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
+            onClick={() => {
+              setTempMainObjectName(localMainObjectName);
+              setIsEditingMainObjectName(true);
+            }}
+          >
+            <span className="text-base font-medium text-gray-900 dark:text-gray-100">{localMainObjectName}</span>
+            <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+      </div>
+
+      {/* Side by Side: Required Documents and Workflow Status */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Document Types Configuration */}
+        <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
+          <CardHeader 
+            className="pb-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors rounded-t-lg"
+            onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
+          >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
@@ -701,6 +784,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           </CardContent>
         )}
       </Card>
+      </div>
 
       {/* Two Column Layout */}
       <div className="flex gap-20">
