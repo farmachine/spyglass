@@ -5165,33 +5165,23 @@ Thank you for your assistance.`;
                 const isValidOrComplete = (v: any) =>
                   v.validationStatus === 'valid' || v.validationStatus === 'manual' || v.manuallyUpdated;
 
-                console.log('[CTA DEBUG] Step:', (ctaStep as any).stepName, 'stepId:', stepId);
-                console.log('[CTA DEBUG] stepVals:', stepVals.map((sv: any) => ({ id: sv.id, name: sv.valueName, fields: sv.fields })));
-                console.log('[CTA DEBUG] validations count:', validations.length);
-
                 const result = stepVals.every((sv: any) => {
                   const fields = sv.fields && Array.isArray(sv.fields) ? sv.fields : [];
                   if (fields.length > 0) {
-                    const fieldResults = fields.map((f: any) => {
+                    return fields.every((f: any) => {
                       const fieldValidation = validations.find((v: any) =>
                         v.identifierId === f.identifierId ||
                         v.valueId === f.identifierId ||
                         v.fieldId === f.identifierId
                       );
-                      const ok = fieldValidation && isValidOrComplete(fieldValidation);
-                      console.log('[CTA DEBUG] Field:', f.name, 'identifierId:', f.identifierId, 'found:', !!fieldValidation, 'status:', fieldValidation?.validationStatus, 'manual:', fieldValidation?.manuallyUpdated, 'ok:', ok);
-                      return ok;
+                      return fieldValidation && isValidOrComplete(fieldValidation);
                     });
-                    return fieldResults.every(Boolean);
                   }
                   const valueValidations = validations.filter((v: any) =>
                     v.valueId === sv.id || v.fieldId === sv.id || v.identifierId === sv.id
                   );
-                  const ok = valueValidations.length > 0 && valueValidations.every(isValidOrComplete);
-                  console.log('[CTA DEBUG] Value:', sv.valueName, 'id:', sv.id, 'validations:', valueValidations.length, 'ok:', ok);
-                  return ok;
+                  return valueValidations.length > 0 && valueValidations.every(isValidOrComplete);
                 });
-                console.log('[CTA DEBUG] isCtaStepComplete:', result);
                 return result;
               })();
 
