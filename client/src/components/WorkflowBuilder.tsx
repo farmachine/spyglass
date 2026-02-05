@@ -79,6 +79,13 @@ const COLUMN_INDICATOR_COLORS = [
   '#D4A8B8', // Light rose
 ];
 
+// Step action configuration type
+interface StepActionConfig {
+  actionName: string;
+  actionStatus: string;
+  actionLink?: string; // Optional URL with field placeholders like {{fieldName}}
+}
+
 interface WorkflowStep {
   id: string;
   type: 'list' | 'page' | 'kanban';
@@ -99,6 +106,8 @@ interface WorkflowStep {
     dataSourceInstructions?: string;
     actions?: Array<{ name: string; applicableStatuses: string[]; link: string }>;
   };
+  // Step action configuration (for page/list steps)
+  actionConfig?: StepActionConfig;
   // Original data reference
   originalId?: string;
   originalType?: 'collection' | 'schema';
@@ -146,6 +155,9 @@ interface WorkflowBuilderProps {
   isLoading?: boolean;
   requiredDocumentTypes?: DocumentType[];
   onDocumentTypesChange?: (documentTypes: DocumentType[]) => void;
+  defaultWorkflowStatus?: string;
+  workflowStatusOptions?: string[];
+  onStatusSettingsChange?: (defaultStatus: string, statusOptions: string[]) => void;
 }
 
 export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
@@ -158,7 +170,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   onSave,
   isLoading = false,
   requiredDocumentTypes = [],
-  onDocumentTypesChange
+  onDocumentTypesChange,
+  defaultWorkflowStatus = '',
+  workflowStatusOptions = [],
+  onStatusSettingsChange
 }, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
@@ -199,6 +214,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               aiInstructions: '',
               knowledgeDocumentIds: []
             } : undefined),
+            actionConfig: serverStep.actionConfig || undefined,
             values: serverStep.values ? serverStep.values.map((serverValue: any) => ({
                 id: serverValue.id,
                 name: serverValue.valueName,
@@ -433,6 +449,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(requiredDocumentTypes);
   const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
 
+  // Workflow Status state
+  const [localDefaultStatus, setLocalDefaultStatus] = useState(defaultWorkflowStatus);
+  const [localStatusOptions, setLocalStatusOptions] = useState<string[]>(workflowStatusOptions);
+  const [isStatusSettingsExpanded, setIsStatusSettingsExpanded] = useState(workflowStatusOptions.length > 0);
+
   // Sync from props only on initial load or when props change externally
   useEffect(() => {
     setDocumentTypes(requiredDocumentTypes);
@@ -440,6 +461,50 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       setIsDocumentTypesExpanded(true);
     }
   }, [requiredDocumentTypes]);
+
+  // Sync status settings from props
+  useEffect(() => {
+    setLocalDefaultStatus(defaultWorkflowStatus);
+    setLocalStatusOptions(workflowStatusOptions);
+    if (workflowStatusOptions.length > 0) {
+      setIsStatusSettingsExpanded(true);
+    }
+  }, [defaultWorkflowStatus, workflowStatusOptions]);
+
+  // Notify parent when status settings change
+  const handleStatusSettingsChange = (newDefault: string, newOptions: string[]) => {
+    setLocalDefaultStatus(newDefault);
+    setLocalStatusOptions(newOptions);
+    if (onStatusSettingsChange) {
+      onStatusSettingsChange(newDefault, newOptions);
+    }
+  };
+
+  const addStatusOption = () => {
+    const newOptions = [...localStatusOptions, 'New Status'];
+    handleStatusSettingsChange(localDefaultStatus, newOptions);
+  };
+
+  const updateStatusOption = (index: number, value: string) => {
+    const newOptions = [...localStatusOptions];
+    const oldValue = newOptions[index];
+    newOptions[index] = value;
+    // If the default status was the old value, update it to the new value
+    const newDefault = localDefaultStatus === oldValue ? value : localDefaultStatus;
+    handleStatusSettingsChange(newDefault, newOptions);
+  };
+
+  const deleteStatusOption = (index: number) => {
+    const deletedValue = localStatusOptions[index];
+    const newOptions = localStatusOptions.filter((_, i) => i !== index);
+    // If we're deleting the default status, clear it
+    const newDefault = localDefaultStatus === deletedValue ? '' : localDefaultStatus;
+    handleStatusSettingsChange(newDefault, newOptions);
+  };
+
+  const setDefaultStatus = (status: string) => {
+    handleStatusSettingsChange(status, localStatusOptions);
+  };
 
   const addDocumentType = () => {
     const newDocType: DocumentType = {
@@ -533,6 +598,104 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 <Plus className="h-4 w-4 mr-2" />
                 Add Document Type
               </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Workflow Status Settings Card */}
+      <Card 
+        className="cursor-pointer hover:border-[#4F63A4]/50 transition-colors border-[#4F63A4]/30 bg-[#4F63A4]/5 dark:bg-[#4F63A4]/10"
+        onClick={() => setIsStatusSettingsExpanded(!isStatusSettingsExpanded)}
+      >
+        <CardHeader className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#4F63A4]/20 dark:bg-[#4F63A4]/30">
+                <ChevronRight className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Workflow Status</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Define status progression for sessions
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {localStatusOptions.length} {localStatusOptions.length === 1 ? 'status' : 'statuses'}
+              </Badge>
+              {isStatusSettingsExpanded ? (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        {isStatusSettingsExpanded && (
+          <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-3">
+              {localStatusOptions.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                  No statuses defined. Add statuses to enable workflow tracking.
+                </p>
+              ) : (
+                localStatusOptions.map((status, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      localDefaultStatus === status 
+                        ? 'bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 border-[#4F63A4]/40' 
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setDefaultStatus(status)}
+                      className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        localDefaultStatus === status
+                          ? 'border-[#4F63A4] bg-[#4F63A4]'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-[#4F63A4]/50'
+                      }`}
+                      title="Set as default status for new sessions"
+                    >
+                      {localDefaultStatus === status && (
+                        <Check className="h-3 w-3 text-white" />
+                      )}
+                    </button>
+                    <Input
+                      value={status}
+                      onChange={(e) => updateStatusOption(index, e.target.value)}
+                      placeholder="Status name"
+                      className="h-8 text-sm flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                      onClick={() => deleteStatusOption(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addStatusOption()}
+                className="w-full border-dashed relative z-10"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Status
+              </Button>
+              {localStatusOptions.length > 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  Click the circle to set the default status for new sessions
+                </p>
+              )}
             </div>
           </CardContent>
         )}
@@ -1272,16 +1435,107 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   />
                 ))}
 
-                  {/* Add Value Button - Below the stacked values */}
-                  <button
-                    onClick={() => addValue(selectedStepId)}
-                    className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
-                  >
-                    <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
-                    <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
-                      Add Value
-                    </span>
-                  </button>
+                  {/* Add Value Button - Below the stacked values (only show if no action configured) */}
+                  {!steps.find(s => s.id === selectedStepId)?.actionConfig && (
+                    <button
+                      onClick={() => addValue(selectedStepId)}
+                      className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
+                    >
+                      <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
+                      <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
+                        Add Value
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Step Action Configuration - for page/list steps only */}
+                  {(() => {
+                    const selectedStep = steps.find(s => s.id === selectedStepId);
+                    if (!selectedStep || selectedStep.type === 'kanban') return null;
+                    
+                    const actionConfig = selectedStep.actionConfig;
+                    
+                    if (actionConfig) {
+                      // Show configured action with edit/delete options
+                      return (
+                        <div className="mt-4 p-4 bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 rounded-lg border border-[#4F63A4]/30">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <ChevronRight className="h-4 w-4 text-[#4F63A4]" />
+                              <span className="font-medium text-gray-800 dark:text-gray-200">Step Action</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateStep(selectedStepId!, { actionConfig: undefined })}
+                              className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-xs text-gray-600 dark:text-gray-400">Button Text</Label>
+                              <Input
+                                value={actionConfig.actionName}
+                                onChange={(e) => updateStep(selectedStepId!, { 
+                                  actionConfig: { ...actionConfig, actionName: e.target.value }
+                                })}
+                                placeholder="e.g., Submit, Approve, Complete"
+                                className="mt-1 h-8"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
+                              <Input
+                                value={actionConfig.actionStatus}
+                                onChange={(e) => updateStep(selectedStepId!, { 
+                                  actionConfig: { ...actionConfig, actionStatus: e.target.value }
+                                })}
+                                placeholder="e.g., Submitted, Approved, Complete"
+                                className="mt-1 h-8"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label className="text-xs text-gray-600 dark:text-gray-400">Link (optional)</Label>
+                              <Input
+                                value={actionConfig.actionLink || ''}
+                                onChange={(e) => updateStep(selectedStepId!, { 
+                                  actionConfig: { ...actionConfig, actionLink: e.target.value || undefined }
+                                })}
+                                placeholder="https://example.com?id={{Field Name}}"
+                                className="mt-1 h-8"
+                              />
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Use {"{{Field Name}}"} to insert field values in the URL
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Show Add Action button
+                    return (
+                      <button
+                        onClick={() => updateStep(selectedStepId!, { 
+                          actionConfig: { 
+                            actionName: 'Complete', 
+                            actionStatus: 'Complete' 
+                          }
+                        })}
+                        className="w-full mt-2 py-3 rounded-lg border-2 border-dashed border-[#4F63A4]/30 hover:border-[#4F63A4] dark:border-[#4F63A4]/40 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group bg-[#4F63A4]/5 hover:bg-[#4F63A4]/10"
+                      >
+                        <ChevronRight className="h-4 w-4 text-[#4F63A4]/60 group-hover:text-[#4F63A4]" />
+                        <span className="text-sm font-medium text-[#4F63A4]/70 group-hover:text-[#4F63A4]">
+                          Add Action
+                        </span>
+                      </button>
+                    );
+                  })()}
                 </div>
             </div>
           ) : (

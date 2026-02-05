@@ -31,7 +31,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw, Circle, ExternalLink } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import { SiMicrosoft } from "react-icons/si";
 import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
@@ -5082,41 +5082,89 @@ Thank you for your assistance.`;
               </div>
             </div>
 
-            {/* Statistics Cards - Match ProjectLayout exactly */}
-            {project.sessions.length > 0 && (
-              <div className="flex gap-3 flex-shrink-0 ml-auto">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <Database className="h-6 w-6 text-slate-700 dark:text-gray-400" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
+            {/* Workflow Status Chain - Shows status progression */}
+            {(() => {
+              const statusOptions = (project as any).workflowStatusOptions || [];
+              const currentStatus = (session as any)?.workflowStatus || (project as any).defaultWorkflowStatus || statusOptions[0] || '';
+              const currentIndex = statusOptions.indexOf(currentStatus);
+              
+              if (statusOptions.length === 0) {
+                // No status workflow configured - show traditional stats
+                return project.sessions.length > 0 ? (
+                  <div className="flex gap-3 flex-shrink-0 ml-auto">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <Database className="h-6 w-6 text-slate-700 dark:text-gray-400" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        {verificationStats.in_progress + verificationStats.pending}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        {verificationStats.verified}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="h-10"
+                      title="Refresh data and check for new emails"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                ) : null;
+              }
+              
+              return (
+                <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                  {statusOptions.map((status: string, index: number) => {
+                    const isPast = index < currentIndex;
+                    const isCurrent = index === currentIndex;
+                    const isFuture = index > currentIndex;
+                    
+                    return (
+                      <div key={status} className="flex items-center">
+                        <div 
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                            isPast 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              : isCurrent 
+                                ? 'bg-[#4F63A4] text-white shadow-sm' 
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                          }`}
+                        >
+                          {isPast && <Check className="h-3.5 w-3.5" />}
+                          {isCurrent && <Circle className="h-3 w-3 fill-current" />}
+                          {status}
+                        </div>
+                        {index < statusOptions.length - 1 && (
+                          <ChevronRight className={`h-4 w-4 mx-1 ${
+                            isPast ? 'text-green-400' : 'text-gray-300 dark:text-gray-600'
+                          }`} />
+                        )}
+                      </div>
+                    );
+                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="h-10 ml-2"
+                    title="Refresh data and check for new emails"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
                 </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {verificationStats.in_progress + verificationStats.pending}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {verificationStats.verified}
-                  </span>
-                </div>
-
-                {/* Refresh button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  className="h-10"
-                  title="Refresh data and check for new emails"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -6221,6 +6269,70 @@ Thank you for your assistance.`;
                       })()}
                     </div>
                   </CardContent>
+                  {/* Action Button for Info Page Steps */}
+                  {(() => {
+                    const actionConfig = (currentStep as any)?.actionConfig;
+                    if (!actionConfig?.actionName) return null;
+                    
+                    const handleActionClick = async () => {
+                      try {
+                        // Update session workflow status
+                        await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
+                        });
+                        
+                        // Invalidate session query with correct key format
+                        queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
+                        queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
+                        
+                        toast({
+                          title: "Status Updated",
+                          description: `Session status changed to "${actionConfig.actionStatus}"`
+                        });
+                        
+                        // Handle action link with templating
+                        if (actionConfig.actionLink) {
+                          let link = actionConfig.actionLink;
+                          // Replace {{Field Name}} placeholders with actual values
+                          const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
+                          if (templateMatches) {
+                            for (const match of templateMatches) {
+                              const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
+                              // Find the field value from validations or extracted data
+                              const validation = validations.find(v => 
+                                v.fieldName === fieldName || 
+                                v.columnName === fieldName
+                              );
+                              const value = validation?.extractedValue || extractedData[fieldName] || '';
+                              link = link.replace(match, encodeURIComponent(String(value)));
+                            }
+                          }
+                          window.open(link, '_blank');
+                        }
+                      } catch (error) {
+                        console.error('Error executing action:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to execute action",
+                          variant: "destructive"
+                        });
+                      }
+                    };
+                    
+                    return (
+                      <div className="px-6 pb-6 pt-4 border-t border-[#4F63A4]/20">
+                        <Button 
+                          onClick={handleActionClick}
+                          className="w-full bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center justify-center gap-2"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                          {actionConfig.actionName}
+                          {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </Card>
                 </div>
                 );
@@ -7174,6 +7286,69 @@ Thank you for your assistance.`;
                         </Table>
                         </div>
                       </CardContent>
+                      {/* Action Button for Data Table Steps */}
+                      {(() => {
+                        const dataTableStep = project?.workflowSteps?.find(
+                          step => step.stepName === collection.collectionName
+                        );
+                        const actionConfig = (dataTableStep as any)?.actionConfig;
+                        if (!actionConfig?.actionName) return null;
+                        
+                        const handleDataTableActionClick = async () => {
+                          try {
+                            await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
+                            });
+                            
+                            // Invalidate session query with correct key format
+                            queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
+                            
+                            toast({
+                              title: "Status Updated",
+                              description: `Session status changed to "${actionConfig.actionStatus}"`
+                            });
+                            
+                            if (actionConfig.actionLink) {
+                              let link = actionConfig.actionLink;
+                              const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
+                              if (templateMatches) {
+                                for (const match of templateMatches) {
+                                  const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
+                                  const validation = validations.find(v => 
+                                    v.fieldName === fieldName || 
+                                    v.columnName === fieldName
+                                  );
+                                  const value = validation?.extractedValue || extractedData[fieldName] || '';
+                                  link = link.replace(match, encodeURIComponent(String(value)));
+                                }
+                              }
+                              window.open(link, '_blank');
+                            }
+                          } catch (error) {
+                            console.error('Error executing action:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to execute action",
+                              variant: "destructive"
+                            });
+                          }
+                        };
+                        
+                        return (
+                          <div className="px-6 pb-6 pt-4 border-t border-[#4F63A4]/20">
+                            <Button 
+                              onClick={handleDataTableActionClick}
+                              className="w-full bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center justify-center gap-2"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                              {actionConfig.actionName}
+                              {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
+                            </Button>
+                          </div>
+                        );
+                      })()}
                     </Card>
                   </div>
                 ) : null;

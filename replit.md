@@ -63,6 +63,12 @@ The design system uses Slate Blue (#4F63A4) as the primary color, features compr
 *   **Session Linking Feature**: Automatically scans previous sessions for similar content using AI and offers to copy relevant tasks to new sessions, including gap analysis. Uses main object name (e.g., "link tender") instead of generic "link session".
 *   **Email-to-Session Feature**: Allows projects to have unique email inboxes to receive documents, which are then processed to create new sessions. Includes auto-reply functionality that validates attachments against required document types and sends AI-generated responses (rejection with guidance if documents missing, confirmation if accepted). Supports custom HTML email templates with placeholders ({{subject}}, {{body}}, {{projectName}}, {{senderEmail}}).
 *   **Document Validation Feature**: AI-powered validation checks if uploaded documents match expected document type descriptions during session creation.
+*   **Workflow Status Feature**: Projects can define workflow status options (e.g., "New", "In Progress", "Complete") with a configurable default status. Sessions display a status chain in the header showing progression: green for past statuses, purple (#4F63A4) for current, grey for future. The status chain replaces the traditional statistics cards when workflow statuses are configured.
+*   **Step Actions Feature**: Info Page and Data Table steps can have an optional action button that triggers a workflow status change. Configuration includes:
+    - `actionName`: Button label (e.g., "Submit", "Approve", "Complete")
+    - `actionStatus`: The status to set when the action is clicked
+    - `actionLink` (optional): URL to open, supporting `{{Field Name}}` placeholders for field value substitution
+    When an action is configured on a step, no additional values can be added to that step (enforced in UI). The action button appears at the bottom of the step card in SessionView.
 
 ### Database Schema
 Key tables include `workflow_steps` (defining steps), `step_values` (defining fields/columns), `field_validations` (storing extracted data), `kanban_cards` (for tasks), `kanban_checklist_items`, `kanban_comments`, `kanban_attachments`, and `processed_emails` (for tracking inbound emails).

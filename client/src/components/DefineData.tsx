@@ -265,6 +265,26 @@ export default function DefineData({
     updateDocumentTypesMutation.mutate(documentTypes);
   };
 
+  // Update workflow status settings mutation
+  const updateStatusSettingsMutation = useMutation({
+    mutationFn: (data: { defaultWorkflowStatus: string; workflowStatusOptions: string[] }) => 
+      apiRequest(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
+    },
+  });
+
+  // Handler for workflow status settings changes
+  const handleStatusSettingsChange = (defaultStatus: string, statusOptions: string[]) => {
+    updateStatusSettingsMutation.mutate({
+      defaultWorkflowStatus: defaultStatus,
+      workflowStatusOptions: statusOptions,
+    });
+  };
+
   // Handlers
   const handleCreateSchemaField = async (data: any) => {
     await createSchemaField.mutateAsync(data);
@@ -579,6 +599,9 @@ export default function DefineData({
         isLoading={isWorkflowLoading}
         requiredDocumentTypes={(project as any).requiredDocumentTypes || []}
         onDocumentTypesChange={handleDocumentTypesChange}
+        defaultWorkflowStatus={(project as any).defaultWorkflowStatus || ''}
+        workflowStatusOptions={(project as any).workflowStatusOptions || []}
+        onStatusSettingsChange={handleStatusSettingsChange}
       />
 
       {/* Dialogs */}
