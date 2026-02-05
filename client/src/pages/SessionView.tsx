@@ -5138,10 +5138,15 @@ Thank you for your assistance.`;
                   v.stepId === stepId
                 );
                 if (stepValidations.length === 0) return false;
-                const allValidated = stepValidations.every((v: any) =>
-                  v.validationStatus === 'valid' || v.validationStatus === 'manual'
-                );
-                return allValidated;
+                const everyValueHasValidation = stepVals.every((sv: any) => {
+                  const valueValidations = stepValidations.filter((v: any) =>
+                    v.valueId === sv.id || v.fieldId === sv.id
+                  );
+                  return valueValidations.length > 0 && valueValidations.every((v: any) =>
+                    v.validationStatus === 'valid' || v.validationStatus === 'manual'
+                  );
+                });
+                return everyValueHasValidation;
               })();
 
               const handleChevronCTAClick = async () => {
