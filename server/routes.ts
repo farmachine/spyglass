@@ -732,10 +732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Projects (with authentication and organization filtering)
-  // Tenant isolation: projects are strictly filtered by user's organization
-  app.get("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
+  // Tenant isolation: projects are strictly filtered by current tenant context
+  app.get("/api/projects", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
-      const projects = await storage.getProjects(req.user!.organizationId, req.user!.role);
+      // Use tenant context if available, otherwise fall back to user's primary org
+      const orgId = req.tenantOrg?.id || req.user!.organizationId;
+      const projects = await storage.getProjects(orgId, req.user!.role);
       res.json(projects);
     } catch (error) {
       console.error("Get projects error:", error);
@@ -743,10 +745,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/projects/:id", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const id = req.params.id;
-      const project = await storage.getProjectWithDetails(id, req.user!.organizationId);
+      const orgId = req.tenantOrg?.id || req.user!.organizationId;
+      const project = await storage.getProjectWithDetails(id, orgId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -757,7 +760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/projects", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       // Only admin users can create projects
       if (req.user!.role !== "admin") {
@@ -769,10 +772,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
+      // Use tenant context if available, otherwise fall back to user's primary org
+      const orgId = req.tenantOrg?.id || req.user!.organizationId;
+      
       // Add organizationId and createdBy to the project data
       const projectData = {
         ...result.data,
-        organizationId: req.user!.organizationId,
+        organizationId: orgId,
         createdBy: req.user!.id
       };
       
@@ -817,7 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/projects/:id", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const id = req.params.id;
       const result = insertProjectSchema.partial().safeParse(req.body);
@@ -825,7 +831,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
-      const project = await storage.updateProject(id, result.data, req.user!.organizationId);
+      const orgId = req.tenantOrg?.id || req.user!.organizationId;
+      const project = await storage.updateProject(id, result.data, orgId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -836,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/projects/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.patch("/api/projects/:id", authenticateToken, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const id = req.params.id;
       const result = insertProjectSchema.partial().safeParse(req.body);
@@ -844,7 +851,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project data", errors: result.error.errors });
       }
       
-      const project = await storage.updateProject(id, result.data, req.user!.organizationId);
+      const orgId = req.tenantOrg?.id || req.user!.organizationId;
+      const project = await storage.updateProject(id, result.data, orgId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
