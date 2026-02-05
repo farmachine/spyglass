@@ -5129,8 +5129,24 @@ Thank you for your assistance.`;
               });
               const ctaActionConfig = (ctaStep as any)?.actionConfig;
 
+              const isCtaStepComplete = (() => {
+                if (!ctaStep) return false;
+                const stepName = (ctaStep as any).stepName;
+                const stepId = (ctaStep as any).id;
+                const stepVals = (ctaStep as any).values || [];
+                if (stepVals.length === 0) return true;
+                const stepValidations = validations.filter((v: any) =>
+                  v.stepId === stepId || v.collectionName === stepName
+                );
+                if (stepValidations.length === 0) return false;
+                const allValidated = stepValidations.every((v: any) =>
+                  v.validationStatus === 'valid' || v.validationStatus === 'manual'
+                );
+                return allValidated;
+              })();
+
               const handleChevronCTAClick = async () => {
-                if (!ctaActionConfig?.actionStatus) return;
+                if (!ctaActionConfig?.actionStatus || !isCtaStepComplete) return;
                 try {
                   await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
                     method: 'PATCH',
@@ -5181,6 +5197,7 @@ Thank you for your assistance.`;
                     const isPast = index < currentIndex || isCompleted;
                     const isCurrent = index === currentIndex && !isCompleted;
                     const isCTA = index === nextIndex && !!ctaActionConfig;
+                    const isCtaDisabled = isCTA && !isCtaStepComplete;
                     const isFuture = index > currentIndex && !isCTA;
                     const isFirst = index === 0;
                     const isLast = index === statusOptions.length - 1;
@@ -5195,23 +5212,23 @@ Thank you for your assistance.`;
                           : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
 
                     const bgColor = isPast
-                      ? (isLastStatus ? 'bg-green-600' : 'bg-green-600')
+                      ? 'bg-green-600'
                       : isCurrent
                         ? 'bg-[#4F63A4]'
-                        : isCTA
+                        : isCTA && !isCtaDisabled
                           ? 'bg-[#8B9AD8] hover:bg-[#7A8BCF] cursor-pointer shadow-md ring-2 ring-[#4F63A4] ring-offset-1'
                           : 'bg-gray-200 dark:bg-gray-700';
 
-                    const textColor = isPast || isCurrent || isCTA
+                    const textColor = isPast || isCurrent || (isCTA && !isCtaDisabled)
                       ? 'text-white'
                       : 'text-gray-400 dark:text-gray-500';
 
                     return (
                       <div
                         key={status}
-                        onClick={isCTA ? handleChevronCTAClick : undefined}
+                        onClick={isCTA && !isCtaDisabled ? handleChevronCTAClick : undefined}
                         className={`relative flex items-center justify-center gap-1.5 text-sm font-semibold h-10 ${bgColor} ${textColor} transition-all select-none ${
-                          isCTA ? 'cursor-pointer' : ''
+                          isCTA && !isCtaDisabled ? 'cursor-pointer' : ''
                         }`}
                         style={{
                           clipPath,
@@ -5220,11 +5237,11 @@ Thank you for your assistance.`;
                           marginLeft: index > 0 ? '-2px' : '0',
                           minWidth: '110px',
                         }}
-                        title={isCTA ? `Click to ${ctaActionConfig.actionName || 'advance'}` : status}
+                        title={isCTA && !isCtaDisabled ? `Click to ${ctaActionConfig.actionName || 'advance'}` : isCTA && isCtaDisabled ? `Complete the step to unlock this action` : status}
                       >
                         {isPast && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
                         {isCurrent && <Circle className="h-3 w-3 fill-current flex-shrink-0" />}
-                        {isCTA && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                        {isCTA && !isCtaDisabled && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
                         <span className="whitespace-nowrap">{isCTA ? (ctaActionConfig.actionName || status) : status}</span>
                       </div>
                     );
