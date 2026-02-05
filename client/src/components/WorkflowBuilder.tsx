@@ -669,9 +669,19 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       ) : (
                         <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                       )}
-                      <span className="text-sm font-medium flex-1 truncate">
-                        {docType.name || 'Untitled Document Type'}
-                      </span>
+                      {isExpanded ? (
+                        <Input
+                          value={docType.name}
+                          onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
+                          placeholder="Document type name"
+                          className="h-8 text-sm font-medium flex-1"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="text-sm font-medium flex-1 truncate">
+                          {docType.name || 'Untitled Document Type'}
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -682,18 +692,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       </Button>
                     </div>
                     {isExpanded && (
-                      <div className="px-3 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-                        <Input
-                          value={docType.name}
-                          onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
-                          placeholder="Document type name"
-                          className="h-8 text-sm font-medium"
-                        />
+                      <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
                         <Textarea
                           value={docType.description}
                           onChange={(e) => updateDocumentType(docType.id, { description: e.target.value })}
                           placeholder="Describe what this document should contain (for AI validation)..."
-                          className="text-sm resize-none min-h-[80px]"
+                          className="text-sm resize-y min-h-[80px]"
                           rows={3}
                         />
                       </div>
