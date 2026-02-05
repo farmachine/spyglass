@@ -68,6 +68,13 @@ export const userOrganizations = pgTable("user_organizations", {
   uniqueUserOrg: uniqueIndex("user_org_unique_idx").on(table.userId, table.organizationId),
 }));
 
+// Type for step action configuration
+export type StepActionConfig = {
+  actionName: string;
+  actionStatus: string;
+  actionLink?: string; // Optional URL with field placeholders like {{fieldName}}
+};
+
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -82,6 +89,8 @@ export const projects = pgTable("projects", {
   inboxId: text("inbox_id"), // AgentMail inbox ID for API calls
   requiredDocumentTypes: jsonb("required_document_types").$type<Array<{id: string; name: string; description: string}>>(), // Document types required for session creation
   emailNotificationTemplate: text("email_notification_template"), // HTML template for email notifications with placeholders like {{subject}}, {{body}}, {{projectName}}
+  defaultWorkflowStatus: text("default_workflow_status").default("New"), // Default status for new sessions
+  workflowStatusOptions: jsonb("workflow_status_options").$type<string[]>().default(["New", "In Progress", "Complete"]), // Available workflow statuses
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -105,6 +114,7 @@ export const workflowSteps = pgTable("workflow_steps", {
   valueCount: integer("value_count").default(0), // Number of values in this step
   identifierId: uuid("identifier_id"), // UUID of the identifier value (first value for list steps)
   kanbanConfig: jsonb("kanban_config"), // Configuration for kanban steps (statusColumns, aiInstructions, knowledgeDocumentIds, actions)
+  actionConfig: jsonb("action_config").$type<StepActionConfig>(), // Action button config (actionName, actionStatus, actionLink)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -188,6 +198,7 @@ export const extractionSessions = pgTable("extraction_sessions", {
   description: text("description"),
   documentCount: integer("document_count").notNull().default(0),
   status: text("status").default("in_progress").notNull(), // in_progress, completed, verified, error
+  workflowStatus: text("workflow_status"), // Current position in workflow status chain (e.g., "New", "In Progress", "Complete")
   extractedData: text("extracted_data"), // Store AI extraction results as JSON string
   extractionPrompt: text("extraction_prompt"), // Store the complete AI prompt used for extraction
   aiResponse: text("ai_response"), // Store the raw AI response before parsing
