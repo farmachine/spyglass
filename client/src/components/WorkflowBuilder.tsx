@@ -1268,14 +1268,21 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                                   
                                   <div>
                                     <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
-                                    <Input
+                                    <Select
                                       value={step.actionConfig.actionStatus}
-                                      onChange={(e) => updateStep(step.id, { 
-                                        actionConfig: { ...step.actionConfig!, actionStatus: e.target.value }
+                                      onValueChange={(value) => updateStep(step.id, { 
+                                        actionConfig: { ...step.actionConfig!, actionStatus: value }
                                       })}
-                                      placeholder="e.g., Submitted, Approved, Complete"
-                                      className="mt-1 h-8"
-                                    />
+                                    >
+                                      <SelectTrigger className="mt-1 h-8">
+                                        <SelectValue placeholder="Select a status..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {localStatusOptions.map((status) => (
+                                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                   
                                   <div>
