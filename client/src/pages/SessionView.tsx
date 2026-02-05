@@ -6336,10 +6336,10 @@ Thank you for your assistance.`;
                     };
                     
                     return (
-                      <div className="px-6 pb-6 pt-4 border-t border-[#4F63A4]/20 flex justify-end">
+                      <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
                         <Button 
                           onClick={handleActionClick}
-                          className="bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center gap-2"
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
                         >
                           <ChevronRight className="h-4 w-4" />
                           {actionConfig.actionName}
@@ -7366,10 +7366,10 @@ Thank you for your assistance.`;
                         };
                         
                         return (
-                          <div className="px-6 pb-6 pt-4 border-t border-[#4F63A4]/20 flex justify-end">
+                          <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
                             <Button 
                               onClick={handleDataTableActionClick}
-                              className="bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center gap-2"
+                              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
                             >
                               <ChevronRight className="h-4 w-4" />
                               {actionConfig.actionName}
