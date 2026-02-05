@@ -68,8 +68,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(userData);
         // Clear cache when user data is loaded/refreshed
         queryClient.clear();
-      } else {
+      } else if (response.status === 401) {
         // Token is invalid, clear it
+        localStorage.removeItem("auth_token");
+        setToken(null);
+        queryClient.clear();
+      } else if (response.status === 403) {
+        // Could be tenant mismatch - don't auto-logout
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Access denied:", errorData.message);
+        // Still clear token if it's a fundamental auth issue
+        if (errorData.error !== 'TENANT_MISMATCH') {
+          localStorage.removeItem("auth_token");
+          setToken(null);
+          queryClient.clear();
+        }
+      } else {
+        // Other errors - clear token
         localStorage.removeItem("auth_token");
         setToken(null);
         queryClient.clear();

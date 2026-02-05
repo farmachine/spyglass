@@ -30,14 +30,25 @@ export async function apiRequest(
       credentials: "include",
     });
 
-    // If unauthorized or token expired, clear token and redirect to login
-    if (res.status === 401 || res.status === 403) {
+    // If unauthorized (401), clear token and redirect to login
+    // For 403, only logout if it's not a tenant mismatch (user may be on wrong subdomain)
+    if (res.status === 401) {
       console.log('Token expired or unauthorized. Clearing auth and redirecting to login...');
       localStorage.removeItem("auth_token");
-      localStorage.clear(); // Clear all localStorage to ensure clean state
-      sessionStorage.clear(); // Clear session storage as well
-      window.location.replace("/login"); // Use replace to ensure redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/login");
       return;
+    }
+    
+    // For 403, check if it's a tenant mismatch - don't logout, just throw error
+    if (res.status === 403) {
+      const errorData = await res.clone().json().catch(() => ({}));
+      if (errorData.error === 'TENANT_MISMATCH') {
+        throw new Error(`403: ${errorData.message || 'Access denied to this organization'}`);
+      }
+      // For other 403 errors (forbidden actions), don't auto-logout
+      throw new Error(`403: ${errorData.message || 'Forbidden'}`);
     }
 
     await throwIfResNotOk(res);
