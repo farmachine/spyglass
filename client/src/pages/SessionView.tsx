@@ -5247,8 +5247,8 @@ Thank you for your assistance.`;
                   {statusOptions.map((status: string, index: number) => {
                     const isLastStatus = index === statusOptions.length - 1;
                     const isCompleted = index === currentIndex && isLastStatus;
-                    const isPast = index < currentIndex || isCompleted || (index === 0 && currentIndex === 0 && statusOptions.length > 1);
-                    const isCurrent = index === currentIndex && !isCompleted && !(index === 0 && statusOptions.length > 1);
+                    const isPast = index <= currentIndex || isCompleted;
+                    const isCurrent = false;
                     const isCTA = index === nextIndex && !!ctaActionConfig;
                     const isCtaDisabled = isCTA && !isCtaStepComplete;
                     const isFuture = index > currentIndex && !isCTA;
