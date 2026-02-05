@@ -5625,6 +5625,77 @@ Thank you for your assistance.`;
                 return (
                   <div className="h-full overflow-auto">
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                    {/* Card Header with Action Button */}
+                    {(() => {
+                      const actionConfig = (currentStep as any)?.actionConfig;
+                      if (!actionConfig?.actionName) return null;
+                      
+                      const handleActionClick = async () => {
+                        try {
+                          await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
+                          });
+                          
+                          queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
+                          
+                          toast({
+                            title: "Status Updated",
+                            description: `Session status changed to "${actionConfig.actionStatus}"`
+                          });
+                          
+                          if (actionConfig.actionLink) {
+                            let link = actionConfig.actionLink;
+                            const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
+                            if (templateMatches) {
+                              for (const match of templateMatches) {
+                                const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
+                                const validation = validations.find(v => {
+                                  if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
+                                  if (v.fieldName) {
+                                    const dotIndex = v.fieldName.indexOf('.');
+                                    const bracketIndex = v.fieldName.indexOf('[');
+                                    let valuePart = v.fieldName;
+                                    if (dotIndex >= 0) {
+                                      valuePart = v.fieldName.substring(dotIndex + 1);
+                                    }
+                                    if (bracketIndex >= 0) {
+                                      valuePart = valuePart.substring(0, valuePart.indexOf('['));
+                                    }
+                                    if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
+                                  }
+                                  return false;
+                                });
+                                const value = validation?.extractedValue || extractedData[fieldName] || '';
+                                link = link.replace(match, encodeURIComponent(String(value)));
+                              }
+                            }
+                            window.open(link, '_blank');
+                          }
+                        } catch (error) {
+                          console.error('Error executing action:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to execute action",
+                            variant: "destructive"
+                          });
+                        }
+                      };
+                      
+                      return (
+                        <CardHeader className="pb-2 pt-4 px-6 flex flex-row items-center justify-end">
+                          <Button 
+                            onClick={handleActionClick}
+                            className="bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center gap-2"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                            {actionConfig.actionName}
+                            {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
+                          </Button>
+                        </CardHeader>
+                      );
+                    })()}
                     <CardContent className="pt-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {(() => {
@@ -6269,85 +6340,6 @@ Thank you for your assistance.`;
                       })()}
                     </div>
                   </CardContent>
-                  {/* Action Button for Info Page Steps */}
-                  {(() => {
-                    const actionConfig = (currentStep as any)?.actionConfig;
-                    if (!actionConfig?.actionName) return null;
-                    
-                    const handleActionClick = async () => {
-                      try {
-                        // Update session workflow status
-                        await apiRequest(`/api/sessions/${session?.id}/workflow-status`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ workflowStatus: actionConfig.actionStatus })
-                        });
-                        
-                        // Invalidate session query with correct key format
-                        queryClient.invalidateQueries({ queryKey: ['/api/sessions', session?.id] });
-                        queryClient.invalidateQueries({ queryKey: ['/api/projects', project?.id, 'sessions'] });
-                        
-                        toast({
-                          title: "Status Updated",
-                          description: `Session status changed to "${actionConfig.actionStatus}"`
-                        });
-                        
-                        // Handle action link with templating
-                        if (actionConfig.actionLink) {
-                          let link = actionConfig.actionLink;
-                          // Replace {{Field Name}} placeholders with actual values
-                          const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
-                          if (templateMatches) {
-                            for (const match of templateMatches) {
-                              const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
-                              // Find the field value from validations or extracted data
-                              // Match by exact fieldName, columnName, or by value name portion (handles "StepName.ValueName[index]" format)
-                              const validation = validations.find(v => {
-                                if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
-                                // Check if the fieldName contains the requested field (e.g., "Claim Info.Reference Number[0]" contains "Reference Number")
-                                if (v.fieldName) {
-                                  // Extract value name from patterns like "StepName.ValueName[index]" or just "ValueName"
-                                  const dotIndex = v.fieldName.indexOf('.');
-                                  const bracketIndex = v.fieldName.indexOf('[');
-                                  let valuePart = v.fieldName;
-                                  if (dotIndex >= 0) {
-                                    valuePart = v.fieldName.substring(dotIndex + 1);
-                                  }
-                                  if (bracketIndex >= 0) {
-                                    valuePart = valuePart.substring(0, valuePart.indexOf('['));
-                                  }
-                                  if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
-                                }
-                                return false;
-                              });
-                              const value = validation?.extractedValue || extractedData[fieldName] || '';
-                              link = link.replace(match, encodeURIComponent(String(value)));
-                            }
-                          }
-                          window.open(link, '_blank');
-                        }
-                      } catch (error) {
-                        console.error('Error executing action:', error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to execute action",
-                          variant: "destructive"
-                        });
-                      }
-                    };
-                    
-                    return (
-                      <div className="px-6 pb-6 pt-4 border-t border-[#4F63A4]/20 flex justify-end">
-                        <Button 
-                          onClick={handleActionClick}
-                          className="bg-[#4F63A4] hover:bg-[#3A4A7C] text-white flex items-center gap-2"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                          {actionConfig.actionName}
-                          {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
-                        </Button>
-                      </div>
-                    );
-                  })()}
                 </Card>
                 </div>
                 );
