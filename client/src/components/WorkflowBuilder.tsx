@@ -35,7 +35,8 @@ import {
   Upload,
   Circle,
   ChevronRight,
-  Database
+  Database,
+  Check
 } from "lucide-react";
 import {
   DropdownMenu,
