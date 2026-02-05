@@ -558,62 +558,24 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {/* Left Column - General Config */}
         <div className="w-1/3 space-y-4">
           <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">General Config</h2>
-          {/* Main Object Name Field */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-              Main Object Name
+          {/* Main Item Name Field */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-[#4F63A4]/30 p-4 shadow-sm">
+            <Label className="text-xs font-medium text-[#4F63A4] dark:text-[#5A70B5] mb-1.5 block">
+              Main Item Name
             </Label>
-            <p className="text-xs text-muted-foreground mb-3">
-              What are you extracting data about? (e.g., "Claim", "Invoice", "Contract")
-            </p>
-            {isEditingMainObjectName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={tempMainObjectName}
-                  onChange={(e) => setTempMainObjectName(e.target.value)}
-                  placeholder="e.g., Claim, Invoice, Contract"
-                  className="h-9 flex-1"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveMainObjectName();
-                    if (e.key === 'Escape') {
-                      setTempMainObjectName(localMainObjectName);
-                      setIsEditingMainObjectName(false);
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleSaveMainObjectName}
-                  className="h-8 px-2"
-                >
-                  <Check className="h-5 w-5 text-green-500" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setTempMainObjectName(localMainObjectName);
-                    setIsEditingMainObjectName(false);
-                  }}
-                  className="h-8 px-2"
-                >
-                  <X className="h-5 w-5 text-red-500" />
-                </Button>
-              </div>
-            ) : (
-              <div 
-                className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
-                onClick={() => {
-                  setTempMainObjectName(localMainObjectName);
-                  setIsEditingMainObjectName(true);
-                }}
-              >
-                <span className="text-base font-medium text-gray-900 dark:text-gray-100">{localMainObjectName}</span>
-                <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            )}
+            <Input
+              value={tempMainObjectName}
+              onChange={(e) => {
+                setTempMainObjectName(e.target.value);
+                setIsEditingMainObjectName(true);
+              }}
+              onBlur={handleSaveMainObjectName}
+              placeholder="e.g., Claim, Invoice, Contract"
+              className="h-10 text-lg font-semibold border-0 border-b-2 border-[#4F63A4]/20 rounded-none px-0 focus-visible:ring-0 focus-visible:border-[#4F63A4]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveMainObjectName();
+              }}
+            />
           </div>
 
           {/* Document Types Configuration */}
