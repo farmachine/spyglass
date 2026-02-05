@@ -67,7 +67,8 @@ export function comparePassword(password: string, hashedPassword: string): Promi
 
 // Middleware to authenticate requests
 // Also validates tenant access when subdomain middleware has run
-export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
+// Checks junction table for multi-org membership
+export async function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -82,12 +83,22 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
 
   req.user = user;
   
-  // Validate tenant access: if accessing via a subdomain, user must belong to that org
-  if (req.tenantOrg && user.organizationId !== req.tenantOrg.id) {
-    return res.status(403).json({ 
-      message: 'Access denied: You do not belong to this organization',
-      error: 'TENANT_MISMATCH'
-    });
+  // Validate tenant access: if accessing via a subdomain, check junction table for membership
+  if (req.tenantOrg) {
+    // First check if primary org matches (fast path)
+    if (user.organizationId !== req.tenantOrg.id) {
+      // Check junction table for multi-org membership
+      const { storage } = await import('./storage');
+      const userOrgs = await storage.getUserOrganizations(user.id);
+      const belongsToTenant = userOrgs.some(uo => uo.organizationId === req.tenantOrg!.id);
+      
+      if (!belongsToTenant) {
+        return res.status(403).json({ 
+          message: 'Access denied: You do not belong to this organization',
+          error: 'TENANT_MISMATCH'
+        });
+      }
+    }
   }
   
   next();
