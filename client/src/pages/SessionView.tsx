@@ -5176,8 +5176,10 @@ Thank you for your assistance.`;
               return (
                 <div className="flex items-center flex-shrink-0 ml-auto">
                   {statusOptions.map((status: string, index: number) => {
-                    const isPast = index < currentIndex;
-                    const isCurrent = index === currentIndex;
+                    const isLastStatus = index === statusOptions.length - 1;
+                    const isCompleted = index === currentIndex && isLastStatus;
+                    const isPast = index < currentIndex || isCompleted;
+                    const isCurrent = index === currentIndex && !isCompleted;
                     const isCTA = index === nextIndex && !!ctaActionConfig;
                     const isFuture = index > currentIndex && !isCTA;
                     const isFirst = index === 0;
