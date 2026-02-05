@@ -634,9 +634,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {documentTypes.length} {documentTypes.length === 1 ? 'type' : 'types'}
-              </Badge>
               {isDocumentTypesExpanded ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
               ) : (
@@ -712,9 +709,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {localStatusOptions.length} {localStatusOptions.length === 1 ? 'status' : 'statuses'}
-              </Badge>
               {isStatusSettingsExpanded ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
               ) : (
