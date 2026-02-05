@@ -552,10 +552,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   return (
     <div className="space-y-6">
-      {/* Two Column Layout: Left (1/3) - Documents & Status, Right (2/3) - Steps */}
+      {/* Two Column Layout: Left (1/3) - General Config, Right (2/3) - Extraction Stages */}
       <div className="flex gap-6">
-        {/* Left Column - Main Object Name, Required Documents & Workflow Status */}
+        {/* Left Column - General Config */}
         <div className="w-1/3 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">General Config</h2>
           {/* Main Object Name Field */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
@@ -791,14 +792,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       </Card>
         </div>
 
-        {/* Right Column - Steps Configuration */}
+        {/* Right Column - Extraction Stages */}
         <div className="w-2/3">
-        {/* Steps List */}
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Extraction Stages</h2>
+        {/* Stages List */}
         <div>
           <div className="space-y-2">
             {steps.map((step, stepIndex) => (
               <div key={step.id} className="relative">
-                {/* Step Card */}
+                {/* Stage Card */}
                 <div
                   className={`group cursor-pointer rounded-lg border-2 transition-all ${
                     selectedStepId === step.id
@@ -822,7 +824,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         )}
                       </div>
                       
-                      {/* Step Name */}
+                      {/* Stage Name */}
                       <div className="flex-1">
                         {editingStepId === step.id ? (
                           <Input
@@ -852,7 +854,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       </div>
                     </div>
 
-                    {/* Step Actions */}
+                    {/* Stage Actions */}
                     <div className="flex items-center gap-1">
                       {/* Expand/Collapse Button */}
                       <Button
@@ -931,27 +933,26 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                           className="text-red-600 dark:text-red-400"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Step
+                          Delete Stage
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
                   </div>
-                </div>
 
-                {/* Expanded Step Configuration */}
+                {/* Expanded Stage Configuration - inside the stage card border */}
                 {expandedStepId === step.id && (
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
                     <div className="space-y-4">
-                      {/* Step Name */}
+                      {/* Stage Name */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Step Name
+                          Stage Name
                         </label>
                         <Input
                           value={step.name}
                           onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                          placeholder="Enter step name..."
+                          placeholder="Enter stage name..."
                           className="w-full"
                         />
                       </div>
@@ -964,16 +965,16 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         <textarea
                           value={step.description || ''}
                           onChange={(e) => updateStep(step.id, { description: e.target.value })}
-                          placeholder="Describe what this step extracts..."
+                          placeholder="Describe what this stage extracts..."
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none"
                           rows={3}
                         />
                       </div>
 
-                      {/* Step Type */}
+                      {/* Stage Type */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Step Type
+                          Stage Type
                         </label>
                         <div className="flex gap-4 flex-wrap">
                           <label className="flex items-center cursor-pointer">
@@ -1227,7 +1228,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </>
                       )}
 
-                      {/* Step Action Configuration - for page/list steps only */}
+                      {/* Stage Action Configuration - for page/list stages only */}
                       {step.type !== 'kanban' && (
                         <>
                           {step.actionConfig ? (
@@ -1251,7 +1252,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                                   ) : (
                                     <ChevronRight className="h-4 w-4 text-white" />
                                   )}
-                                  <span className="font-medium text-white">Step Action</span>
+                                  <span className="font-medium text-white">Stage Action</span>
                                 </div>
                                 <Button
                                   variant="ghost"
@@ -1337,6 +1338,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                     </div>
                   </div>
                 )}
+                </div>
 
                 {/* Connector line to next step */}
                 {stepIndex < steps.length - 1 && (
@@ -1349,7 +1351,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </div>
             ))}
 
-            {/* Add Step Button */}
+            {/* Add Stage Button */}
             <div className="pt-2">
               {steps.length > 0 && (
                 <div className="flex justify-center pb-2">
@@ -1362,7 +1364,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                 className="w-full gap-2 border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5]"
               >
                 <Plus className="h-4 w-4" />
-                Add Step
+                Add Stage
               </Button>
             </div>
           </div>

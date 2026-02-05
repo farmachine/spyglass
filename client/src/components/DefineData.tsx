@@ -526,45 +526,6 @@ export default function DefineData({
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <span style={{ color: '#4F63A4' }}>•</span> 
               <span>Extraction</span>
-              <span style={{ color: '#4F63A4' }}>•</span>
-              {isEditingMainObject ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={tempMainObjectName}
-                    onChange={(e) => setTempMainObjectName(e.target.value)}
-                    className="w-48 h-10 text-2xl font-bold bg-transparent border-b border-gray-500 dark:border-gray-400 rounded-none px-1 focus:border-[#4F63A4] focus:ring-0"
-                    placeholder="e.g., Session"
-                    autoFocus
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleSaveMainObjectName}
-                    className="h-8 px-2"
-                  >
-                    <Check className="h-5 w-5 text-green-600" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setTempMainObjectName(mainObjectName);
-                      setIsEditingMainObject(false);
-                    }}
-                    className="h-8 px-2"
-                  >
-                    <X className="h-5 w-5 text-red-500" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 cursor-pointer group" onClick={() => {
-                  setTempMainObjectName(mainObjectName);
-                  setIsEditingMainObject(true);
-                }}>
-                  <span className="group-hover:text-[#4F63A4] transition-colors">{mainObjectName}</span>
-                  <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              )}
             </h1>
             <p className="text-gray-600 dark:text-gray-100 mt-1">
               Design your data extraction workflow
