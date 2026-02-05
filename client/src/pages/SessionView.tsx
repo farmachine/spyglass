@@ -6339,11 +6339,9 @@ Thank you for your assistance.`;
                       <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
                         <Button 
                           onClick={handleActionClick}
-                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                          className="bg-green-600 hover:bg-green-700 text-white text-base font-semibold px-6 py-2"
                         >
-                          <ChevronRight className="h-4 w-4" />
                           {actionConfig.actionName}
-                          {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
                         </Button>
                       </div>
                     );
@@ -7369,11 +7367,9 @@ Thank you for your assistance.`;
                           <div className="px-6 pb-6 pt-4 border-t border-green-500/20 flex justify-end">
                             <Button 
                               onClick={handleDataTableActionClick}
-                              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                              className="bg-green-600 hover:bg-green-700 text-white text-base font-semibold px-6 py-2"
                             >
-                              <ChevronRight className="h-4 w-4" />
                               {actionConfig.actionName}
-                              {actionConfig.actionLink && <ExternalLink className="h-4 w-4 ml-1" />}
                             </Button>
                           </div>
                         );
