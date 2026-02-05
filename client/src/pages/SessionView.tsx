@@ -6300,10 +6300,25 @@ Thank you for your assistance.`;
                             for (const match of templateMatches) {
                               const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
                               // Find the field value from validations or extracted data
-                              const validation = validations.find(v => 
-                                v.fieldName === fieldName || 
-                                v.columnName === fieldName
-                              );
+                              // Match by exact fieldName, columnName, or by value name portion (handles "StepName.ValueName[index]" format)
+                              const validation = validations.find(v => {
+                                if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
+                                // Check if the fieldName contains the requested field (e.g., "Claim Info.Reference Number[0]" contains "Reference Number")
+                                if (v.fieldName) {
+                                  // Extract value name from patterns like "StepName.ValueName[index]" or just "ValueName"
+                                  const dotIndex = v.fieldName.indexOf('.');
+                                  const bracketIndex = v.fieldName.indexOf('[');
+                                  let valuePart = v.fieldName;
+                                  if (dotIndex >= 0) {
+                                    valuePart = v.fieldName.substring(dotIndex + 1);
+                                  }
+                                  if (bracketIndex >= 0) {
+                                    valuePart = valuePart.substring(0, valuePart.indexOf('['));
+                                  }
+                                  if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
+                                }
+                                return false;
+                              });
                               const value = validation?.extractedValue || extractedData[fieldName] || '';
                               link = link.replace(match, encodeURIComponent(String(value)));
                             }
@@ -7316,10 +7331,24 @@ Thank you for your assistance.`;
                               if (templateMatches) {
                                 for (const match of templateMatches) {
                                   const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
-                                  const validation = validations.find(v => 
-                                    v.fieldName === fieldName || 
-                                    v.columnName === fieldName
-                                  );
+                                  // Match by exact fieldName, columnName, or by value name portion (handles "StepName.ValueName[index]" format)
+                                  const validation = validations.find(v => {
+                                    if (v.fieldName === fieldName || (v as any).columnName === fieldName) return true;
+                                    // Check if the fieldName contains the requested field
+                                    if (v.fieldName) {
+                                      const dotIndex = v.fieldName.indexOf('.');
+                                      const bracketIndex = v.fieldName.indexOf('[');
+                                      let valuePart = v.fieldName;
+                                      if (dotIndex >= 0) {
+                                        valuePart = v.fieldName.substring(dotIndex + 1);
+                                      }
+                                      if (bracketIndex >= 0) {
+                                        valuePart = valuePart.substring(0, valuePart.indexOf('['));
+                                      }
+                                      if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
+                                    }
+                                    return false;
+                                  });
                                   const value = validation?.extractedValue || extractedData[fieldName] || '';
                                   link = link.replace(match, encodeURIComponent(String(value)));
                                 }
