@@ -5165,23 +5165,46 @@ Thank you for your assistance.`;
                     let link = ctaActionConfig.actionLink;
                     const templateMatches = link.match(/\{\{([^}]+)\}\}/g);
                     if (templateMatches) {
-                      const extractedData = session?.extractedData ? JSON.parse(session.extractedData) : {};
+                      const allStepValues = project?.workflowSteps?.flatMap((s: any) => s.values || []) || [];
+                      const fieldIdentifierMap = new Map<string, string>();
+                      allStepValues.forEach((sv: any) => {
+                        if (sv.valueName) {
+                          fieldIdentifierMap.set(sv.valueName.toLowerCase(), sv.id);
+                        }
+                        if (sv.fields && Array.isArray(sv.fields)) {
+                          sv.fields.forEach((f: any) => {
+                            if (f.name && f.identifierId) {
+                              fieldIdentifierMap.set(f.name.toLowerCase(), f.identifierId);
+                            }
+                          });
+                        }
+                      });
+
                       for (const match of templateMatches) {
                         const fieldName = match.replace(/\{\{|\}\}/g, '').trim();
-                        const validation = validations.find((v: any) => {
-                          if (v.fieldName === fieldName || v.columnName === fieldName) return true;
-                          if (v.fieldName) {
-                            const dotIdx = v.fieldName.indexOf('.');
-                            const bracketIdx = v.fieldName.indexOf('[');
-                            let valuePart = v.fieldName;
-                            if (dotIdx >= 0) valuePart = v.fieldName.substring(dotIdx + 1);
-                            if (bracketIdx >= 0) valuePart = valuePart.substring(0, valuePart.indexOf('['));
-                            if (valuePart.trim().toLowerCase() === fieldName.toLowerCase()) return true;
-                          }
-                          return false;
-                        });
-                        const value = validation?.extractedValue || extractedData[fieldName] || '';
-                        link = link.replace(match, encodeURIComponent(String(value)));
+                        const identifierId = fieldIdentifierMap.get(fieldName.toLowerCase());
+                        let foundValue = '';
+
+                        if (identifierId) {
+                          const validation = validations.find((v: any) =>
+                            v.identifierId === identifierId || v.valueId === identifierId || v.fieldId === identifierId
+                          );
+                          if (validation) foundValue = validation.extractedValue || '';
+                        }
+
+                        if (!foundValue) {
+                          const validation = validations.find((v: any) => {
+                            if (v.fieldName === fieldName || v.columnName === fieldName) return true;
+                            const svMatch = allStepValues.find((sv: any) =>
+                              sv.valueName?.toLowerCase() === fieldName.toLowerCase()
+                            );
+                            if (svMatch && (v.valueId === svMatch.id || v.fieldId === svMatch.id)) return true;
+                            return false;
+                          });
+                          if (validation) foundValue = validation.extractedValue || '';
+                        }
+
+                        link = link.replace(match, encodeURIComponent(String(foundValue)));
                       }
                     }
                     window.open(link, '_blank');
