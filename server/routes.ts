@@ -466,14 +466,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get organization members (via junction table for multi-org support)
   // Only primary org admins can view members of any organization
-  app.get("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.get("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const organizationId = req.params.id;
       
-      // Verify user is primary org admin (can manage all orgs) or belongs to this org
-      const userOrg = await storage.getOrganization(req.user!.organizationId);
-      if (userOrg?.type !== 'primary' && req.user!.organizationId !== organizationId) {
+      // Check if user is admin of a primary org (either via tenant context or primary org) or belongs to this org
+      const currentOrgId = req.tenantOrg?.id || req.user!.organizationId;
+      const currentOrg = await storage.getOrganization(currentOrgId);
+      
+      // Also verify user is admin in current tenant context
+      let isAdminInCurrentOrg = req.user!.role === 'admin';
+      if (req.tenantOrg && req.user!.organizationId !== req.tenantOrg.id) {
+        const userOrgs = await storage.getUserOrganizations(req.user!.id);
+        const membership = userOrgs.find(uo => uo.organizationId === req.tenantOrg!.id);
+        isAdminInCurrentOrg = membership?.role === 'admin';
+      }
+      
+      // Allow if: (1) user is admin of primary org, or (2) user is admin of requested org
+      if (currentOrg?.type !== 'primary' && currentOrgId !== organizationId) {
         return res.status(403).json({ message: "Not authorized to view this organization's members" });
+      }
+      
+      if (!isAdminInCurrentOrg) {
+        return res.status(403).json({ message: "Admin access required" });
       }
       
       const members = await storage.getOrganizationMembers(organizationId);
@@ -489,14 +504,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add existing user to organization
   // Only primary org admins can add users to any organization
-  app.post("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.post("/api/organizations/:id/members", authenticateToken, requireAdmin, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const organizationId = req.params.id;
       const { userId, email, role } = req.body;
       
-      // Verify user is primary org admin (can manage all orgs)
-      const userOrg = await storage.getOrganization(req.user!.organizationId);
-      if (userOrg?.type !== 'primary') {
+      // Check if user is admin of a primary org (either via tenant context or primary org)
+      // If accessing via subdomain, use tenant context; otherwise use user's primary org
+      const currentOrgId = req.tenantOrg?.id || req.user!.organizationId;
+      const currentOrg = await storage.getOrganization(currentOrgId);
+      
+      // Also verify user is admin in current tenant context
+      let isAdminInCurrentOrg = req.user!.role === 'admin';
+      if (req.tenantOrg && req.user!.organizationId !== req.tenantOrg.id) {
+        const userOrgs = await storage.getUserOrganizations(req.user!.id);
+        const membership = userOrgs.find(uo => uo.organizationId === req.tenantOrg!.id);
+        isAdminInCurrentOrg = membership?.role === 'admin';
+      }
+      
+      if (currentOrg?.type !== 'primary' || !isAdminInCurrentOrg) {
         return res.status(403).json({ message: "Only system administrators can add users to organizations" });
       }
       
@@ -526,13 +552,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Remove user from organization
   // Only primary org admins can remove users from any organization
-  app.delete("/api/organizations/:id/members/:userId", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  app.delete("/api/organizations/:id/members/:userId", authenticateToken, requireAdmin, async (req: AuthRequest & SubdomainRequest, res) => {
     try {
       const { id: organizationId, userId } = req.params;
       
-      // Verify user is primary org admin (can manage all orgs)
-      const userOrg = await storage.getOrganization(req.user!.organizationId);
-      if (userOrg?.type !== 'primary') {
+      // Check if user is admin of a primary org (either via tenant context or primary org)
+      const currentOrgId = req.tenantOrg?.id || req.user!.organizationId;
+      const currentOrg = await storage.getOrganization(currentOrgId);
+      
+      // Also verify user is admin in current tenant context
+      let isAdminInCurrentOrg = req.user!.role === 'admin';
+      if (req.tenantOrg && req.user!.organizationId !== req.tenantOrg.id) {
+        const userOrgs = await storage.getUserOrganizations(req.user!.id);
+        const membership = userOrgs.find(uo => uo.organizationId === req.tenantOrg!.id);
+        isAdminInCurrentOrg = membership?.role === 'admin';
+      }
+      
+      if (currentOrg?.type !== 'primary' || !isAdminInCurrentOrg) {
         return res.status(403).json({ message: "Only system administrators can remove users from organizations" });
       }
       
