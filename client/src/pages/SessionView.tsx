@@ -5132,9 +5132,9 @@ Thank you for your assistance.`;
                     return (
                       <div key={status} className="flex items-center">
                         <div 
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                          className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all min-w-[100px] justify-center ${
                             isPast 
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              ? 'bg-green-600 text-white' 
                               : isCurrent 
                                 ? 'bg-[#4F63A4] text-white shadow-sm' 
                                 : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
@@ -5146,7 +5146,7 @@ Thank you for your assistance.`;
                         </div>
                         {index < statusOptions.length - 1 && (
                           <ChevronRight className={`h-4 w-4 mx-1 ${
-                            isPast ? 'text-green-400' : 'text-gray-300 dark:text-gray-600'
+                            isPast ? 'text-green-600' : 'text-gray-300 dark:text-gray-600'
                           }`} />
                         )}
                       </div>
