@@ -3803,6 +3803,28 @@ except Exception as e:
     }
   });
 
+  // Update session workflow status
+  app.patch("/api/sessions/:id/workflow-status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { workflowStatus } = req.body;
+      
+      if (!workflowStatus) {
+        return res.status(400).json({ message: "workflowStatus is required" });
+      }
+      
+      const session = await storage.updateExtractionSession(id, { workflowStatus });
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error updating session workflow status:", error);
+      res.status(500).json({ message: "Failed to update workflow status" });
+    }
+  });
+
   // Update extracted data for a session
   app.patch("/api/sessions/:sessionId/data", async (req, res) => {
     try {
@@ -7030,7 +7052,8 @@ print(json.dumps(results))
         orderIndex: stepData.orderIndex,
         valueCount: stepData.valueCount || stepData.values?.length || 0,
         identifierId: stepData.identifierId,
-        kanbanConfig: stepData.kanbanConfig || null
+        kanbanConfig: stepData.kanbanConfig || null,
+        actionConfig: stepData.actionConfig || null
       });
     } else {
       // Create new step - need to get project ID from the step data
@@ -7047,7 +7070,8 @@ print(json.dumps(results))
         orderIndex: stepData.orderIndex,
         valueCount: stepData.valueCount || stepData.values?.length || 0,
         identifierId: stepData.identifierId,
-        kanbanConfig: stepData.kanbanConfig || null
+        kanbanConfig: stepData.kanbanConfig || null,
+        actionConfig: stepData.actionConfig || null
       });
     }
     
