@@ -1214,10 +1214,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </>
                       )}
 
-                      {/* Stage Action Configuration - for page/list stages only */}
-                      {step.type !== 'kanban' && (
-                        <>
-                          {step.actionConfig ? (
+                      {/* Stage Action Configuration - for all stage types */}
+                      {step.actionConfig ? (
                             <div className="rounded-lg overflow-hidden border border-[#4F63A4]/40">
                               {/* Collapsible Header */}
                               <div 
@@ -1318,8 +1316,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                                 Add Action
                               </span>
                             </button>
-                          )}
-                        </>
                       )}
                     </div>
                   </div>
