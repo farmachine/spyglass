@@ -5134,11 +5134,11 @@ Thank you for your assistance.`;
                 const stepId = (ctaStep as any).id;
                 const stepVals = (ctaStep as any).values || [];
                 if (stepVals.length === 0) return true;
+                const stepValueIds = new Set(stepVals.map((sv: any) => sv.id));
                 const stepValidations = validations.filter((v: any) =>
-                  v.stepId === stepId
+                  v.stepId === stepId || stepValueIds.has(v.valueId) || stepValueIds.has(v.fieldId)
                 );
-                if (stepValidations.length === 0) return false;
-                const everyValueHasValidation = stepVals.every((sv: any) => {
+                return stepVals.every((sv: any) => {
                   const valueValidations = stepValidations.filter((v: any) =>
                     v.valueId === sv.id || v.fieldId === sv.id
                   );
@@ -5146,7 +5146,6 @@ Thank you for your assistance.`;
                     v.validationStatus === 'valid' || v.validationStatus === 'manual'
                   );
                 });
-                return everyValueHasValidation;
               })();
 
               const handleChevronCTAClick = async () => {
