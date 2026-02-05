@@ -7,6 +7,7 @@ export interface SubdomainRequest extends Request {
     id: string;
     name: string;
     subdomain: string;
+    type: string;
   };
 }
 
@@ -70,7 +71,8 @@ export function subdomainMiddleware(baseDomain?: string) {
           req.tenantOrg = {
             id: org.id,
             name: org.name,
-            subdomain: org.subdomain!
+            subdomain: org.subdomain!,
+            type: org.type || 'regular'
           };
         }
       } catch (error) {

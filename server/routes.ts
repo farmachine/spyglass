@@ -339,7 +339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organization: req.tenantOrg ? {
           id: req.tenantOrg.id,
           name: req.tenantOrg.name,
-          subdomain: req.tenantOrg.subdomain
+          subdomain: req.tenantOrg.subdomain,
+          type: req.tenantOrg.type
         } : user.organization,
         subdomain: req.tenantOrg?.subdomain || user.organization?.subdomain
       });
