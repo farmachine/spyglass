@@ -786,10 +786,10 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
       </Card>
       </div>
 
-      {/* Two Column Layout */}
-      <div className="flex gap-20">
-        {/* Left Column - Steps List */}
-        <div className="w-80 flex-shrink-0">
+      {/* Steps Layout - Single Column with Nested Values */}
+      <div className="max-w-4xl">
+        {/* Steps List */}
+        <div>
           <div className="space-y-2">
             {steps.map((step, stepIndex) => (
               <div key={step.id} className="relative">
@@ -1022,6 +1022,286 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       </div>
 
                     </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-4" />
+
+                    {/* Values Section - Nested inside the step */}
+                    <div className="space-y-3">
+                      {step.type === 'kanban' ? (
+                        /* Kanban Configuration */
+                        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <LayoutGrid className="h-4 w-4" />
+                            Task Board Configuration
+                          </h4>
+                          
+                          {/* Status Columns */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Status Columns
+                            </label>
+                            <div className="space-y-2">
+                              {(step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((col, colIndex) => {
+                                const currentColors = step.kanbanConfig?.columnColors || [];
+                                const currentColor = currentColors[colIndex] || KANBAN_COLUMN_COLORS[colIndex % KANBAN_COLUMN_COLORS.length];
+                                return (
+                                  <div key={colIndex} className="flex gap-2 items-center">
+                                    <div className="relative">
+                                      <Select
+                                        value={currentColor}
+                                        onValueChange={(newColor) => {
+                                          const newColors = [...currentColors];
+                                          while (newColors.length <= colIndex) {
+                                            newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
+                                          }
+                                          newColors[colIndex] = newColor;
+                                          updateStep(step.id, {
+                                            kanbanConfig: {
+                                              ...step.kanbanConfig,
+                                              statusColumns: step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                              columnColors: newColors
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-12 h-9 p-1">
+                                          <div 
+                                            className="w-6 h-6 rounded-md border border-gray-300 dark:border-gray-600"
+                                            style={{ backgroundColor: currentColor }}
+                                          />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <div className="flex gap-1 p-1">
+                                            {KANBAN_COLUMN_COLORS.map((color) => (
+                                              <button
+                                                key={color}
+                                                type="button"
+                                                onClick={() => {
+                                                  const newColors = [...currentColors];
+                                                  while (newColors.length <= colIndex) {
+                                                    newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
+                                                  }
+                                                  newColors[colIndex] = color;
+                                                  updateStep(step.id, {
+                                                    kanbanConfig: {
+                                                      ...step.kanbanConfig,
+                                                      statusColumns: step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                                      columnColors: newColors
+                                                    }
+                                                  });
+                                                }}
+                                                className={`w-7 h-7 rounded-md border-2 transition-all ${
+                                                  currentColor === color 
+                                                    ? 'border-gray-800 dark:border-white scale-110' 
+                                                    : 'border-transparent hover:border-gray-400'
+                                                }`}
+                                                style={{ backgroundColor: color }}
+                                              />
+                                            ))}
+                                          </div>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <Input
+                                      value={col}
+                                      onChange={(e) => {
+                                        const newColumns = [...(step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'])];
+                                        newColumns[colIndex] = e.target.value;
+                                        updateStep(step.id, {
+                                          kanbanConfig: {
+                                            ...step.kanbanConfig,
+                                            statusColumns: newColumns
+                                          }
+                                        });
+                                      }}
+                                      placeholder="Column name"
+                                      className="flex-1"
+                                      style={{ borderLeftColor: currentColor, borderLeftWidth: '3px' }}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newColumns = (step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).filter((_, i) => i !== colIndex);
+                                        const newColors = (step.kanbanConfig?.columnColors || []).filter((_, i) => i !== colIndex);
+                                        updateStep(step.id, {
+                                          kanbanConfig: {
+                                            ...step.kanbanConfig,
+                                            statusColumns: newColumns,
+                                            columnColors: newColors
+                                          }
+                                        });
+                                      }}
+                                      className="text-red-500 hover:text-red-700"
+                                      disabled={(step.kanbanConfig?.statusColumns || []).length <= 2}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentColumns = step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'];
+                                  const currentColors = step.kanbanConfig?.columnColors || [];
+                                  const newColumns = [...currentColumns, 'New Status'];
+                                  const newColors = [...currentColors, KANBAN_COLUMN_COLORS[newColumns.length % KANBAN_COLUMN_COLORS.length]];
+                                  updateStep(step.id, {
+                                    kanbanConfig: {
+                                      ...step.kanbanConfig,
+                                      statusColumns: newColumns,
+                                      columnColors: newColors
+                                    }
+                                  });
+                                }}
+                                className="w-full"
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Column
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* AI Instructions */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              AI Task Generation Instructions
+                            </label>
+                            <Textarea
+                              value={step.kanbanConfig?.aiInstructions || ''}
+                              onChange={(e) => {
+                                updateStep(step.id, {
+                                  kanbanConfig: {
+                                    ...step.kanbanConfig,
+                                    statusColumns: step.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
+                                    aiInstructions: e.target.value
+                                  }
+                                });
+                              }}
+                              placeholder="Describe how the AI should analyze documents to generate tasks..."
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        /* Values for Info Page / Data Table */
+                        <>
+                          {step.values.map((value, valueIndex) => (
+                            <ValueCard
+                              key={value.id}
+                              step={step}
+                              value={value}
+                              excelFunctions={excelFunctions}
+                              knowledgeDocuments={knowledgeDocuments}
+                              dataSources={dataSources}
+                              allSteps={steps}
+                              currentValueIndex={valueIndex}
+                              onUpdate={(updates) => updateValue(step.id, value.id, updates)}
+                              onDelete={() => deleteValue(step.id, value.id)}
+                              onAddField={() => addField(step.id, value.id)}
+                              onUpdateField={(fieldIndex, updates) => updateField(step.id, value.id, fieldIndex, updates)}
+                              onDeleteField={(fieldIndex) => deleteField(step.id, value.id, fieldIndex)}
+                            />
+                          ))}
+
+                          {/* Add Value Button - only show if no action configured */}
+                          {!step.actionConfig && (
+                            <button
+                              onClick={() => addValue(step.id)}
+                              className="w-full py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
+                            >
+                              <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
+                              <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
+                                Add Value
+                              </span>
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {/* Step Action Configuration - for page/list steps only */}
+                      {step.type !== 'kanban' && (
+                        <>
+                          {step.actionConfig ? (
+                            <div className="p-4 bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 rounded-lg border border-[#4F63A4]/30">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <ChevronRight className="h-4 w-4 text-[#4F63A4]" />
+                                  <span className="font-medium text-gray-800 dark:text-gray-200">Step Action</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateStep(step.id, { actionConfig: undefined })}
+                                  className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Button Text</Label>
+                                  <Input
+                                    value={step.actionConfig.actionName}
+                                    onChange={(e) => updateStep(step.id, { 
+                                      actionConfig: { ...step.actionConfig!, actionName: e.target.value }
+                                    })}
+                                    placeholder="e.g., Submit, Approve, Complete"
+                                    className="mt-1 h-8"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
+                                  <Input
+                                    value={step.actionConfig.actionStatus}
+                                    onChange={(e) => updateStep(step.id, { 
+                                      actionConfig: { ...step.actionConfig!, actionStatus: e.target.value }
+                                    })}
+                                    placeholder="e.g., Submitted, Approved, Complete"
+                                    className="mt-1 h-8"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Link (optional)</Label>
+                                  <Input
+                                    value={step.actionConfig.actionLink || ''}
+                                    onChange={(e) => updateStep(step.id, { 
+                                      actionConfig: { ...step.actionConfig!, actionLink: e.target.value || undefined }
+                                    })}
+                                    placeholder="https://example.com?id={{Field Name}}"
+                                    className="mt-1 h-8"
+                                  />
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Use {"{{Field Name}}"} to insert field values in the URL
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => updateStep(step.id, { 
+                                actionConfig: { 
+                                  actionName: 'Complete', 
+                                  actionStatus: 'Complete' 
+                                }
+                              })}
+                              className="w-full py-3 rounded-lg border-2 border-dashed border-[#4F63A4]/30 hover:border-[#4F63A4] dark:border-[#4F63A4]/40 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group bg-[#4F63A4]/5 hover:bg-[#4F63A4]/10"
+                            >
+                              <ChevronRight className="h-4 w-4 text-[#4F63A4]/60 group-hover:text-[#4F63A4]" />
+                              <span className="text-sm font-medium text-[#4F63A4]/70 group-hover:text-[#4F63A4]">
+                                Add Action
+                              </span>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1053,604 +1333,6 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
               </Button>
             </div>
           </div>
-        </div>
-
-        {/* Right Column - Values for Selected Step */}
-        <div className="flex-1 min-w-0 relative flex flex-col">
-          {selectedStepId ? (
-            <div className="relative">
-                {/* Value Cards Container */}
-                <div className="space-y-4" style={{ width: '90%', marginLeft: '0' }}>
-                
-                {/* Task Board Configuration - only shown for kanban type */}
-                {(() => {
-                  const selectedStep = steps.find(s => s.id === selectedStepId);
-                  if (selectedStep?.type !== 'kanban') return null;
-                  
-                  return (
-                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <LayoutGrid className="h-4 w-4" />
-                        Task Board Configuration
-                      </h4>
-                      
-                      {/* Status Columns */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Status Columns
-                        </label>
-                        <div className="space-y-2">
-                          {(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((col, colIndex) => {
-                            const currentColors = selectedStep.kanbanConfig?.columnColors || [];
-                            const currentColor = currentColors[colIndex] || KANBAN_COLUMN_COLORS[colIndex % KANBAN_COLUMN_COLORS.length];
-                            return (
-                              <div key={colIndex} className="flex gap-2 items-center">
-                                <div className="relative">
-                                  <Select
-                                    value={currentColor}
-                                    onValueChange={(newColor) => {
-                                      const newColors = [...currentColors];
-                                      while (newColors.length <= colIndex) {
-                                        newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
-                                      }
-                                      newColors[colIndex] = newColor;
-                                      updateStep(selectedStep.id, {
-                                        kanbanConfig: {
-                                          ...selectedStep.kanbanConfig,
-                                          columnColors: newColors
-                                        }
-                                      });
-                                    }}
-                                  >
-                                    <SelectTrigger className="w-12 h-9 p-1">
-                                      <div 
-                                        className="w-6 h-6 rounded-md border border-gray-300 dark:border-gray-600"
-                                        style={{ backgroundColor: currentColor }}
-                                      />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <div className="flex gap-1 p-1">
-                                        {KANBAN_COLUMN_COLORS.map((color) => (
-                                          <button
-                                            key={color}
-                                            type="button"
-                                            onClick={() => {
-                                              const newColors = [...currentColors];
-                                              while (newColors.length <= colIndex) {
-                                                newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
-                                              }
-                                              newColors[colIndex] = color;
-                                              updateStep(selectedStep.id, {
-                                                kanbanConfig: {
-                                                  ...selectedStep.kanbanConfig,
-                                                  columnColors: newColors
-                                                }
-                                              });
-                                            }}
-                                            className={`w-7 h-7 rounded-md border-2 transition-all ${
-                                              currentColor === color 
-                                                ? 'border-gray-800 dark:border-white scale-110' 
-                                                : 'border-transparent hover:border-gray-400'
-                                            }`}
-                                            style={{ backgroundColor: color }}
-                                          />
-                                        ))}
-                                      </div>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <Input
-                                  value={col}
-                                  onChange={(e) => {
-                                    const newColumns = [...(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'])];
-                                    newColumns[colIndex] = e.target.value;
-                                    updateStep(selectedStep.id, {
-                                      kanbanConfig: {
-                                        ...selectedStep.kanbanConfig,
-                                        statusColumns: newColumns
-                                      }
-                                    });
-                                  }}
-                                  placeholder="Column name"
-                                  className="flex-1"
-                                  style={{ borderLeftColor: currentColor, borderLeftWidth: '3px' }}
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newColumns = (selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).filter((_, i) => i !== colIndex);
-                                    const newColors = (selectedStep.kanbanConfig?.columnColors || []).filter((_, i) => i !== colIndex);
-                                    updateStep(selectedStep.id, {
-                                      kanbanConfig: {
-                                        ...selectedStep.kanbanConfig,
-                                        statusColumns: newColumns,
-                                        columnColors: newColors
-                                      }
-                                    });
-                                  }}
-                                  className="text-red-500 hover:text-red-700"
-                                  disabled={(selectedStep.kanbanConfig?.statusColumns || []).length <= 2}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            );
-                          })}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const currentColumns = selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'];
-                              const currentColors = selectedStep.kanbanConfig?.columnColors || [];
-                              const newColumns = [...currentColumns, 'New Status'];
-                              const newColors = [...currentColors, KANBAN_COLUMN_COLORS[newColumns.length % KANBAN_COLUMN_COLORS.length]];
-                              updateStep(selectedStep.id, {
-                                kanbanConfig: {
-                                  ...selectedStep.kanbanConfig,
-                                  statusColumns: newColumns,
-                                  columnColors: newColors
-                                }
-                              });
-                            }}
-                            className="w-full"
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Column
-                          </Button>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Cards will be organized in these columns
-                        </p>
-                      </div>
-
-                      {/* AI Instructions */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          AI Task Generation Instructions
-                        </label>
-                        <Textarea
-                          value={selectedStep.kanbanConfig?.aiInstructions || ''}
-                          onChange={(e) => {
-                            updateStep(selectedStep.id, {
-                              kanbanConfig: {
-                                ...selectedStep.kanbanConfig,
-                                statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                aiInstructions: e.target.value
-                              }
-                            });
-                          }}
-                          placeholder="Describe how the AI should analyze documents to generate tasks. For example: 'Extract action items, deadlines, and responsible parties from the uploaded documents.'"
-                          rows={3}
-                        />
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Instructions for AI to generate tasks from session documents
-                        </p>
-                      </div>
-
-                      {/* Knowledge Documents Selection */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Reference Documents (Optional)
-                        </label>
-                        <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
-                          {knowledgeDocuments.length === 0 ? (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">No reference documents available</p>
-                          ) : (
-                            knowledgeDocuments.map((doc) => (
-                              <label key={doc.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                                <Checkbox
-                                  checked={selectedStep.kanbanConfig?.knowledgeDocumentIds?.includes(doc.id) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentIds = selectedStep.kanbanConfig?.knowledgeDocumentIds || [];
-                                    const newIds = checked 
-                                      ? [...currentIds, doc.id]
-                                      : currentIds.filter(id => id !== doc.id);
-                                    updateStep(selectedStep.id, {
-                                      kanbanConfig: {
-                                        ...selectedStep.kanbanConfig,
-                                        statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                        knowledgeDocumentIds: newIds
-                                      }
-                                    });
-                                  }}
-                                />
-                                {doc.displayName}
-                              </label>
-                            ))
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Additional context for AI task generation
-                        </p>
-                      </div>
-
-                      {/* Include User Documents Toggle */}
-                      <div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={selectedStep.kanbanConfig?.includeUserDocuments !== false}
-                            onCheckedChange={(checked) => {
-                              updateStep(selectedStep.id, {
-                                kanbanConfig: {
-                                  ...selectedStep.kanbanConfig,
-                                  statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                  includeUserDocuments: checked === true
-                                }
-                              });
-                            }}
-                          />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Include User Uploaded Documents
-                          </span>
-                        </label>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                          Use session documents as input for task generation
-                        </p>
-                      </div>
-
-                      {/* Reference Data from Previous Steps */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Reference Data (Optional)
-                        </label>
-                        <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
-                          {steps.filter(s => s.id !== selectedStep.id && s.type !== 'kanban').length === 0 ? (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">No other steps available</p>
-                          ) : (
-                            steps.filter(s => s.id !== selectedStep.id && s.type !== 'kanban').map((step) => (
-                              <label key={step.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                                <Checkbox
-                                  checked={selectedStep.kanbanConfig?.referenceStepIds?.includes(step.id) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentIds = selectedStep.kanbanConfig?.referenceStepIds || [];
-                                    const newIds = checked 
-                                      ? [...currentIds, step.id]
-                                      : currentIds.filter(id => id !== step.id);
-                                    updateStep(selectedStep.id, {
-                                      kanbanConfig: {
-                                        ...selectedStep.kanbanConfig,
-                                        statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                        referenceStepIds: newIds
-                                      }
-                                    });
-                                  }}
-                                />
-                                <span className="flex items-center gap-1">
-                                  {step.type === 'page' ? '📄' : '📊'} {step.name}
-                                </span>
-                              </label>
-                            ))
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Include extracted data from other steps as context
-                        </p>
-                      </div>
-
-                      {/* Data Source Selection */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Data Source (Optional)
-                        </label>
-                        <Select
-                          value={selectedStep.kanbanConfig?.dataSourceId || 'none'}
-                          onValueChange={(value) => {
-                            updateStep(selectedStep.id, {
-                              kanbanConfig: {
-                                ...selectedStep.kanbanConfig,
-                                statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                dataSourceId: value === 'none' ? undefined : value
-                              }
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a data source" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No data source</SelectItem>
-                            {dataSources.filter(ds => ds.isActive).map((ds) => (
-                              <SelectItem key={ds.id} value={ds.id}>{ds.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {selectedStep.kanbanConfig?.dataSourceId && (
-                          <div className="mt-2">
-                            <Textarea
-                              value={selectedStep.kanbanConfig?.dataSourceInstructions || ''}
-                              onChange={(e) => {
-                                updateStep(selectedStep.id, {
-                                  kanbanConfig: {
-                                    ...selectedStep.kanbanConfig,
-                                    statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                    dataSourceInstructions: e.target.value
-                                  }
-                                });
-                              }}
-                              placeholder="Instructions for filtering the data source. For example: 'Filter by city to find matching profit centers.'"
-                              rows={2}
-                              className="text-sm"
-                            />
-                          </div>
-                        )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          External data source for AI reference during task generation
-                        </p>
-                      </div>
-
-                      {/* Actions Configuration */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Task Actions
-                        </label>
-                        <div className="space-y-3">
-                          {(selectedStep.kanbanConfig?.actions || []).map((action: { name: string; applicableStatuses: string[]; link: string }, actionIndex: number) => (
-                            <div key={actionIndex} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 space-y-2">
-                              <div className="flex justify-between items-start">
-                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Action {actionIndex + 1}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newActions = (selectedStep.kanbanConfig?.actions || []).filter((_: any, i: number) => i !== actionIndex);
-                                    updateStep(selectedStep.id, {
-                                      kanbanConfig: {
-                                        ...selectedStep.kanbanConfig,
-                                        statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                        actions: newActions
-                                      }
-                                    });
-                                  }}
-                                  className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              <Input
-                                value={action.name}
-                                onChange={(e) => {
-                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
-                                  newActions[actionIndex] = { ...newActions[actionIndex], name: e.target.value };
-                                  updateStep(selectedStep.id, {
-                                    kanbanConfig: {
-                                      ...selectedStep.kanbanConfig,
-                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                      actions: newActions
-                                    }
-                                  });
-                                }}
-                                placeholder="Action Name (e.g., Process Payment)"
-                                className="text-sm"
-                              />
-                              <div className="space-y-1">
-                                <label className="text-xs text-gray-500 dark:text-gray-400">Show for cards in:</label>
-                                <div className="flex flex-wrap gap-2">
-                                  {(selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done']).map((status: string) => {
-                                    const isSelected = (action.applicableStatuses || []).includes(status);
-                                    return (
-                                      <label key={status} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={isSelected}
-                                          onChange={(e) => {
-                                            const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
-                                            const currentStatuses = newActions[actionIndex].applicableStatuses || [];
-                                            if (e.target.checked) {
-                                              newActions[actionIndex] = { ...newActions[actionIndex], applicableStatuses: [...currentStatuses, status] };
-                                            } else {
-                                              newActions[actionIndex] = { ...newActions[actionIndex], applicableStatuses: currentStatuses.filter((s: string) => s !== status) };
-                                            }
-                                            updateStep(selectedStep.id, {
-                                              kanbanConfig: {
-                                                ...selectedStep.kanbanConfig,
-                                                statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                                actions: newActions
-                                              }
-                                            });
-                                          }}
-                                          className="rounded border-gray-300 text-[#4F63A4] focus:ring-[#4F63A4]"
-                                        />
-                                        <span className="text-gray-700 dark:text-gray-300">{status}</span>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                              <Input
-                                value={action.link}
-                                onChange={(e) => {
-                                  const newActions = [...(selectedStep.kanbanConfig?.actions || [])];
-                                  newActions[actionIndex] = { ...newActions[actionIndex], link: e.target.value };
-                                  updateStep(selectedStep.id, {
-                                    kanbanConfig: {
-                                      ...selectedStep.kanbanConfig,
-                                      statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                      actions: newActions
-                                    }
-                                  });
-                                }}
-                                placeholder="Link URL (opens in new tab)"
-                                className="text-sm"
-                              />
-                            </div>
-                          ))}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newActions = [...(selectedStep.kanbanConfig?.actions || []), { name: '', applicableStatuses: [], link: '' }];
-                              updateStep(selectedStep.id, {
-                                kanbanConfig: {
-                                  ...selectedStep.kanbanConfig,
-                                  statusColumns: selectedStep.kanbanConfig?.statusColumns || ['To Do', 'In Progress', 'Done'],
-                                  actions: newActions
-                                }
-                              });
-                            }}
-                            className="w-full"
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add Action
-                          </Button>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Action buttons that appear on task cards (links open in new tab)
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-                
-                {steps.find(s => s.id === selectedStepId)?.values.map((value, valueIndex) => (
-                  <ValueCard
-                    key={value.id}
-                    step={steps.find(s => s.id === selectedStepId)!}
-                    value={value}
-                    excelFunctions={excelFunctions}
-                    knowledgeDocuments={knowledgeDocuments}
-                    dataSources={dataSources}
-                    allSteps={steps}
-                    currentValueIndex={valueIndex}
-                    onUpdate={(updates) => updateValue(selectedStepId, value.id, updates)}
-                    onDelete={() => deleteValue(selectedStepId, value.id)}
-                    onAddField={() => addField(selectedStepId, value.id)}
-                    onUpdateField={(fieldIndex, updates) => updateField(selectedStepId, value.id, fieldIndex, updates)}
-                    onDeleteField={(fieldIndex) => deleteField(selectedStepId, value.id, fieldIndex)}
-                  />
-                ))}
-
-                  {/* Add Value Button - Below the stacked values (only show if no action configured) */}
-                  {!steps.find(s => s.id === selectedStepId)?.actionConfig && (
-                    <button
-                      onClick={() => addValue(selectedStepId)}
-                      className="w-full py-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#4F63A4] dark:border-gray-600 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group"
-                    >
-                      <Plus className="h-4 w-4 text-gray-500 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]" />
-                      <span className="text-sm font-medium text-gray-600 group-hover:text-[#4F63A4] dark:text-gray-400 dark:group-hover:text-[#5A70B5]">
-                        Add Value
-                      </span>
-                    </button>
-                  )}
-
-                  {/* Step Action Configuration - for page/list steps only */}
-                  {(() => {
-                    const selectedStep = steps.find(s => s.id === selectedStepId);
-                    if (!selectedStep || selectedStep.type === 'kanban') return null;
-                    
-                    const actionConfig = selectedStep.actionConfig;
-                    
-                    if (actionConfig) {
-                      // Show configured action with edit/delete options
-                      return (
-                        <div className="mt-4 p-4 bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 rounded-lg border border-[#4F63A4]/30">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <ChevronRight className="h-4 w-4 text-[#4F63A4]" />
-                              <span className="font-medium text-gray-800 dark:text-gray-200">Step Action</span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateStep(selectedStepId!, { actionConfig: undefined })}
-                              className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div>
-                              <Label className="text-xs text-gray-600 dark:text-gray-400">Button Text</Label>
-                              <Input
-                                value={actionConfig.actionName}
-                                onChange={(e) => updateStep(selectedStepId!, { 
-                                  actionConfig: { ...actionConfig, actionName: e.target.value }
-                                })}
-                                placeholder="e.g., Submit, Approve, Complete"
-                                className="mt-1 h-8"
-                              />
-                            </div>
-                            
-                            <div>
-                              <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
-                              <Input
-                                value={actionConfig.actionStatus}
-                                onChange={(e) => updateStep(selectedStepId!, { 
-                                  actionConfig: { ...actionConfig, actionStatus: e.target.value }
-                                })}
-                                placeholder="e.g., Submitted, Approved, Complete"
-                                className="mt-1 h-8"
-                              />
-                            </div>
-                            
-                            <div>
-                              <Label className="text-xs text-gray-600 dark:text-gray-400">Link (optional)</Label>
-                              <Input
-                                value={actionConfig.actionLink || ''}
-                                onChange={(e) => updateStep(selectedStepId!, { 
-                                  actionConfig: { ...actionConfig, actionLink: e.target.value || undefined }
-                                })}
-                                placeholder="https://example.com?id={{Field Name}}"
-                                className="mt-1 h-8"
-                              />
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Use {"{{Field Name}}"} to insert field values in the URL
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    // Show Add Action button
-                    return (
-                      <button
-                        onClick={() => updateStep(selectedStepId!, { 
-                          actionConfig: { 
-                            actionName: 'Complete', 
-                            actionStatus: 'Complete' 
-                          }
-                        })}
-                        className="w-full mt-2 py-3 rounded-lg border-2 border-dashed border-[#4F63A4]/30 hover:border-[#4F63A4] dark:border-[#4F63A4]/40 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group bg-[#4F63A4]/5 hover:bg-[#4F63A4]/10"
-                      >
-                        <ChevronRight className="h-4 w-4 text-[#4F63A4]/60 group-hover:text-[#4F63A4]" />
-                        <span className="text-sm font-medium text-[#4F63A4]/70 group-hover:text-[#4F63A4]">
-                          Add Action
-                        </span>
-                      </button>
-                    );
-                  })()}
-                </div>
-            </div>
-          ) : (
-            /* No Step Selected */
-            <div className="flex items-center justify-center flex-1">
-              <div className="text-center">
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-8 w-8 border-4 border-[#4F63A4] border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Loading extraction steps...
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Please wait while we fetch your workflow configuration
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <Layers className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      {steps.length === 0 ? 'No steps created yet' : 'Select a step to view its values'}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {steps.length === 0 ? 'Click "Add Step" to get started' : 'Click on a step in the left panel'}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
