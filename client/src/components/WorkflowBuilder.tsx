@@ -453,6 +453,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   // Local state for document types - only saved when clicking "Save Extraction"
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(requiredDocumentTypes);
   const [isDocumentTypesExpanded, setIsDocumentTypesExpanded] = useState(requiredDocumentTypes.length > 0);
+  const [expandedDocTypes, setExpandedDocTypes] = useState<Set<string>>(new Set());
 
   // Workflow Status state
   const [localDefaultStatus, setLocalDefaultStatus] = useState(defaultWorkflowStatus);
@@ -645,36 +646,61 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
         {isDocumentTypesExpanded && (
           <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-3">
-              {documentTypes.map((docType) => (
-                <div
-                  key={docType.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={docType.name}
-                      onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
-                      placeholder="Document type name"
-                      className="h-8 text-sm font-medium"
-                    />
-                    <Textarea
-                      value={docType.description}
-                      onChange={(e) => updateDocumentType(docType.id, { description: e.target.value })}
-                      placeholder="Describe what this document should contain (for AI validation)..."
-                      className="text-sm resize-none min-h-[60px]"
-                      rows={2}
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
-                    onClick={() => deleteDocumentType(docType.id)}
+              {documentTypes.map((docType) => {
+                const isExpanded = expandedDocTypes.has(docType.id);
+                return (
+                  <div
+                    key={docType.id}
+                    className="rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
+                      onClick={() => {
+                        setExpandedDocTypes(prev => {
+                          const next = new Set(prev);
+                          if (next.has(docType.id)) next.delete(docType.id);
+                          else next.add(docType.id);
+                          return next;
+                        });
+                      }}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-medium flex-1 truncate">
+                        {docType.name || 'Untitled Document Type'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 flex-shrink-0"
+                        onClick={(e) => { e.stopPropagation(); deleteDocumentType(docType.id); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-3 pb-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <Input
+                          value={docType.name}
+                          onChange={(e) => updateDocumentType(docType.id, { name: e.target.value })}
+                          placeholder="Document type name"
+                          className="h-8 text-sm font-medium"
+                        />
+                        <Textarea
+                          value={docType.description}
+                          onChange={(e) => updateDocumentType(docType.id, { description: e.target.value })}
+                          placeholder="Describe what this document should contain (for AI validation)..."
+                          className="text-sm resize-none min-h-[80px]"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <Button
                 type="button"
                 variant="outline"
