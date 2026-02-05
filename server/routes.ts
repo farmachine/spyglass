@@ -313,21 +313,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user belongs to the current tenant via junction table
+      let tenantRole = user.role; // Default to user's primary role
+      
       if (req.tenantOrg) {
         const userOrgs = await storage.getUserOrganizations(user.id);
-        const belongsToTenant = userOrgs.some(uo => uo.organizationId === req.tenantOrg!.id);
-        if (!belongsToTenant) {
+        const tenantMembership = userOrgs.find(uo => uo.organizationId === req.tenantOrg!.id);
+        
+        if (!tenantMembership) {
           return res.status(403).json({ 
             message: "Access denied: You do not have access to this organization",
             error: "TENANT_MISMATCH"
           });
         }
+        
+        // Use the role from the junction table for this tenant
+        tenantRole = tenantMembership.role as "admin" | "user";
       }
 
       // Remove password hash from response
       const { passwordHash, ...userResponse } = user;
       res.json({
         ...userResponse,
+        // Override with tenant-specific context when accessing via subdomain
+        role: tenantRole,
+        organization: req.tenantOrg ? {
+          id: req.tenantOrg.id,
+          name: req.tenantOrg.name,
+          subdomain: req.tenantOrg.subdomain
+        } : user.organization,
         subdomain: req.tenantOrg?.subdomain || user.organization?.subdomain
       });
     } catch (error) {
