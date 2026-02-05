@@ -5162,6 +5162,9 @@ Thank you for your assistance.`;
                 const stepVals = (ctaStep as any).values || [];
                 if (stepVals.length === 0) return true;
 
+                const isValidOrComplete = (v: any) =>
+                  v.validationStatus === 'valid' || v.validationStatus === 'manual' || v.manuallyUpdated;
+
                 return stepVals.every((sv: any) => {
                   const fields = sv.fields && Array.isArray(sv.fields) ? sv.fields : [];
                   if (fields.length > 0) {
@@ -5171,15 +5174,13 @@ Thank you for your assistance.`;
                         v.valueId === f.identifierId ||
                         v.fieldId === f.identifierId
                       );
-                      return fieldValidation && (fieldValidation.validationStatus === 'valid' || fieldValidation.validationStatus === 'manual');
+                      return fieldValidation && isValidOrComplete(fieldValidation);
                     });
                   }
                   const valueValidations = validations.filter((v: any) =>
-                    v.valueId === sv.id || v.fieldId === sv.id || v.stepId === stepId
+                    v.valueId === sv.id || v.fieldId === sv.id || v.identifierId === sv.id
                   );
-                  return valueValidations.length > 0 && valueValidations.every((v: any) =>
-                    v.validationStatus === 'valid' || v.validationStatus === 'manual'
-                  );
+                  return valueValidations.length > 0 && valueValidations.every(isValidOrComplete);
                 });
               })();
 
