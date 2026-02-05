@@ -463,6 +463,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   const [localMainObjectName, setLocalMainObjectName] = useState(mainObjectName);
   const [isEditingMainObjectName, setIsEditingMainObjectName] = useState(false);
   const [tempMainObjectName, setTempMainObjectName] = useState(mainObjectName);
+  
+  // Track expanded action sections per step
+  const [expandedActionSteps, setExpandedActionSteps] = useState<Set<string>>(new Set());
 
   // Sync from props only on initial load or when props change externally
   useEffect(() => {
@@ -549,68 +552,68 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   return (
     <div className="space-y-6">
-      {/* Main Object Name Field */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-          Main Object Name
-        </Label>
-        <p className="text-xs text-muted-foreground mb-3">
-          What are you extracting data about? (e.g., "Claim", "Invoice", "Contract")
-        </p>
-        {isEditingMainObjectName ? (
-          <div className="flex items-center gap-2">
-            <Input
-              value={tempMainObjectName}
-              onChange={(e) => setTempMainObjectName(e.target.value)}
-              placeholder="e.g., Claim, Invoice, Contract"
-              className="h-9 flex-1"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveMainObjectName();
-                if (e.key === 'Escape') {
-                  setTempMainObjectName(localMainObjectName);
-                  setIsEditingMainObjectName(false);
-                }
-              }}
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleSaveMainObjectName}
-              className="h-8 px-2"
-            >
-              <Check className="h-5 w-5 text-green-500" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setTempMainObjectName(localMainObjectName);
-                setIsEditingMainObjectName(false);
-              }}
-              className="h-8 px-2"
-            >
-              <X className="h-5 w-5 text-red-500" />
-            </Button>
-          </div>
-        ) : (
-          <div 
-            className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
-            onClick={() => {
-              setTempMainObjectName(localMainObjectName);
-              setIsEditingMainObjectName(true);
-            }}
-          >
-            <span className="text-base font-medium text-gray-900 dark:text-gray-100">{localMainObjectName}</span>
-            <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        )}
-      </div>
-
       {/* Two Column Layout: Left (1/3) - Documents & Status, Right (2/3) - Steps */}
       <div className="flex gap-6">
-        {/* Left Column - Required Documents & Workflow Status */}
+        {/* Left Column - Main Object Name, Required Documents & Workflow Status */}
         <div className="w-1/3 space-y-4">
+          {/* Main Object Name Field */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+              Main Object Name
+            </Label>
+            <p className="text-xs text-muted-foreground mb-3">
+              What are you extracting data about? (e.g., "Claim", "Invoice", "Contract")
+            </p>
+            {isEditingMainObjectName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={tempMainObjectName}
+                  onChange={(e) => setTempMainObjectName(e.target.value)}
+                  placeholder="e.g., Claim, Invoice, Contract"
+                  className="h-9 flex-1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveMainObjectName();
+                    if (e.key === 'Escape') {
+                      setTempMainObjectName(localMainObjectName);
+                      setIsEditingMainObjectName(false);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleSaveMainObjectName}
+                  className="h-8 px-2"
+                >
+                  <Check className="h-5 w-5 text-green-500" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setTempMainObjectName(localMainObjectName);
+                    setIsEditingMainObjectName(false);
+                  }}
+                  className="h-8 px-2"
+                >
+                  <X className="h-5 w-5 text-red-500" />
+                </Button>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center gap-2 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
+                onClick={() => {
+                  setTempMainObjectName(localMainObjectName);
+                  setIsEditingMainObjectName(true);
+                }}
+              >
+                <span className="text-base font-medium text-gray-900 dark:text-gray-100">{localMainObjectName}</span>
+                <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            )}
+          </div>
+
           {/* Document Types Configuration */}
           <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
           <CardHeader 
@@ -1228,71 +1231,99 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       {step.type !== 'kanban' && (
                         <>
                           {step.actionConfig ? (
-                            <div className="p-4 bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 rounded-lg border border-[#4F63A4]/30">
-                              <div className="flex items-center justify-between mb-3">
+                            <div className="rounded-lg overflow-hidden border border-[#4F63A4]/40">
+                              {/* Collapsible Header */}
+                              <div 
+                                className="flex items-center justify-between p-3 bg-[#4F63A4] cursor-pointer"
+                                onClick={() => {
+                                  const newExpanded = new Set(expandedActionSteps);
+                                  if (newExpanded.has(step.id)) {
+                                    newExpanded.delete(step.id);
+                                  } else {
+                                    newExpanded.add(step.id);
+                                  }
+                                  setExpandedActionSteps(newExpanded);
+                                }}
+                              >
                                 <div className="flex items-center gap-2">
-                                  <ChevronRight className="h-4 w-4 text-[#4F63A4]" />
-                                  <span className="font-medium text-gray-800 dark:text-gray-200">Step Action</span>
+                                  {expandedActionSteps.has(step.id) ? (
+                                    <ChevronDown className="h-4 w-4 text-white" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 text-white" />
+                                  )}
+                                  <span className="font-medium text-white">Step Action</span>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => updateStep(step.id, { actionConfig: undefined })}
-                                  className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStep(step.id, { actionConfig: undefined });
+                                  }}
+                                  className="h-7 px-2 text-red-200 hover:text-white hover:bg-red-500/30"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
                               
-                              <div className="space-y-3">
-                                <div>
-                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Button Text</Label>
-                                  <Input
-                                    value={step.actionConfig.actionName}
-                                    onChange={(e) => updateStep(step.id, { 
-                                      actionConfig: { ...step.actionConfig!, actionName: e.target.value }
-                                    })}
-                                    placeholder="e.g., Submit, Approve, Complete"
-                                    className="mt-1 h-8"
-                                  />
+                              {/* Collapsible Content */}
+                              {expandedActionSteps.has(step.id) && (
+                                <div className="p-4 bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 space-y-3">
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Button Text</Label>
+                                    <Input
+                                      value={step.actionConfig.actionName}
+                                      onChange={(e) => updateStep(step.id, { 
+                                        actionConfig: { ...step.actionConfig!, actionName: e.target.value }
+                                      })}
+                                      placeholder="e.g., Submit, Approve, Complete"
+                                      className="mt-1 h-8"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
+                                    <Input
+                                      value={step.actionConfig.actionStatus}
+                                      onChange={(e) => updateStep(step.id, { 
+                                        actionConfig: { ...step.actionConfig!, actionStatus: e.target.value }
+                                      })}
+                                      placeholder="e.g., Submitted, Approved, Complete"
+                                      className="mt-1 h-8"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Link (optional)</Label>
+                                    <Input
+                                      value={step.actionConfig.actionLink || ''}
+                                      onChange={(e) => updateStep(step.id, { 
+                                        actionConfig: { ...step.actionConfig!, actionLink: e.target.value || undefined }
+                                      })}
+                                      placeholder="https://example.com?id={{Field Name}}"
+                                      className="mt-1 h-8"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      Use {"{{Field Name}}"} to insert field values in the URL
+                                    </p>
+                                  </div>
                                 </div>
-                                
-                                <div>
-                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Set Status To</Label>
-                                  <Input
-                                    value={step.actionConfig.actionStatus}
-                                    onChange={(e) => updateStep(step.id, { 
-                                      actionConfig: { ...step.actionConfig!, actionStatus: e.target.value }
-                                    })}
-                                    placeholder="e.g., Submitted, Approved, Complete"
-                                    className="mt-1 h-8"
-                                  />
-                                </div>
-                                
-                                <div>
-                                  <Label className="text-xs text-gray-600 dark:text-gray-400">Link (optional)</Label>
-                                  <Input
-                                    value={step.actionConfig.actionLink || ''}
-                                    onChange={(e) => updateStep(step.id, { 
-                                      actionConfig: { ...step.actionConfig!, actionLink: e.target.value || undefined }
-                                    })}
-                                    placeholder="https://example.com?id={{Field Name}}"
-                                    className="mt-1 h-8"
-                                  />
-                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Use {"{{Field Name}}"} to insert field values in the URL
-                                  </p>
-                                </div>
-                              </div>
+                              )}
                             </div>
                           ) : (
                             <button
-                              onClick={() => updateStep(step.id, { 
-                                actionConfig: { 
-                                  actionName: 'Complete', 
-                                  actionStatus: 'Complete' 
-                                }
-                              })}
+                              onClick={() => {
+                                updateStep(step.id, { 
+                                  actionConfig: { 
+                                    actionName: 'Complete', 
+                                    actionStatus: 'Complete' 
+                                  }
+                                });
+                                // Auto-expand when adding action
+                                const newExpanded = new Set(expandedActionSteps);
+                                newExpanded.add(step.id);
+                                setExpandedActionSteps(newExpanded);
+                              }}
                               className="w-full py-3 rounded-lg border-2 border-dashed border-[#4F63A4]/30 hover:border-[#4F63A4] dark:border-[#4F63A4]/40 dark:hover:border-[#5A70B5] flex items-center justify-center gap-2 transition-colors group bg-[#4F63A4]/5 hover:bg-[#4F63A4]/10"
                             >
                               <ChevronRight className="h-4 w-4 text-[#4F63A4]/60 group-hover:text-[#4F63A4]" />
