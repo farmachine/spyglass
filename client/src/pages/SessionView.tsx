@@ -5237,74 +5237,38 @@ Thank you for your assistance.`;
                           ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${chevronPoint}px 50%)`
                           : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
 
-                    const isCompletedFinal = isPast && isLastStatus;
-                    const borderColor = isCompletedFinal
-                      ? '#16a34a'
-                      : isPast
-                        ? '#4F63A4'
-                        : isCurrent
-                          ? '#4F63A4'
-                          : isCTA && !isCtaDisabled
-                            ? '#4F63A4'
-                            : 'transparent';
-                    const bgFill = isPast || isCurrent
-                      ? '#4F63A4'
-                      : isCTA && !isCtaDisabled
-                        ? '#8B9AD8'
-                        : undefined;
-                    const bgClass = !bgFill
-                      ? 'bg-gray-200 dark:bg-gray-700'
-                      : '';
+                    const bgColor = isPast
+                      ? 'bg-[#4F63A4]'
+                      : isCurrent
+                        ? 'bg-[#8B9AD8]'
+                        : isCTA && !isCtaDisabled
+                          ? 'bg-[#8B9AD8] hover:bg-[#7A8BCF] cursor-pointer'
+                          : 'bg-gray-200 dark:bg-gray-700';
+
                     const textColor = isPast || isCurrent || (isCTA && !isCtaDisabled)
                       ? 'text-white'
                       : 'text-gray-400 dark:text-gray-500';
-
-                    const borderWidth = 2;
-                    const innerClipPath = isFirst && isLast
-                      ? undefined
-                      : isFirst
-                        ? `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%)`
-                        : isLast
-                          ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${chevronPoint}px 50%)`
-                          : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
 
                     return (
                       <div
                         key={status}
                         onClick={isCTA && !isCtaDisabled ? handleChevronCTAClick : undefined}
-                        className={`relative select-none ${isCTA && !isCtaDisabled ? 'cursor-pointer' : ''}`}
+                        className={`relative flex items-center justify-center gap-1.5 text-sm font-semibold h-10 ${bgColor} ${textColor} transition-all select-none ${
+                          isCTA && !isCtaDisabled ? 'cursor-pointer' : ''
+                        }`}
                         style={{
+                          clipPath,
+                          paddingLeft: isFirst ? '16px' : `${chevronPoint + 10}px`,
+                          paddingRight: isLast ? '16px' : `${chevronPoint + 6}px`,
                           marginLeft: index > 0 ? '-2px' : '0',
                           minWidth: '110px',
                         }}
                         title={isCTA && !isCtaDisabled ? `Click to ${ctaActionConfig.actionName || 'advance'}` : isCTA && isCtaDisabled ? `Complete the step to unlock this action` : status}
                       >
-                        {borderColor !== 'transparent' && (
-                          <div
-                            className="absolute inset-0"
-                            style={{ clipPath: innerClipPath, backgroundColor: borderColor }}
-                          />
-                        )}
-                        <div
-                          className={`relative flex items-center justify-center gap-1.5 text-sm font-semibold h-10 ${bgClass} ${textColor} transition-all`}
-                          style={{
-                            clipPath: innerClipPath,
-                            backgroundColor: bgFill,
-                            paddingLeft: isFirst ? '16px' : `${chevronPoint + 10}px`,
-                            paddingRight: isLast ? '16px' : `${chevronPoint + 6}px`,
-                            ...(borderColor !== 'transparent' ? {
-                              margin: `${borderWidth}px`,
-                              height: `calc(2.5rem - ${borderWidth * 2}px)`,
-                            } : {
-                              height: '2.5rem',
-                            }),
-                          }}
-                        >
-                          {isPast && <Check className={`h-3.5 w-3.5 flex-shrink-0 ${isCompletedFinal ? 'text-green-300' : ''}`} />}
-                          {isCurrent && <Circle className="h-3 w-3 fill-current flex-shrink-0" />}
-                          {isCTA && !isCtaDisabled && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
-                          <span className="whitespace-nowrap">{isCTA ? (ctaActionConfig.actionName || status) : status}</span>
-                        </div>
+                        {isPast && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                        {isCurrent && <Circle className="h-3 w-3 fill-current flex-shrink-0" />}
+                        {isCTA && !isCtaDisabled && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                        <span className="whitespace-nowrap">{isCTA ? (ctaActionConfig.actionName || status) : status}</span>
                       </div>
                     );
                   })}
