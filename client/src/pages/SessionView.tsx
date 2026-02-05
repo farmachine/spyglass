@@ -5131,12 +5131,11 @@ Thank you for your assistance.`;
 
               const isCtaStepComplete = (() => {
                 if (!ctaStep) return false;
-                const stepName = (ctaStep as any).stepName;
                 const stepId = (ctaStep as any).id;
                 const stepVals = (ctaStep as any).values || [];
                 if (stepVals.length === 0) return true;
                 const stepValidations = validations.filter((v: any) =>
-                  v.stepId === stepId || v.collectionName === stepName
+                  v.stepId === stepId
                 );
                 if (stepValidations.length === 0) return false;
                 const allValidated = stepValidations.every((v: any) =>
