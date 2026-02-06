@@ -1576,7 +1576,7 @@ export default function AllData({ project }: AllDataProps) {
                   const verificationStatus = getVerificationStatus(session.id);
                   
                   return (
-                    <TableRow key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableRow key={session.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${!(session as any).isViewed ? 'bg-gray-100 dark:bg-gray-800/60' : ''}`}>
                       <TableCell className="py-3">
                         <Link href={`/projects/${project.id}/sessions/${session.id}`}>
                           <div className="cursor-pointer hover:text-primary transition-colors flex items-center gap-1.5">
