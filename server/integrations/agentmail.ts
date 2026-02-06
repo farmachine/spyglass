@@ -8,28 +8,28 @@ export const DEFAULT_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;">
-<tr><td align="center" style="padding:40px 20px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-<tr><td align="center" style="padding:32px 0 24px 0;">
-<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:36px;font-weight:700;color:#2d3555;letter-spacing:-0.5px;">extrapl</span><span style="font-size:36px;font-weight:700;color:#4F63A4;">.</span>
+<body style="margin:0;padding:0;background-color:#f0f0f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f4;">
+<tr><td align="center" style="padding:48px 20px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+<tr><td style="background-color:#2d3555;border-radius:12px 12px 0 0;padding:28px 40px;">
+<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">extrapl</span><span style="font-size:28px;font-weight:700;color:#8B9AD8;">.</span>
 </td></tr>
-<tr><td align="center" style="padding-bottom:24px;">
-<div style="width:60px;height:3px;background-color:#d1d5db;border-radius:2px;"></div>
-</td></tr>
-<tr><td style="background-color:#ffffff;border-radius:8px;padding:40px 48px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;">{{subject}}</h1>
+<tr><td style="background-color:#ffffff;padding:36px 40px 20px 40px;">
+<h1 style="margin:0 0 20px 0;font-size:20px;font-weight:700;color:#1a1a2e;line-height:1.4;">{{subject}}</h1>
+<div style="width:40px;height:3px;background-color:#4F63A4;border-radius:2px;margin-bottom:20px;"></div>
 <div style="font-size:15px;line-height:1.7;color:#4a4a5a;">{{body}}</div>
-<div style="margin-top:32px;font-size:15px;line-height:1.7;color:#4a4a5a;">
+</td></tr>
+<tr><td style="background-color:#ffffff;border-radius:0 0 12px 12px;padding:12px 40px 36px 40px;">
+<div style="border-top:1px solid #e5e7eb;padding-top:20px;font-size:14px;line-height:1.6;color:#6b7280;">
 Best regards,<br>
-<span style="font-weight:700;color:#2d3555;">The extrapl Team</span>
+<span style="font-weight:600;color:#2d3555;">The extrapl Team</span>
 </div>
 </td></tr>
-<tr><td align="center" style="padding:32px 0 16px 0;">
-<a href="mailto:josh@extrapl.io" style="font-size:13px;color:#4F63A4;text-decoration:none;">josh@extrapl.io</a>
+<tr><td align="center" style="padding:24px 0 8px 0;">
+<a href="mailto:josh@extrapl.io" style="font-size:12px;color:#4F63A4;text-decoration:none;">josh@extrapl.io</a>
 <br>
-<span style="font-size:12px;color:#9ca3af;">&copy; 2026 extrapl. All rights reserved.</span>
+<span style="font-size:11px;color:#9ca3af;">&copy; 2026 extrapl. All rights reserved.</span>
 </td></tr>
 </table>
 </td></tr>
