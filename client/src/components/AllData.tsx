@@ -998,27 +998,13 @@ export default function AllData({ project }: AllDataProps) {
         Analytics
       </Button>
 
-      {/* Refresh Analytics Button - only show when analytics are visible */}
-      {showAnalyticsPane && generatedCharts.length > 0 && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refreshAnalytics}
-          disabled={isGeneratingCharts || isRefetchingKanban}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingCharts || isRefetchingKanban ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      )}
-
-      {/* Refresh Sessions Button */}
+      {/* Single Refresh Button - refreshes sessions, emails, and analytics if open */}
       <Button
         variant="outline"
         size="icon"
         onClick={async () => {
           setIsRefreshingSessions(true);
           try {
-            // Check for new emails if the project has an inbox
             if (project.inboxEmailAddress) {
               try {
                 const emailResult = await apiRequest(`/api/projects/${project.id}/inbox/process`, { method: "POST" });
@@ -1034,14 +1020,17 @@ export default function AllData({ project }: AllDataProps) {
             }
             await queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
             await queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+            if (showAnalyticsPane && generatedCharts.length > 0) {
+              await refreshAnalytics();
+            }
           } finally {
             setIsRefreshingSessions(false);
           }
         }}
-        title="Refresh sessions and check for new emails"
-        disabled={isRefreshingSessions}
+        title="Refresh"
+        disabled={isRefreshingSessions || isGeneratingCharts}
       >
-        <RefreshCw className={`h-4 w-4 ${isRefreshingSessions ? 'animate-spin' : ''}`} />
+        <RefreshCw className={`h-4 w-4 ${isRefreshingSessions || isGeneratingCharts ? 'animate-spin' : ''}`} />
       </Button>
 
       {/* Column Settings Button */}
@@ -1403,7 +1392,16 @@ export default function AllData({ project }: AllDataProps) {
 
       {/* Analytics Pane - Shows generated charts */}
       {showAnalyticsPane && generatedCharts.length > 0 && (
-        <Card className="w-full mb-6">
+        <Card className="w-full mb-6 relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-7 w-7 z-10"
+            onClick={clearAnalytics}
+            title="Close analytics"
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {generatedCharts.map((chart, index) => (
