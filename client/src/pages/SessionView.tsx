@@ -5103,6 +5103,8 @@ Thank you for your assistance.`;
             {/* Workflow Status Chain - Shows status progression */}
             {(() => {
               const statusOptions = (project as any).workflowStatusOptions || [];
+              const statusColors: string[] = (project as any).workflowStatusColors || [];
+              const STATUS_FALLBACK_COLORS = ['#4F63A4', '#5B8DBD', '#4F9A94', '#5EA47B', '#C4A35A', '#C47B5A', '#A45B73'];
               const currentStatus = (session as any)?.workflowStatus || (project as any).defaultWorkflowStatus || statusOptions[0] || '';
               const currentIndex = statusOptions.indexOf(currentStatus);
               
@@ -5274,12 +5276,15 @@ Thank you for your assistance.`;
                           ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${chevronPoint}px 50%)`
                           : `polygon(0 0, calc(100% - ${chevronPoint}px) 0, 100% 50%, calc(100% - ${chevronPoint}px) 100%, 0 100%, ${chevronPoint}px 50%)`;
 
+                    const statusColor = statusColors[index] || STATUS_FALLBACK_COLORS[index % STATUS_FALLBACK_COLORS.length];
+                    const useInlineColor = isPast || (isCTA && !isCtaDisabled);
+
                     const bgColor = isPast
-                      ? 'bg-[#4F63A4]'
+                      ? ''
                       : isCurrent
-                        ? 'bg-[#8B9AD8]'
+                        ? ''
                         : isCTA && !isCtaDisabled
-                          ? 'bg-[#8B9AD8] hover:bg-[#7A8BCF] cursor-pointer'
+                          ? 'cursor-pointer'
                           : 'bg-gray-200 dark:bg-gray-700';
 
                     const textColor = isPast || isCurrent || (isCTA && !isCtaDisabled)
@@ -5299,6 +5304,8 @@ Thank you for your assistance.`;
                           paddingRight: isLast ? '16px' : `${chevronPoint + 6}px`,
                           marginLeft: index > 0 ? '-2px' : '0',
                           minWidth: '110px',
+                          ...(isPast ? { backgroundColor: statusColor } : {}),
+                          ...(isCTA && !isCtaDisabled ? { backgroundColor: statusColor, opacity: 0.7 } : {}),
                         }}
                         title={isCTA && !isCtaDisabled ? `Click to ${ctaActionConfig.actionName || 'advance'}` : isCTA && isCtaDisabled ? `Complete the step to unlock this action` : status}
                       >

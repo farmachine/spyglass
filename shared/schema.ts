@@ -91,6 +91,7 @@ export const projects = pgTable("projects", {
   emailNotificationTemplate: text("email_notification_template"), // HTML template for email notifications with placeholders like {{subject}}, {{body}}, {{projectName}}
   defaultWorkflowStatus: text("default_workflow_status").default("New"), // Default status for new sessions
   workflowStatusOptions: jsonb("workflow_status_options").$type<string[]>().default(["New", "In Progress", "Complete"]), // Available workflow statuses
+  workflowStatusColors: jsonb("workflow_status_colors").$type<string[]>().default([]), // Colors for each workflow status (parallel array to workflowStatusOptions)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

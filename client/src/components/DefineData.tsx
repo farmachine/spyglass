@@ -267,7 +267,7 @@ export default function DefineData({
 
   // Update workflow status settings mutation
   const updateStatusSettingsMutation = useMutation({
-    mutationFn: (data: { defaultWorkflowStatus: string; workflowStatusOptions: string[] }) => 
+    mutationFn: (data: { defaultWorkflowStatus: string; workflowStatusOptions: string[]; workflowStatusColors: string[] }) => 
       apiRequest(`/api/projects/${project.id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
@@ -278,10 +278,11 @@ export default function DefineData({
   });
 
   // Handler for workflow status settings changes
-  const handleStatusSettingsChange = (defaultStatus: string, statusOptions: string[]) => {
+  const handleStatusSettingsChange = (defaultStatus: string, statusOptions: string[], statusColors: string[]) => {
     updateStatusSettingsMutation.mutate({
       defaultWorkflowStatus: defaultStatus,
       workflowStatusOptions: statusOptions,
+      workflowStatusColors: statusColors,
     });
   };
 
@@ -562,6 +563,7 @@ export default function DefineData({
         onDocumentTypesChange={handleDocumentTypesChange}
         defaultWorkflowStatus={(project as any).defaultWorkflowStatus || ''}
         workflowStatusOptions={(project as any).workflowStatusOptions || []}
+        workflowStatusColors={(project as any).workflowStatusColors || []}
         onStatusSettingsChange={handleStatusSettingsChange}
         mainObjectName={mainObjectName}
         onMainObjectNameChange={async (name: string) => {

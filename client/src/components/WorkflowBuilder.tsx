@@ -158,7 +158,8 @@ interface WorkflowBuilderProps {
   onDocumentTypesChange?: (documentTypes: DocumentType[]) => void;
   defaultWorkflowStatus?: string;
   workflowStatusOptions?: string[];
-  onStatusSettingsChange?: (defaultStatus: string, statusOptions: string[]) => void;
+  workflowStatusColors?: string[];
+  onStatusSettingsChange?: (defaultStatus: string, statusOptions: string[], statusColors: string[]) => void;
   mainObjectName?: string;
   onMainObjectNameChange?: (name: string) => void;
 }
@@ -176,6 +177,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   onDocumentTypesChange,
   defaultWorkflowStatus = '',
   workflowStatusOptions = [],
+  workflowStatusColors = [],
   onStatusSettingsChange,
   mainObjectName = 'Session',
   onMainObjectNameChange
@@ -458,6 +460,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   // Workflow Status state
   const [localDefaultStatus, setLocalDefaultStatus] = useState(defaultWorkflowStatus);
   const [localStatusOptions, setLocalStatusOptions] = useState<string[]>(workflowStatusOptions);
+  const [localStatusColors, setLocalStatusColors] = useState<string[]>(workflowStatusColors);
   const [isStatusSettingsExpanded, setIsStatusSettingsExpanded] = useState(workflowStatusOptions.length > 0);
   
   // Main Object Name state
@@ -480,10 +483,11 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   useEffect(() => {
     setLocalDefaultStatus(defaultWorkflowStatus);
     setLocalStatusOptions(workflowStatusOptions);
+    setLocalStatusColors(workflowStatusColors);
     if (workflowStatusOptions.length > 0) {
       setIsStatusSettingsExpanded(true);
     }
-  }, [defaultWorkflowStatus, workflowStatusOptions]);
+  }, [defaultWorkflowStatus, workflowStatusOptions, workflowStatusColors]);
 
   // Sync main object name from props
   useEffect(() => {
@@ -500,38 +504,48 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   // Notify parent when status settings change
-  const handleStatusSettingsChange = (newDefault: string, newOptions: string[]) => {
+  const handleStatusSettingsChange = (newDefault: string, newOptions: string[], newColors: string[]) => {
     setLocalDefaultStatus(newDefault);
     setLocalStatusOptions(newOptions);
+    setLocalStatusColors(newColors);
     if (onStatusSettingsChange) {
-      onStatusSettingsChange(newDefault, newOptions);
+      onStatusSettingsChange(newDefault, newOptions, newColors);
     }
   };
 
   const addStatusOption = () => {
     const newOptions = [...localStatusOptions, 'New Status'];
-    handleStatusSettingsChange(localDefaultStatus, newOptions);
+    const newColors = [...localStatusColors, KANBAN_COLUMN_COLORS[newOptions.length % KANBAN_COLUMN_COLORS.length]];
+    handleStatusSettingsChange(localDefaultStatus, newOptions, newColors);
   };
 
   const updateStatusOption = (index: number, value: string) => {
     const newOptions = [...localStatusOptions];
     const oldValue = newOptions[index];
     newOptions[index] = value;
-    // If the default status was the old value, update it to the new value
     const newDefault = localDefaultStatus === oldValue ? value : localDefaultStatus;
-    handleStatusSettingsChange(newDefault, newOptions);
+    handleStatusSettingsChange(newDefault, newOptions, localStatusColors);
+  };
+
+  const updateStatusColor = (index: number, color: string) => {
+    const newColors = [...localStatusColors];
+    while (newColors.length <= index) {
+      newColors.push(KANBAN_COLUMN_COLORS[newColors.length % KANBAN_COLUMN_COLORS.length]);
+    }
+    newColors[index] = color;
+    handleStatusSettingsChange(localDefaultStatus, localStatusOptions, newColors);
   };
 
   const deleteStatusOption = (index: number) => {
     const deletedValue = localStatusOptions[index];
     const newOptions = localStatusOptions.filter((_, i) => i !== index);
-    // If we're deleting the default status, clear it
+    const newColors = localStatusColors.filter((_, i) => i !== index);
     const newDefault = localDefaultStatus === deletedValue ? '' : localDefaultStatus;
-    handleStatusSettingsChange(newDefault, newOptions);
+    handleStatusSettingsChange(newDefault, newOptions, newColors);
   };
 
   const setDefaultStatus = (status: string) => {
-    handleStatusSettingsChange(status, localStatusOptions);
+    handleStatusSettingsChange(status, localStatusOptions, localStatusColors);
   };
 
   const addDocumentType = () => {
@@ -717,7 +731,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                   No statuses defined. Add statuses to enable workflow tracking.
                 </p>
               ) : (
-                localStatusOptions.map((status, index) => (
+                localStatusOptions.map((status, index) => {
+                  const currentColor = localStatusColors[index] || KANBAN_COLUMN_COLORS[index % KANBAN_COLUMN_COLORS.length];
+                  return (
                   <div
                     key={index}
                     className={`flex items-center gap-3 p-3 rounded-lg border ${
@@ -740,6 +756,36 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         <Check className="h-3 w-3 text-white" />
                       )}
                     </button>
+                    <div className="relative">
+                      <Select
+                        value={currentColor}
+                        onValueChange={(newColor) => updateStatusColor(index, newColor)}
+                      >
+                        <SelectTrigger className="w-10 h-8 p-1">
+                          <div 
+                            className="w-5 h-5 rounded-md border border-gray-300 dark:border-gray-600"
+                            style={{ backgroundColor: currentColor }}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="flex gap-1 p-1">
+                            {KANBAN_COLUMN_COLORS.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => updateStatusColor(index, color)}
+                                className={`w-7 h-7 rounded-md border-2 transition-all ${
+                                  currentColor === color 
+                                    ? 'border-gray-800 dark:border-white scale-110' 
+                                    : 'border-transparent hover:border-gray-400'
+                                }`}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Input
                       value={status}
                       onChange={(e) => updateStatusOption(index, e.target.value)}
@@ -755,7 +801,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))
+                  );
+                })
               )}
               <Button
                 type="button"
