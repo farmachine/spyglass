@@ -2,6 +2,41 @@ import { AgentMailClient } from 'agentmail';
 
 let connectionSettings: any;
 
+export const DEFAULT_EMAIL_TEMPLATE = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<tr><td align="center" style="padding:32px 0 24px 0;">
+<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:36px;font-weight:700;color:#2d3555;letter-spacing:-0.5px;">extrapl</span><span style="font-size:36px;font-weight:700;color:#4F63A4;">.</span>
+</td></tr>
+<tr><td align="center" style="padding-bottom:24px;">
+<div style="width:60px;height:3px;background-color:#d1d5db;border-radius:2px;"></div>
+</td></tr>
+<tr><td style="background-color:#ffffff;border-radius:8px;padding:40px 48px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:700;color:#1a1a2e;line-height:1.3;">{{subject}}</h1>
+<div style="font-size:15px;line-height:1.7;color:#4a4a5a;">{{body}}</div>
+<div style="margin-top:32px;font-size:15px;line-height:1.7;color:#4a4a5a;">
+Best regards,<br>
+<span style="font-weight:700;color:#2d3555;">The extrapl Team</span>
+</div>
+</td></tr>
+<tr><td align="center" style="padding:32px 0 16px 0;">
+<a href="mailto:josh@extrapl.io" style="font-size:13px;color:#4F63A4;text-decoration:none;">josh@extrapl.io</a>
+<br>
+<span style="font-size:12px;color:#9ca3af;">&copy; 2026 extrapl. All rights reserved.</span>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
 export function renderEmailTemplate(
   template: string,
   placeholders: {

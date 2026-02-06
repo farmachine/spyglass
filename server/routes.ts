@@ -1028,8 +1028,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
       console.log(`📧 Project requires ${requiredDocTypes.length} document types`);
       
-      const { sendEmail, renderEmailTemplate } = await import('./integrations/agentmail');
-      const emailTemplate = (project as any).emailNotificationTemplate as string | null;
+      const { sendEmail, renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
       
       for (const msg of messages) {
         const messageId = msg.messageId || msg.id;
@@ -1079,12 +1079,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 to: fromEmail,
                 subject: `Re: ${subject} - Documents Required`,
                 textContent: textBody,
-                htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+                htmlContent: renderEmailTemplate(emailTemplate, {
                   subject: `Re: ${subject} - Documents Required`,
                   body: textBody.replace(/\n/g, '<br>'),
                   projectName: project.name,
                   senderEmail: fromEmail
-                }) : undefined,
+                }),
                 replyToMessageId: messageId
               });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
@@ -1223,12 +1223,12 @@ Respond with JSON only:
                 to: fromEmail,
                 subject: `Re: ${subject} - Additional Documents Required`,
                 textContent: rejectionTextBody,
-                htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+                htmlContent: renderEmailTemplate(emailTemplate, {
                   subject: `Re: ${subject} - Additional Documents Required`,
                   body: rejectionTextBody.replace(/\n/g, '<br>'),
                   projectName: project.name,
                   senderEmail: fromEmail
-                }) : undefined,
+                }),
                 replyToMessageId: messageId
               });
               console.log(`📧 Rejection email sent to ${fromEmail}`);
@@ -1249,12 +1249,12 @@ Respond with JSON only:
               to: fromEmail,
               subject: `Re: ${subject} - Submission Received`,
               textContent: confirmTextBody,
-              htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+              htmlContent: renderEmailTemplate(emailTemplate, {
                 subject: `Re: ${subject} - Submission Received`,
                 body: confirmTextBody.replace(/\n/g, '<br>'),
                 projectName: project.name,
                 senderEmail: fromEmail
-              }) : undefined,
+              }),
               replyToMessageId: messageId
             });
             console.log(`📧 Confirmation email sent to ${fromEmail}`);
@@ -13199,8 +13199,8 @@ Respond in JSON format:
       console.log(`📧 Project has ${requiredDocTypes.length} required document types`);
       
       // Import agentmail functions for sending replies
-      const { downloadAttachment, sendEmail, renderEmailTemplate } = await import('./integrations/agentmail');
-      const emailTemplate = (project as any).emailNotificationTemplate as string | null;
+      const { downloadAttachment, sendEmail, renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
       
       // If project has required document types, validate attachments first
       let validationResults: Array<{docType: {id: string; name: string; description: string}; matched: boolean; matchedFile?: string}> = [];
@@ -13256,12 +13256,12 @@ Thank you.`;
             to: fromEmail,
             subject: `Re: ${subject} - Documents Required`,
             textContent: rejectionBody,
-            htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+            htmlContent: renderEmailTemplate(emailTemplate, {
               subject: `Re: ${subject} - Documents Required`,
               body: rejectionBody.replace(/\n/g, '<br>'),
               projectName: project.name,
               senderEmail: fromEmail
-            }) : undefined,
+            }),
             replyToMessageId: messageId
           });
           console.log(`📧 Sent rejection email to ${fromEmail} (no attachments)`);
@@ -13465,12 +13465,12 @@ Thank you.`;
             to: fromEmail,
             subject: `Re: ${subject} - Additional Documents Required`,
             textContent: rejectionBody,
-            htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+            htmlContent: renderEmailTemplate(emailTemplate, {
               subject: `Re: ${subject} - Additional Documents Required`,
               body: rejectionBody.replace(/\n/g, '<br>'),
               projectName: project.name,
               senderEmail: fromEmail
-            }) : undefined,
+            }),
             replyToMessageId: messageId
           });
           console.log(`📧 Sent rejection email to ${fromEmail}`);
@@ -13652,12 +13652,12 @@ Thank you.`;
           to: fromEmail,
           subject: `Re: ${subject} - Submission Received`,
           textContent: confirmationBody,
-          htmlContent: emailTemplate ? renderEmailTemplate(emailTemplate, {
+          htmlContent: renderEmailTemplate(emailTemplate, {
             subject: `Re: ${subject} - Submission Received`,
             body: confirmationBody.replace(/\n/g, '<br>'),
             projectName: project.name,
             senderEmail: fromEmail
-          }) : undefined,
+          }),
           replyToMessageId: messageId
         });
         console.log(`📧 Sent confirmation email to ${fromEmail}`);

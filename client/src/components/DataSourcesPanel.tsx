@@ -685,7 +685,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {project?.emailNotificationTemplate 
                       ? "Custom HTML template configured" 
-                      : "Using default plain text notifications"}
+                      : "Using default extrapl branded template"}
                   </p>
                 </div>
                 <Button
@@ -719,32 +719,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
             <Textarea
               value={templateHtml}
               onChange={(e) => setTemplateHtml(e.target.value)}
-              placeholder={`<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #4F63A4; color: white; padding: 20px; text-align: center; }
-    .content { padding: 20px; background: #f9f9f9; }
-    .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>{{projectName}}</h1>
-    </div>
-    <div class="content">
-      <h2>{{subject}}</h2>
-      <p>{{body}}</p>
-    </div>
-    <div class="footer">
-      <p>This email was sent to {{senderEmail}}</p>
-    </div>
-  </div>
-</body>
-</html>`}
+              placeholder={`A branded extrapl template is used by default. Paste custom HTML here to override it. Placeholders: {{subject}}, {{body}}, {{projectName}}, {{senderEmail}}`}
               className="font-mono text-sm h-[400px] resize-none"
             />
           </div>
