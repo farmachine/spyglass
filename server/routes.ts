@@ -235,7 +235,7 @@ async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
     if (currentIndex <= 0) return;
 
     const steps = await storage.getWorkflowSteps(session.projectId);
-    const sessionValidations = await storage.getSessionValidations(sessionId);
+    const sessionValidations = await storage.getFieldValidations(sessionId);
 
     const isValidOrComplete = (v: any) =>
       v.validationStatus === 'valid' || v.validationStatus === 'manual' || v.manuallyUpdated;
@@ -12263,8 +12263,7 @@ def extract_function(Column_Name, Excel_File):
       const { sessionId } = req.params;
       const { cards } = req.body; // Array of { id, orderIndex, status? }
       const success = await storage.reorderKanbanCards(cards);
-      const hasStatusChange = cards.some((c: any) => c.status !== undefined);
-      if (hasStatusChange && sessionId) {
+      if (sessionId) {
         checkAndRevertWorkflowStatus(sessionId).catch(() => {});
       }
       res.json({ success });
