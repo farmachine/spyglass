@@ -260,20 +260,22 @@ async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
       }
     };
 
+    const stepsWithActions = steps
+      .filter((step: any) => step.actionConfig?.actionStatus)
+      .map((step: any) => ({
+        step,
+        statusIndex: statusOptions.indexOf(step.actionConfig.actionStatus),
+      }))
+      .filter((s: any) => s.statusIndex > 0 && s.statusIndex <= currentIndex)
+      .sort((a: any, b: any) => a.statusIndex - b.statusIndex);
+
     let revertTo: string | null = null;
-    while (currentIndex > 0) {
-      const stepWithAction = steps.find((step: any) => {
-        const ac = step.actionConfig as any;
-        return ac?.actionStatus === statusOptions[currentIndex];
-      });
-
-      if (!stepWithAction) break;
-
-      const complete = await isStepComplete(stepWithAction);
-      if (complete) break;
-
-      revertTo = statusOptions[currentIndex - 1];
-      currentIndex--;
+    for (const { step, statusIndex } of stepsWithActions) {
+      const complete = await isStepComplete(step);
+      if (!complete) {
+        revertTo = statusOptions[statusIndex - 1];
+        break;
+      }
     }
 
     if (revertTo && revertTo !== currentStatus) {
