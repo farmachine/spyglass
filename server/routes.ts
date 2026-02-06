@@ -221,6 +221,70 @@ async function processWorkflowTestAsync(
   }
 }
 
+async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
+  try {
+    const session = await storage.getExtractionSession(sessionId);
+    if (!session || !(session as any).workflowStatus) return;
+
+    const project = await storage.getProject(session.projectId);
+    if (!project) return;
+
+    const statusOptions: string[] = (project as any).workflowStatusOptions || [];
+    const currentStatus = (session as any).workflowStatus;
+    let currentIndex = statusOptions.indexOf(currentStatus);
+    if (currentIndex <= 0) return;
+
+    const steps = await storage.getWorkflowSteps(session.projectId);
+    const sessionValidations = await storage.getSessionValidations(sessionId);
+
+    const isValidOrComplete = (v: any) =>
+      v.validationStatus === 'valid' || v.validationStatus === 'manual' || v.manuallyUpdated;
+
+    const isStepComplete = async (step: any): Promise<boolean> => {
+      if (step.stepType === 'kanban') {
+        const kanbanConfig = step.kanbanConfig || { statusColumns: ['To Do', 'In Progress', 'Done'] };
+        const statusColumns = kanbanConfig.statusColumns || ['To Do', 'In Progress', 'Done'];
+        const lastColumn = statusColumns[statusColumns.length - 1];
+        const cards = await storage.getKanbanCards(sessionId, step.id);
+        if (cards.length === 0) return false;
+        return cards.every((card: any) => card.status === lastColumn);
+      } else {
+        const stepVals = await storage.getStepValues(step.id);
+        if (stepVals.length === 0) return true;
+        return stepVals.every((sv: any) => {
+          const valueValidations = sessionValidations.filter((v: any) =>
+            v.valueId === sv.id || v.fieldId === sv.id || v.identifierId === sv.id
+          );
+          return valueValidations.length > 0 && valueValidations.every(isValidOrComplete);
+        });
+      }
+    };
+
+    let revertTo: string | null = null;
+    while (currentIndex > 0) {
+      const stepWithAction = steps.find((step: any) => {
+        const ac = step.actionConfig as any;
+        return ac?.actionStatus === statusOptions[currentIndex];
+      });
+
+      if (!stepWithAction) break;
+
+      const complete = await isStepComplete(stepWithAction);
+      if (complete) break;
+
+      revertTo = statusOptions[currentIndex - 1];
+      currentIndex--;
+    }
+
+    if (revertTo && revertTo !== currentStatus) {
+      await storage.updateExtractionSession(sessionId, { workflowStatus: revertTo } as any);
+      console.log(`📝 Workflow status reverted: "${currentStatus}" -> "${revertTo}" for session ${sessionId}`);
+    }
+  } catch (error) {
+    console.error('Error checking workflow status reversion:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply subdomain middleware to all requests
   const baseDomain = process.env.BASE_DOMAIN;
@@ -6623,6 +6687,10 @@ except Exception as e:
 
       // Simplified validation system - only update the existing validation, don't create new ones
 
+      if (currentValidation.sessionId) {
+        checkAndRevertWorkflowStatus(currentValidation.sessionId).catch(() => {});
+      }
+
       res.json(updatedValidation);
     } catch (error) {
       console.error("Update validation error:", error);
@@ -6633,9 +6701,13 @@ except Exception as e:
   app.delete("/api/validations/:id", async (req, res) => {
     try {
       const id = req.params.id; // UUID string, not integer
+      const currentValidation = await storage.getFieldValidation(id);
       const deleted = await storage.deleteFieldValidation(id);
       if (!deleted) {
         return res.status(404).json({ message: "Validation not found" });
+      }
+      if (currentValidation?.sessionId) {
+        checkAndRevertWorkflowStatus(currentValidation.sessionId).catch(() => {});
       }
       res.status(204).send();
     } catch (error) {
@@ -12160,6 +12232,9 @@ def extract_function(Column_Name, Excel_File):
       if (!card) {
         return res.status(404).json({ error: 'Card not found' });
       }
+      if (req.body.status && card.sessionId) {
+        checkAndRevertWorkflowStatus(card.sessionId).catch(() => {});
+      }
       res.json(card);
     } catch (error) {
       console.error('Error updating kanban card:', error);
@@ -12185,8 +12260,13 @@ def extract_function(Column_Name, Excel_File):
   // Reorder kanban cards (for drag and drop)
   app.post('/api/sessions/:sessionId/steps/:stepId/kanban-cards/reorder', async (req, res) => {
     try {
+      const { sessionId } = req.params;
       const { cards } = req.body; // Array of { id, orderIndex, status? }
       const success = await storage.reorderKanbanCards(cards);
+      const hasStatusChange = cards.some((c: any) => c.status !== undefined);
+      if (hasStatusChange && sessionId) {
+        checkAndRevertWorkflowStatus(sessionId).catch(() => {});
+      }
       res.json({ success });
     } catch (error) {
       console.error('Error reordering kanban cards:', error);
