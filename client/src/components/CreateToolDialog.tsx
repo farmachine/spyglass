@@ -1073,15 +1073,9 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                 <div>
                   <Label className="text-sm text-gray-700 dark:text-gray-300">How should results be displayed?</Label>
                   <Select 
-                    value={displayConfig.modalType} 
-                    onValueChange={(value: 'none' | 'table' | 'map') => {
-                      if (value === 'map') {
-                        setDisplayConfig({ 
-                          modalType: 'map', 
-                          modalSize: 'xl',
-                          mapConfig: displayConfig.mapConfig || { latField: '', lngField: '', labelField: '', popupFields: [], defaultZoom: 6 }
-                        });
-                      } else if (value === 'table') {
+                    value={displayConfig.modalType === 'map' ? 'none' : displayConfig.modalType} 
+                    onValueChange={(value: 'none' | 'table') => {
+                      if (value === 'table') {
                         setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
                       } else {
                         setDisplayConfig({ modalType: 'none' });
@@ -1094,75 +1088,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                     <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                       <SelectItem value="none" className="dark:text-gray-100">Standard (inline fields)</SelectItem>
                       <SelectItem value="table" className="dark:text-gray-100">Table Modal (searchable data table)</SelectItem>
-                      <SelectItem value="map" className="dark:text-gray-100">Map View (OpenStreetMap)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {displayConfig.modalType === 'none' 
+                    {displayConfig.modalType === 'none' || displayConfig.modalType === 'map'
                       ? 'Values are edited inline as standard fields'
-                      : displayConfig.modalType === 'table'
-                      ? 'Opens a searchable data table to select a value'
-                      : 'Shows data points on an interactive map for selection'}
+                      : 'Opens a searchable data table to select a value'}
                   </p>
                 </div>
-
-                {displayConfig.modalType === 'map' && displayConfig.mapConfig && (
-                  <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
-                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Map Configuration</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs text-gray-500 dark:text-gray-400">Latitude Column</Label>
-                        <Input
-                          value={displayConfig.mapConfig.latField}
-                          onChange={(e) => setDisplayConfig({
-                            ...displayConfig,
-                            mapConfig: { ...displayConfig.mapConfig!, latField: e.target.value }
-                          })}
-                          placeholder="e.g. latitude"
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-gray-500 dark:text-gray-400">Longitude Column</Label>
-                        <Input
-                          value={displayConfig.mapConfig.lngField}
-                          onChange={(e) => setDisplayConfig({
-                            ...displayConfig,
-                            mapConfig: { ...displayConfig.mapConfig!, lngField: e.target.value }
-                          })}
-                          placeholder="e.g. longitude"
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400">Label Column (shown on markers)</Label>
-                      <Input
-                        value={displayConfig.mapConfig.labelField || ''}
-                        onChange={(e) => setDisplayConfig({
-                          ...displayConfig,
-                          mapConfig: { ...displayConfig.mapConfig!, labelField: e.target.value }
-                        })}
-                        placeholder="e.g. name"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-gray-500 dark:text-gray-400">Default Zoom Level</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={18}
-                        value={displayConfig.mapConfig.defaultZoom || 6}
-                        onChange={(e) => setDisplayConfig({
-                          ...displayConfig,
-                          mapConfig: { ...displayConfig.mapConfig!, defaultZoom: parseInt(e.target.value) || 6 }
-                        })}
-                        className="h-8 text-sm w-24"
-                      />
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
