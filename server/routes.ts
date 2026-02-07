@@ -7896,6 +7896,80 @@ print(json.dumps(results))
     }
   });
 
+  // Create predefined Map Search Database Lookup tool for a project
+  // Accepts optional body params to customize: name, description, aiPrompt, mapConfig (latField, lngField, labelField, popupFields, defaultZoom)
+  app.post("/api/projects/:projectId/tools/map-lookup", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const body = req.body || {};
+
+      const mapConfig = {
+        latField: body.mapConfig?.latField || "latitude",
+        lngField: body.mapConfig?.lngField || "longitude",
+        labelField: body.mapConfig?.labelField || "name",
+        popupFields: body.mapConfig?.popupFields || [],
+        defaultZoom: body.mapConfig?.defaultZoom || 6,
+        ...(body.mapConfig?.defaultCenter ? { defaultCenter: body.mapConfig.defaultCenter } : {})
+      };
+
+      const toolData = {
+        projectId,
+        name: body.name || "Map Search Database Lookup",
+        description: body.description || "Searches a data source by city and street, then displays matching results on an interactive map. Click a pin to select the matched record.",
+        toolType: "DATABASE_LOOKUP" as const,
+        operationType: "updateSingle" as const,
+        outputType: "single" as const,
+        aiPrompt: body.aiPrompt || "Match the provided city and street to the closest record in the data source. Consider partial matches, abbreviations, and alternative spellings. Return the best matching record.",
+        llmModel: body.llmModel || "gemini-2.0-flash",
+        inputParameters: [
+          {
+            name: "City",
+            type: "text",
+            description: "The city name to search for in the data source"
+          },
+          {
+            name: "Street",
+            type: "text",
+            description: "The street name or address to search for in the data source"
+          },
+          {
+            name: "Input Data",
+            type: "data",
+            description: "Reference data from the data source"
+          }
+        ],
+        inputSchema: {
+          type: "object",
+          properties: {
+            City: { type: "string", description: "City name" },
+            Street: { type: "string", description: "Street name or address" }
+          },
+          required: ["City", "Street"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            result: { type: "string", description: "Selected value from the matched record" }
+          }
+        },
+        metadata: {},
+        tags: ["map", "location", "address", "lookup", "geocoding"],
+        displayConfig: {
+          modalType: "map",
+          modalSize: "xl",
+          mapConfig
+        }
+      };
+
+      const func = await storage.createExcelWizardryFunction(toolData);
+      console.log(`✅ Created Map Search Database Lookup tool ${func.id} for project ${projectId}`);
+      res.json(func);
+    } catch (error) {
+      console.error("Error creating map lookup tool:", error);
+      res.status(500).json({ message: "Failed to create map lookup tool" });
+    }
+  });
+
   // Generate Excel wizardry function code
   app.post("/api/excel-functions/generate", authenticateToken, async (req: AuthRequest, res) => {
     try {
