@@ -1689,6 +1689,19 @@ function ValueCard({
                 className="h-8 text-sm"
               />
             </div>
+
+            {/* Per-value AI description/instructions for non-page steps */}
+            {step.type !== 'page' && (
+              <div>
+                <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">AI Instructions</Label>
+                <Input
+                  value={value.description || ''}
+                  onChange={(e) => onUpdate({ description: e.target.value })}
+                  placeholder="Instructions for AI extraction (e.g. 'The total amount in EUR')"
+                  className="h-8 text-sm text-gray-500"
+                />
+              </div>
+            )}
             
             {/* Color picker for Data Table columns */}
             {step.type === 'list' && (
@@ -1776,35 +1789,44 @@ function ValueCard({
                   </Button>
                 </div>
                 {value.fields && value.fields.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {value.fields.map((field, index) => (
-                      <div key={index} className="flex items-center gap-2">
+                      <div key={index} className="border rounded-md p-2 bg-gray-50 dark:bg-gray-800 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={field.name}
+                            onChange={(e) => onUpdateField?.(index, { name: e.target.value })}
+                            placeholder="Field name"
+                            className="h-7 text-xs flex-1"
+                          />
+                          <Select 
+                            value={field.dataType} 
+                            onValueChange={(v) => onUpdateField?.(index, { dataType: v })}
+                          >
+                            <SelectTrigger className="h-7 w-24 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="TEXT">Text</SelectItem>
+                              <SelectItem value="NUMBER">Number</SelectItem>
+                              <SelectItem value="DATE">Date</SelectItem>
+                              <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                              <SelectItem value="CHOICE">Choice</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <button
+                            onClick={() => onDeleteField?.(index)}
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                          >
+                            <X className="h-3 w-3 text-gray-500" />
+                          </button>
+                        </div>
                         <Input
-                          value={field.name}
-                          onChange={(e) => onUpdateField?.(index, { name: e.target.value })}
-                          placeholder="Field name"
-                          className="h-7 text-xs flex-1"
+                          value={field.description || ''}
+                          onChange={(e) => onUpdateField?.(index, { description: e.target.value })}
+                          placeholder="AI instructions for this field (e.g. 'The date the incident occurred')"
+                          className="h-7 text-xs text-gray-500"
                         />
-                        <Select 
-                          value={field.dataType} 
-                          onValueChange={(v) => onUpdateField?.(index, { dataType: v })}
-                        >
-                          <SelectTrigger className="h-7 w-24 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="TEXT">Text</SelectItem>
-                            <SelectItem value="NUMBER">Number</SelectItem>
-                            <SelectItem value="DATE">Date</SelectItem>
-                            <SelectItem value="BOOLEAN">Boolean</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <button
-                          onClick={() => onDeleteField?.(index)}
-                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                        >
-                          <X className="h-3 w-3 text-gray-500" />
-                        </button>
                       </div>
                     ))}
                   </div>

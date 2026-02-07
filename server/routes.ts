@@ -165,6 +165,7 @@ async function processWorkflowTestAsync(
         stepId: valueConfig.stepId,
         valueId: valueConfig.valueId || valueConfig.id,
         valueName: valueConfig.valueName,
+        description: valueConfig.description || '',
         stepName: valueConfig.stepName,
         orderIndex: valueConfig.orderIndex,
         inputValues: valueConfig.inputValues

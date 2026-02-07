@@ -4733,14 +4733,13 @@ Thank you for your assistance.`;
       }
     }
     
-    // Check InfoPage multi-field values
+    // Check workflow step values (all step types)
     if (project?.workflowSteps) {
       for (const step of project.workflowSteps) {
-        if (step.stepType === 'page' || step.stepType === 'info') {
-          for (const value of step.values || []) {
+        for (const value of step.values || []) {
+          if (step.stepType === 'page' || step.stepType === 'info') {
             // Check if this is a multi-field value
             if (value.fields && Array.isArray(value.fields)) {
-              // Check if fieldName matches pattern: valueName.fieldName
               if (fieldName.startsWith(value.valueName + '.')) {
                 const fieldNamePart = fieldName.substring(value.valueName.length + 1);
                 const field = value.fields.find((f: any) => f.name === fieldNamePart);
@@ -4748,9 +4747,17 @@ Thank you for your assistance.`;
                   return field.dataType || 'TEXT';
                 }
               }
+            } else if (value.valueName === fieldName) {
+              return value.dataType || 'TEXT';
             }
-            // Check single-field values
-            else if (value.valueName === fieldName) {
+          } else if (step.stepType === 'list' || step.stepType === 'data' || step.stepType === 'data_table') {
+            // Data table columns - match by valueName
+            if (value.valueName === fieldName) {
+              return value.dataType || 'TEXT';
+            }
+            // Also check with step name prefix pattern: stepName.valueName
+            const dotFieldName = fieldName.includes('.') ? fieldName.split('.').pop() : null;
+            if (dotFieldName && value.valueName === dotFieldName) {
               return value.dataType || 'TEXT';
             }
           }
