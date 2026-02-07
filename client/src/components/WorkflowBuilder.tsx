@@ -593,15 +593,15 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
           </div>
 
           {/* Document Types Configuration */}
-          <Card className="border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10">
+          <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50">
           <CardHeader 
-            className="pb-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors rounded-t-lg"
+            className="pb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-t-lg"
             onClick={() => setIsDocumentTypesExpanded(!isDocumentTypesExpanded)}
           >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                <Upload className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700/50">
+                <Upload className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               </div>
               <div>
                 <CardTitle className="text-base">Required Documents</CardTitle>
