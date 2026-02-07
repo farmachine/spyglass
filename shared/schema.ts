@@ -410,6 +410,7 @@ export const excelWizardryFunctions = pgTable("excel_wizardry_functions", {
   metadata: jsonb("metadata").notNull(), // Function metadata for field_validations schema compatibility
   inputSchema: jsonb("input_schema").notNull(), // Expected input format/parameters
   outputSchema: jsonb("output_schema").notNull(), // Expected output format
+  displayConfig: jsonb("display_config"), // UI display configuration: { modalType: 'none'|'table'|'map'|..., modalSize, typeConfig }
   tags: text("tags").array(), // Searchable tags for matching (e.g., "date", "financial", "text_extraction")
   usageCount: integer("usage_count").default(0).notNull(), // Track how often this function is used
   createdAt: timestamp("created_at").defaultNow().notNull(),
