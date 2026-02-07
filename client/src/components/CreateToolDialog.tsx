@@ -1063,43 +1063,6 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </CardContent>
           </Card>
 
-          {/* Display Configuration */}
-          {toolType && (
-            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Display Mode</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="text-sm text-gray-700 dark:text-gray-300">How should results be displayed?</Label>
-                  <Select 
-                    value={displayConfig.modalType === 'map' ? 'none' : displayConfig.modalType} 
-                    onValueChange={(value: 'none' | 'table') => {
-                      if (value === 'table') {
-                        setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
-                      } else {
-                        setDisplayConfig({ modalType: 'none' });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                      <SelectItem value="none" className="dark:text-gray-100">Standard (inline fields)</SelectItem>
-                      <SelectItem value="table" className="dark:text-gray-100">Table Modal (searchable data table)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {displayConfig.modalType === 'none' || displayConfig.modalType === 'map'
-                      ? 'Values are edited inline as standard fields'
-                      : 'Opens a searchable data table to select a value'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* LLM Model Selector - Only for AI tools or Database Lookup */}
           {(toolType === "AI_ONLY" || toolType === "DATABASE_LOOKUP") && (
             <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
