@@ -69,6 +69,18 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditingFunctionId, setCurrentEditingFunctionId] = useState<string | null>(null);
+  const [displayConfig, setDisplayConfig] = useState<{
+    modalType: 'none' | 'table' | 'map';
+    modalSize?: string;
+    mapConfig?: {
+      latField: string;
+      lngField: string;
+      labelField?: string;
+      popupFields?: string[];
+      defaultZoom?: number;
+      defaultCenter?: [number, number];
+    };
+  }>({ modalType: 'none' });
 
   const queryClient = useQueryClient();
 
@@ -86,7 +98,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
     setProcessingParams(new Set());
     setCodeExpanded(false);
     setIsEditMode(false);
-    setCurrentEditingFunctionId(null); // Reset current editing function ID
+    setCurrentEditingFunctionId(null);
+    setDisplayConfig({ modalType: 'none' });
   };
 
   // Track previous open state to detect when dialog opens
@@ -126,6 +139,14 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         setOperationType(baseOpType as "create" | "update");
         
         setInputParameters(editingFunction.inputParameters || []);
+        const dc = editingFunction.displayConfig || editingFunction.display_config;
+        if (dc && dc.modalType) {
+          setDisplayConfig(dc);
+        } else if (tt === 'DATABASE_LOOKUP') {
+          setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
+        } else {
+          setDisplayConfig({ modalType: 'none' });
+        }
         setIsEditMode(true);
         setCurrentEditingFunctionId(functionId);
         setOpen(true);
@@ -176,12 +197,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           inputSchema: data.inputSchema,
           outputSchema: data.outputSchema,
           tags: data.tags || [],
-          llmModel: data.llmModel || "gemini-2.0-flash"
+          llmModel: data.llmModel || "gemini-2.0-flash",
+          displayConfig: data.displayConfig || null
         })
       });
     },
     onSuccess: async (updatedData) => {
-      // Invalidate and refetch to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       await queryClient.refetchQueries({ queryKey: [`/api/projects/${projectId}/excel-functions`] });
       
@@ -937,7 +958,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       outputSchema: {
         format: "field_validations_compatible"
       },
-      tags: [] // Default to empty tags array since we removed the tags field
+      tags: [],
+      displayConfig: displayConfig.modalType !== 'none' ? displayConfig : null
     };
 
     console.log('🚀 SUBMITTING TOOL DATA:', JSON.stringify(toolData, null, 2));
@@ -1014,7 +1036,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP") => setToolType(value)}>
+              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP") => {
+                setToolType(value);
+                if (value === 'DATABASE_LOOKUP' && displayConfig.modalType === 'none') {
+                  setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
+                }
+              }}>
                 <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
@@ -1035,6 +1062,110 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
             </CardContent>
           </Card>
+
+          {/* Display Configuration */}
+          {toolType && (
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Display Mode</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm text-gray-700 dark:text-gray-300">How should results be displayed?</Label>
+                  <Select 
+                    value={displayConfig.modalType} 
+                    onValueChange={(value: 'none' | 'table' | 'map') => {
+                      if (value === 'map') {
+                        setDisplayConfig({ 
+                          modalType: 'map', 
+                          modalSize: 'xl',
+                          mapConfig: displayConfig.mapConfig || { latField: '', lngField: '', labelField: '', popupFields: [], defaultZoom: 6 }
+                        });
+                      } else if (value === 'table') {
+                        setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
+                      } else {
+                        setDisplayConfig({ modalType: 'none' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                      <SelectItem value="none" className="dark:text-gray-100">Standard (inline fields)</SelectItem>
+                      <SelectItem value="table" className="dark:text-gray-100">Table Modal (searchable data table)</SelectItem>
+                      <SelectItem value="map" className="dark:text-gray-100">Map View (OpenStreetMap)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {displayConfig.modalType === 'none' 
+                      ? 'Values are edited inline as standard fields'
+                      : displayConfig.modalType === 'table'
+                      ? 'Opens a searchable data table to select a value'
+                      : 'Shows data points on an interactive map for selection'}
+                  </p>
+                </div>
+
+                {displayConfig.modalType === 'map' && displayConfig.mapConfig && (
+                  <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Map Configuration</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">Latitude Column</Label>
+                        <Input
+                          value={displayConfig.mapConfig.latField}
+                          onChange={(e) => setDisplayConfig({
+                            ...displayConfig,
+                            mapConfig: { ...displayConfig.mapConfig!, latField: e.target.value }
+                          })}
+                          placeholder="e.g. latitude"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">Longitude Column</Label>
+                        <Input
+                          value={displayConfig.mapConfig.lngField}
+                          onChange={(e) => setDisplayConfig({
+                            ...displayConfig,
+                            mapConfig: { ...displayConfig.mapConfig!, lngField: e.target.value }
+                          })}
+                          placeholder="e.g. longitude"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400">Label Column (shown on markers)</Label>
+                      <Input
+                        value={displayConfig.mapConfig.labelField || ''}
+                        onChange={(e) => setDisplayConfig({
+                          ...displayConfig,
+                          mapConfig: { ...displayConfig.mapConfig!, labelField: e.target.value }
+                        })}
+                        placeholder="e.g. name"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500 dark:text-gray-400">Default Zoom Level</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={18}
+                        value={displayConfig.mapConfig.defaultZoom || 6}
+                        onChange={(e) => setDisplayConfig({
+                          ...displayConfig,
+                          mapConfig: { ...displayConfig.mapConfig!, defaultZoom: parseInt(e.target.value) || 6 }
+                        })}
+                        className="h-8 text-sm w-24"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* LLM Model Selector - Only for AI tools or Database Lookup */}
           {(toolType === "AI_ONLY" || toolType === "DATABASE_LOOKUP") && (

@@ -66,7 +66,8 @@ import SessionLinkingModal from "@/components/SessionLinkingModal";
 import SessionChat from "@/components/SessionChat";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
-import { DatabaseLookupModal } from "@/components/DatabaseLookupModal";
+import { ToolResultModal } from "@/components/ToolResultModal";
+import type { ToolDisplayConfig } from "@/components/tool-displays";
 
 import type { 
   ExtractionSession, 
@@ -1716,8 +1717,8 @@ export default function SessionView() {
   const [isColumnExtracting, setIsColumnExtracting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Database lookup modal state
-  const [databaseLookupModal, setDatabaseLookupModal] = useState<{
+  // Tool display modal state (generic - supports table, map, etc based on tool's displayConfig)
+  const [toolDisplayModal, setToolDisplayModal] = useState<{
     isOpen: boolean;
     validation: FieldValidation | null;
     column: any;
@@ -1730,6 +1731,7 @@ export default function SessionView() {
     fieldName: string;
     collectionName: string;
     recordIndex: number;
+    displayConfig: ToolDisplayConfig;
   } | null>(null);
 
   // Helper function to find schema field data
@@ -6304,12 +6306,11 @@ Thank you for your assistance.`;
                                                         )}
                                                       </div>
                                                       {(() => {
-                                                        // Check if this value uses a DATABASE_LOOKUP tool
                                                         const valueTool = stepValue.toolId ? toolsMap.get(stepValue.toolId) : null;
-                                                        const isDatabaseLookup = valueTool?.toolType === 'DATABASE_LOOKUP' || valueTool?.tool_type === 'DATABASE_LOOKUP';
+                                                        const toolDisplayConfig = valueTool?.displayConfig || valueTool?.display_config;
+                                                        const hasModalDisplay = toolDisplayConfig && toolDisplayConfig.modalType && toolDisplayConfig.modalType !== 'none';
                                                         
-                                                        if (isDatabaseLookup) {
-                                                          // Show magnifying glass for database lookup manual search
+                                                        if (hasModalDisplay) {
                                                           return (
                                                             <Button
                                                               size="sm"
@@ -6371,9 +6372,9 @@ Thank you for your assistance.`;
                                                                       });
                                                                     }
                                                                     
-                                                                    console.log('Opening database lookup modal with currentInputValues:', currentInputValues);
+                                                                    console.log('Opening tool display modal with currentInputValues:', currentInputValues);
                                                                     
-                                                                    setDatabaseLookupModal({
+                                                                    setToolDisplayModal({
                                                                       isOpen: true,
                                                                       validation: validation || null,
                                                                       column: stepValue,
@@ -6385,7 +6386,8 @@ Thank you for your assistance.`;
                                                                       currentInputValues,
                                                                       fieldName: fieldName,
                                                                       collectionName: currentStep?.stepName || '',
-                                                                      recordIndex: 0
+                                                                      recordIndex: 0,
+                                                                      displayConfig: toolDisplayConfig as ToolDisplayConfig
                                                                     });
                                                                   } catch (error) {
                                                                     console.error('Error loading datasource:', error);
@@ -7073,13 +7075,11 @@ Thank you for your assistance.`;
                                                   </div>
                                                 );
                                               } else {
-                                                // Check if this column uses a DATABASE_LOOKUP tool
                                                 const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
-                                                // Check both camelCase and snake_case since API serialization may vary
-                                                const isDatabaseLookup = columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP';
+                                                const colDisplayConfig = columnTool?.displayConfig || columnTool?.display_config;
+                                                const hasColModalDisplay = colDisplayConfig && colDisplayConfig.modalType && colDisplayConfig.modalType !== 'none';
                                                 
-                                                if (isDatabaseLookup) {
-                                                  // Show search icon for database lookup columns
+                                                if (hasColModalDisplay) {
                                                   return (
                                                     <Button
                                                       size="sm"
@@ -7134,7 +7134,7 @@ Thank you for your assistance.`;
                                                               });
                                                             }
                                                             
-                                                            setDatabaseLookupModal({
+                                                            setToolDisplayModal({
                                                               isOpen: true,
                                                               validation: validation || null,
                                                               column,
@@ -7146,7 +7146,8 @@ Thank you for your assistance.`;
                                                               currentInputValues,
                                                               fieldName: columnName,
                                                               collectionName: collection.collectionName,
-                                                              recordIndex: originalIndex
+                                                              recordIndex: originalIndex,
+                                                              displayConfig: colDisplayConfig as ToolDisplayConfig
                                                             });
                                                           } catch (error) {
                                                             console.error('Error loading datasource:', error);
@@ -7750,15 +7751,15 @@ Thank you for your assistance.`;
         </DialogContent>
       </Dialog>
 
-      {/* Database Lookup Modal */}
-      {databaseLookupModal && (
-        <DatabaseLookupModal
-          isOpen={databaseLookupModal.isOpen}
-          onClose={() => setDatabaseLookupModal(null)}
+      {/* Generic Tool Display Modal */}
+      {toolDisplayModal && (
+        <ToolResultModal
+          isOpen={toolDisplayModal.isOpen}
+          onClose={() => setToolDisplayModal(null)}
           onSelect={async (selectedValue: string) => {
-            if (!databaseLookupModal) return;
+            if (!toolDisplayModal) return;
             
-            const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = databaseLookupModal;
+            const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = toolDisplayModal;
             
             console.log('Database lookup value selected:', {
               selectedValue,
@@ -7805,11 +7806,12 @@ Thank you for your assistance.`;
               });
             }
           }}
-          datasourceData={databaseLookupModal.datasourceData}
-          columnMappings={databaseLookupModal.columnMappings}
-          initialFilters={databaseLookupModal.filters}
-          outputColumn={databaseLookupModal.outputColumn}
-          currentInputValues={databaseLookupModal.currentInputValues}
+          datasourceData={toolDisplayModal.datasourceData}
+          columnMappings={toolDisplayModal.columnMappings}
+          initialFilters={toolDisplayModal.filters}
+          outputColumn={toolDisplayModal.outputColumn}
+          currentInputValues={toolDisplayModal.currentInputValues}
+          displayConfig={toolDisplayModal.displayConfig}
         />
       )}
 
