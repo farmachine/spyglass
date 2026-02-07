@@ -1698,7 +1698,7 @@ function ValueCard({
                   value={value.description || ''}
                   onChange={(e) => onUpdate({ description: e.target.value })}
                   placeholder="Instructions for AI extraction (e.g. 'The total amount in EUR')"
-                  className="h-8 text-sm text-gray-500"
+                  className="h-8 text-sm text-gray-700 dark:text-gray-200"
                 />
               </div>
             )}
@@ -1825,7 +1825,7 @@ function ValueCard({
                           value={field.description || ''}
                           onChange={(e) => onUpdateField?.(index, { description: e.target.value })}
                           placeholder="AI instructions for this field (e.g. 'The date the incident occurred')"
-                          className="h-7 text-xs text-gray-500"
+                          className="h-7 text-xs text-gray-700 dark:text-gray-200"
                         />
                       </div>
                     ))}
