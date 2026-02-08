@@ -157,9 +157,13 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [selectedValue, setSelectedValue] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [geocodingProgress, setGeocodingProgress] = useState("");
+  const [geocodingProgress, setGeocodingProgress] = useState(0);
+  const [geocodingTotal, setGeocodingTotal] = useState(0);
+  const [geocodingLabel, setGeocodingLabel] = useState("");
   const [geocodedPoints, setGeocodedPoints] = useState<Map<number, { lat: number; lng: number }>>(new Map());
+  const [mapReady, setMapReady] = useState(false);
   const geocodingAbortRef = useRef(false);
+  const finalPointsRef = useRef<Map<number, { lat: number; lng: number }>>(new Map());
 
   const safeData = Array.isArray(datasourceData) ? datasourceData : [];
   const columns = useMemo(() => {
@@ -272,21 +276,24 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     if (!isOpen || hasNativeLatLng || !addressColumns || safeData.length === 0) return;
 
     geocodingAbortRef.current = false;
+    finalPointsRef.current = new Map();
 
     const doGeocode = async () => {
       setIsGeocoding(true);
+      setMapReady(false);
       const newCoords = new Map<number, { lat: number; lng: number }>();
 
       if (searchedRecord) {
         const idx = safeData.indexOf(searchedRecord);
         const city = searchedRecord[addressColumns.cityColumn] || "";
         const street = addressColumns.streetColumn ? searchedRecord[addressColumns.streetColumn] || "" : "";
-        setGeocodingProgress("Locating searched record...");
+        setGeocodingLabel("Locating searched record...");
+        setGeocodingProgress(0);
+        setGeocodingTotal(1);
 
         const coords = await geocodeAddress(city, street || undefined);
         if (coords && idx >= 0) {
           newCoords.set(idx, coords);
-          setGeocodedPoints(new Map(newCoords));
         }
 
         if (geocodingAbortRef.current) { setIsGeocoding(false); return; }
@@ -312,9 +319,12 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         }
 
         const MAX_GEOCODE = 30;
-        let geocoded = 0;
-        setGeocodingProgress(`Locating nearby records (0/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+        const totalToGeocode = Math.min(uniqueAddresses.size, MAX_GEOCODE);
+        setGeocodingLabel("Locating nearby records...");
+        setGeocodingTotal(totalToGeocode);
+        setGeocodingProgress(0);
 
+        let geocoded = 0;
         const addressEntries = Array.from(uniqueAddresses.entries());
         for (const [addressKey, indices] of addressEntries) {
           if (geocodingAbortRef.current || geocoded >= MAX_GEOCODE) break;
@@ -328,17 +338,16 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
               const jitter = (Math.random() - 0.5) * 0.0002;
               newCoords.set(rIdx, { lat: addrCoords.lat + jitter, lng: addrCoords.lng + jitter });
             }
-            setGeocodedPoints(new Map(newCoords));
           }
 
           geocoded++;
-          setGeocodingProgress(`Locating nearby records (${geocoded}/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+          setGeocodingProgress(geocoded);
         }
       } else {
         const searchCity = resolvedInputValues ? Object.values(resolvedInputValues).find(v => v) : null;
 
         if (searchCity && addressColumns.cityColumn) {
-          setGeocodingProgress("Searching for matching records...");
+          setGeocodingLabel("Searching for matching records...");
 
           const matchingRecords: { idx: number; record: any }[] = [];
           const cityLower = searchCity.toString().toLowerCase().trim();
@@ -359,6 +368,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             uniqueAddresses.get(key)!.push(rIdx);
           }
 
+          const totalToGeocode = Math.min(uniqueAddresses.size, MAX_GEOCODE);
+          setGeocodingLabel("Locating records...");
+          setGeocodingTotal(totalToGeocode);
+          setGeocodingProgress(0);
+
           let geocoded = 0;
           const addrEntries2 = Array.from(uniqueAddresses.entries());
           for (const [addressKey, indices] of addrEntries2) {
@@ -373,17 +387,18 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
                 const jitter = (Math.random() - 0.5) * 0.0002;
                 newCoords.set(rIdx, { lat: addrCoords.lat + jitter, lng: addrCoords.lng + jitter });
               }
-              setGeocodedPoints(new Map(newCoords));
             }
 
             geocoded++;
-            setGeocodingProgress(`Locating records (${geocoded}/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+            setGeocodingProgress(geocoded);
           }
         }
       }
 
+      finalPointsRef.current = newCoords;
+      setGeocodedPoints(new Map(newCoords));
       setIsGeocoding(false);
-      setGeocodingProgress("");
+      setGeocodingLabel("");
     };
 
     doGeocode();
@@ -445,12 +460,15 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setSelectedValue("");
       setSearchTerm("");
       setGeocodedPoints(new Map());
+      setMapReady(false);
       return;
     }
   }, [isOpen]);
 
+  const shouldShowMap = hasNativeLatLng || (!isGeocoding && geocodedPoints.size > 0);
+
   useEffect(() => {
-    if (!isOpen || !mapContainerRef.current || !mapConfig) return;
+    if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
 
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
@@ -565,7 +583,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
       }
 
-      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => {
+        map.invalidateSize();
+        setMapReady(true);
+      }, 200);
     }, 150);
 
     return () => {
@@ -577,11 +598,13 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap]);
 
   if (!mapConfig) return null;
 
   const totalNearby = nearbyRecords.length;
+  const progressPercent = geocodingTotal > 0 ? Math.round((geocodingProgress / geocodingTotal) * 100) : 0;
+  const showLoading = isGeocoding || (!hasNativeLatLng && !mapReady && isOpen);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -594,101 +617,118 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         </DialogHeader>
 
         <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Filter nearby records..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 h-9"
-              />
-            </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md whitespace-nowrap">
-              {searchedRecord && (
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#4F63A4] inline-block" />
-                  Searched
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block" />
-                {totalNearby} nearby ({RADIUS_KM}km)
-              </span>
-            </div>
-          </div>
-
-          {isGeocoding && (
-            <div className="flex items-center gap-2 text-xs text-[#4F63A4] bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded px-3 py-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {geocodingProgress || "Geocoding addresses..."}
-            </div>
-          )}
-
-          {!searchedRecord && !isGeocoding && initialFilters && initialFilters.length > 0 && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
-              No exact match found for the search criteria. Showing all {allValidPoints.length} available records. Select any record from the map.
-            </div>
-          )}
-
-          <div className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden relative">
-            <div
-              ref={mapContainerRef}
-              className="w-full h-full"
-              style={{ minHeight: "300px" }}
-            />
-          </div>
-
-          {selectedRecord && (
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Selected: {getDisplayName(outputColumn)} = "{selectedValue}"
+          {!showLoading && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Filter nearby records..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9"
+                />
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md whitespace-nowrap">
+                {searchedRecord && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#4F63A4] inline-block" />
+                    Searched
                   </span>
-                  {selectedRecord === searchedRecord && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-[#4F63A4] text-white rounded-full">Searched Record</span>
+                )}
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block" />
+                  {totalNearby} nearby ({RADIUS_KM}km)
+                </span>
+              </div>
+            </div>
+          )}
+
+          {showLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
+              <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+                  <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-[#4F63A4] animate-spin" />
+                  <MapPin className="absolute inset-0 m-auto h-6 w-6 text-[#4F63A4]" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {geocodingLabel || "Preparing map..."}
+                  </p>
+                  {geocodingTotal > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {geocodingProgress} of {geocodingTotal} locations found
+                    </p>
                   )}
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedRecord(null);
-                    setSelectedValue("");
-                    markersRef.current.forEach((m) => {
-                      const rd = (m as any)._recordData;
-                      if (rd === searchedRecord) {
-                        m.setIcon(SEARCHED_ICON);
-                      } else {
-                        m.setIcon(NEARBY_ICON);
-                      }
-                    });
-                  }}
-                  className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 rounded"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="w-full space-y-2">
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#4F63A4] rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${isGeocoding ? progressPercent : (mapReady ? 100 : 95)}%` }}
+                    />
+                  </div>
+                  {geocodingTotal > 0 && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      {progressPercent}%
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
-                {columns.slice(0, 8).map((col) => {
-                  const val = selectedRecord[col];
-                  if (!val) return null;
-                  return (
-                    <div key={col} className="text-xs">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{getDisplayName(col)}:</span>{" "}
-                      <span className="text-blue-800 dark:text-blue-200">{val}</span>
-                    </div>
-                  );
-                })}
+            </div>
+          ) : (
+            <div className="flex-1 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div
+                ref={mapContainerRef}
+                className="absolute inset-0 transition-opacity duration-300"
+                style={{ opacity: mapReady ? 1 : 0, zIndex: 1 }}
+              />
+            </div>
+          )}
+
+          {selectedRecord && !showLoading && (
+            <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Target className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  <span className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                    Selected: {selectedValue || "(no value)"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Input
+                    value={selectedValue}
+                    onChange={(e) => setSelectedValue(e.target.value)}
+                    className="h-8 w-48 text-sm"
+                    placeholder="Value to use..."
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      setSelectedRecord(null);
+                      setSelectedValue("");
+                      markersRef.current.forEach((m) => {
+                        const rd = (m as any)._recordData;
+                        if (rd === searchedRecord) {
+                          m.setIcon(SEARCHED_ICON);
+                        } else {
+                          m.setIcon(NEARBY_ICON);
+                        }
+                      });
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <DialogFooter className="flex-shrink-0">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleUpdate}
             disabled={!selectedValue}
