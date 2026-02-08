@@ -12878,8 +12878,7 @@ Return ONLY the JSON array, no other text.`;
         return res.status(400).json({ error: 'Field data is required' });
       }
 
-      // Build prompt for AI to generate chart configurations
-      const dataDescription = fieldData.map((field: { fieldName: string; values: string[] }) => {
+      const dataDescription = fieldData.map((field: { fieldName: string; values: string[]; chartType?: string }) => {
         const valueCounts: Record<string, number> = {};
         for (const value of field.values) {
           const normalizedValue = value.trim().toLowerCase();
@@ -12888,6 +12887,7 @@ Return ONLY the JSON array, no other text.`;
         
         return {
           fieldName: field.fieldName,
+          chartType: field.chartType || 'pie',
           totalValues: field.values.length,
           uniqueValues: Object.keys(valueCounts).length,
           valueCounts,
@@ -12895,7 +12895,7 @@ Return ONLY the JSON array, no other text.`;
         };
       });
 
-      const prompt = `You are a data visualization expert. Analyze the following field data and create appropriate chart configurations.
+      const prompt = `You are a data visualization expert. Analyze the following field data and create chart configurations.
 
 DATA SUMMARY:
 ${JSON.stringify(dataDescription, null, 2)}
@@ -12908,12 +12908,13 @@ Before creating charts, you MUST merge categories that clearly refer to the same
 - "New York" and "new york" and "NY" → merge obvious abbreviations
 Use the most common spelling as the canonical name, or the most proper/formal version. Sum up the counts for merged categories.
 
-For each field, determine the best chart type:
-- ALWAYS use "pie" charts for text/categorical data (names, labels, statuses, categories, etc.)
-- Only use "bar" charts for numeric data that represents quantities or measurements
+CHART TYPE RULES:
+Each field includes a "chartType" that the user selected. You MUST use that chart type exactly:
+- "pie": pie chart with aggregated category counts
+- "bar": bar chart with aggregated category counts
 
 Return a JSON array of chart configurations. Each chart should have:
-- type: "pie" or "bar"
+- type: Use the chartType specified for each field ("pie" or "bar")
 - title: A descriptive title for the chart
 - fieldName: The original field name
 - data: An array of {name: string, value: number} objects with the aggregated counts (after merging similar categories)
@@ -12950,8 +12951,7 @@ Return ONLY the JSON array, no other text or markdown.`;
       } catch (parseError) {
         console.error('Failed to parse AI response:', text);
         
-        // Fallback: Generate simple charts from the data
-        charts = fieldData.map((field: { fieldName: string; values: string[] }) => {
+        charts = fieldData.map((field: { fieldName: string; values: string[]; chartType?: string }) => {
           const valueCounts: Record<string, number> = {};
           for (const value of field.values) {
             const normalizedValue = value.trim();
@@ -12960,11 +12960,11 @@ Return ONLY the JSON array, no other text or markdown.`;
           
           const chartData = Object.entries(valueCounts)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 10) // Limit to top 10 values
+            .slice(0, 10)
             .map(([name, value]) => ({ name, value }));
 
           return {
-            type: 'pie', // Always use pie for text values
+            type: field.chartType || 'pie',
             title: `${field.fieldName} Distribution`,
             fieldName: field.fieldName,
             data: chartData

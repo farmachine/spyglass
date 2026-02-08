@@ -15,11 +15,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
-import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Chart configuration type from AI
+type ChartType = 'pie' | 'bar' | 'timeline' | 'total' | 'ranking';
+
 interface ChartConfig {
-  type: 'pie' | 'bar';
+  type: ChartType;
   title: string;
   fieldName: string;
   data: { name: string; value: number; color?: string }[];
@@ -96,6 +98,16 @@ export default function AllData({ project }: AllDataProps) {
     } catch (e) {}
     return [];
   });
+  const [analyticsChartTypes, setAnalyticsChartTypes] = useState<Record<string, ChartType>>(() => {
+    try {
+      const saved = localStorage.getItem(analyticsStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.chartTypes || {};
+      }
+    } catch (e) {}
+    return {};
+  });
   const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
   const [showAnalyticsPane, setShowAnalyticsPane] = useState(() => {
     try {
@@ -113,10 +125,11 @@ export default function AllData({ project }: AllDataProps) {
     const data = {
       selectedFields: Array.from(selectedAnalyticsFields),
       charts: generatedCharts,
-      showPane: showAnalyticsPane
+      showPane: showAnalyticsPane,
+      chartTypes: analyticsChartTypes
     };
     localStorage.setItem(analyticsStorageKey, JSON.stringify(data));
-  }, [selectedAnalyticsFields, generatedCharts, showAnalyticsPane, analyticsStorageKey]);
+  }, [selectedAnalyticsFields, generatedCharts, showAnalyticsPane, analyticsStorageKey, analyticsChartTypes]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -162,7 +175,7 @@ export default function AllData({ project }: AllDataProps) {
   const infoPageFields = useMemo(() => {
     if (!workflowData?.steps) return [];
     
-    const fields: { id: string; name: string; valueId: string; stepId: string; fieldIdentifierId?: string; isDataTable?: boolean }[] = [];
+    const fields: { id: string; name: string; valueId: string; stepId: string; fieldIdentifierId?: string; isDataTable?: boolean; dataType?: string }[] = [];
     
     for (const step of workflowData.steps) {
       if (step.stepType === 'page') {
@@ -175,7 +188,8 @@ export default function AllData({ project }: AllDataProps) {
                 valueId: value.id,
                 stepId: step.id,
                 fieldIdentifierId: field.identifierId,
-                isDataTable: false
+                isDataTable: false,
+                dataType: field.dataType
               });
             }
           } else {
@@ -638,15 +652,89 @@ export default function AllData({ project }: AllDataProps) {
     }
   };
 
-  // Toggle analytics field selection
+  const getDefaultChartType = (fieldId: string): ChartType => {
+    const field = infoPageFields.find(f => f.id === fieldId);
+    if (field?.dataType === 'DATE') return 'timeline';
+    if (fieldId === 'workflow-status') return 'pie';
+    if (fieldId.startsWith('kanban-')) return 'pie';
+    return 'pie';
+  };
+
+  const getChartTypeForField = (fieldId: string): ChartType => {
+    return analyticsChartTypes[fieldId] || getDefaultChartType(fieldId);
+  };
+
+  const setChartTypeForField = (fieldId: string, type: ChartType) => {
+    setAnalyticsChartTypes(prev => ({ ...prev, [fieldId]: type }));
+  };
+
   const toggleAnalyticsField = (fieldId: string) => {
     const newSelected = new Set(selectedAnalyticsFields);
     if (newSelected.has(fieldId)) {
       newSelected.delete(fieldId);
     } else {
       newSelected.add(fieldId);
+      if (!analyticsChartTypes[fieldId]) {
+        setChartTypeForField(fieldId, getDefaultChartType(fieldId));
+      }
     }
     setSelectedAnalyticsFields(newSelected);
+  };
+
+  const getFieldDataWithDates = (fieldId: string): { values: string[], dates: string[], fieldName: string, isDateField: boolean } => {
+    const field = infoPageFields.find(f => f.id === fieldId);
+    const isDateField = field?.dataType === 'DATE';
+    const dataTableField = dataTableFields.find(f => f.id === fieldId);
+    
+    const values: string[] = [];
+    const dates: string[] = [];
+    const validSessions = (project.sessions || []).filter(s => s && s.id);
+
+    if (dataTableField) {
+      for (const session of validSessions) {
+        const sessionValidations = allValidations.filter(v => 
+          v.sessionId === session.id && 
+          v.fieldId === dataTableField.valueId &&
+          v.extractedValue && 
+          v.extractedValue !== 'null' && 
+          v.extractedValue !== '-'
+        );
+        for (const v of sessionValidations) {
+          if (v.extractedValue) {
+            values.push(v.extractedValue);
+            const sessionDate = (session as any).createdAt;
+            if (sessionDate) dates.push(sessionDate);
+            else dates.push('');
+          }
+        }
+      }
+      return { values, dates, fieldName: dataTableField.name, isDateField: false };
+    }
+
+    const column = columnConfigs.find(c => c.id === fieldId) || infoPageFields.find(f => f.id === fieldId);
+    if (!column) return { values: [], dates: [], fieldName: 'Unknown', isDateField };
+
+    const columnConfig: ColumnConfig = {
+      id: column.id,
+      name: column.name,
+      visible: true,
+      orderIndex: 0,
+      valueId: column.valueId,
+      stepId: column.stepId,
+      fieldIdentifierId: column.fieldIdentifierId
+    };
+
+    for (const session of validSessions) {
+      const value = getExtractedValue(session.id, columnConfig);
+      if (value && value !== '-') {
+        values.push(value);
+        const sessionDate = (session as any).createdAt;
+        if (sessionDate) dates.push(sessionDate);
+        else dates.push('');
+      }
+    }
+
+    return { values, dates, fieldName: column.name, isDateField };
   };
 
   // Get all data for selected fields from sessions
@@ -701,6 +789,106 @@ export default function AllData({ project }: AllDataProps) {
     }
     
     return { values, fieldName: column.name };
+  };
+
+  const buildTimelineChart = (fieldId: string): ChartConfig | null => {
+    const data = getFieldDataWithDates(fieldId);
+    if (data.values.length === 0) return null;
+
+    const timePoints: Record<string, number> = {};
+    
+    if (data.isDateField) {
+      for (const val of data.values) {
+        const dateStr = val.trim();
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          const month = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+          timePoints[month] = (timePoints[month] || 0) + 1;
+        }
+      }
+    } else {
+      for (const dateStr of data.dates) {
+        if (!dateStr) continue;
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          const month = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+          timePoints[month] = (timePoints[month] || 0) + 1;
+        }
+      }
+    }
+
+    const sortedKeys = Object.keys(timePoints).sort();
+    if (sortedKeys.length === 0) return null;
+
+    const chartData = sortedKeys.map(k => ({ name: k, value: timePoints[k] }));
+    return {
+      type: 'timeline',
+      title: `${data.fieldName} Over Time`,
+      fieldName: data.fieldName,
+      data: chartData
+    };
+  };
+
+  const buildTotalCard = (fieldId: string): ChartConfig | null => {
+    if (fieldId === 'workflow-status') {
+      const validSessions = (project.sessions || []).filter(s => s && s.id);
+      const total = validSessions.length;
+      const statusSet = new Set<string>();
+      for (const session of validSessions) {
+        statusSet.add((session as any).workflowStatus || workflowStatusOptions[0] || 'Unknown');
+      }
+      return {
+        type: 'total',
+        title: 'Workflow Status',
+        fieldName: 'Workflow Status',
+        data: [{ name: 'Total Sessions', value: total }, { name: 'Status Types', value: statusSet.size }]
+      };
+    }
+    const data = getFieldDataForAnalytics(fieldId);
+    if (data.values.length === 0) return null;
+    const uniqueValues = new Set(data.values.map(v => v.trim().toLowerCase())).size;
+    return {
+      type: 'total',
+      title: data.fieldName,
+      fieldName: data.fieldName,
+      data: [{ name: 'Total Entries', value: data.values.length }, { name: 'Unique Values', value: uniqueValues }]
+    };
+  };
+
+  const buildRankingChart = (fieldId: string): ChartConfig | null => {
+    let valueCounts: Record<string, number> = {};
+    let fieldName = '';
+
+    if (fieldId === 'workflow-status') {
+      fieldName = 'Workflow Status';
+      const validSessions = (project.sessions || []).filter(s => s && s.id);
+      for (const session of validSessions) {
+        const ws = (session as any).workflowStatus || workflowStatusOptions[0] || 'Unknown';
+        valueCounts[ws] = (valueCounts[ws] || 0) + 1;
+      }
+    } else {
+      const data = getFieldDataForAnalytics(fieldId);
+      if (data.values.length === 0) return null;
+      fieldName = data.fieldName;
+      for (const val of data.values) {
+        const normalized = val.trim();
+        if (normalized) {
+          valueCounts[normalized] = (valueCounts[normalized] || 0) + 1;
+        }
+      }
+    }
+
+    const sorted = Object.entries(valueCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[i % CHART_COLORS.length] }));
+
+    if (sorted.length === 0) return null;
+    return {
+      type: 'ranking',
+      title: `${fieldName} Ranking`,
+      fieldName,
+      data: sorted
+    };
   };
 
   // Generate pie chart data for a kanban step (aggregate status breakdown across all sessions)
@@ -758,81 +946,93 @@ export default function AllData({ project }: AllDataProps) {
     try {
       const charts: ChartConfig[] = [];
       
-      // Separate kanban fields, status, and regular fields
-      const kanbanFieldIds: string[] = [];
-      const regularFieldIds: string[] = [];
-      let includeWorkflowStatus = false;
+      const aiFieldData: { fieldName: string; values: string[]; chartType: ChartType }[] = [];
       
       for (const fieldId of selectedAnalyticsFields) {
-        if (fieldId === 'workflow-status') {
-          includeWorkflowStatus = true;
-        } else if (fieldId.startsWith('kanban-')) {
-          kanbanFieldIds.push(fieldId.replace('kanban-', ''));
-        } else {
-          regularFieldIds.push(fieldId);
-        }
-      }
-      
-      // Generate kanban charts directly (no AI needed)
-      for (const stepId of kanbanFieldIds) {
-        const kanbanChart = generateKanbanChartData(stepId);
-        if (kanbanChart) {
-          charts.push(kanbanChart);
-        }
-      }
-      
-      // Generate workflow status chart directly (no AI needed)
-      if (includeWorkflowStatus && workflowStatusOptions.length > 0) {
-        const statusCounts: Record<string, number> = {};
-        for (const opt of workflowStatusOptions) {
-          statusCounts[opt] = 0;
-        }
-        const validSessions = (project.sessions || []).filter(s => s && s.id);
-        for (const session of validSessions) {
-          const ws = (session as any).workflowStatus || workflowStatusOptions[0];
-          if (statusCounts[ws] !== undefined) {
-            statusCounts[ws]++;
-          } else {
-            statusCounts[ws] = (statusCounts[ws] || 0) + 1;
-          }
-        }
-        const statusData = workflowStatusOptions
-          .map((opt, idx) => ({
-            name: opt,
-            value: statusCounts[opt] || 0,
-            color: workflowStatusColors[idx] || CHART_COLORS[idx % CHART_COLORS.length]
-          }))
-          .filter(d => d.value > 0);
-        if (statusData.length > 0) {
-          charts.push({
-            type: 'pie',
-            title: 'Workflow Status Distribution',
-            fieldName: 'Workflow Status',
-            data: statusData
-          });
-        }
-      }
-      
-      // Collect data for regular fields and call AI
-      if (regularFieldIds.length > 0) {
-        const fieldData: { fieldName: string; values: string[] }[] = [];
+        const chartType = getChartTypeForField(fieldId);
         
-        for (const fieldId of regularFieldIds) {
-          const data = getFieldDataForAnalytics(fieldId);
-          if (data.values.length > 0) {
-            fieldData.push(data);
+        if (fieldId.startsWith('kanban-')) {
+          const stepId = fieldId.replace('kanban-', '');
+          if (chartType === 'total') {
+            const chart = buildTotalCard(fieldId);
+            if (chart) charts.push(chart);
+          } else if (chartType === 'ranking') {
+            const chart = buildRankingChart(fieldId);
+            if (chart) charts.push(chart);
+          } else {
+            const kanbanChart = generateKanbanChartData(stepId);
+            if (kanbanChart) {
+              kanbanChart.type = chartType;
+              charts.push(kanbanChart);
+            }
           }
+          continue;
         }
 
-        if (fieldData.length > 0) {
-          const response = await apiRequest(`/api/analytics/generate-charts`, {
-            method: 'POST',
-            body: JSON.stringify({ fieldData })
-          }) as { charts?: ChartConfig[] };
+        if (chartType === 'timeline') {
+          const chart = buildTimelineChart(fieldId);
+          if (chart) charts.push(chart);
+          continue;
+        }
 
-          if (response && response.charts && Array.isArray(response.charts)) {
-            charts.push(...response.charts);
+        if (chartType === 'total') {
+          const chart = buildTotalCard(fieldId);
+          if (chart) charts.push(chart);
+          continue;
+        }
+
+        if (chartType === 'ranking') {
+          const chart = buildRankingChart(fieldId);
+          if (chart) charts.push(chart);
+          continue;
+        }
+
+        if (fieldId === 'workflow-status' && workflowStatusOptions.length > 0) {
+          const statusCounts: Record<string, number> = {};
+          for (const opt of workflowStatusOptions) {
+            statusCounts[opt] = 0;
           }
+          const validSessions = (project.sessions || []).filter(s => s && s.id);
+          for (const session of validSessions) {
+            const ws = (session as any).workflowStatus || workflowStatusOptions[0];
+            if (statusCounts[ws] !== undefined) {
+              statusCounts[ws]++;
+            } else {
+              statusCounts[ws] = (statusCounts[ws] || 0) + 1;
+            }
+          }
+          const statusData = workflowStatusOptions
+            .map((opt, idx) => ({
+              name: opt,
+              value: statusCounts[opt] || 0,
+              color: workflowStatusColors[idx] || CHART_COLORS[idx % CHART_COLORS.length]
+            }))
+            .filter(d => d.value > 0);
+          if (statusData.length > 0) {
+            charts.push({
+              type: chartType,
+              title: 'Workflow Status Distribution',
+              fieldName: 'Workflow Status',
+              data: statusData
+            });
+          }
+          continue;
+        }
+
+        const data = getFieldDataForAnalytics(fieldId);
+        if (data.values.length > 0) {
+          aiFieldData.push({ ...data, chartType });
+        }
+      }
+      
+      if (aiFieldData.length > 0) {
+        const response = await apiRequest(`/api/analytics/generate-charts`, {
+          method: 'POST',
+          body: JSON.stringify({ fieldData: aiFieldData.map(f => ({ fieldName: f.fieldName, values: f.values, chartType: f.chartType })) })
+        }) as { charts?: ChartConfig[] };
+
+        if (response && response.charts && Array.isArray(response.charts)) {
+          charts.push(...response.charts);
         }
       }
       
@@ -860,11 +1060,11 @@ export default function AllData({ project }: AllDataProps) {
     }
   };
 
-  // Clear analytics
   const clearAnalytics = () => {
     setGeneratedCharts([]);
     setShowAnalyticsPane(false);
     setSelectedAnalyticsFields(new Set());
+    setAnalyticsChartTypes({});
   };
 
   // Refresh analytics - refetch data, check emails, and regenerate charts
@@ -1362,60 +1562,117 @@ export default function AllData({ project }: AllDataProps) {
             ) : (
               <div className="space-y-2">
                 {workflowStatusOptions.length > 0 && (
-                  <label
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-purple-50/50 dark:bg-purple-900/10"
-                  >
+                  <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-purple-50/50 dark:bg-purple-900/10">
                     <Checkbox
                       checked={selectedAnalyticsFields.has('workflow-status')}
                       onCheckedChange={() => toggleAnalyticsField('workflow-status')}
                     />
-                    <span className="flex-1 text-sm flex items-center gap-2">
+                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField('workflow-status')}>
                       Workflow Status
                       <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900/30">Status</Badge>
                     </span>
-                  </label>
+                    {selectedAnalyticsFields.has('workflow-status') && (
+                      <Select value={getChartTypeForField('workflow-status')} onValueChange={(v) => setChartTypeForField('workflow-status', v as ChartType)}>
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pie">Pie</SelectItem>
+                          <SelectItem value="bar">Bar</SelectItem>
+                          <SelectItem value="total">Total Card</SelectItem>
+                          <SelectItem value="ranking">Ranking</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 )}
                 {infoPageFields.map((field) => (
-                  <label
+                  <div
                     key={field.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
                   >
                     <Checkbox
                       checked={selectedAnalyticsFields.has(field.id)}
                       onCheckedChange={() => toggleAnalyticsField(field.id)}
                     />
-                    <span className="flex-1 text-sm">{field.name}</span>
-                  </label>
+                    <span className="flex-1 text-sm cursor-pointer" onClick={() => toggleAnalyticsField(field.id)}>
+                      {field.name}
+                      {field.dataType === 'DATE' && (
+                        <Badge variant="secondary" className="text-xs ml-2 bg-blue-100 dark:bg-blue-900/30">Date</Badge>
+                      )}
+                    </span>
+                    {selectedAnalyticsFields.has(field.id) && (
+                      <Select value={getChartTypeForField(field.id)} onValueChange={(v) => setChartTypeForField(field.id, v as ChartType)}>
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pie">Pie</SelectItem>
+                          <SelectItem value="bar">Bar</SelectItem>
+                          <SelectItem value="timeline">Timeline</SelectItem>
+                          <SelectItem value="total">Total Card</SelectItem>
+                          <SelectItem value="ranking">Ranking</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 ))}
                 {dataTableFields.map((field) => (
-                  <label
+                  <div
                     key={field.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-green-50/50 dark:bg-green-900/10"
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-green-50/50 dark:bg-green-900/10"
                   >
                     <Checkbox
                       checked={selectedAnalyticsFields.has(field.id)}
                       onCheckedChange={() => toggleAnalyticsField(field.id)}
                     />
-                    <span className="flex-1 text-sm flex items-center gap-2">
+                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField(field.id)}>
                       {field.name}
                       <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/30">Data</Badge>
                     </span>
-                  </label>
+                    {selectedAnalyticsFields.has(field.id) && (
+                      <Select value={getChartTypeForField(field.id)} onValueChange={(v) => setChartTypeForField(field.id, v as ChartType)}>
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pie">Pie</SelectItem>
+                          <SelectItem value="bar">Bar</SelectItem>
+                          <SelectItem value="timeline">Timeline</SelectItem>
+                          <SelectItem value="total">Total Card</SelectItem>
+                          <SelectItem value="ranking">Ranking</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 ))}
                 {kanbanProgressData?.kanbanSteps?.map((step) => (
-                  <label
+                  <div
                     key={`kanban-${step.stepId}`}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-blue-50/50 dark:bg-blue-900/10"
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-blue-50/50 dark:bg-blue-900/10"
                   >
                     <Checkbox
                       checked={selectedAnalyticsFields.has(`kanban-${step.stepId}`)}
                       onCheckedChange={() => toggleAnalyticsField(`kanban-${step.stepId}`)}
                     />
-                    <span className="flex-1 text-sm flex items-center gap-2">
+                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField(`kanban-${step.stepId}`)}>
                       {step.stepName}
                       <Badge variant="secondary" className="text-xs">Tasks</Badge>
                     </span>
-                  </label>
+                    {selectedAnalyticsFields.has(`kanban-${step.stepId}`) && (
+                      <Select value={getChartTypeForField(`kanban-${step.stepId}`)} onValueChange={(v) => setChartTypeForField(`kanban-${step.stepId}`, v as ChartType)}>
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pie">Pie</SelectItem>
+                          <SelectItem value="bar">Bar</SelectItem>
+                          <SelectItem value="total">Total Card</SelectItem>
+                          <SelectItem value="ranking">Ranking</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -1464,10 +1721,10 @@ export default function AllData({ project }: AllDataProps) {
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {generatedCharts.map((chart, index) => (
-                <div key={index} className="border rounded-lg p-6 bg-background">
+                <div key={index} className={`border rounded-lg p-6 bg-background ${chart.type === 'total' ? '' : ''}`}>
                   <h4 className="text-base font-medium mb-3 text-center">{chart.title}</h4>
-                  <div className="h-[240px]">
-                    {chart.type === 'pie' ? (
+                  {chart.type === 'pie' ? (
+                    <div className="h-[240px]">
                       <div className="flex h-full gap-4 items-center">
                         <div className="w-[45%] h-full flex-shrink-0">
                           <ResponsiveContainer width="100%" height="100%">
@@ -1508,7 +1765,9 @@ export default function AllData({ project }: AllDataProps) {
                           </div>
                         </div>
                       </div>
-                    ) : (
+                    </div>
+                  ) : chart.type === 'bar' ? (
+                    <div className="h-[240px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chart.data} layout="vertical">
                           <XAxis type="number" />
@@ -1521,8 +1780,56 @@ export default function AllData({ project }: AllDataProps) {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                    )}
-                  </div>
+                    </div>
+                  ) : chart.type === 'timeline' ? (
+                    <div className="h-[240px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chart.data}>
+                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={50} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="value" stroke="#4F63A4" strokeWidth={2} dot={{ fill: '#4F63A4', r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : chart.type === 'total' ? (
+                    <div className="flex items-center justify-center gap-8 py-6">
+                      {chart.data.map((item, i) => (
+                        <div key={i} className="text-center">
+                          <div className="text-4xl font-bold text-[#4F63A4]">{item.value}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{item.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : chart.type === 'ranking' ? (
+                    <div className="max-h-[260px] overflow-y-auto">
+                      <div className="space-y-1.5">
+                        {chart.data.map((entry, i) => (
+                          <div key={i} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-muted/50">
+                            <span className="text-sm font-semibold text-muted-foreground w-6 text-right">{i + 1}.</span>
+                            <div className="flex-1 flex items-center gap-2 min-w-0">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm truncate" title={entry.name}>{entry.name}</span>
+                                  <span className="text-xs text-muted-foreground flex-shrink-0">({entry.value})</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-1.5 mt-1">
+                                  <div 
+                                    className="h-1.5 rounded-full transition-all"
+                                    style={{ 
+                                      width: `${(entry.value / chart.data[0].value) * 100}%`,
+                                      backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length]
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
