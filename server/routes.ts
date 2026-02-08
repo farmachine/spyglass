@@ -281,6 +281,16 @@ async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
 
     if (revertTo && revertTo !== currentStatus) {
       await storage.updateExtractionSession(sessionId, { workflowStatus: revertTo } as any);
+      try {
+        await storage.createWorkflowStatusHistory({
+          sessionId,
+          projectId: session.projectId,
+          fromStatus: currentStatus,
+          toStatus: revertTo,
+        });
+      } catch (e) {
+        console.error("Error recording workflow status history on revert:", e);
+      }
       console.log(`📝 Workflow status reverted: "${currentStatus}" -> "${revertTo}" for session ${sessionId}`);
     }
   } catch (error) {
@@ -3786,6 +3796,17 @@ except Exception as e:
       // Generate initial field validations for the new session
       await generateInitialFieldValidations(session.id, projectId);
       
+      if ((session as any).workflowStatus) {
+        try {
+          await storage.createWorkflowStatusHistory({
+            sessionId: session.id,
+            projectId: session.projectId,
+            fromStatus: null,
+            toStatus: (session as any).workflowStatus,
+          });
+        } catch (e) { console.error("Error recording initial workflow status:", e); }
+      }
+      
       res.status(201).json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to create extraction session" });
@@ -3830,6 +3851,17 @@ except Exception as e:
       
       // Create validation records for schema fields only (no collection items)
       await generateSchemaFieldValidations(session.id, projectId);
+      
+      if ((session as any).workflowStatus) {
+        try {
+          await storage.createWorkflowStatusHistory({
+            sessionId: session.id,
+            projectId: session.projectId,
+            fromStatus: null,
+            toStatus: (session as any).workflowStatus,
+          });
+        } catch (e) { console.error("Error recording initial workflow status:", e); }
+      }
       
       res.status(201).json(session);
     } catch (error) {
@@ -3880,15 +3912,43 @@ except Exception as e:
         return res.status(400).json({ message: "workflowStatus is required" });
       }
       
+      const existingSession = await storage.getExtractionSession(id);
+      const fromStatus = existingSession ? (existingSession as any).workflowStatus : null;
+      
       const session = await storage.updateExtractionSession(id, { workflowStatus });
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
+      }
+      
+      if (fromStatus !== workflowStatus) {
+        try {
+          await storage.createWorkflowStatusHistory({
+            sessionId: id,
+            projectId: session.projectId,
+            fromStatus,
+            toStatus: workflowStatus,
+          });
+        } catch (e) {
+          console.error("Error recording workflow status history:", e);
+        }
       }
       
       res.json(session);
     } catch (error) {
       console.error("Error updating session workflow status:", error);
       res.status(500).json({ message: "Failed to update workflow status" });
+    }
+  });
+
+  // Get workflow status history for a project
+  app.get("/api/projects/:projectId/workflow-status-history", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { projectId } = req.params;
+      const history = await storage.getWorkflowStatusHistory(projectId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching workflow status history:", error);
+      res.status(500).json({ message: "Failed to fetch workflow status history" });
     }
   });
 

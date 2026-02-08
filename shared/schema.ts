@@ -210,6 +210,18 @@ export const extractionSessions = pgTable("extraction_sessions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const workflowStatusHistory = pgTable("workflow_status_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status").notNull(),
+  changedAt: timestamp("changed_at").defaultNow().notNull(),
+});
+
+export type WorkflowStatusHistory = typeof workflowStatusHistory.$inferSelect;
+export type InsertWorkflowStatusHistory = typeof workflowStatusHistory.$inferInsert;
+
 // Session documents table to store documents and their extracted content
 export const sessionDocuments = pgTable("session_documents", {
   id: uuid("id").defaultRandom().primaryKey(),

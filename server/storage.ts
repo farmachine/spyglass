@@ -101,7 +101,10 @@ import {
   apiDataSources,
   type ApiDataSource,
   type InsertApiDataSource,
-  processedEmails
+  processedEmails,
+  workflowStatusHistory,
+  type WorkflowStatusHistory,
+  type InsertWorkflowStatusHistory
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -226,6 +229,10 @@ export interface IStorage {
   getExtractionSession(id: string): Promise<ExtractionSession | undefined>;
   createExtractionSession(session: InsertExtractionSession): Promise<ExtractionSession>;
   updateExtractionSession(id: string, session: Partial<InsertExtractionSession>): Promise<ExtractionSession | undefined>;
+
+  // Workflow Status History
+  createWorkflowStatusHistory(entry: InsertWorkflowStatusHistory): Promise<WorkflowStatusHistory>;
+  getWorkflowStatusHistory(projectId: string): Promise<WorkflowStatusHistory[]>;
 
   // Session Documents
   getSessionDocuments(sessionId: string): Promise<SessionDocument[]>;
@@ -1607,6 +1614,14 @@ export class MemStorage implements IStorage {
     const updatedSession = { ...session, ...updateData, updatedAt: new Date() };
     this.extractionSessions.set(id, updatedSession);
     return updatedSession;
+  }
+
+  async createWorkflowStatusHistory(entry: InsertWorkflowStatusHistory): Promise<WorkflowStatusHistory> {
+    return { ...entry, id: uuidv4(), changedAt: new Date() } as WorkflowStatusHistory;
+  }
+
+  async getWorkflowStatusHistory(projectId: string): Promise<WorkflowStatusHistory[]> {
+    return [];
   }
 
   // Session Documents (MemStorage implementation)
@@ -3298,6 +3313,23 @@ class PostgreSQLStorage implements IStorage {
       .where(eq(extractionSessions.id, id))
       .returning();
     return result[0];
+  }
+
+  async createWorkflowStatusHistory(entry: InsertWorkflowStatusHistory): Promise<WorkflowStatusHistory> {
+    const result = await this.db
+      .insert(workflowStatusHistory)
+      .values(entry)
+      .returning();
+    return result[0];
+  }
+
+  async getWorkflowStatusHistory(projectId: string): Promise<WorkflowStatusHistory[]> {
+    const result = await this.db
+      .select()
+      .from(workflowStatusHistory)
+      .where(eq(workflowStatusHistory.projectId, projectId))
+      .orderBy(workflowStatusHistory.changedAt);
+    return result;
   }
 
   // Knowledge Documents
