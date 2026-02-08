@@ -1428,15 +1428,12 @@ Respond with JSON only:
               const finalPath = path.join(uploadDir, `${uniqueId}_${safeFilename}`);
               await fs.writeFile(finalPath, data);
               
-              // Create document record with extracted content
               const document = await storage.createSessionDocument({
                 sessionId: session.id,
-                fileName: filename, // Keep original filename for display
-                fileType: contentType,
+                fileName: filename,
+                mimeType: contentType,
                 fileSize: data.length,
-                filePath: finalPath,
                 extractedContent: extractedContent,
-                uploadedAt: new Date(),
               });
               
               console.log(`📧 Saved attachment: ${filename} (${extractedContent.length} chars extracted)`);

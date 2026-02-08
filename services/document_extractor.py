@@ -115,8 +115,36 @@ def merge_header_rows(header_rows):
     
     return merged_header
 
-def extract_pdf_text(file_content: bytes) -> str:
-    """Extract text from PDF file using PyPDF2 with pdfminer fallback."""
+def extract_pdf_text_with_gemini(file_content: bytes, file_name: str = "document.pdf") -> str:
+    """Use Gemini AI to extract text from a scanned/image-based PDF."""
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise Exception("No Gemini API key available")
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        
+        pdf_b64 = base64.b64encode(file_content).decode('utf-8')
+        
+        response = model.generate_content([
+            {
+                "mime_type": "application/pdf",
+                "data": pdf_b64
+            },
+            "Extract ALL text content from this document. Return only the raw text content, preserving the structure and formatting as closely as possible. Do not add any commentary or explanation."
+        ])
+        
+        if response and response.text:
+            return response.text.strip()
+        return ""
+    except Exception as e:
+        print(f"Gemini PDF extraction failed: {str(e)}", file=sys.stderr)
+        return ""
+
+def extract_pdf_text(file_content: bytes, file_name: str = "document.pdf") -> str:
+    """Extract text from PDF file using PyPDF2 with pdfminer fallback, then Gemini for scanned docs."""
     text = ""
     
     # Try PyPDF2 first
@@ -142,7 +170,12 @@ def extract_pdf_text(file_content: bytes) -> str:
         except Exception as e:
             print(f"pdfminer extraction failed: {str(e)}", file=sys.stderr)
     
+    # If still no text, try Gemini AI for scanned/image-based PDFs
     if not text.strip():
+        print(f"No text extracted with standard methods, trying Gemini AI for OCR...", file=sys.stderr)
+        gemini_text = extract_pdf_text_with_gemini(file_content, file_name)
+        if gemini_text:
+            return gemini_text
         raise Exception("PDF extraction failed: No text could be extracted (may be scanned/image-based)")
     
     return text.strip()

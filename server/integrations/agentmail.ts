@@ -152,10 +152,31 @@ export async function downloadAttachment(inboxId: string, messageId: string, att
     fileData = Buffer.alloc(0);
   }
   
+  const filename = attachment.filename || attachment.fileName || 'attachment';
+  let contentType = attachment.contentType || attachment.content_type || attachment.mimeType || attachment.mime_type || '';
+  
+  if (!contentType || contentType === 'application/octet-stream') {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+    };
+    contentType = (ext && mimeMap[ext]) || contentType || 'application/octet-stream';
+  }
+  
   return {
     data: fileData,
-    filename: attachment.filename || attachment.fileName || 'attachment',
-    contentType: attachment.contentType || attachment.content_type || 'application/octet-stream'
+    filename,
+    contentType
   };
 }
 
