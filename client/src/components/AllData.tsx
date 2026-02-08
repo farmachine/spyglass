@@ -167,8 +167,7 @@ export default function AllData({ project }: AllDataProps) {
     for (const step of workflowData.steps) {
       if (step.stepType === 'page') {
         for (const value of (step.values || [])) {
-          // Check if value has multi-field configuration
-          if (value.fields && Array.isArray(value.fields)) {
+          if (value.fields && Array.isArray(value.fields) && value.fields.length > 0) {
             for (const field of value.fields) {
               fields.push({
                 id: `${value.id}-${field.identifierId}`,
@@ -180,7 +179,6 @@ export default function AllData({ project }: AllDataProps) {
               });
             }
           } else {
-            // Single-field value
             fields.push({
               id: value.id,
               name: value.valueName,
