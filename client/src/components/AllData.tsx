@@ -1719,22 +1719,22 @@ export default function AllData({ project }: AllDataProps) {
             <X className="h-4 w-4" />
           </Button>
           <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {generatedCharts.map((chart, index) => (
-                <div key={index} className={`border rounded-lg p-6 bg-background ${chart.type === 'total' ? '' : ''}`}>
+                <div key={index} className={`border rounded-lg bg-background ${chart.type === 'total' || chart.type === 'ranking' ? 'p-4' : 'p-5'}`}>
                   <h4 className="text-base font-medium mb-3 text-center">{chart.title}</h4>
                   {chart.type === 'pie' ? (
-                    <div className="h-[240px]">
-                      <div className="flex h-full gap-4 items-center">
-                        <div className="w-[45%] h-full flex-shrink-0">
+                    <div className="h-[200px]">
+                      <div className="flex h-full gap-3 items-center">
+                        <div className="w-[40%] h-full flex-shrink-0">
                           <ResponsiveContainer width="100%" height="100%">
                             <RechartsPie>
                               <Pie
                                 data={chart.data}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={45}
-                                outerRadius={80}
+                                innerRadius={35}
+                                outerRadius={65}
                                 paddingAngle={2}
                                 dataKey="value"
                                 label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
@@ -1748,30 +1748,30 @@ export default function AllData({ project }: AllDataProps) {
                             </RechartsPie>
                           </ResponsiveContainer>
                         </div>
-                        <div className="w-[55%] flex flex-col justify-center gap-1.5 overflow-y-auto max-h-full pr-1">
+                        <div className="w-[60%] flex flex-col justify-center gap-1 overflow-y-auto max-h-full pr-1">
                           {chart.data.map((entry, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm min-h-[24px]">
+                            <div key={i} className="flex items-center gap-1.5 text-xs min-h-[20px]">
                               <div 
-                                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                                className="w-2 h-2 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length] }}
                               />
-                              <span className="flex-1 truncate text-xs" title={entry.name}>{entry.name}</span>
-                              <span className="font-semibold text-sm flex-shrink-0">{entry.value}</span>
+                              <span className="flex-1 truncate" title={entry.name}>{entry.name}</span>
+                              <span className="font-semibold flex-shrink-0">{entry.value}</span>
                             </div>
                           ))}
-                          <div className="border-t pt-1.5 mt-1 flex items-center gap-2 text-sm font-semibold">
-                            <span className="flex-1 text-xs">Total</span>
-                            <span className="text-sm">{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
+                          <div className="border-t pt-1 mt-0.5 flex items-center gap-1.5 text-xs font-semibold">
+                            <span className="flex-1">Total</span>
+                            <span>{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                   ) : chart.type === 'bar' ? (
-                    <div className="h-[240px]">
+                    <div className="h-[200px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chart.data} layout="vertical">
-                          <XAxis type="number" />
-                          <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                          <XAxis type="number" tick={{ fontSize: 10 }} />
+                          <YAxis dataKey="name" type="category" width={70} tick={{ fontSize: 10 }} />
                           <Tooltip />
                           <Bar dataKey="value" radius={4}>
                             {chart.data.map((entry, i) => (
@@ -1782,47 +1782,45 @@ export default function AllData({ project }: AllDataProps) {
                       </ResponsiveContainer>
                     </div>
                   ) : chart.type === 'timeline' ? (
-                    <div className="h-[240px]">
+                    <div className="h-[200px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chart.data}>
                           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={50} />
-                          <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={45} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                           <Tooltip />
-                          <Line type="monotone" dataKey="value" stroke="#4F63A4" strokeWidth={2} dot={{ fill: '#4F63A4', r: 4 }} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="value" stroke="#4F63A4" strokeWidth={2} dot={{ fill: '#4F63A4', r: 3 }} activeDot={{ r: 5 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
                   ) : chart.type === 'total' ? (
-                    <div className="flex items-center justify-center gap-8 py-6">
+                    <div className="flex items-center justify-center gap-6 py-3">
                       {chart.data.map((item, i) => (
                         <div key={i} className="text-center">
-                          <div className="text-4xl font-bold text-[#4F63A4]">{item.value}</div>
-                          <div className="text-sm text-muted-foreground mt-1">{item.name}</div>
+                          <div className="text-3xl font-bold text-[#4F63A4]">{item.value}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{item.name}</div>
                         </div>
                       ))}
                     </div>
                   ) : chart.type === 'ranking' ? (
-                    <div className="max-h-[260px] overflow-y-auto">
-                      <div className="space-y-1.5">
+                    <div className="max-h-[200px] overflow-y-auto">
+                      <div className="space-y-1">
                         {chart.data.map((entry, i) => (
-                          <div key={i} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-muted/50">
-                            <span className="text-sm font-semibold text-muted-foreground w-6 text-right">{i + 1}.</span>
-                            <div className="flex-1 flex items-center gap-2 min-w-0">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm truncate" title={entry.name}>{entry.name}</span>
-                                  <span className="text-xs text-muted-foreground flex-shrink-0">({entry.value})</span>
-                                </div>
-                                <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-                                  <div 
-                                    className="h-1.5 rounded-full transition-all"
-                                    style={{ 
-                                      width: `${(entry.value / chart.data[0].value) * 100}%`,
-                                      backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length]
-                                    }}
-                                  />
-                                </div>
+                          <div key={i} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted/50">
+                            <span className="text-xs font-semibold text-muted-foreground w-5 text-right">{i + 1}.</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs truncate" title={entry.name}>{entry.name}</span>
+                                <span className="text-[10px] text-muted-foreground flex-shrink-0">({entry.value})</span>
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-1 mt-0.5">
+                                <div 
+                                  className="h-1 rounded-full transition-all"
+                                  style={{ 
+                                    width: `${(entry.value / chart.data[0].value) * 100}%`,
+                                    backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length]
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
