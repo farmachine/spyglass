@@ -3666,6 +3666,8 @@ except Exception as e:
         return res.status(404).json({ message: "Document not found" });
       }
 
+      const fs = await import('fs/promises');
+      const path = await import('path');
       const uploadDir = path.join(process.cwd(), 'uploads', doc.sessionId);
       const files = await fs.readdir(uploadDir).catch(() => [] as string[]);
       const matchingFile = files.find(f => f.includes(doc.fileName.replace(/[^\w\s.-]/g, '_')) || f.endsWith('_' + doc.fileName));
