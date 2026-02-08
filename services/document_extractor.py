@@ -170,12 +170,14 @@ def extract_pdf_text(file_content: bytes, file_name: str = "document.pdf") -> st
         except Exception as e:
             print(f"pdfminer extraction failed: {str(e)}", file=sys.stderr)
     
-    # If still no text, try Gemini AI for scanned/image-based PDFs
-    if not text.strip():
-        print(f"No text extracted with standard methods, trying Gemini AI for OCR...", file=sys.stderr)
+    # If still no meaningful text, try Gemini AI for scanned/image-based PDFs
+    if len(text.strip()) < 50:
+        print(f"Minimal text extracted ({len(text.strip())} chars), trying Gemini AI for OCR...", file=sys.stderr)
         gemini_text = extract_with_gemini_vision(file_content, "application/pdf", file_name)
         if gemini_text:
             return gemini_text
+        if text.strip():
+            return text.strip()
         raise Exception("PDF extraction failed: No text could be extracted (may be scanned/image-based)")
     
     return text.strip()

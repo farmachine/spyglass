@@ -5320,6 +5320,9 @@ except Exception as e:
         try {
           const result = JSON.parse(output);
           console.log(`TEXT EXTRACTION: Extracted text from ${result.extracted_texts?.length || 0} documents`);
+          if (error) {
+            console.log(`TEXT EXTRACTION stderr: ${error}`);
+          }
           
           // Save each document with its extracted content to session documents table
           if (result.extracted_texts && Array.isArray(result.extracted_texts)) {
@@ -5327,6 +5330,9 @@ except Exception as e:
               try {
                 // Find the original file to get size and MIME type
                 const originalFile = convertedFiles.find(f => f.file_name === extractedText.file_name);
+                
+                const contentLength = extractedText.text_content?.length || 0;
+                console.log(`TEXT EXTRACTION: ${extractedText.file_name} - content length: ${contentLength}, error: ${extractedText.error || 'none'}, method: ${extractedText.extraction_method || 'unknown'}`);
                 
                 // Calculate file size from data URL if available
                 let fileSize = null;
@@ -5347,7 +5353,7 @@ except Exception as e:
                   extractedContent: extractedText.text_content
                 });
                 
-                console.log(`Saved document: ${extractedText.file_name} with extracted content to session documents`);
+                console.log(`Saved document: ${extractedText.file_name} with ${contentLength} chars to session documents`);
               } catch (docError) {
                 console.error(`Failed to save document ${extractedText.file_name}:`, docError);
                 // Continue with other documents even if one fails
