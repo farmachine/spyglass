@@ -2563,6 +2563,21 @@ export default function SessionView() {
     }
   };
 
+  const processDocumentMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      return apiRequest(`/api/sessions/documents/${documentId}/process`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'documents'] });
+      toast({ title: "Document processed", description: "Content has been extracted successfully." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Processing failed", description: error.message || "Could not extract content from this document.", variant: "destructive" });
+    }
+  });
+
   // Handler for field verification changes
   const handleFieldVerification = (fieldName: string, isVerified: boolean, identifierId?: string | null) => {
     // Use the proper handleVerificationToggle function that has complete logic
@@ -6518,6 +6533,20 @@ Thank you for your assistance.`;
                                   </td>
                                   <td className="py-2 px-3">
                                     <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => processDocumentMutation.mutate(doc.id)}
+                                        disabled={processDocumentMutation.isPending}
+                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                        title="Process document (extract content)"
+                                      >
+                                        {processDocumentMutation.isPending && processDocumentMutation.variables === doc.id ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="h-4 w-4" />
+                                        )}
+                                      </Button>
                                       <Button
                                         size="sm"
                                         variant="ghost"

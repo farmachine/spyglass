@@ -23,7 +23,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, asc } from "drizzle-orm";
-import { workflowSteps, stepValues, type StepValue, type ProjectSchemaField, type ObjectCollection, type CollectionProperty, type FieldValidation, type ExtractionSession } from "@shared/schema";
+import { workflowSteps, stepValues, sessionDocuments, type StepValue, type ProjectSchemaField, type ObjectCollection, type CollectionProperty, type FieldValidation, type ExtractionSession } from "@shared/schema";
 import { 
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
@@ -3655,6 +3655,74 @@ except Exception as e:
     } catch (error) {
       console.error("Delete session document error:", error);
       res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  app.post("/api/sessions/documents/:documentId/process", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const [doc] = await db.select().from(sessionDocuments).where(eq(sessionDocuments.id, documentId)).limit(1);
+      if (!doc) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const uploadDir = path.join(process.cwd(), 'uploads', doc.sessionId);
+      const files = await fs.readdir(uploadDir).catch(() => [] as string[]);
+      const matchingFile = files.find(f => f.includes(doc.fileName.replace(/[^\w\s.-]/g, '_')) || f.endsWith('_' + doc.fileName));
+      
+      if (!matchingFile) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+
+      const filePath = path.join(uploadDir, matchingFile);
+      const fileData = await fs.readFile(filePath);
+      const base64Content = fileData.toString('base64');
+      const mimeType = doc.mimeType || 'application/octet-stream';
+
+      const extractionData = {
+        step: "extract_text_only",
+        documents: [{ file_name: doc.fileName, file_content: base64Content, mime_type: mimeType }]
+      };
+
+      const osMod = await import('os');
+      const tmpFile = path.join(osMod.tmpdir(), `extract_${crypto.randomUUID()}.json`);
+      await fs.writeFile(tmpFile, JSON.stringify(extractionData));
+
+      const extractedContent = await new Promise<string>((resolve) => {
+        const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
+        const timeout = setTimeout(() => { python.kill(); console.log(`Process timeout for ${doc.fileName}`); resolve(''); }, 120000);
+        
+        const inputStream = require('fs').createReadStream(tmpFile);
+        inputStream.pipe(python.stdin);
+        
+        let output = '';
+        let stderr = '';
+        python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+        python.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+        python.on('close', async (code: number | null) => {
+          clearTimeout(timeout);
+          try { await fs.unlink(tmpFile); } catch {}
+          if (stderr) console.log(`Process stderr for ${doc.fileName}: ${stderr}`);
+          if (code === 0) {
+            try {
+              const result = JSON.parse(output);
+              const text = result.extracted_texts?.[0]?.text_content || '';
+              resolve(text);
+            } catch { resolve(''); }
+          } else { resolve(''); }
+        });
+        python.on('error', (err: Error) => { clearTimeout(timeout); fs.unlink(tmpFile).catch(() => {}); resolve(''); });
+      });
+
+      if (extractedContent.length > 0) {
+        await storage.updateSessionDocument(documentId, { extractedContent });
+        res.json({ message: "Document processed successfully", contentLength: extractedContent.length });
+      } else {
+        res.status(422).json({ message: "Could not extract content from this document" });
+      }
+    } catch (error) {
+      console.error("Process document error:", error);
+      res.status(500).json({ message: "Failed to process document" });
     }
   });
 
