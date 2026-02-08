@@ -1378,32 +1378,42 @@ Respond with JSON only:
               const uploadDir = path.join(process.cwd(), 'uploads', session.id);
               await fs.mkdir(uploadDir, { recursive: true });
               
-              // Extract content from PDF/documents using Python subprocess
+              // Extract content from PDF/documents/images using Python subprocess
               let extractedContent = '';
-              if (contentType.includes('pdf') || contentType.includes('excel') || 
+              const supportedForExtraction = contentType.includes('pdf') || contentType.includes('excel') || 
                   contentType.includes('spreadsheet') || contentType.includes('word') ||
-                  contentType.includes('document') || contentType.includes('text')) {
+                  contentType.includes('document') || contentType.includes('text') ||
+                  contentType.includes('image/');
+              if (supportedForExtraction) {
                 try {
                   const base64Content = data.toString('base64');
-                  const dataUrl = `data:${contentType};base64,${base64Content}`;
                   const extractionData = {
                     step: "extract_text_only",
-                    documents: [{ file_name: filename, file_content: dataUrl, mime_type: contentType }]
+                    documents: [{ file_name: filename, file_content: base64Content, mime_type: contentType }]
                   };
                   
                   const { spawn } = await import('child_process');
+                  const os = await import('os');
+                  const tmpFile = path.join(os.tmpdir(), `extract_${crypto.randomUUID()}.json`);
+                  await fs.writeFile(tmpFile, JSON.stringify(extractionData));
+                  
                   extractedContent = await new Promise<string>((resolve) => {
-                    const python = spawn('python3', ['services/document_extractor.py']);
-                    const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 20000);
-                    python.stdin.write(JSON.stringify(extractionData));
-                    python.stdin.end();
+                    const python = spawn('python3', ['services/document_extractor.py'], {
+                      env: { ...process.env }
+                    });
+                    const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 120000);
+                    
+                    const inputStream = require('fs').createReadStream(tmpFile);
+                    inputStream.pipe(python.stdin);
+                    
                     let output = '';
                     let stderr = '';
-                    python.stdout.on('data', (chunk) => { output += chunk.toString(); });
-                    python.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
-                    python.on('close', (code) => {
+                    python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+                    python.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+                    python.on('close', async (code: number | null) => {
                       clearTimeout(timeout);
-                      if (stderr) console.log(`📧 Python stderr: ${stderr}`);
+                      try { await fs.unlink(tmpFile); } catch {}
+                      if (stderr) console.log(`📧 Python stderr for ${filename}: ${stderr}`);
                       if (code === 0) {
                         try { 
                           const result = JSON.parse(output);
@@ -1414,7 +1424,7 @@ Respond with JSON only:
                         } catch (e) { console.log(`📧 Failed to parse output: ${output.slice(0,200)}`); resolve(''); }
                       } else { console.log(`📧 Python exited with code ${code}`); resolve(''); }
                     });
-                    python.on('error', (err) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); resolve(''); });
+                    python.on('error', (err: Error) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); fs.unlink(tmpFile).catch(() => {}); resolve(''); });
                   });
                   console.log(`📧 Extracted ${extractedContent.length} chars from ${filename}`);
                 } catch (extractErr) {
@@ -13746,53 +13756,67 @@ Thank you.`;
             // Download attachment content (inboxId, messageId, attachmentId)
             const { data, filename, contentType } = await downloadAttachment(inboxId, messageId, attachment.attachment_id);
             
-            // Convert to data URL format for document extractor
+            // Convert to base64 for document extractor
             const base64Content = data.toString('base64');
-            const dataUrl = `data:${contentType};base64,${base64Content}`;
             
             // Extract text content using document_extractor.py (same as manual upload)
             let extractedContent = '';
             
-            if (contentType.includes('pdf') || contentType.includes('excel') || 
+            const supportedType = contentType.includes('pdf') || contentType.includes('excel') || 
                 contentType.includes('spreadsheet') || contentType.includes('word') ||
-                contentType.includes('document') || contentType.includes('text')) {
+                contentType.includes('document') || contentType.includes('text') ||
+                contentType.includes('image/');
+            if (supportedType) {
               try {
                 const extractionData = {
                   step: "extract_text_only",
                   documents: [{
                     file_name: filename,
-                    file_content: dataUrl,
+                    file_content: base64Content,
                     mime_type: contentType
                   }]
                 };
                 
                 console.log(`📧 Extracting text from: ${filename} (${contentType})`);
                 
-                const extractedResult = await new Promise<string>((resolve, reject) => {
-                  const python = spawn('python3', ['services/document_extractor.py']);
+                const fsSync = require('fs');
+                const os = require('os');
+                const tmpFile = require('path').join(os.tmpdir(), `extract_${crypto.randomUUID()}.json`);
+                fsSync.writeFileSync(tmpFile, JSON.stringify(extractionData));
+                
+                const extractedResult = await new Promise<string>((resolve) => {
+                  const python = spawn('python3', ['services/document_extractor.py'], {
+                    env: { ...process.env }
+                  });
+                  const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 120000);
                   
-                  python.stdin.write(JSON.stringify(extractionData));
-                  python.stdin.end();
+                  const inputStream = fsSync.createReadStream(tmpFile);
+                  inputStream.pipe(python.stdin);
                   
                   let output = '';
-                  let error = '';
+                  let errOutput = '';
                   
-                  python.stdout.on('data', (chunk) => {
+                  python.stdout.on('data', (chunk: Buffer) => {
                     output += chunk.toString();
                   });
                   
-                  python.stderr.on('data', (chunk) => {
-                    error += chunk.toString();
+                  python.stderr.on('data', (chunk: Buffer) => {
+                    errOutput += chunk.toString();
                   });
                   
-                  python.on('close', (code) => {
+                  python.on('close', (code: number | null) => {
+                    clearTimeout(timeout);
+                    try { fsSync.unlinkSync(tmpFile); } catch {}
+                    if (errOutput) console.log(`📧 Python stderr for ${filename}: ${errOutput}`);
                     if (code !== 0) {
-                      console.error(`📧 Document extraction error for ${filename}:`, error);
-                      resolve(''); // Return empty on error, don't fail the whole process
+                      console.error(`📧 Document extraction error for ${filename}, code: ${code}`);
+                      resolve('');
                     } else {
                       try {
                         const result = JSON.parse(output);
                         const text = result.extracted_texts?.[0]?.text_content || '';
+                        const extractError = result.extracted_texts?.[0]?.error;
+                        if (extractError) console.log(`📧 Extraction error for ${filename}: ${extractError}`);
                         console.log(`📧 Extracted ${text.length} chars from ${filename}`);
                         resolve(text);
                       } catch (parseErr) {
@@ -13801,6 +13825,7 @@ Thank you.`;
                       }
                     }
                   });
+                  python.on('error', (err: Error) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); try { fsSync.unlinkSync(tmpFile); } catch {} resolve(''); });
                 });
                 
                 extractedContent = extractedResult;
@@ -13812,10 +13837,10 @@ Thank you.`;
             // Create session document with extracted content
             const document = await storage.createSessionDocument({
               sessionId: session.id,
-              documentName: filename,
-              documentType: contentType,
-              documentContent: extractedContent || base64Content, // Use extracted text if available, otherwise base64
-              isPrimary: attachments.indexOf(attachment) === 0,
+              fileName: filename,
+              mimeType: contentType,
+              fileSize: data.length,
+              extractedContent: extractedContent,
             });
             
             console.log(`📧 Saved document: ${document.id} - ${filename} (content: ${extractedContent ? 'extracted text' : 'base64'})`);
