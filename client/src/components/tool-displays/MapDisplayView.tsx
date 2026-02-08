@@ -604,7 +604,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
   const totalNearby = nearbyRecords.length;
   const progressPercent = geocodingTotal > 0 ? Math.round((geocodingProgress / geocodingTotal) * 100) : 0;
-  const showLoading = isGeocoding || (!hasNativeLatLng && !mapReady && isOpen);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -643,50 +642,45 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             </div>
           )}
 
-          {showLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-6">
-              <div className="flex flex-col items-center gap-4 w-full max-w-md">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-gray-700" />
-                  <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-[#4F63A4] animate-spin" />
-                  <MapPin className="absolute inset-0 m-auto h-6 w-6 text-[#4F63A4]" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {geocodingLabel || "Preparing map..."}
-                  </p>
-                  {geocodingTotal > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {geocodingProgress} of {geocodingTotal} locations found
-                    </p>
-                  )}
-                </div>
-                <div className="w-full space-y-2">
-                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#4F63A4] rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${isGeocoding ? progressPercent : (mapReady ? 100 : 95)}%` }}
-                    />
+          <div className="flex-1 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div
+              ref={mapContainerRef}
+              className="absolute inset-0 transition-opacity duration-500"
+              style={{ opacity: mapReady && !isGeocoding ? 1 : 0, zIndex: 1 }}
+            />
+
+            {(isGeocoding || !mapReady) && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-gray-50 dark:bg-gray-900">
+                <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+                    <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-[#4F63A4] animate-spin" />
+                    <MapPin className="absolute inset-0 m-auto h-6 w-6 text-[#4F63A4]" />
                   </div>
-                  {geocodingTotal > 0 && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      {progressPercent}%
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {geocodingLabel || "Preparing map..."}
                     </p>
-                  )}
+                    {geocodingTotal > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {geocodingProgress} of {geocodingTotal} locations found
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-full space-y-2 px-8">
+                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#4F63A4] rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${isGeocoding ? progressPercent : 95}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-              <div
-                ref={mapContainerRef}
-                className="absolute inset-0 transition-opacity duration-300"
-                style={{ opacity: mapReady ? 1 : 0, zIndex: 1 }}
-              />
-            </div>
-          )}
+            )}
+          </div>
 
-          {selectedRecord && !showLoading && (
+          {selectedRecord && !isGeocoding && mapReady && (
             <div className="border rounded-lg p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
