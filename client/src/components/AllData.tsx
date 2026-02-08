@@ -29,6 +29,11 @@ interface SessionPoint {
   yIndex: number;
 }
 
+interface StatusTimeMetrics {
+  avgCompletionDays: number | null;
+  statusAvgDays: Record<string, number>;
+}
+
 interface ChartConfig {
   type: ChartType;
   title: string;
@@ -36,6 +41,7 @@ interface ChartConfig {
   fieldId?: string;
   data: { name: string; value: number; color?: string }[];
   sessionPoints?: SessionPoint[];
+  timeMetrics?: StatusTimeMetrics;
 }
 
 interface ColumnConfig {
@@ -1073,13 +1079,71 @@ export default function AllData({ project }: AllDataProps) {
               color: workflowStatusColors[idx] || CHART_COLORS[idx % CHART_COLORS.length]
             }))
             .filter(d => d.value > 0);
+          
+          let timeMetrics: StatusTimeMetrics | undefined;
+          try {
+            const historyRes = await apiRequest(`/api/projects/${project.id}/workflow-status-history`) as any[];
+            if (historyRes && Array.isArray(historyRes) && historyRes.length > 0) {
+              const firstStatus = workflowStatusOptions[0];
+              const lastStatus = workflowStatusOptions[workflowStatusOptions.length - 1];
+              
+              const sessionHistory: Record<string, { changedAt: string; fromStatus: string | null; toStatus: string }[]> = {};
+              for (const entry of historyRes) {
+                if (!sessionHistory[entry.sessionId]) sessionHistory[entry.sessionId] = [];
+                sessionHistory[entry.sessionId].push(entry);
+              }
+              
+              const completionDays: number[] = [];
+              const statusDurations: Record<string, number[]> = {};
+              for (const opt of workflowStatusOptions) {
+                statusDurations[opt] = [];
+              }
+              
+              for (const [, entries] of Object.entries(sessionHistory)) {
+                const sorted = entries.sort((a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime());
+                
+                const firstEntry = sorted[0];
+                const lastEntry = sorted.find(e => e.toStatus === lastStatus);
+                if (firstEntry && lastEntry && firstEntry !== lastEntry) {
+                  const days = (new Date(lastEntry.changedAt).getTime() - new Date(firstEntry.changedAt).getTime()) / (1000 * 60 * 60 * 24);
+                  completionDays.push(days);
+                }
+                
+                for (let i = 0; i < sorted.length; i++) {
+                  const current = sorted[i];
+                  const next = sorted[i + 1];
+                  const status = current.toStatus;
+                  if (next && statusDurations[status] !== undefined) {
+                    const days = (new Date(next.changedAt).getTime() - new Date(current.changedAt).getTime()) / (1000 * 60 * 60 * 24);
+                    statusDurations[status].push(days);
+                  }
+                }
+              }
+              
+              const statusAvgDays: Record<string, number> = {};
+              for (const [status, durations] of Object.entries(statusDurations)) {
+                if (durations.length > 0) {
+                  statusAvgDays[status] = Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10;
+                }
+              }
+              
+              timeMetrics = {
+                avgCompletionDays: completionDays.length > 0 ? Math.round((completionDays.reduce((a, b) => a + b, 0) / completionDays.length) * 10) / 10 : null,
+                statusAvgDays
+              };
+            }
+          } catch (e) {
+            console.error("Error fetching workflow status history:", e);
+          }
+          
           if (statusData.length > 0) {
             charts.push({
               type: chartType,
               title: 'Workflow Status Distribution',
               fieldName: 'Workflow Status',
               fieldId: 'workflow-status',
-              data: statusData
+              data: statusData,
+              timeMetrics
             });
           }
           continue;
@@ -1802,7 +1866,12 @@ export default function AllData({ project }: AllDataProps) {
                                 className="w-2 h-2 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length] }}
                               />
-                              <span className="flex-1 truncate" title={entry.name}>{entry.name}</span>
+                              <span className="flex-1 truncate" title={entry.name}>
+                                {entry.name}
+                                {chart.timeMetrics?.statusAvgDays[entry.name] !== undefined && (
+                                  <span className="text-muted-foreground ml-1">({chart.timeMetrics.statusAvgDays[entry.name]}d avg)</span>
+                                )}
+                              </span>
                               <span className="font-semibold flex-shrink-0">{entry.value}</span>
                             </div>
                           ))}
@@ -1810,6 +1879,12 @@ export default function AllData({ project }: AllDataProps) {
                             <span className="flex-1">Total</span>
                             <span>{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
                           </div>
+                          {chart.timeMetrics?.avgCompletionDays !== null && chart.timeMetrics?.avgCompletionDays !== undefined && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3 flex-shrink-0" />
+                              <span>Avg. completion: <span className="font-semibold text-foreground">{chart.timeMetrics.avgCompletionDays}d</span></span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
