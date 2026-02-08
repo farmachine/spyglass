@@ -880,8 +880,34 @@ export default function AllData({ project }: AllDataProps) {
       timePoints[key] = (timePoints[key] || 0) + 1;
     }
 
-    const sortedKeys = Object.keys(timePoints).sort();
-    const chartData = sortedKeys.map(k => ({ name: formatLabel(k), value: timePoints[k] }));
+    const allBucketKeys: string[] = [];
+    const incrementBucket = (d: Date): Date => {
+      const next = new Date(d);
+      switch (bucketMode) {
+        case 'week': next.setDate(next.getDate() + 7); break;
+        case 'month': next.setMonth(next.getMonth() + 1); break;
+        case 'quarter': next.setMonth(next.getMonth() + 3); break;
+        case 'year': next.setFullYear(next.getFullYear() + 1); break;
+      }
+      return next;
+    };
+    const startBucket = (d: Date): Date => {
+      const s = new Date(d);
+      switch (bucketMode) {
+        case 'week': return getWeekStart(s);
+        case 'month': return new Date(s.getFullYear(), s.getMonth(), 1);
+        case 'quarter': return new Date(s.getFullYear(), Math.floor(s.getMonth() / 3) * 3, 1);
+        case 'year': return new Date(s.getFullYear(), 0, 1);
+      }
+    };
+    let cursor = startBucket(minDate);
+    const endCursor = startBucket(maxDate);
+    while (cursor <= endCursor) {
+      allBucketKeys.push(bucketKey(cursor));
+      cursor = incrementBucket(cursor);
+    }
+
+    const chartData = allBucketKeys.map(k => ({ name: formatLabel(k), value: timePoints[k] || 0 }));
     const bucketLabel = bucketMode === 'week' ? 'Weekly' : bucketMode === 'month' ? 'Monthly' : bucketMode === 'quarter' ? 'Quarterly' : 'Yearly';
     return {
       type: 'timeline',
