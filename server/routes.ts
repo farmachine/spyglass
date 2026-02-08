@@ -12900,6 +12900,14 @@ Return ONLY the JSON array, no other text.`;
 DATA SUMMARY:
 ${JSON.stringify(dataDescription, null, 2)}
 
+IMPORTANT - INTELLIGENT CATEGORY MATCHING:
+Before creating charts, you MUST merge categories that clearly refer to the same thing but have different spellings, typos, or minor variations. Examples:
+- "westouter" and "westkouter" → merge into the most common or correct spelling
+- "Toronto" and "toronto" and "TORONTO" → merge (case differences)
+- "Bruxelles" and "Brussels" → merge if they clearly refer to the same entity
+- "New York" and "new york" and "NY" → merge obvious abbreviations
+Use the most common spelling as the canonical name, or the most proper/formal version. Sum up the counts for merged categories.
+
 For each field, determine the best chart type:
 - ALWAYS use "pie" charts for text/categorical data (names, labels, statuses, categories, etc.)
 - Only use "bar" charts for numeric data that represents quantities or measurements
@@ -12908,7 +12916,7 @@ Return a JSON array of chart configurations. Each chart should have:
 - type: "pie" or "bar"
 - title: A descriptive title for the chart
 - fieldName: The original field name
-- data: An array of {name: string, value: number} objects with the aggregated counts
+- data: An array of {name: string, value: number} objects with the aggregated counts (after merging similar categories)
 
 Example output:
 [

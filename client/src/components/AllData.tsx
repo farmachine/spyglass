@@ -121,6 +121,17 @@ export default function AllData({ project }: AllDataProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const workflowStatusOptions = ((project as any).workflowStatusOptions || []) as string[];
+  const workflowStatusColors = ((project as any).workflowStatusColors || []) as string[];
+
+  const getStatusColor = (status: string): string => {
+    const idx = workflowStatusOptions.indexOf(status);
+    if (idx >= 0 && workflowStatusColors[idx]) {
+      return workflowStatusColors[idx];
+    }
+    return '#94a3b8';
+  };
+
   // Fetch workflow to get info page fields
   const { data: workflowData } = useQuery<{ steps?: any[] }>({
     queryKey: [`/api/projects/${project.id}/workflow`],
@@ -748,12 +759,15 @@ export default function AllData({ project }: AllDataProps) {
     try {
       const charts: ChartConfig[] = [];
       
-      // Separate kanban fields from regular fields
+      // Separate kanban fields, status, and regular fields
       const kanbanFieldIds: string[] = [];
       const regularFieldIds: string[] = [];
+      let includeWorkflowStatus = false;
       
       for (const fieldId of selectedAnalyticsFields) {
-        if (fieldId.startsWith('kanban-')) {
+        if (fieldId === 'workflow-status') {
+          includeWorkflowStatus = true;
+        } else if (fieldId.startsWith('kanban-')) {
           kanbanFieldIds.push(fieldId.replace('kanban-', ''));
         } else {
           regularFieldIds.push(fieldId);
@@ -765,6 +779,38 @@ export default function AllData({ project }: AllDataProps) {
         const kanbanChart = generateKanbanChartData(stepId);
         if (kanbanChart) {
           charts.push(kanbanChart);
+        }
+      }
+      
+      // Generate workflow status chart directly (no AI needed)
+      if (includeWorkflowStatus && workflowStatusOptions.length > 0) {
+        const statusCounts: Record<string, number> = {};
+        for (const opt of workflowStatusOptions) {
+          statusCounts[opt] = 0;
+        }
+        const validSessions = (project.sessions || []).filter(s => s && s.id);
+        for (const session of validSessions) {
+          const ws = (session as any).workflowStatus;
+          if (ws && statusCounts[ws] !== undefined) {
+            statusCounts[ws]++;
+          } else if (ws) {
+            statusCounts[ws] = (statusCounts[ws] || 0) + 1;
+          }
+        }
+        const statusData = workflowStatusOptions
+          .map((opt, idx) => ({
+            name: opt,
+            value: statusCounts[opt] || 0,
+            color: workflowStatusColors[idx] || CHART_COLORS[idx % CHART_COLORS.length]
+          }))
+          .filter(d => d.value > 0);
+        if (statusData.length > 0) {
+          charts.push({
+            type: 'pie',
+            title: 'Workflow Status Distribution',
+            fieldName: 'Workflow Status',
+            data: statusData
+          });
         }
       }
       
@@ -1316,6 +1362,20 @@ export default function AllData({ project }: AllDataProps) {
               </p>
             ) : (
               <div className="space-y-2">
+                {workflowStatusOptions.length > 0 && (
+                  <label
+                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer bg-purple-50/50 dark:bg-purple-900/10"
+                  >
+                    <Checkbox
+                      checked={selectedAnalyticsFields.has('workflow-status')}
+                      onCheckedChange={() => toggleAnalyticsField('workflow-status')}
+                    />
+                    <span className="flex-1 text-sm flex items-center gap-2">
+                      Workflow Status
+                      <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900/30">Status</Badge>
+                    </span>
+                  </label>
+                )}
                 {infoPageFields.map((field) => (
                   <label
                     key={field.id}
@@ -1406,19 +1466,19 @@ export default function AllData({ project }: AllDataProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {generatedCharts.map((chart, index) => (
                 <div key={index} className="border rounded-lg p-6 bg-background">
-                  <h4 className="text-base font-medium mb-4 text-center">{chart.title}</h4>
-                  <div className="h-[220px]">
+                  <h4 className="text-base font-medium mb-3 text-center">{chart.title}</h4>
+                  <div className="h-[240px]">
                     {chart.type === 'pie' ? (
-                      <div className="flex h-full gap-6 items-center">
-                        <div className="w-1/2 h-full">
+                      <div className="flex h-full gap-4 items-center">
+                        <div className="w-[45%] h-full flex-shrink-0">
                           <ResponsiveContainer width="100%" height="100%">
                             <RechartsPie>
                               <Pie
                                 data={chart.data}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={50}
-                                outerRadius={90}
+                                innerRadius={45}
+                                outerRadius={80}
                                 paddingAngle={2}
                                 dataKey="value"
                                 label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
@@ -1432,20 +1492,20 @@ export default function AllData({ project }: AllDataProps) {
                             </RechartsPie>
                           </ResponsiveContainer>
                         </div>
-                        <div className="w-1/2 flex flex-col justify-center gap-3">
+                        <div className="w-[55%] flex flex-col justify-center gap-1.5 overflow-y-auto max-h-full pr-1">
                           {chart.data.map((entry, i) => (
-                            <div key={i} className="flex items-center gap-3 text-sm">
+                            <div key={i} className="flex items-center gap-2 text-sm min-h-[24px]">
                               <div 
-                                className="w-3 h-3 rounded-full flex-shrink-0" 
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: entry.color || CHART_COLORS[i % CHART_COLORS.length] }}
                               />
-                              <span className="flex-1">{entry.name}</span>
-                              <span className="font-semibold text-lg">{entry.value}</span>
+                              <span className="flex-1 truncate text-xs" title={entry.name}>{entry.name}</span>
+                              <span className="font-semibold text-sm flex-shrink-0">{entry.value}</span>
                             </div>
                           ))}
-                          <div className="border-t pt-3 mt-2 flex items-center gap-3 text-sm font-semibold">
-                            <span className="flex-1">Total</span>
-                            <span className="text-lg">{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
+                          <div className="border-t pt-1.5 mt-1 flex items-center gap-2 text-sm font-semibold">
+                            <span className="flex-1 text-xs">Total</span>
+                            <span className="text-sm">{chart.data.reduce((sum, d) => sum + d.value, 0)}</span>
                           </div>
                         </div>
                       </div>
@@ -1543,6 +1603,11 @@ export default function AllData({ project }: AllDataProps) {
                   <TableRow>
                     <SortableHeader field="sessionName" className="py-3 w-1/3">{project.mainObjectName || 'Session'} Name</SortableHeader>
                     <SortableHeader field="createdAt" className="py-3 whitespace-nowrap">Created</SortableHeader>
+                    {workflowStatusOptions.length > 0 && (
+                      <TableHead className="py-3 whitespace-nowrap">
+                        <span className="text-xs font-medium text-muted-foreground">Status</span>
+                      </TableHead>
+                    )}
                     <SortableHeader field="documentCount" className="py-3 text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
                     {visibleColumns.map(column => (
@@ -1600,6 +1665,20 @@ export default function AllData({ project }: AllDataProps) {
                           <span className="text-gray-500 dark:text-gray-500 ml-1">{session.createdAt ? new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                         </div>
                       </TableCell>
+                      {workflowStatusOptions.length > 0 && (
+                        <TableCell className="py-3">
+                          {(session as any).workflowStatus ? (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                              style={{ backgroundColor: getStatusColor((session as any).workflowStatus) }}
+                            >
+                              {(session as any).workflowStatus}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
                       </TableCell>
