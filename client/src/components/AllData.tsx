@@ -15,10 +15,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProjectWithDetails, FieldValidation } from "@shared/schema";
-import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ChartType = 'pie' | 'bar' | 'timeline' | 'total' | 'ranking';
+
+interface SessionPoint {
+  timestamp: number;
+  dateLabel: string;
+  sessionId: string;
+  sessionName: string;
+  fields: { name: string; value: string }[];
+  yIndex: number;
+}
 
 interface ChartConfig {
   type: ChartType;
@@ -26,6 +35,7 @@ interface ChartConfig {
   fieldName: string;
   fieldId?: string;
   data: { name: string; value: number; color?: string }[];
+  sessionPoints?: SessionPoint[];
 }
 
 interface ColumnConfig {
@@ -809,112 +819,74 @@ export default function AllData({ project }: AllDataProps) {
   };
 
   const buildTimelineChart = (fieldId: string): ChartConfig | null => {
-    const data = getFieldDataWithDates(fieldId);
-    if (data.values.length === 0) return null;
+    const field = infoPageFields.find(f => f.id === fieldId);
+    const isDateField = field?.dataType === 'DATE';
+    const fieldName = field?.name || columnConfigs.find(c => c.id === fieldId)?.name || dataTableFields.find(f => f.id === fieldId)?.name || 'Unknown';
 
-    const parsedDates: Date[] = [];
-    const dateSources = data.isDateField ? data.values : data.dates;
-    for (const raw of dateSources) {
-      if (!raw) continue;
-      const parsed = new Date(raw.trim());
-      if (!isNaN(parsed.getTime())) parsedDates.push(parsed);
-    }
-    if (parsedDates.length === 0) return null;
+    const validSessions = (project.sessions || []).filter(s => s && s.id);
+    const sessionPoints: SessionPoint[] = [];
+    const datePositions: Record<string, number[]> = {};
 
-    const minDate = new Date(Math.min(...parsedDates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...parsedDates.map(d => d.getTime())));
-    const spanDays = (maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+    for (const session of validSessions) {
+      let dateStr: string | null = null;
 
-    type BucketMode = 'week' | 'month' | 'quarter' | 'year';
-    let bucketMode: BucketMode;
-    if (spanDays <= 90) bucketMode = 'week';
-    else if (spanDays <= 730) bucketMode = 'month';
-    else if (spanDays <= 2190) bucketMode = 'quarter';
-    else bucketMode = 'year';
-
-    const getWeekStart = (d: Date) => {
-      const day = new Date(d);
-      day.setHours(0, 0, 0, 0);
-      const dow = day.getDay();
-      day.setDate(day.getDate() - dow);
-      return day;
-    };
-
-    const bucketKey = (d: Date): string => {
-      switch (bucketMode) {
-        case 'week': {
-          const ws = getWeekStart(d);
-          return `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, '0')}-${String(ws.getDate()).padStart(2, '0')}`;
+      if (isDateField) {
+        const column = columnConfigs.find(c => c.id === fieldId) || infoPageFields.find(f => f.id === fieldId);
+        if (column) {
+          const colConfig: ColumnConfig = { id: column.id, name: column.name, visible: true, orderIndex: 0, valueId: column.valueId, stepId: column.stepId, fieldIdentifierId: column.fieldIdentifierId };
+          const val = getExtractedValue(session.id, colConfig);
+          if (val && val !== '-') dateStr = val;
         }
-        case 'month':
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        case 'quarter': {
-          const q = Math.floor(d.getMonth() / 3) + 1;
-          return `${d.getFullYear()} Q${q}`;
-        }
-        case 'year':
-          return `${d.getFullYear()}`;
+      } else {
+        const sessionDate = (session as any).createdAt;
+        if (sessionDate) dateStr = sessionDate;
       }
-    };
 
-    const formatLabel = (key: string): string => {
-      switch (bucketMode) {
-        case 'week': {
-          const d = new Date(key);
-          return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
-        }
-        case 'month': {
-          const [y, m] = key.split('-');
-          const d = new Date(parseInt(y), parseInt(m) - 1);
-          return `${d.toLocaleString('default', { month: 'short' })} ${y.slice(2)}`;
-        }
-        case 'quarter':
-        case 'year':
-          return key;
+      if (!dateStr) continue;
+      const parsed = new Date(dateStr.trim());
+      if (isNaN(parsed.getTime())) continue;
+
+      const timestamp = parsed.getTime();
+      const dateKey = parsed.toISOString().split('T')[0];
+      if (!datePositions[dateKey]) datePositions[dateKey] = [];
+      datePositions[dateKey].push(sessionPoints.length);
+
+      const fields: { name: string; value: string }[] = [];
+      if (workflowStatusOptions.length > 0) {
+        const ws = (session as any).workflowStatus || workflowStatusOptions[0] || '';
+        fields.push({ name: 'Status', value: ws });
       }
-    };
+      fields.push({ name: 'Documents', value: String(session.documentCount || 0) });
+      for (const col of visibleColumns) {
+        const val = getExtractedValue(session.id, col);
+        fields.push({ name: col.name, value: val || '-' });
+      }
 
-    const timePoints: Record<string, number> = {};
-    for (const d of parsedDates) {
-      const key = bucketKey(d);
-      timePoints[key] = (timePoints[key] || 0) + 1;
+      sessionPoints.push({
+        timestamp,
+        dateLabel: parsed.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+        sessionId: session.id,
+        sessionName: session.sessionName || 'Unnamed',
+        fields,
+        yIndex: 1
+      });
     }
 
-    const allBucketKeys: string[] = [];
-    const incrementBucket = (d: Date): Date => {
-      const next = new Date(d);
-      switch (bucketMode) {
-        case 'week': next.setDate(next.getDate() + 7); break;
-        case 'month': next.setMonth(next.getMonth() + 1); break;
-        case 'quarter': next.setMonth(next.getMonth() + 3); break;
-        case 'year': next.setFullYear(next.getFullYear() + 1); break;
+    if (sessionPoints.length === 0) return null;
+
+    for (const positions of Object.values(datePositions)) {
+      for (let i = 0; i < positions.length; i++) {
+        sessionPoints[positions[i]].yIndex = positions.length > 1 ? i + 1 : 1;
       }
-      return next;
-    };
-    const startBucket = (d: Date): Date => {
-      const s = new Date(d);
-      switch (bucketMode) {
-        case 'week': return getWeekStart(s);
-        case 'month': return new Date(s.getFullYear(), s.getMonth(), 1);
-        case 'quarter': return new Date(s.getFullYear(), Math.floor(s.getMonth() / 3) * 3, 1);
-        case 'year': return new Date(s.getFullYear(), 0, 1);
-      }
-    };
-    let cursor = startBucket(minDate);
-    const endCursor = startBucket(maxDate);
-    while (cursor <= endCursor) {
-      allBucketKeys.push(bucketKey(cursor));
-      cursor = incrementBucket(cursor);
     }
 
-    const chartData = allBucketKeys.map(k => ({ name: formatLabel(k), value: timePoints[k] || 0 }));
-    const bucketLabel = bucketMode === 'week' ? 'Weekly' : bucketMode === 'month' ? 'Monthly' : bucketMode === 'quarter' ? 'Quarterly' : 'Yearly';
     return {
       type: 'timeline',
-      title: `${data.fieldName} Over Time (${bucketLabel})`,
-      fieldName: data.fieldName,
+      title: `${fieldName} Timeline`,
+      fieldName,
       fieldId,
-      data: chartData
+      data: [],
+      sessionPoints
     };
   };
 
@@ -1856,16 +1828,59 @@ export default function AllData({ project }: AllDataProps) {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                  ) : chart.type === 'timeline' ? (
+                  ) : chart.type === 'timeline' && chart.sessionPoints ? (
                     <div className="h-[200px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chart.data}>
-                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-30} textAnchor="end" height={45} />
-                          <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                          <Tooltip />
-                          <Line type="monotone" dataKey="value" stroke="#4F63A4" strokeWidth={2} dot={{ fill: '#4F63A4', r: 3 }} activeDot={{ r: 5 }} />
-                        </LineChart>
+                        <ScatterChart margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" className="opacity-30" horizontal={false} />
+                          <XAxis 
+                            type="number" 
+                            dataKey="timestamp" 
+                            domain={['dataMin', 'dataMax']}
+                            tick={{ fontSize: 9 }}
+                            tickFormatter={(ts: number) => {
+                              const d = new Date(ts);
+                              return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${String(d.getFullYear()).slice(2)}`;
+                            }}
+                            angle={-30}
+                            textAnchor="end"
+                            height={45}
+                          />
+                          <YAxis type="number" dataKey="yIndex" hide={true} domain={[0, (dataMax: number) => Math.max(dataMax + 1, 3)]} />
+                          <ZAxis range={[80, 80]} />
+                          <Tooltip 
+                            cursor={false}
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.length) return null;
+                              const point = payload[0].payload as SessionPoint;
+                              return (
+                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 max-w-[280px]">
+                                  <div className="font-semibold text-sm text-[#4F63A4] mb-1 truncate">{point.sessionName}</div>
+                                  <div className="text-[10px] text-muted-foreground mb-2">{point.dateLabel}</div>
+                                  <div className="space-y-1">
+                                    {point.fields.slice(0, 6).map((f, i) => (
+                                      <div key={i} className="flex justify-between gap-3 text-xs">
+                                        <span className="text-muted-foreground truncate">{f.name}</span>
+                                        <span className="font-medium text-right truncate max-w-[140px]">{f.value}</span>
+                                      </div>
+                                    ))}
+                                    {point.fields.length > 6 && (
+                                      <div className="text-[10px] text-muted-foreground text-center mt-1">+{point.fields.length - 6} more fields</div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Scatter 
+                            data={chart.sessionPoints} 
+                            fill="#4F63A4"
+                            shape={(props: any) => {
+                              const { cx, cy } = props;
+                              return <circle cx={cx} cy={cy} r={5} fill="#4F63A4" stroke="#fff" strokeWidth={1.5} style={{ cursor: 'pointer' }} />;
+                            }}
+                          />
+                        </ScatterChart>
                       </ResponsiveContainer>
                     </div>
                   ) : chart.type === 'total' ? (
