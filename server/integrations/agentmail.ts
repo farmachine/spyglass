@@ -23,7 +23,7 @@ export const DEFAULT_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <tr><td style="background-color:#ffffff;padding:12px 40px 36px 40px;">
 <div style="border-top:1px solid #e5e7eb;padding-top:20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#6b7280;">
 Best regards,<br>
-<span style="font-weight:600;color:#151929;">The extrapl Team</span>
+<span style="font-weight:600;color:#151929;">extrapl &bull;</span>
 </div>
 </td></tr>
 <tr><td style="background-color:#f8f9fb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
@@ -228,7 +228,7 @@ export async function sendEmail(params: {
     to: [params.to],
     subject: params.subject,
     text: params.textContent,
-    fromName: params.fromName || 'extrapl \u2022 Team',
+    fromName: params.fromName || 'extrapl \u2022',
   };
   
   if (params.htmlContent) {

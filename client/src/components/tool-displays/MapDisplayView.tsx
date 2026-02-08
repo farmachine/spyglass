@@ -686,7 +686,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
                 <div className="flex items-center gap-2 min-w-0">
                   <Target className="h-4 w-4 text-green-600 flex-shrink-0" />
                   <span className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
-                    Selected: {outputColumn} = "{selectedValue || "(no value)"}"
+                    Selected: {getDisplayName(outputColumn)} = "{selectedValue || "(no value)"}"
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -723,7 +723,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
                   if (val === null || val === undefined || val === '') return null;
                   return (
                     <div key={col} className="text-xs text-gray-600 dark:text-gray-400">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{col}:</span>{' '}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{getDisplayName(col)}:</span>{' '}
                       {val.toString().length > 50 ? val.toString().substring(0, 50) + '...' : val.toString()}
                     </div>
                   );
