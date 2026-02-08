@@ -7770,25 +7770,37 @@ Thank you for your assistance.`;
             });
             
             try {
-              // Save the selected value as a field validation
-              const response = await apiRequest(`/api/sessions/${sessionId}/validations`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  validationType: 'collection',
-                  dataType: 'text',
-                  fieldId: column.id,
-                  collectionName,
-                  fieldName,
-                  recordIndex,
-                  identifierId: rowIdentifierId,
-                  valueId: column.id,
-                  extractedValue: selectedValue,
-                  validationStatus: 'valid',
-                  manuallyUpdated: true,
-                  aiReasoning: 'Manually selected from database lookup',
-                  confidenceScore: 100
-                })
-              });
+              if (validation?.id) {
+                await apiRequest(`/api/validations/${validation.id}`, {
+                  method: 'PUT',
+                  body: JSON.stringify({
+                    extractedValue: selectedValue,
+                    validationStatus: 'valid',
+                    manuallyUpdated: true,
+                    aiReasoning: 'Manually selected from database lookup',
+                    confidenceScore: 100
+                  })
+                });
+              } else {
+                await apiRequest(`/api/sessions/${sessionId}/validations`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    validationType: 'collection',
+                    dataType: 'text',
+                    fieldId: column.id,
+                    collectionName,
+                    fieldName,
+                    recordIndex,
+                    identifierId: rowIdentifierId,
+                    valueId: column.id,
+                    extractedValue: selectedValue,
+                    validationStatus: 'valid',
+                    manuallyUpdated: true,
+                    aiReasoning: 'Manually selected from database lookup',
+                    confidenceScore: 100
+                  })
+                });
+              }
               
               // Invalidate validations to refresh the UI
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
