@@ -621,3 +621,9 @@ body.column-resizing * {
 [role="option"] > div {
   margin-left: -4px;
 }
+
+/* Custom Leaflet marker icons - remove default div icon styling */
+.custom-marker-icon {
+  background: none !important;
+  border: none !important;
+}

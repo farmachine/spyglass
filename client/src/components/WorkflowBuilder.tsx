@@ -1963,6 +1963,17 @@ function ValueCard({
                       <Label className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">
                         Search By Columns (filter priority order)
                       </Label>
+                      {(() => {
+                        const toolDC = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
+                        if (toolDC?.modalType === 'map') {
+                          return (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                              For map lookup: select the City column first, then the Street column. The first column maps to City and the second to Street for geographic search.
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       {/* Selected columns with order */}
                       {selectedColumns.length > 0 && (
