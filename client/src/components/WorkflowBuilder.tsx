@@ -58,6 +58,38 @@ import type {
 import { useKnowledgeDocuments } from "@/hooks/useKnowledge";
 import { v4 as uuidv4 } from 'uuid';
 
+function StatusNameInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [localValue, setLocalValue] = useState(value);
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value);
+    }
+  }, [value, isFocused]);
+
+  return (
+    <Input
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        setIsFocused(false);
+        if (localValue !== value) {
+          onChange(localValue);
+        }
+      }}
+      onFocus={() => setIsFocused(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder="Status name"
+      className="h-8 text-sm flex-1"
+    />
+  );
+}
+
 // Color palette for kanban columns - complements the extrapl purple (#4F63A4)
 const KANBAN_COLUMN_COLORS = [
   '#4F63A4', // Primary purple
@@ -786,11 +818,9 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         </SelectContent>
                       </Select>
                     </div>
-                    <Input
+                    <StatusNameInput
                       value={status}
-                      onChange={(e) => updateStatusOption(index, e.target.value)}
-                      placeholder="Status name"
-                      className="h-8 text-sm flex-1"
+                      onChange={(value) => updateStatusOption(index, value)}
                     />
                     <Button
                       variant="ghost"
