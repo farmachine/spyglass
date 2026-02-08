@@ -124,10 +124,11 @@ export default function AllData({ project }: AllDataProps) {
   const workflowStatusOptions = ((project as any).workflowStatusOptions || []) as string[];
   const workflowStatusColors = ((project as any).workflowStatusColors || []) as string[];
 
+  const STATUS_DEFAULT_COLORS = ['#4F63A4', '#5B8DBD', '#4F9A94', '#5EA47B', '#C4A35A', '#C47B5A', '#A45B73'];
   const getStatusColor = (status: string): string => {
     const idx = workflowStatusOptions.indexOf(status);
-    if (idx >= 0 && workflowStatusColors[idx]) {
-      return workflowStatusColors[idx];
+    if (idx >= 0) {
+      return workflowStatusColors[idx] || STATUS_DEFAULT_COLORS[idx % STATUS_DEFAULT_COLORS.length];
     }
     return '#94a3b8';
   };
@@ -790,10 +791,10 @@ export default function AllData({ project }: AllDataProps) {
         }
         const validSessions = (project.sessions || []).filter(s => s && s.id);
         for (const session of validSessions) {
-          const ws = (session as any).workflowStatus;
-          if (ws && statusCounts[ws] !== undefined) {
+          const ws = (session as any).workflowStatus || workflowStatusOptions[0];
+          if (statusCounts[ws] !== undefined) {
             statusCounts[ws]++;
-          } else if (ws) {
+          } else {
             statusCounts[ws] = (statusCounts[ws] || 0) + 1;
           }
         }
@@ -1665,20 +1666,23 @@ export default function AllData({ project }: AllDataProps) {
                           <span className="text-gray-500 dark:text-gray-500 ml-1">{session.createdAt ? new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                         </div>
                       </TableCell>
-                      {workflowStatusOptions.length > 0 && (
-                        <TableCell className="py-3">
-                          {(session as any).workflowStatus ? (
-                            <span
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                              style={{ backgroundColor: getStatusColor((session as any).workflowStatus) }}
-                            >
-                              {(session as any).workflowStatus}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                      )}
+                      {workflowStatusOptions.length > 0 && (() => {
+                        const displayStatus = (session as any).workflowStatus || workflowStatusOptions[0] || '';
+                        return (
+                          <TableCell className="py-3">
+                            {displayStatus ? (
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                                style={{ backgroundColor: getStatusColor(displayStatus) }}
+                              >
+                                {displayStatus}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        );
+                      })()}
                       <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
                       </TableCell>
