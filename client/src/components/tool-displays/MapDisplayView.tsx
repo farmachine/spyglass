@@ -3,7 +3,7 @@ import L from "leaflet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, X, Target } from "lucide-react";
+import { Search, MapPin, X, Target, Loader2 } from "lucide-react";
 import type { ToolDisplayComponentProps } from "./ToolDisplayRegistry";
 
 const LEAFLET_CSS_ID = "leaflet-css-cdn";
@@ -85,6 +85,55 @@ function applyFilterMatch(value: string, search: string, operator: string, fuzzi
   return false;
 }
 
+const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
+
+async function geocodeAddress(city: string, street?: string): Promise<{ lat: number; lng: number } | null> {
+  const cacheKey = `${city}|${street || ''}`.toLowerCase().trim();
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey) || null;
+
+  try {
+    const params = new URLSearchParams({ format: 'json', limit: '1' });
+    if (street) {
+      params.set('street', street);
+      params.set('city', city);
+    } else {
+      params.set('q', city);
+    }
+
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      geocodeCache.set(cacheKey, null);
+      return null;
+    }
+
+    const results = await response.json();
+    if (results && results.length > 0) {
+      const coords = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+      geocodeCache.set(cacheKey, coords);
+      return coords;
+    }
+
+    if (street) {
+      const fallback = await geocodeAddress(city);
+      geocodeCache.set(cacheKey, fallback);
+      return fallback;
+    }
+
+    geocodeCache.set(cacheKey, null);
+    return null;
+  } catch {
+    geocodeCache.set(cacheKey, null);
+    return null;
+  }
+}
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function MapDisplayView(props: ToolDisplayComponentProps) {
   const {
     isOpen,
@@ -107,6 +156,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [selectedValue, setSelectedValue] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodingProgress, setGeocodingProgress] = useState("");
+  const [geocodedPoints, setGeocodedPoints] = useState<Map<number, { lat: number; lng: number }>>(new Map());
+  const geocodingAbortRef = useRef(false);
 
   const safeData = Array.isArray(datasourceData) ? datasourceData : [];
   const columns = useMemo(() => {
@@ -116,26 +169,92 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
   const getDisplayName = (col: string) => columnMappings[col] || col;
 
-  const allValidPoints = useMemo(() => {
-    if (!mapConfig) return [];
-    return safeData.filter((record) => {
-      const lat = parseFloat(record[mapConfig.latField]);
-      const lng = parseFloat(record[mapConfig.lngField]);
-      return !isNaN(lat) && !isNaN(lng);
-    });
+  const hasNativeLatLng = useMemo(() => {
+    if (!mapConfig || safeData.length === 0) return false;
+    const sample = safeData[0];
+    const lat = parseFloat(sample[mapConfig.latField]);
+    const lng = parseFloat(sample[mapConfig.lngField]);
+    return !isNaN(lat) && !isNaN(lng);
   }, [safeData, mapConfig]);
 
+  const addressColumns = useMemo(() => {
+    if (!initialFilters || initialFilters.length === 0) return null;
+    return {
+      cityColumn: initialFilters[0]?.column,
+      streetColumn: initialFilters.length > 1 ? initialFilters[1]?.column : undefined,
+    };
+  }, [initialFilters]);
+
+  const resolvedInputValues = useMemo(() => {
+    if (!initialFilters || !currentInputValues) return currentInputValues || {};
+
+    const resolved = { ...currentInputValues };
+
+    for (const filter of initialFilters) {
+      if (filter.inputField && resolved[filter.inputField]) continue;
+
+      const colDisplayName = columnMappings[filter.column] || filter.column;
+      const colLower = colDisplayName.toLowerCase();
+
+      for (const [key, val] of Object.entries(currentInputValues)) {
+        if (!val) continue;
+        const keyLower = key.toLowerCase();
+        const parts = key.split('.');
+        const fieldName = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : keyLower;
+
+        if (fieldName === colLower || keyLower.endsWith(`.${colLower}`)) {
+          if (!filter.inputField) {
+            filter.inputField = key;
+          }
+          break;
+        }
+      }
+    }
+
+    return resolved;
+  }, [initialFilters, currentInputValues, columnMappings]);
+
+  const allValidPoints = useMemo(() => {
+    if (!mapConfig) return [];
+    if (hasNativeLatLng) {
+      return safeData.filter((record) => {
+        const lat = parseFloat(record[mapConfig.latField]);
+        const lng = parseFloat(record[mapConfig.lngField]);
+        return !isNaN(lat) && !isNaN(lng);
+      });
+    }
+    return safeData.filter((_, idx) => geocodedPoints.has(idx));
+  }, [safeData, mapConfig, hasNativeLatLng, geocodedPoints]);
+
+  const getRecordCoords = useCallback((record: any, recordIdx?: number): { lat: number; lng: number } | null => {
+    if (hasNativeLatLng && mapConfig) {
+      const lat = parseFloat(record[mapConfig.latField]);
+      const lng = parseFloat(record[mapConfig.lngField]);
+      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+    }
+    if (recordIdx !== undefined && geocodedPoints.has(recordIdx)) {
+      return geocodedPoints.get(recordIdx)!;
+    }
+    const idx = safeData.indexOf(record);
+    if (idx >= 0 && geocodedPoints.has(idx)) {
+      return geocodedPoints.get(idx)!;
+    }
+    return null;
+  }, [hasNativeLatLng, mapConfig, geocodedPoints, safeData]);
+
   const searchedRecord = useMemo(() => {
-    if (!initialFilters || initialFilters.length === 0 || !currentInputValues) return null;
+    if (!initialFilters || initialFilters.length === 0 || !resolvedInputValues) return null;
 
     let bestMatch: any = null;
     let bestScore = 0;
 
-    for (const record of allValidPoints) {
+    const searchPool = hasNativeLatLng ? allValidPoints : safeData;
+
+    for (const record of searchPool) {
       let matchCount = 0;
       for (const filter of initialFilters) {
         const recordVal = record[filter.column];
-        const searchVal = currentInputValues[filter.inputField] || "";
+        const searchVal = resolvedInputValues[filter.inputField] || "";
         if (searchVal && recordVal && applyFilterMatch(recordVal.toString(), searchVal, filter.operator || 'equals', filter.fuzziness ?? 0)) {
           matchCount++;
         }
@@ -147,24 +266,147 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     }
 
     return bestScore > 0 ? bestMatch : null;
-  }, [allValidPoints, initialFilters, currentInputValues]);
+  }, [hasNativeLatLng ? allValidPoints : safeData, initialFilters, resolvedInputValues]);
+
+  useEffect(() => {
+    if (!isOpen || hasNativeLatLng || !addressColumns || safeData.length === 0) return;
+
+    geocodingAbortRef.current = false;
+
+    const doGeocode = async () => {
+      setIsGeocoding(true);
+      const newCoords = new Map<number, { lat: number; lng: number }>();
+
+      if (searchedRecord) {
+        const idx = safeData.indexOf(searchedRecord);
+        const city = searchedRecord[addressColumns.cityColumn] || "";
+        const street = addressColumns.streetColumn ? searchedRecord[addressColumns.streetColumn] || "" : "";
+        setGeocodingProgress("Locating searched record...");
+
+        const coords = await geocodeAddress(city, street || undefined);
+        if (coords && idx >= 0) {
+          newCoords.set(idx, coords);
+          setGeocodedPoints(new Map(newCoords));
+        }
+
+        if (geocodingAbortRef.current) { setIsGeocoding(false); return; }
+
+        const sameCityRecords: { idx: number; record: any }[] = [];
+        const searchedCity = city.toLowerCase().trim();
+        for (let i = 0; i < safeData.length; i++) {
+          if (i === idx) continue;
+          const recCity = (safeData[i][addressColumns.cityColumn] || "").toString().toLowerCase().trim();
+          if (recCity === searchedCity) {
+            sameCityRecords.push({ idx: i, record: safeData[i] });
+          }
+        }
+
+        const uniqueAddresses = new Map<string, number[]>();
+        for (const { idx: rIdx, record } of sameCityRecords) {
+          const street2 = addressColumns.streetColumn ? (record[addressColumns.streetColumn] || "").toString().toLowerCase().trim() : "";
+          const key = `${searchedCity}|${street2}`;
+          if (!uniqueAddresses.has(key)) {
+            uniqueAddresses.set(key, []);
+          }
+          uniqueAddresses.get(key)!.push(rIdx);
+        }
+
+        const MAX_GEOCODE = 30;
+        let geocoded = 0;
+        setGeocodingProgress(`Locating nearby records (0/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+
+        const addressEntries = Array.from(uniqueAddresses.entries());
+        for (const [addressKey, indices] of addressEntries) {
+          if (geocodingAbortRef.current || geocoded >= MAX_GEOCODE) break;
+
+          const [, streetPart] = addressKey.split('|');
+          await delay(1100);
+          const addrCoords = await geocodeAddress(searchedCity, streetPart || undefined);
+
+          if (addrCoords) {
+            for (const rIdx of indices) {
+              const jitter = (Math.random() - 0.5) * 0.0002;
+              newCoords.set(rIdx, { lat: addrCoords.lat + jitter, lng: addrCoords.lng + jitter });
+            }
+            setGeocodedPoints(new Map(newCoords));
+          }
+
+          geocoded++;
+          setGeocodingProgress(`Locating nearby records (${geocoded}/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+        }
+      } else {
+        const searchCity = resolvedInputValues ? Object.values(resolvedInputValues).find(v => v) : null;
+
+        if (searchCity && addressColumns.cityColumn) {
+          setGeocodingProgress("Searching for matching records...");
+
+          const matchingRecords: { idx: number; record: any }[] = [];
+          const cityLower = searchCity.toString().toLowerCase().trim();
+          for (let i = 0; i < safeData.length; i++) {
+            const recCity = (safeData[i][addressColumns.cityColumn] || "").toString().toLowerCase().trim();
+            if (recCity.includes(cityLower) || cityLower.includes(recCity)) {
+              matchingRecords.push({ idx: i, record: safeData[i] });
+            }
+          }
+
+          const MAX_GEOCODE = 25;
+          const uniqueAddresses = new Map<string, number[]>();
+          for (const { idx: rIdx, record } of matchingRecords) {
+            const recCity = (record[addressColumns.cityColumn] || "").toString().toLowerCase().trim();
+            const street = addressColumns.streetColumn ? (record[addressColumns.streetColumn] || "").toString().toLowerCase().trim() : "";
+            const key = `${recCity}|${street}`;
+            if (!uniqueAddresses.has(key)) uniqueAddresses.set(key, []);
+            uniqueAddresses.get(key)!.push(rIdx);
+          }
+
+          let geocoded = 0;
+          const addrEntries2 = Array.from(uniqueAddresses.entries());
+          for (const [addressKey, indices] of addrEntries2) {
+            if (geocodingAbortRef.current || geocoded >= MAX_GEOCODE) break;
+
+            const [cityPart, streetPart] = addressKey.split('|');
+            if (geocoded > 0) await delay(1100);
+            const addrCoords = await geocodeAddress(cityPart, streetPart || undefined);
+
+            if (addrCoords) {
+              for (const rIdx of indices) {
+                const jitter = (Math.random() - 0.5) * 0.0002;
+                newCoords.set(rIdx, { lat: addrCoords.lat + jitter, lng: addrCoords.lng + jitter });
+              }
+              setGeocodedPoints(new Map(newCoords));
+            }
+
+            geocoded++;
+            setGeocodingProgress(`Locating records (${geocoded}/${Math.min(uniqueAddresses.size, MAX_GEOCODE)})...`);
+          }
+        }
+      }
+
+      setIsGeocoding(false);
+      setGeocodingProgress("");
+    };
+
+    doGeocode();
+
+    return () => {
+      geocodingAbortRef.current = true;
+    };
+  }, [isOpen, hasNativeLatLng, addressColumns, searchedRecord, safeData]);
 
   const nearbyRecords = useMemo(() => {
-    if (!searchedRecord || !mapConfig) return allValidPoints;
+    if (!searchedRecord) return allValidPoints;
 
-    const centerLat = parseFloat(searchedRecord[mapConfig.latField]);
-    const centerLng = parseFloat(searchedRecord[mapConfig.lngField]);
-
-    if (isNaN(centerLat) || isNaN(centerLng)) return allValidPoints;
+    const centerCoords = getRecordCoords(searchedRecord);
+    if (!centerCoords) return allValidPoints;
 
     return allValidPoints.filter((record) => {
       if (record === searchedRecord) return false;
-      const lat = parseFloat(record[mapConfig.latField]);
-      const lng = parseFloat(record[mapConfig.lngField]);
-      const dist = haversineDistance(centerLat, centerLng, lat, lng);
+      const coords = getRecordCoords(record);
+      if (!coords) return false;
+      const dist = haversineDistance(centerCoords.lat, centerCoords.lng, coords.lat, coords.lng);
       return dist <= RADIUS_KM;
     });
-  }, [allValidPoints, searchedRecord, mapConfig]);
+  }, [allValidPoints, searchedRecord, getRecordCoords]);
 
   const filteredNearby = useMemo(() => {
     if (!searchTerm.trim()) return nearbyRecords;
@@ -202,6 +444,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setSelectedRecord(null);
       setSelectedValue("");
       setSearchTerm("");
+      setGeocodedPoints(new Map());
       return;
     }
   }, [isOpen]);
@@ -218,8 +461,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         radiusCircleRef.current = null;
       }
 
-      const defaultCenter: [number, number] = mapConfig.defaultCenter || [51.505, -0.09];
-      const defaultZoom = mapConfig.defaultZoom || 12;
+      const defaultCenter: [number, number] = mapConfig.defaultCenter || [51.1657, 10.4515];
+      const defaultZoom = mapConfig.defaultZoom || 6;
 
       const map = L.map(mapContainerRef.current!, {
         center: defaultCenter,
@@ -237,51 +480,51 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       const bounds: L.LatLngExpression[] = [];
 
       if (searchedRecord) {
-        const sLat = parseFloat(searchedRecord[mapConfig.latField]);
-        const sLng = parseFloat(searchedRecord[mapConfig.lngField]);
+        const coords = getRecordCoords(searchedRecord);
+        if (coords) {
+          const circle = L.circle([coords.lat, coords.lng], {
+            radius: RADIUS_KM * 1000,
+            color: '#4F63A4',
+            fillColor: '#4F63A4',
+            fillOpacity: 0.06,
+            weight: 1.5,
+            dashArray: '6, 4',
+          }).addTo(map);
+          radiusCircleRef.current = circle;
 
-        const circle = L.circle([sLat, sLng], {
-          radius: RADIUS_KM * 1000,
-          color: '#4F63A4',
-          fillColor: '#4F63A4',
-          fillOpacity: 0.06,
-          weight: 1.5,
-          dashArray: '6, 4',
-        }).addTo(map);
-        radiusCircleRef.current = circle;
-
-        const searchedMarker = L.marker([sLat, sLng], { icon: SEARCHED_ICON, zIndexOffset: 1000 }).addTo(map);
-        const label = mapConfig.labelField ? searchedRecord[mapConfig.labelField] : "";
-        let popupContent = `<div style="font-size:13px;"><strong style="color:#4F63A4;">Searched Record</strong>`;
-        if (label) popupContent += `<br/><strong>${label}</strong>`;
-        columns.slice(0, 6).forEach((col) => {
-          const val = searchedRecord[col] ?? "";
-          if (val) popupContent += `<br/><span style="color:#666;">${getDisplayName(col)}:</span> ${val}`;
-        });
-        popupContent += `</div>`;
-        searchedMarker.bindPopup(popupContent);
-        searchedMarker.on("click", () => {
-          markers.forEach((m) => {
-            const rd = (m as any)._recordData;
-            if (rd === searchedRecord) {
-              m.setIcon(SELECTED_ICON);
-            } else {
-              m.setIcon(NEARBY_ICON);
-            }
+          const searchedMarker = L.marker([coords.lat, coords.lng], { icon: SEARCHED_ICON, zIndexOffset: 1000 }).addTo(map);
+          const label = mapConfig.labelField ? searchedRecord[mapConfig.labelField] : "";
+          let popupContent = `<div style="font-size:13px;"><strong style="color:#4F63A4;">Searched Record</strong>`;
+          if (label) popupContent += `<br/><strong>${label}</strong>`;
+          columns.slice(0, 6).forEach((col) => {
+            const val = searchedRecord[col] ?? "";
+            if (val) popupContent += `<br/><span style="color:#666;">${getDisplayName(col)}:</span> ${val}`;
           });
-          searchedMarker.setIcon(SELECTED_ICON);
-          handleSelectRecord(searchedRecord);
-        });
-        markers.push(searchedMarker);
-        (searchedMarker as any)._recordData = searchedRecord;
-        bounds.push([sLat, sLng]);
+          popupContent += `</div>`;
+          searchedMarker.bindPopup(popupContent);
+          searchedMarker.on("click", () => {
+            markers.forEach((m) => {
+              const rd = (m as any)._recordData;
+              if (rd === searchedRecord) {
+                m.setIcon(SELECTED_ICON);
+              } else {
+                m.setIcon(NEARBY_ICON);
+              }
+            });
+            searchedMarker.setIcon(SELECTED_ICON);
+            handleSelectRecord(searchedRecord);
+          });
+          markers.push(searchedMarker);
+          (searchedMarker as any)._recordData = searchedRecord;
+          bounds.push([coords.lat, coords.lng]);
+        }
       }
 
       filteredNearby.forEach((record) => {
-        const lat = parseFloat(record[mapConfig.latField]);
-        const lng = parseFloat(record[mapConfig.lngField]);
+        const coords = getRecordCoords(record);
+        if (!coords) return;
 
-        const marker = L.marker([lat, lng], { icon: NEARBY_ICON }).addTo(map);
+        const marker = L.marker([coords.lat, coords.lng], { icon: NEARBY_ICON }).addTo(map);
         (marker as any)._recordData = record;
 
         const label = mapConfig.labelField ? record[mapConfig.labelField] : "";
@@ -291,7 +534,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           ? mapConfig.popupFields
           : columns.slice(0, 5);
         popupContent += "<div style='margin-top:4px;font-size:12px;'>";
-        displayFields.forEach((field) => {
+        displayFields.forEach((field: string) => {
           const displayName = getDisplayName(field);
           const val = record[field] ?? "";
           if (val) popupContent += `<div><b>${displayName}:</b> ${val}</div>`;
@@ -313,7 +556,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         });
 
         markers.push(marker);
-        bounds.push([lat, lng]);
+        bounds.push([coords.lat, coords.lng]);
       });
 
       markersRef.current = markers;
@@ -334,12 +577,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords]);
 
   if (!mapConfig) return null;
 
   const totalNearby = nearbyRecords.length;
-  const totalShown = filteredNearby.length + (searchedRecord ? 1 : 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -376,9 +618,16 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             </div>
           </div>
 
-          {!searchedRecord && initialFilters && initialFilters.length > 0 && (
+          {isGeocoding && (
+            <div className="flex items-center gap-2 text-xs text-[#4F63A4] bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded px-3 py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {geocodingProgress || "Geocoding addresses..."}
+            </div>
+          )}
+
+          {!searchedRecord && !isGeocoding && initialFilters && initialFilters.length > 0 && (
             <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
-              No exact match found for the search criteria. Showing all {allValidPoints.length} records from the data source. Select any record from the map.
+              No exact match found for the search criteria. Showing all {allValidPoints.length} available records. Select any record from the map.
             </div>
           )}
 
