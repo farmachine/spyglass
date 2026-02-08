@@ -24,6 +24,7 @@ interface ChartConfig {
   type: ChartType;
   title: string;
   fieldName: string;
+  fieldId?: string;
   data: { name: string; value: number; color?: string }[];
 }
 
@@ -811,36 +812,82 @@ export default function AllData({ project }: AllDataProps) {
     const data = getFieldDataWithDates(fieldId);
     if (data.values.length === 0) return null;
 
+    const parsedDates: Date[] = [];
+    const dateSources = data.isDateField ? data.values : data.dates;
+    for (const raw of dateSources) {
+      if (!raw) continue;
+      const parsed = new Date(raw.trim());
+      if (!isNaN(parsed.getTime())) parsedDates.push(parsed);
+    }
+    if (parsedDates.length === 0) return null;
+
+    const minDate = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+    const spanDays = (maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    type BucketMode = 'week' | 'month' | 'quarter' | 'year';
+    let bucketMode: BucketMode;
+    if (spanDays <= 90) bucketMode = 'week';
+    else if (spanDays <= 730) bucketMode = 'month';
+    else if (spanDays <= 2190) bucketMode = 'quarter';
+    else bucketMode = 'year';
+
+    const getWeekStart = (d: Date) => {
+      const day = new Date(d);
+      day.setHours(0, 0, 0, 0);
+      const dow = day.getDay();
+      day.setDate(day.getDate() - dow);
+      return day;
+    };
+
+    const bucketKey = (d: Date): string => {
+      switch (bucketMode) {
+        case 'week': {
+          const ws = getWeekStart(d);
+          return `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, '0')}-${String(ws.getDate()).padStart(2, '0')}`;
+        }
+        case 'month':
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        case 'quarter': {
+          const q = Math.floor(d.getMonth() / 3) + 1;
+          return `${d.getFullYear()} Q${q}`;
+        }
+        case 'year':
+          return `${d.getFullYear()}`;
+      }
+    };
+
+    const formatLabel = (key: string): string => {
+      switch (bucketMode) {
+        case 'week': {
+          const d = new Date(key);
+          return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
+        }
+        case 'month': {
+          const [y, m] = key.split('-');
+          const d = new Date(parseInt(y), parseInt(m) - 1);
+          return `${d.toLocaleString('default', { month: 'short' })} ${y.slice(2)}`;
+        }
+        case 'quarter':
+        case 'year':
+          return key;
+      }
+    };
+
     const timePoints: Record<string, number> = {};
-    
-    if (data.isDateField) {
-      for (const val of data.values) {
-        const dateStr = val.trim();
-        const parsed = new Date(dateStr);
-        if (!isNaN(parsed.getTime())) {
-          const month = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
-          timePoints[month] = (timePoints[month] || 0) + 1;
-        }
-      }
-    } else {
-      for (const dateStr of data.dates) {
-        if (!dateStr) continue;
-        const parsed = new Date(dateStr);
-        if (!isNaN(parsed.getTime())) {
-          const month = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
-          timePoints[month] = (timePoints[month] || 0) + 1;
-        }
-      }
+    for (const d of parsedDates) {
+      const key = bucketKey(d);
+      timePoints[key] = (timePoints[key] || 0) + 1;
     }
 
     const sortedKeys = Object.keys(timePoints).sort();
-    if (sortedKeys.length === 0) return null;
-
-    const chartData = sortedKeys.map(k => ({ name: k, value: timePoints[k] }));
+    const chartData = sortedKeys.map(k => ({ name: formatLabel(k), value: timePoints[k] }));
+    const bucketLabel = bucketMode === 'week' ? 'Weekly' : bucketMode === 'month' ? 'Monthly' : bucketMode === 'quarter' ? 'Quarterly' : 'Yearly';
     return {
       type: 'timeline',
-      title: `${data.fieldName} Over Time`,
+      title: `${data.fieldName} Over Time (${bucketLabel})`,
       fieldName: data.fieldName,
+      fieldId,
       data: chartData
     };
   };
@@ -857,6 +904,7 @@ export default function AllData({ project }: AllDataProps) {
         type: 'total',
         title: 'Workflow Status',
         fieldName: 'Workflow Status',
+        fieldId,
         data: [{ name: 'Total Sessions', value: total }, { name: 'Status Types', value: statusSet.size }]
       };
     }
@@ -867,6 +915,7 @@ export default function AllData({ project }: AllDataProps) {
       type: 'total',
       title: data.fieldName,
       fieldName: data.fieldName,
+      fieldId,
       data: [{ name: 'Total Entries', value: data.values.length }, { name: 'Unique Values', value: uniqueValues }]
     };
   };
@@ -903,6 +952,7 @@ export default function AllData({ project }: AllDataProps) {
       type: 'ranking',
       title: `${fieldName} Ranking`,
       fieldName,
+      fieldId,
       data: sorted
     };
   };
@@ -941,6 +991,7 @@ export default function AllData({ project }: AllDataProps) {
       type: 'pie',
       title: `${step.stepName} - Task Status`,
       fieldName: step.stepName,
+      fieldId: `kanban-${stepId}`,
       data
     };
   };
@@ -962,7 +1013,7 @@ export default function AllData({ project }: AllDataProps) {
     try {
       const charts: ChartConfig[] = [];
       
-      const aiFieldData: { fieldName: string; values: string[]; chartType: ChartType }[] = [];
+      const aiFieldData: { fieldId: string; fieldName: string; values: string[]; chartType: ChartType }[] = [];
       
       for (const fieldId of selectedAnalyticsFields) {
         const chartType = getChartTypeForField(fieldId);
@@ -1029,6 +1080,7 @@ export default function AllData({ project }: AllDataProps) {
               type: chartType,
               title: 'Workflow Status Distribution',
               fieldName: 'Workflow Status',
+              fieldId: 'workflow-status',
               data: statusData
             });
           }
@@ -1037,7 +1089,7 @@ export default function AllData({ project }: AllDataProps) {
 
         const data = getFieldDataForAnalytics(fieldId);
         if (data.values.length > 0) {
-          aiFieldData.push({ ...data, chartType });
+          aiFieldData.push({ fieldId, ...data, chartType });
         }
       }
       
@@ -1048,9 +1100,22 @@ export default function AllData({ project }: AllDataProps) {
         }) as { charts?: ChartConfig[] };
 
         if (response && response.charts && Array.isArray(response.charts)) {
+          const fieldNameToId: Record<string, string> = {};
+          for (const f of aiFieldData) {
+            fieldNameToId[f.fieldName] = f.fieldId;
+          }
+          for (const chart of response.charts) {
+            chart.fieldId = fieldNameToId[chart.fieldName] || chart.fieldName;
+          }
           charts.push(...response.charts);
         }
       }
+
+      charts.sort((a, b) => {
+        const idxA = selectedAnalyticsFields.indexOf(a.fieldId || '');
+        const idxB = selectedAnalyticsFields.indexOf(b.fieldId || '');
+        return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+      });
       
       if (charts.length === 0) {
         toast({
@@ -1651,7 +1716,7 @@ export default function AllData({ project }: AllDataProps) {
             })()}
           </div>
           <div className="flex justify-between gap-2 pt-4 border-t">
-            <Button variant="ghost" onClick={() => setSelectedAnalyticsFields(new Set())}>
+            <Button variant="ghost" onClick={() => setSelectedAnalyticsFields([])}>
               Clear All
             </Button>
             <div className="flex gap-2">
@@ -1680,7 +1745,13 @@ export default function AllData({ project }: AllDataProps) {
       </Dialog>
 
       {/* Analytics Pane - Shows generated charts */}
-      {showAnalyticsPane && generatedCharts.length > 0 && (
+      {showAnalyticsPane && generatedCharts.length > 0 && (() => {
+        const sortedCharts = [...generatedCharts].sort((a, b) => {
+          const idxA = selectedAnalyticsFields.indexOf(a.fieldId || '');
+          const idxB = selectedAnalyticsFields.indexOf(b.fieldId || '');
+          return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+        });
+        return (
         <Card className="w-full mb-6 relative">
           <Button
             variant="ghost"
@@ -1693,8 +1764,13 @@ export default function AllData({ project }: AllDataProps) {
           </Button>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {generatedCharts.map((chart, index) => (
-                <div key={index} className={`border rounded-lg bg-background ${chart.type === 'total' || chart.type === 'ranking' ? 'p-4' : 'p-5'}`}>
+              {sortedCharts.map((chart, index) => {
+                const totalCharts = sortedCharts.length;
+                const posInRow = index % 3;
+                const remainingInRow = totalCharts - index;
+                const isAloneOnRow = (posInRow === 0 && remainingInRow === 1);
+                return (
+                <div key={index} className={`border rounded-lg bg-background ${chart.type === 'total' || chart.type === 'ranking' ? 'p-4' : 'p-5'} ${isAloneOnRow ? 'md:col-span-3' : ''}`}>
                   <h4 className="text-base font-medium mb-3 text-center">{chart.title}</h4>
                   {chart.type === 'pie' ? (
                     <div className="h-[200px]">
@@ -1802,11 +1878,13 @@ export default function AllData({ project }: AllDataProps) {
                     </div>
                   ) : null}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Sessions Table */}
       <Card className="w-full">
