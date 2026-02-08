@@ -78,15 +78,15 @@ export default function AllData({ project }: AllDataProps) {
   // Analytics state - load from localStorage
   const analyticsStorageKey = `analytics-${project.id}`;
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [selectedAnalyticsFields, setSelectedAnalyticsFields] = useState<Set<string>>(() => {
+  const [selectedAnalyticsFields, setSelectedAnalyticsFields] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(analyticsStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return new Set(parsed.selectedFields || []);
+        return parsed.selectedFields || [];
       }
     } catch (e) {}
-    return new Set();
+    return [];
   });
   const [generatedCharts, setGeneratedCharts] = useState<ChartConfig[]>(() => {
     try {
@@ -123,7 +123,7 @@ export default function AllData({ project }: AllDataProps) {
   // Save analytics state to localStorage whenever it changes
   useEffect(() => {
     const data = {
-      selectedFields: Array.from(selectedAnalyticsFields),
+      selectedFields: selectedAnalyticsFields,
       charts: generatedCharts,
       showPane: showAnalyticsPane,
       chartTypes: analyticsChartTypes
@@ -668,17 +668,33 @@ export default function AllData({ project }: AllDataProps) {
     setAnalyticsChartTypes(prev => ({ ...prev, [fieldId]: type }));
   };
 
+  const [draggedAnalyticsField, setDraggedAnalyticsField] = useState<string | null>(null);
+
   const toggleAnalyticsField = (fieldId: string) => {
-    const newSelected = new Set(selectedAnalyticsFields);
-    if (newSelected.has(fieldId)) {
-      newSelected.delete(fieldId);
+    if (selectedAnalyticsFields.includes(fieldId)) {
+      setSelectedAnalyticsFields(selectedAnalyticsFields.filter(f => f !== fieldId));
     } else {
-      newSelected.add(fieldId);
       if (!analyticsChartTypes[fieldId]) {
         setChartTypeForField(fieldId, getDefaultChartType(fieldId));
       }
+      setSelectedAnalyticsFields([...selectedAnalyticsFields, fieldId]);
     }
-    setSelectedAnalyticsFields(newSelected);
+  };
+
+  const handleAnalyticsDragStart = (fieldId: string) => {
+    setDraggedAnalyticsField(fieldId);
+  };
+
+  const handleAnalyticsDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedAnalyticsField || draggedAnalyticsField === targetId) return;
+    const fromIdx = selectedAnalyticsFields.indexOf(draggedAnalyticsField);
+    const toIdx = selectedAnalyticsFields.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const reordered = [...selectedAnalyticsFields];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, draggedAnalyticsField);
+    setSelectedAnalyticsFields(reordered);
   };
 
   const getFieldDataWithDates = (fieldId: string): { values: string[], dates: string[], fieldName: string, isDateField: boolean } => {
@@ -931,7 +947,7 @@ export default function AllData({ project }: AllDataProps) {
 
   // Generate charts using AI
   const generateAnalyticsCharts = async () => {
-    if (selectedAnalyticsFields.size === 0) {
+    if (selectedAnalyticsFields.length === 0) {
       toast({
         title: "No fields selected",
         description: "Please select at least one field to analyze",
@@ -1063,7 +1079,7 @@ export default function AllData({ project }: AllDataProps) {
   const clearAnalytics = () => {
     setGeneratedCharts([]);
     setShowAnalyticsPane(false);
-    setSelectedAnalyticsFields(new Set());
+    setSelectedAnalyticsFields([]);
     setAnalyticsChartTypes({});
   };
 
@@ -1559,123 +1575,80 @@ export default function AllData({ project }: AllDataProps) {
               <p className="text-sm text-muted-foreground text-center py-4">
                 No fields configured in this project.
               </p>
-            ) : (
-              <div className="space-y-2">
-                {workflowStatusOptions.length > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-purple-50/50 dark:bg-purple-900/10">
-                    <Checkbox
-                      checked={selectedAnalyticsFields.has('workflow-status')}
-                      onCheckedChange={() => toggleAnalyticsField('workflow-status')}
-                    />
-                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField('workflow-status')}>
-                      Workflow Status
-                      <Badge variant="secondary" className="text-xs bg-purple-100 dark:bg-purple-900/30">Status</Badge>
-                    </span>
-                    {selectedAnalyticsFields.has('workflow-status') && (
-                      <Select value={getChartTypeForField('workflow-status')} onValueChange={(v) => setChartTypeForField('workflow-status', v as ChartType)}>
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pie">Pie</SelectItem>
-                          <SelectItem value="bar">Bar</SelectItem>
-                          <SelectItem value="total">Total Card</SelectItem>
-                          <SelectItem value="ranking">Ranking</SelectItem>
-                        </SelectContent>
-                      </Select>
+            ) : (() => {
+              const allFields: { id: string; name: string; badge?: string; badgeClass?: string; bgClass?: string; chartOptions: ChartType[] }[] = [];
+              if (workflowStatusOptions.length > 0) {
+                allFields.push({ id: 'workflow-status', name: 'Workflow Status', badge: 'Status', badgeClass: 'bg-purple-100 dark:bg-purple-900/30', bgClass: 'bg-purple-50/50 dark:bg-purple-900/10', chartOptions: ['pie', 'bar', 'total', 'ranking'] });
+              }
+              for (const field of infoPageFields) {
+                allFields.push({ id: field.id, name: field.name, badge: field.dataType === 'DATE' ? 'Date' : undefined, badgeClass: 'bg-blue-100 dark:bg-blue-900/30', chartOptions: ['pie', 'bar', 'timeline', 'total', 'ranking'] });
+              }
+              for (const field of dataTableFields) {
+                allFields.push({ id: field.id, name: field.name, badge: 'Data', badgeClass: 'bg-green-100 dark:bg-green-900/30', bgClass: 'bg-green-50/50 dark:bg-green-900/10', chartOptions: ['pie', 'bar', 'timeline', 'total', 'ranking'] });
+              }
+              for (const step of (kanbanProgressData?.kanbanSteps || [])) {
+                allFields.push({ id: `kanban-${step.stepId}`, name: step.stepName, badge: 'Tasks', bgClass: 'bg-blue-50/50 dark:bg-blue-900/10', chartOptions: ['pie', 'bar', 'total', 'ranking'] });
+              }
+              const selectedFields = selectedAnalyticsFields.map(id => allFields.find(f => f.id === id)).filter(Boolean) as typeof allFields;
+              const unselectedFields = allFields.filter(f => !selectedAnalyticsFields.includes(f.id));
+              
+              const renderFieldRow = (field: typeof allFields[0], isSelected: boolean) => (
+                <div
+                  key={field.id}
+                  className={`flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 ${field.bgClass || ''} ${isSelected ? 'border-[#4F63A4]/30 bg-[#4F63A4]/5' : ''}`}
+                  draggable={isSelected}
+                  onDragStart={() => handleAnalyticsDragStart(field.id)}
+                  onDragOver={(e) => handleAnalyticsDragOver(e, field.id)}
+                  onDragEnd={() => setDraggedAnalyticsField(null)}
+                >
+                  {isSelected && (
+                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+                  )}
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleAnalyticsField(field.id)}
+                  />
+                  <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer min-w-0" onClick={() => toggleAnalyticsField(field.id)}>
+                    <span className="truncate">{field.name}</span>
+                    {field.badge && (
+                      <Badge variant="secondary" className={`text-xs flex-shrink-0 ${field.badgeClass || ''}`}>{field.badge}</Badge>
                     )}
-                  </div>
-                )}
-                {infoPageFields.map((field) => (
-                  <div
-                    key={field.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={selectedAnalyticsFields.has(field.id)}
-                      onCheckedChange={() => toggleAnalyticsField(field.id)}
-                    />
-                    <span className="flex-1 text-sm cursor-pointer" onClick={() => toggleAnalyticsField(field.id)}>
-                      {field.name}
-                      {field.dataType === 'DATE' && (
-                        <Badge variant="secondary" className="text-xs ml-2 bg-blue-100 dark:bg-blue-900/30">Date</Badge>
-                      )}
-                    </span>
-                    {selectedAnalyticsFields.has(field.id) && (
-                      <Select value={getChartTypeForField(field.id)} onValueChange={(v) => setChartTypeForField(field.id, v as ChartType)}>
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pie">Pie</SelectItem>
-                          <SelectItem value="bar">Bar</SelectItem>
-                          <SelectItem value="timeline">Timeline</SelectItem>
-                          <SelectItem value="total">Total Card</SelectItem>
-                          <SelectItem value="ranking">Ranking</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                ))}
-                {dataTableFields.map((field) => (
-                  <div
-                    key={field.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-green-50/50 dark:bg-green-900/10"
-                  >
-                    <Checkbox
-                      checked={selectedAnalyticsFields.has(field.id)}
-                      onCheckedChange={() => toggleAnalyticsField(field.id)}
-                    />
-                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField(field.id)}>
-                      {field.name}
-                      <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/30">Data</Badge>
-                    </span>
-                    {selectedAnalyticsFields.has(field.id) && (
-                      <Select value={getChartTypeForField(field.id)} onValueChange={(v) => setChartTypeForField(field.id, v as ChartType)}>
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pie">Pie</SelectItem>
-                          <SelectItem value="bar">Bar</SelectItem>
-                          <SelectItem value="timeline">Timeline</SelectItem>
-                          <SelectItem value="total">Total Card</SelectItem>
-                          <SelectItem value="ranking">Ranking</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                ))}
-                {kanbanProgressData?.kanbanSteps?.map((step) => (
-                  <div
-                    key={`kanban-${step.stepId}`}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 bg-blue-50/50 dark:bg-blue-900/10"
-                  >
-                    <Checkbox
-                      checked={selectedAnalyticsFields.has(`kanban-${step.stepId}`)}
-                      onCheckedChange={() => toggleAnalyticsField(`kanban-${step.stepId}`)}
-                    />
-                    <span className="flex-1 text-sm flex items-center gap-2 cursor-pointer" onClick={() => toggleAnalyticsField(`kanban-${step.stepId}`)}>
-                      {step.stepName}
-                      <Badge variant="secondary" className="text-xs">Tasks</Badge>
-                    </span>
-                    {selectedAnalyticsFields.has(`kanban-${step.stepId}`) && (
-                      <Select value={getChartTypeForField(`kanban-${step.stepId}`)} onValueChange={(v) => setChartTypeForField(`kanban-${step.stepId}`, v as ChartType)}>
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pie">Pie</SelectItem>
-                          <SelectItem value="bar">Bar</SelectItem>
-                          <SelectItem value="total">Total Card</SelectItem>
-                          <SelectItem value="ranking">Ranking</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  </span>
+                  {isSelected && (
+                    <Select value={getChartTypeForField(field.id)} onValueChange={(v) => setChartTypeForField(field.id, v as ChartType)}>
+                      <SelectTrigger className="w-[110px] h-8 text-xs flex-shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.chartOptions.map(opt => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt === 'pie' ? 'Pie' : opt === 'bar' ? 'Bar' : opt === 'timeline' ? 'Timeline' : opt === 'total' ? 'Total Card' : 'Ranking'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              );
+              
+              return (
+                <div className="space-y-2">
+                  {selectedFields.length > 0 && (
+                    <>
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Selected — drag to reorder</p>
+                      {selectedFields.map(f => renderFieldRow(f, true))}
+                    </>
+                  )}
+                  {unselectedFields.length > 0 && (
+                    <>
+                      {selectedFields.length > 0 && <div className="border-t my-2" />}
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Available Fields</p>
+                      {unselectedFields.map(f => renderFieldRow(f, false))}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
           <div className="flex justify-between gap-2 pt-4 border-t">
             <Button variant="ghost" onClick={() => setSelectedAnalyticsFields(new Set())}>
@@ -1687,7 +1660,7 @@ export default function AllData({ project }: AllDataProps) {
               </Button>
               <Button 
                 onClick={generateAnalyticsCharts}
-                disabled={selectedAnalyticsFields.size === 0 || isGeneratingCharts}
+                disabled={selectedAnalyticsFields.length === 0 || isGeneratingCharts}
               >
                 {isGeneratingCharts ? (
                   <>
