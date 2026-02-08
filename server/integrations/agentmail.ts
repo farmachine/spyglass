@@ -13,9 +13,7 @@ export const DEFAULT_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <tr><td align="center" style="padding:48px 20px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 <tr><td style="background-color:#151929;padding:40px 40px 36px 40px;text-align:center;">
-<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:-1px;">extrapl</span><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#6B7AC7;">.</span>
-<div style="margin-top:16px;width:40px;height:3px;background-color:#4F63A4;border-radius:2px;display:inline-block;"></div>
-<div style="margin-top:14px;font-size:14px;font-weight:400;color:#8B9AD8;letter-spacing:1px;">Reinventing Process.</div>
+<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:-1px;">extrapl</span><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#4F63A4;">&bull;</span>
 </td></tr>
 <tr><td style="background-color:#ffffff;padding:36px 40px 20px 40px;">
 <h1 style="margin:0 0 16px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#151929;line-height:1.4;">{{subject}}</h1>
@@ -221,6 +219,7 @@ export async function sendEmail(params: {
   textContent: string;
   htmlContent?: string;
   replyToMessageId?: string;
+  fromName?: string;
 }): Promise<{ messageId: string }> {
   const client = await getAgentMailClient();
   const normalizedInboxId = params.fromInboxId.includes('@') ? params.fromInboxId : `${params.fromInboxId}@agentmail.to`;
@@ -229,6 +228,7 @@ export async function sendEmail(params: {
     to: [params.to],
     subject: params.subject,
     text: params.textContent,
+    fromName: params.fromName || 'extrapl \u2022 Team',
   };
   
   if (params.htmlContent) {
