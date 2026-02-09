@@ -96,6 +96,7 @@ export async function createProjectInbox(
   
   const username = options?.username || `extrapl-${projectId.slice(0, 8)}`;
   const domain = options?.domain || 'extrapl.io';
+  const expectedInboxId = `${username}@${domain}`;
   
   const createParams: any = {
     username: username,
@@ -113,10 +114,29 @@ export async function createProjectInbox(
   try {
     inbox = await client.inboxes.create(createParams);
   } catch (err: any) {
-    if (domain !== 'agentmail.to' && err?.statusCode === 404) {
-      console.log(`📧 Domain ${domain} failed (404), falling back to agentmail.to`);
+    if (err?.statusCode === 403 && err?.body?.name === 'AlreadyExistsError') {
+      console.log(`📧 Inbox ${expectedInboxId} already exists, retrieving it`);
+      try {
+        inbox = await client.inboxes.get(expectedInboxId);
+        console.log(`📧 Retrieved existing inbox:`, JSON.stringify(inbox));
+      } catch (getErr: any) {
+        console.log(`📧 Could not retrieve existing inbox, deleting and recreating`);
+        try {
+          await client.inboxes.delete(expectedInboxId);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          inbox = await client.inboxes.create(createParams);
+        } catch (recreateErr: any) {
+          throw new Error(`Failed to recreate inbox ${expectedInboxId}: ${recreateErr.message}`);
+        }
+      }
+    } else if (domain !== 'agentmail.to' && err?.statusCode === 404) {
+      console.log(`📧 Domain ${domain} not found (404), falling back to agentmail.to`);
       createParams.domain = 'agentmail.to';
-      inbox = await client.inboxes.create(createParams);
+      try {
+        inbox = await client.inboxes.create(createParams);
+      } catch (fallbackErr: any) {
+        throw new Error(`Failed to create inbox on both ${domain} and agentmail.to: ${fallbackErr.message}`);
+      }
     } else {
       throw err;
     }
