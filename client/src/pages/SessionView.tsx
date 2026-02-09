@@ -6538,7 +6538,7 @@ Thank you for your assistance.`;
                                         variant="ghost"
                                         onClick={() => processDocumentMutation.mutate(doc.id)}
                                         disabled={processDocumentMutation.isPending}
-                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                        className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                                         title="Process document (extract content)"
                                       >
                                         {processDocumentMutation.isPending && processDocumentMutation.variables === doc.id ? (
