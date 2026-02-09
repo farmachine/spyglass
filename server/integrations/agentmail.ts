@@ -96,12 +96,12 @@ export async function createProjectInbox(
   
   const username = options?.username || `extrapl-${projectId.slice(0, 8)}`;
   const domain = options?.domain || 'extrapl.io';
-  const expectedInboxId = `${username}@${domain}`;
+  const uniqueSuffix = Date.now().toString(36);
   
   const createParams: any = {
     username: username,
     domain: domain,
-    clientId: `extrapl-project-${projectId}`,
+    clientId: `extrapl-${projectId.slice(0, 8)}-${uniqueSuffix}`,
   };
   
   if (options?.displayName) {
@@ -115,35 +115,46 @@ export async function createProjectInbox(
     inbox = await client.inboxes.create(createParams);
   } catch (err: any) {
     if (err?.statusCode === 403 && err?.body?.name === 'AlreadyExistsError') {
+      const expectedInboxId = `${username}@${domain}`;
       console.log(`📧 Inbox ${expectedInboxId} already exists, retrieving it`);
       try {
         inbox = await client.inboxes.get(expectedInboxId);
         console.log(`📧 Retrieved existing inbox:`, JSON.stringify(inbox));
+        return { email: inbox.inboxId, inboxId: inbox.inboxId };
       } catch (getErr: any) {
-        console.log(`📧 Could not retrieve existing inbox, deleting and recreating`);
-        try {
-          await client.inboxes.delete(expectedInboxId);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          inbox = await client.inboxes.create(createParams);
-        } catch (recreateErr: any) {
-          throw new Error(`Failed to recreate inbox ${expectedInboxId}: ${recreateErr.message}`);
+        console.log(`📧 Could not retrieve existing inbox, trying with suffix`);
+      }
+    }
+    
+    if (!inbox && err?.statusCode === 404 || err?.statusCode === 403) {
+      const suffixedUsername = `${username}-${uniqueSuffix}`;
+      console.log(`📧 Retrying with suffixed username: ${suffixedUsername}@${domain}`);
+      try {
+        createParams.username = suffixedUsername;
+        createParams.clientId = `extrapl-${projectId.slice(0, 8)}-retry-${uniqueSuffix}`;
+        inbox = await client.inboxes.create(createParams);
+      } catch (retryErr: any) {
+        if (domain !== 'agentmail.to') {
+          console.log(`📧 Domain ${domain} failed, falling back to agentmail.to`);
+          createParams.domain = 'agentmail.to';
+          createParams.username = username;
+          createParams.clientId = `extrapl-${projectId.slice(0, 8)}-fb-${uniqueSuffix}`;
+          try {
+            inbox = await client.inboxes.create(createParams);
+          } catch (fallbackErr: any) {
+            throw new Error(`Failed to create inbox: ${fallbackErr.message}`);
+          }
+        } else {
+          throw retryErr;
         }
       }
-    } else if (domain !== 'agentmail.to' && err?.statusCode === 404) {
-      console.log(`📧 Domain ${domain} not found (404), falling back to agentmail.to`);
-      createParams.domain = 'agentmail.to';
-      try {
-        inbox = await client.inboxes.create(createParams);
-      } catch (fallbackErr: any) {
-        throw new Error(`Failed to create inbox on both ${domain} and agentmail.to: ${fallbackErr.message}`);
-      }
-    } else {
+    } else if (!inbox) {
       throw err;
     }
   }
   
   console.log(`📧 Inbox created:`, JSON.stringify(inbox));
-  const email = inbox.inboxId || `${username}@${createParams.domain}`;
+  const email = inbox.inboxId || `${createParams.username}@${createParams.domain}`;
   
   return {
     email: email,
