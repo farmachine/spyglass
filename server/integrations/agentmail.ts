@@ -96,12 +96,10 @@ export async function createProjectInbox(
   
   const username = options?.username || `extrapl-${projectId.slice(0, 8)}`;
   const domain = options?.domain || 'intake.extrapl.io';
-  const uniqueSuffix = Date.now().toString(36);
   
   const createParams: any = {
     username: username,
     domain: domain,
-    clientId: `extrapl-${projectId.slice(0, 8)}-${uniqueSuffix}`,
   };
   
   if (options?.displayName) {
@@ -122,39 +120,15 @@ export async function createProjectInbox(
         console.log(`📧 Retrieved existing inbox:`, JSON.stringify(inbox));
         return { email: inbox.inboxId, inboxId: inbox.inboxId };
       } catch (getErr: any) {
-        console.log(`📧 Could not retrieve existing inbox, trying with suffix`);
+        console.log(`📧 Could not retrieve existing inbox: ${getErr.message}`);
+        throw new Error(`Inbox ${expectedInboxId} exists but cannot be retrieved`);
       }
     }
-    
-    if (!inbox && (err?.statusCode === 404 || err?.statusCode === 403)) {
-      const suffixedUsername = `${username}-${uniqueSuffix}`;
-      console.log(`📧 Retrying with suffixed username: ${suffixedUsername}@${domain}`);
-      try {
-        createParams.username = suffixedUsername;
-        createParams.clientId = `extrapl-${projectId.slice(0, 8)}-retry-${uniqueSuffix}`;
-        inbox = await client.inboxes.create(createParams);
-      } catch (retryErr: any) {
-        if (domain !== 'agentmail.to') {
-          console.log(`📧 Domain ${domain} failed, falling back to agentmail.to`);
-          createParams.domain = 'agentmail.to';
-          createParams.username = username;
-          createParams.clientId = `extrapl-${projectId.slice(0, 8)}-fb-${uniqueSuffix}`;
-          try {
-            inbox = await client.inboxes.create(createParams);
-          } catch (fallbackErr: any) {
-            throw new Error(`Failed to create inbox: ${fallbackErr.message}`);
-          }
-        } else {
-          throw retryErr;
-        }
-      }
-    } else if (!inbox) {
-      throw err;
-    }
+    throw err;
   }
   
   console.log(`📧 Inbox created:`, JSON.stringify(inbox));
-  const email = inbox.inboxId || `${createParams.username}@${createParams.domain}`;
+  const email = inbox.inboxId || `${username}@${domain}`;
   
   return {
     email: email,
