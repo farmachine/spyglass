@@ -107,9 +107,23 @@ export async function createProjectInbox(
     createParams.displayName = options.displayName;
   }
   
-  const inbox = await client.inboxes.create(createParams);
+  console.log(`📧 Creating inbox with params:`, JSON.stringify(createParams));
   
-  const email = inbox.inboxId || `${username}@${domain}`;
+  let inbox;
+  try {
+    inbox = await client.inboxes.create(createParams);
+  } catch (err: any) {
+    if (domain !== 'agentmail.to' && err?.statusCode === 404) {
+      console.log(`📧 Domain ${domain} failed (404), falling back to agentmail.to`);
+      createParams.domain = 'agentmail.to';
+      inbox = await client.inboxes.create(createParams);
+    } else {
+      throw err;
+    }
+  }
+  
+  console.log(`📧 Inbox created:`, JSON.stringify(inbox));
+  const email = inbox.inboxId || `${username}@${createParams.domain}`;
   
   return {
     email: email,
