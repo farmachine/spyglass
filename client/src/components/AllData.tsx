@@ -2140,8 +2140,16 @@ export default function AllData({ project }: AllDataProps) {
                                 )}
                               </p>
                               {session.description && (
-                                <p className="text-xs text-muted-foreground">
-                                  {session.description}
+                                <p className="text-xs text-muted-foreground truncate max-w-[280px]">
+                                  {(() => {
+                                    const desc = session.description;
+                                    const emailMatch = desc.match(/(<[^>]+@[^>]+>)/);
+                                    if (emailMatch) {
+                                      const endIdx = desc.indexOf(emailMatch[0]) + emailMatch[0].length;
+                                      return desc.substring(0, endIdx);
+                                    }
+                                    return desc;
+                                  })()}
                                 </p>
                               )}
                             </div>
