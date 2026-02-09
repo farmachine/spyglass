@@ -1070,7 +1070,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, displayName } = req.body || {};
       const { email, inboxId } = await createProjectInbox(id, {
         username: username || undefined,
-        domain: 'extrapl.io',
+        domain: 'intake.extrapl.io',
         displayName: displayName || undefined,
       });
       

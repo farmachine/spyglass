@@ -790,7 +790,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                         onChange={(e) => setInboxUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
                         className="flex-1"
                       />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">@extrapl.io</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">@intake.extrapl.io</span>
                     </div>
                   </div>
                   <div>

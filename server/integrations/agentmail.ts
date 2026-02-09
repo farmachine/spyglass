@@ -95,7 +95,7 @@ export async function createProjectInbox(
   const client = await getAgentMailClient();
   
   const username = options?.username || `extrapl-${projectId.slice(0, 8)}`;
-  const domain = options?.domain || 'extrapl.io';
+  const domain = options?.domain || 'intake.extrapl.io';
   const uniqueSuffix = Date.now().toString(36);
   
   const createParams: any = {
@@ -126,7 +126,7 @@ export async function createProjectInbox(
       }
     }
     
-    if (!inbox && err?.statusCode === 404 || err?.statusCode === 403) {
+    if (!inbox && (err?.statusCode === 404 || err?.statusCode === 403)) {
       const suffixedUsername = `${username}-${uniqueSuffix}`;
       console.log(`📧 Retrying with suffixed username: ${suffixedUsername}@${domain}`);
       try {
@@ -170,7 +170,7 @@ export async function deleteProjectInbox(inboxId: string): Promise<void> {
 export async function getInboxMessages(inboxId: string) {
   const client = await getAgentMailClient();
   // Make sure inboxId is the full email format
-  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@agentmail.to`;
+  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@intake.extrapl.io`;
   console.log(`📧 Fetching messages for inbox: ${normalizedInboxId}`);
   const response = await client.inboxes.messages.list(normalizedInboxId);
   console.log(`📧 Raw response:`, JSON.stringify(response, null, 2));
@@ -181,14 +181,14 @@ export async function getInboxMessages(inboxId: string) {
 
 export async function getMessage(inboxId: string, messageId: string) {
   const client = await getAgentMailClient();
-  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@agentmail.to`;
+  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@intake.extrapl.io`;
   const message = await client.inboxes.messages.get(normalizedInboxId, messageId);
   return message;
 }
 
 export async function downloadAttachment(inboxId: string, messageId: string, attachmentId: string): Promise<{ data: Buffer; filename: string; contentType: string }> {
   const client = await getAgentMailClient();
-  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@agentmail.to`;
+  const normalizedInboxId = inboxId.includes('@') ? inboxId : `${inboxId}@intake.extrapl.io`;
   const attachment = await client.inboxes.messages.getAttachment(normalizedInboxId, messageId, attachmentId) as any;
   
   let fileData: Buffer;
@@ -284,7 +284,7 @@ export async function sendEmail(params: {
   fromName?: string;
 }): Promise<{ messageId: string }> {
   const client = await getAgentMailClient();
-  const normalizedInboxId = params.fromInboxId.includes('@') ? params.fromInboxId : `${params.fromInboxId}@agentmail.to`;
+  const normalizedInboxId = params.fromInboxId.includes('@') ? params.fromInboxId : `${params.fromInboxId}@intake.extrapl.io`;
   
   const messageParams: any = {
     to: [params.to],
