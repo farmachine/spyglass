@@ -87,6 +87,17 @@ export const projects = pgTable("projects", {
   isInitialSetupComplete: boolean("is_initial_setup_complete").default(false).notNull(),
   inboxEmailAddress: text("inbox_email_address"), // AgentMail inbox for receiving emails
   inboxId: text("inbox_id"), // AgentMail inbox ID for API calls
+  inboxType: text("inbox_type", { enum: ["agentmail", "imap"] }),
+  imapHost: text("imap_host"),
+  imapPort: integer("imap_port"),
+  imapUsername: text("imap_username"),
+  imapPassword: text("imap_password"),
+  imapEncryption: text("imap_encryption", { enum: ["tls", "ssl", "none"] }).default("tls"),
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  smtpUsername: text("smtp_username"),
+  smtpPassword: text("smtp_password"),
+  smtpEncryption: text("smtp_encryption", { enum: ["tls", "ssl", "none"] }).default("tls"),
   requiredDocumentTypes: jsonb("required_document_types").$type<Array<{id: string; name: string; description: string}>>(), // Document types required for session creation
   emailNotificationTemplate: text("email_notification_template"), // HTML template for email notifications with placeholders like {{subject}}, {{body}}, {{projectName}}
   defaultWorkflowStatus: text("default_workflow_status").default("New"), // Default status for new sessions

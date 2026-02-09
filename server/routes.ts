@@ -995,22 +995,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = req.params.id;
       
-      // Verify user has access to project
       const project = await storage.getProject(id, req.user!.organizationId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Check if project already has an inbox
-      if (project.inboxEmailAddress && project.inboxId) {
+      if (project.inboxEmailAddress && (project.inboxId || (project as any).inboxType === 'imap')) {
         return res.json({ 
           email: project.inboxEmailAddress, 
           inboxId: project.inboxId,
+          inboxType: (project as any).inboxType || 'agentmail',
           message: "Inbox already exists" 
         });
       }
+
+      const { inboxType } = req.body || {};
+
+      if (inboxType === 'imap') {
+        const { imapHost, imapPort, imapUsername, imapPassword, imapEncryption, smtpHost, smtpPort, smtpUsername, smtpPassword, smtpEncryption } = req.body;
+        if (!imapHost || !imapPort || !imapUsername || !imapPassword) {
+          return res.status(400).json({ message: "IMAP host, port, username and password are required" });
+        }
+
+        const updatedProject = await storage.updateProject(id, {
+          inboxEmailAddress: imapUsername,
+          inboxType: 'imap',
+          imapHost,
+          imapPort: Number(imapPort),
+          imapUsername,
+          imapPassword,
+          imapEncryption: imapEncryption || 'tls',
+          smtpHost: smtpHost || null,
+          smtpPort: smtpPort ? Number(smtpPort) : null,
+          smtpUsername: smtpUsername || null,
+          smtpPassword: smtpPassword || null,
+          smtpEncryption: smtpEncryption || 'tls',
+        } as any, req.user!.organizationId);
+
+        return res.json({
+          email: imapUsername,
+          inboxType: 'imap',
+          message: "IMAP inbox configured successfully"
+        });
+      }
       
-      // Create inbox via AgentMail
+      // Default: AgentMail flow
       const { createProjectInbox, createWebhook } = await import('./integrations/agentmail');
       const { username, displayName } = req.body || {};
       const { email, inboxId } = await createProjectInbox(id, {
@@ -1019,7 +1048,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayName: displayName || undefined,
       });
       
-      // Register webhook for this inbox to receive emails
       const domain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS || (process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000');
       const webhookUrl = `https://${domain}/api/webhooks/email`;
       console.log(`📧 Registering webhook for inbox ${inboxId} at: ${webhookUrl}`);
@@ -1031,15 +1059,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('📧 Webhook registration failed (may already exist):', webhookErr);
       }
       
-      // Update project with inbox details
       const updatedProject = await storage.updateProject(id, {
         inboxEmailAddress: email,
-        inboxId: inboxId
-      }, req.user!.organizationId);
+        inboxId: inboxId,
+        inboxType: 'agentmail',
+      } as any, req.user!.organizationId);
       
       res.json({ 
         email, 
         inboxId,
+        inboxType: 'agentmail',
         message: "Inbox created successfully" 
       });
     } catch (error: any) {
@@ -1058,29 +1087,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      if (!project.inboxEmailAddress || !project.inboxId) {
+      if (!project.inboxEmailAddress) {
         return res.status(400).json({ message: "No inbox configured for this project" });
       }
+
+      const projectInboxType = (project as any).inboxType;
       
-      // Delete inbox via AgentMail
-      const { deleteProjectInbox } = await import('./integrations/agentmail');
-      try {
-        await deleteProjectInbox(project.inboxId);
-        console.log(`📧 Inbox ${project.inboxId} deleted from AgentMail`);
-      } catch (deleteErr: any) {
-        console.warn('📧 AgentMail inbox deletion warning:', deleteErr.message);
+      if (projectInboxType !== 'imap' && project.inboxId) {
+        const { deleteProjectInbox } = await import('./integrations/agentmail');
+        try {
+          await deleteProjectInbox(project.inboxId);
+          console.log(`📧 Inbox ${project.inboxId} deleted from AgentMail`);
+        } catch (deleteErr: any) {
+          console.warn('📧 AgentMail inbox deletion warning:', deleteErr.message);
+        }
       }
       
-      // Clear inbox details from project
       const updatedProject = await storage.updateProject(id, {
         inboxEmailAddress: null,
-        inboxId: null
+        inboxId: null,
+        inboxType: null,
+        imapHost: null,
+        imapPort: null,
+        imapUsername: null,
+        imapPassword: null,
+        imapEncryption: null,
+        smtpHost: null,
+        smtpPort: null,
+        smtpUsername: null,
+        smtpPassword: null,
+        smtpEncryption: null,
       } as any, req.user!.organizationId);
       
       res.json({ message: "Inbox deleted successfully" });
     } catch (error: any) {
       console.error("Delete project inbox error:", error);
       res.status(500).json({ message: error.message || "Failed to delete inbox" });
+    }
+  });
+
+  // Test IMAP connection
+  app.post("/api/projects/:id/inbox/test-imap", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const { host, port, username, password, encryption } = req.body;
+      if (!host || !port || !username || !password) {
+        return res.status(400).json({ message: "host, port, username and password are required" });
+      }
+
+      const { testImapConnection } = await import('./integrations/imapSmtp');
+      const result = await testImapConnection({ host, port: Number(port), username, password, encryption: encryption || 'tls' });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Test IMAP error:", error);
+      res.status(500).json({ success: false, message: error.message || "Failed to test IMAP connection" });
+    }
+  });
+
+  // Test SMTP connection
+  app.post("/api/projects/:id/inbox/test-smtp", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const { host, port, username, password, encryption } = req.body;
+      if (!host || !port || !username || !password) {
+        return res.status(400).json({ message: "host, port, username and password are required" });
+      }
+
+      const { testSmtpConnection } = await import('./integrations/imapSmtp');
+      const result = await testSmtpConnection({ host, port: Number(port), username, password, encryption: encryption || 'tls' });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Test SMTP error:", error);
+      res.status(500).json({ success: false, message: error.message || "Failed to test SMTP connection" });
     }
   });
 
@@ -1128,7 +1216,286 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
-      
+
+      const projectInboxType = (project as any).inboxType;
+
+      // IMAP flow
+      if (projectInboxType === 'imap') {
+        const imapHost = (project as any).imapHost;
+        const imapPort = (project as any).imapPort;
+        const imapUsername = (project as any).imapUsername;
+        const imapPassword = (project as any).imapPassword;
+        const imapEncryption = (project as any).imapEncryption || 'tls';
+
+        if (!imapHost || !imapUsername || !imapPassword) {
+          return res.status(400).json({ message: "IMAP credentials not configured" });
+        }
+
+        console.log(`📧 Processing IMAP emails for project: ${project.name} (${imapUsername})`);
+
+        const { fetchImapEmails, sendSmtpEmail } = await import('./integrations/imapSmtp');
+        const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+
+        const imapConfig = { host: imapHost, port: imapPort, username: imapUsername, password: imapPassword, encryption: imapEncryption };
+        const imapEmails = await fetchImapEmails(imapConfig);
+
+        console.log(`📧 IMAP: Found ${imapEmails.length} unseen messages`);
+
+        let sessionsCreated = 0;
+        const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
+        const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+        const smtpHost = (project as any).smtpHost;
+        const smtpPort = (project as any).smtpPort;
+        const smtpUsername = (project as any).smtpUsername;
+        const smtpPassword = (project as any).smtpPassword;
+        const smtpEncryption = (project as any).smtpEncryption || 'tls';
+        const hasSmtp = smtpHost && smtpUsername && smtpPassword;
+        const smtpConfig = hasSmtp ? { host: smtpHost, port: smtpPort, username: smtpUsername, password: smtpPassword, encryption: smtpEncryption } : null;
+
+        for (const email of imapEmails) {
+          const alreadyProcessed = await storage.isEmailProcessed(project.id, email.messageId);
+          if (alreadyProcessed) {
+            console.log(`📧 IMAP: Skipping already processed: ${email.messageId}`);
+            continue;
+          }
+
+          console.log(`📧 IMAP: Processing: ${email.messageId} - ${email.subject}`);
+
+          // Document validation
+          if (requiredDocTypes.length > 0 && email.attachments.length === 0) {
+            console.log(`📧 IMAP: No attachments, sending rejection`);
+            if (smtpConfig) {
+              const missingDocsList = requiredDocTypes.map((dt: any) => `- ${dt.name}: ${dt.description || 'Required'}`).join('\n');
+              const textBody = `Thank you for your submission.\n\nUnfortunately, we could not process your request because the following required documents are missing:\n\n${missingDocsList}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`;
+              try {
+                await sendSmtpEmail(smtpConfig, {
+                  to: email.from,
+                  subject: `Re: ${email.subject} - Documents Required`,
+                  textContent: textBody,
+                  htmlContent: renderEmailTemplate(emailTemplate, {
+                    subject: `Re: ${email.subject} - Documents Required`,
+                    body: textBody.replace(/\n/g, '<br>'),
+                    projectName: project.name,
+                    senderEmail: email.from,
+                  }),
+                  replyToMessageId: email.messageId,
+                });
+              } catch (emailErr) {
+                console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
+              }
+            }
+            await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from);
+            continue;
+          }
+
+          // If required doc types, validate attachments
+          if (requiredDocTypes.length > 0 && email.attachments.length > 0) {
+            const attachmentContents = new Map<string, { filename: string; content: string; contentType: string }>();
+
+            for (const att of email.attachments) {
+              let extractedContent = '';
+              if (att.contentType.includes('pdf') || att.contentType.includes('excel') ||
+                  att.contentType.includes('spreadsheet') || att.contentType.includes('word') ||
+                  att.contentType.includes('document') || att.contentType.includes('text')) {
+                try {
+                  const base64Content = att.data.toString('base64');
+                  const dataUrl = `data:${att.contentType};base64,${base64Content}`;
+                  const extractionData = {
+                    step: "extract_text_only",
+                    documents: [{ file_name: att.filename, file_content: dataUrl, mime_type: att.contentType }]
+                  };
+                  const { spawn } = await import('child_process');
+                  extractedContent = await new Promise<string>((resolve) => {
+                    const python = spawn('python3', ['services/document_extractor.py']);
+                    const timeout = setTimeout(() => { python.kill(); resolve(''); }, 20000);
+                    python.stdin.write(JSON.stringify(extractionData));
+                    python.stdin.end();
+                    let output = '';
+                    python.stdout.on('data', (chunk: any) => { output += chunk.toString(); });
+                    python.on('close', (code: any) => {
+                      clearTimeout(timeout);
+                      if (code === 0) {
+                        try { resolve(JSON.parse(output).extracted_texts?.[0]?.text_content || ''); }
+                        catch { resolve(''); }
+                      } else { resolve(''); }
+                    });
+                    python.on('error', () => { clearTimeout(timeout); resolve(''); });
+                  });
+                } catch { /* ignore */ }
+              }
+              attachmentContents.set(att.filename, { filename: att.filename, content: extractedContent, contentType: att.contentType });
+            }
+
+            const validationResults: Array<{ docType: any; matched: boolean; matchedFile?: string }> = [];
+            const { GoogleGenAI } = await import('@google/genai');
+            const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY });
+
+            for (const docType of requiredDocTypes) {
+              let matched = false;
+              let matchedFile: string | undefined;
+              for (const [, attachData] of attachmentContents) {
+                try {
+                  if (attachData.contentType?.startsWith('image/') && attachData.filename?.toLowerCase().includes('outlook')) continue;
+                  const validationPrompt = `You are validating if a document matches an expected document type.\nBe lenient - if the document seems related to the topic, consider it a match.\n\nDocument Type Required: "${docType.name}"\nDescription: "${docType.description}"\n\nDocument being validated:\nFilename: ${attachData.filename}\nFile type: ${attachData.contentType}\nContent (first 3000 chars):\n${attachData.content ? attachData.content.slice(0, 3000) : 'Content could not be extracted, use filename to judge.'}\n\nDoes this document match or relate to the required document type? Be generous.\nRespond with JSON only:\n{"matches": true/false, "confidence": 0.0-1.0, "reasoning": "brief explanation"}`;
+                  const response = await Promise.race([
+                    ai.models.generateContent({ model: 'gemini-2.0-flash', contents: validationPrompt }),
+                    new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+                  ]);
+                  if (response) {
+                    const text = (response as any).text || '';
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      const parsed = JSON.parse(jsonMatch[0]);
+                      if (parsed.matches && parsed.confidence >= 0.5) {
+                        matched = true;
+                        matchedFile = attachData.filename;
+                        break;
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.error(`📧 IMAP: AI validation error:`, err);
+                }
+              }
+              validationResults.push({ docType, matched, matchedFile });
+            }
+
+            const missingDocTypes = validationResults.filter(r => !r.matched);
+            if (missingDocTypes.length > 0 && smtpConfig) {
+              const missingList = missingDocTypes.map(r => `- ${r.docType.name}: ${r.docType.description || 'Required'}`).join('\n');
+              const matchedList = validationResults.filter(r => r.matched).map(r => `- ${r.docType.name} (matched: ${r.matchedFile})`).join('\n');
+              const rejectionTextBody = `Thank you for your submission to ${project.name}.\n\nWe reviewed your attachments but the following required documents are still missing or could not be identified:\n\n${missingList}\n\n${matchedList ? `Documents we received:\n${matchedList}\n\n` : ''}Please reply to this email with the missing documents attached.\n\nThank you.`;
+              try {
+                await sendSmtpEmail(smtpConfig, {
+                  to: email.from,
+                  subject: `Re: ${email.subject} - Additional Documents Required`,
+                  textContent: rejectionTextBody,
+                  htmlContent: renderEmailTemplate(emailTemplate, {
+                    subject: `Re: ${email.subject} - Additional Documents Required`,
+                    body: rejectionTextBody.replace(/\n/g, '<br>'),
+                    projectName: project.name,
+                    senderEmail: email.from,
+                  }),
+                  replyToMessageId: email.messageId,
+                });
+              } catch (emailErr) {
+                console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
+              }
+              await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from);
+              continue;
+            }
+
+            if (missingDocTypes.length === 0 && smtpConfig) {
+              const confirmTextBody = `Thank you for your submission to ${project.name}.\n\nWe have received all required documents and your submission is now being processed.\n\nThank you.`;
+              try {
+                await sendSmtpEmail(smtpConfig, {
+                  to: email.from,
+                  subject: `Re: ${email.subject} - Submission Received`,
+                  textContent: confirmTextBody,
+                  htmlContent: renderEmailTemplate(emailTemplate, {
+                    subject: `Re: ${email.subject} - Submission Received`,
+                    body: confirmTextBody.replace(/\n/g, '<br>'),
+                    projectName: project.name,
+                    senderEmail: email.from,
+                  }),
+                  replyToMessageId: email.messageId,
+                });
+              } catch (emailErr) {
+                console.error(`📧 IMAP: Failed to send confirmation:`, emailErr);
+              }
+            }
+          }
+
+          // Create session
+          const sessionName = email.subject.slice(0, 100);
+          const sessionData = {
+            projectId: project.id,
+            sessionName,
+            description: `Created from email by ${email.from}\nMessage ID: ${email.messageId}\n\n${email.textContent.slice(0, 500)}`,
+            status: 'pending' as const,
+            documentCount: email.attachments.length,
+            extractedData: '{}',
+          };
+          const session = await storage.createExtractionSession(sessionData);
+          await storage.markEmailProcessed(project.id, email.messageId, imapUsername, session.id, email.subject, email.from);
+          console.log(`📧 IMAP: Created session: ${session.id} - ${sessionName}`);
+          sessionsCreated++;
+
+          await generateSchemaFieldValidations(session.id, project.id);
+
+          // Process attachments
+          for (const att of email.attachments) {
+            try {
+              const fs = await import('fs/promises');
+              const path = await import('path');
+              const uploadDir = path.join(process.cwd(), 'uploads', session.id);
+              await fs.mkdir(uploadDir, { recursive: true });
+
+              let extractedContent = '';
+              const supportedForExtraction = att.contentType.includes('pdf') || att.contentType.includes('excel') ||
+                  att.contentType.includes('spreadsheet') || att.contentType.includes('word') ||
+                  att.contentType.includes('document') || att.contentType.includes('text') ||
+                  att.contentType.includes('image/');
+              if (supportedForExtraction) {
+                try {
+                  const base64Content = att.data.toString('base64');
+                  const extractionData = {
+                    step: "extract_text_only",
+                    documents: [{ file_name: att.filename, file_content: base64Content, mime_type: att.contentType }]
+                  };
+                  const { spawn } = await import('child_process');
+                  const os = await import('os');
+                  const tmpFile = path.join(os.tmpdir(), `extract_${crypto.randomUUID()}.json`);
+                  await fs.writeFile(tmpFile, JSON.stringify(extractionData));
+                  const fsNode = await import('fs');
+                  extractedContent = await new Promise<string>((resolve) => {
+                    const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
+                    const timeout = setTimeout(() => { python.kill(); resolve(''); }, 120000);
+                    const inputStream = fsNode.createReadStream(tmpFile);
+                    inputStream.pipe(python.stdin);
+                    let output = '';
+                    python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+                    python.on('close', async (code: number | null) => {
+                      clearTimeout(timeout);
+                      try { await fs.unlink(tmpFile); } catch {}
+                      if (code === 0) {
+                        try { resolve(JSON.parse(output).extracted_texts?.[0]?.text_content || ''); }
+                        catch { resolve(''); }
+                      } else { resolve(''); }
+                    });
+                    python.on('error', () => { clearTimeout(timeout); fs.unlink(tmpFile).catch(() => {}); resolve(''); });
+                  });
+                } catch { /* ignore */ }
+              }
+
+              const uniqueId = crypto.randomUUID();
+              const safeFilename = att.filename.replace(/[^\w\s.-]/g, '_');
+              const finalPath = path.join(uploadDir, `${uniqueId}_${safeFilename}`);
+              await fs.writeFile(finalPath, att.data);
+
+              await storage.createSessionDocument({
+                sessionId: session.id,
+                fileName: att.filename,
+                mimeType: att.contentType,
+                fileSize: att.data.length,
+                extractedContent: extractedContent,
+              });
+              console.log(`📧 IMAP: Saved attachment: ${att.filename} (${extractedContent.length} chars extracted)`);
+            } catch (attachErr) {
+              console.error(`📧 IMAP: Failed to process attachment:`, attachErr);
+            }
+          }
+        }
+
+        return res.json({
+          messagesFound: imapEmails.length,
+          sessionsCreated,
+          message: sessionsCreated > 0 ? `Created ${sessionsCreated} session(s) from IMAP emails` : "No new emails to process"
+        });
+      }
+
+      // AgentMail flow (default)
       if (!project.inboxId) {
         return res.status(400).json({ message: "No inbox configured for this project" });
       }

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2, Settings } from "lucide-react";
+import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2, Settings, Lock, Server } from "lucide-react";
 import type { ApiDataSource } from "@shared/schema";
 import { useProject } from "@/hooks/useProjects";
 
@@ -32,14 +32,37 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [isCreateInboxOpen, setIsCreateInboxOpen] = useState(false);
   const [inboxUsername, setInboxUsername] = useState("");
   const [inboxDisplayName, setInboxDisplayName] = useState("");
+  const [inboxSetupMode, setInboxSetupMode] = useState<'select' | 'agentmail' | 'imap' | null>(null);
+  const [imapConfig, setImapConfig] = useState({ host: '', port: 993, username: '', password: '', encryption: 'tls' });
+  const [smtpConfig, setSmtpConfig] = useState({ host: '', port: 587, username: '', password: '', encryption: 'tls' });
+  const [showSmtpSettings, setShowSmtpSettings] = useState(false);
   
   const { data: project, refetch: refetchProject } = useProject(projectId);
 
   const createInboxMutation = useMutation({
-    mutationFn: async (params: { username?: string; displayName?: string }) => {
+    mutationFn: async (params: { username?: string; displayName?: string; inboxType?: string; imapConfig?: any; smtpConfig?: any }) => {
+      if (params.inboxType === 'imap') {
+        return apiRequest(`/api/projects/${projectId}/inbox`, {
+          method: "POST",
+          body: JSON.stringify({
+            inboxType: 'imap',
+            imapHost: params.imapConfig.host,
+            imapPort: params.imapConfig.port,
+            imapUsername: params.imapConfig.username,
+            imapPassword: params.imapConfig.password,
+            imapEncryption: params.imapConfig.encryption,
+            smtpHost: params.smtpConfig?.host || undefined,
+            smtpPort: params.smtpConfig?.port || undefined,
+            smtpUsername: params.smtpConfig?.username || undefined,
+            smtpPassword: params.smtpConfig?.password || undefined,
+            smtpEncryption: params.smtpConfig?.encryption || undefined,
+          })
+        });
+      }
       return apiRequest(`/api/projects/${projectId}/inbox`, {
         method: "POST",
         body: JSON.stringify({
+          inboxType: 'agentmail',
           username: params.username || undefined,
           displayName: params.displayName || undefined,
         })
@@ -49,8 +72,12 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       refetchProject();
       setIsCreateInboxOpen(false);
+      setInboxSetupMode(null);
       setInboxUsername("");
       setInboxDisplayName("");
+      setImapConfig({ host: '', port: 993, username: '', password: '', encryption: 'tls' });
+      setSmtpConfig({ host: '', port: 587, username: '', password: '', encryption: 'tls' });
+      setShowSmtpSettings(false);
       toast({ 
         title: "Email inbox created", 
         description: `Sessions can now be created by emailing ${data.email}` 
@@ -62,6 +89,30 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
         description: error.message || "Failed to create email inbox", 
         variant: "destructive" 
       });
+    }
+  });
+
+  const testImapMutation = useMutation({
+    mutationFn: async (config: any) => {
+      return apiRequest(`/api/projects/${projectId}/inbox/test-imap`, { method: "POST", body: JSON.stringify(config) });
+    },
+    onSuccess: (data: any) => {
+      toast({ title: data.success ? "Connection successful" : "Connection failed", description: data.message });
+    },
+    onError: (error: any) => {
+      toast({ title: "Connection failed", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const testSmtpMutation = useMutation({
+    mutationFn: async (config: any) => {
+      return apiRequest(`/api/projects/${projectId}/inbox/test-smtp`, { method: "POST", body: JSON.stringify(config) });
+    },
+    onSuccess: (data: any) => {
+      toast({ title: data.success ? "SMTP verified" : "SMTP failed", description: data.message });
+    },
+    onError: (error: any) => {
+      toast({ title: "Connection failed", description: error.message, variant: "destructive" });
     }
   });
 
@@ -638,6 +689,9 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-gray-400" />
                   <span className="font-mono text-sm">{project.inboxEmailAddress}</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {(project as any).inboxType === 'imap' ? 'IMAP' : 'AgentMail'}
+                  </Badge>
                 </div>
               </div>
               <Button
@@ -663,21 +717,23 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 )}
                 Check for Emails
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => refreshWebhookMutation.mutate()}
-                disabled={refreshWebhookMutation.isPending}
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
-                title="Refresh webhook URL for real-time email notifications"
-              >
-                {refreshWebhookMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Settings className="w-4 h-4" />
-                )}
-                Fix Webhook
-              </Button>
+              {(project as any).inboxType !== 'imap' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refreshWebhookMutation.mutate()}
+                  disabled={refreshWebhookMutation.isPending}
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+                  title="Refresh webhook URL for real-time email notifications"
+                >
+                  {refreshWebhookMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Settings className="w-4 h-4" />
+                  )}
+                  Fix Webhook
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -700,20 +756,29 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
             </div>
           ) : (
             <div>
-              {!isCreateInboxOpen ? (
-                <div className="flex items-center gap-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 flex-1">
-                    No inbox configured. Create one to receive documents via email.
+              {!inboxSetupMode ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No inbox configured. Choose how to receive documents via email:
                   </p>
-                  <Button
-                    onClick={() => setIsCreateInboxOpen(true)}
-                    style={{ backgroundColor: '#4F63A4' }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Inbox
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => setInboxSetupMode('agentmail')}
+                      style={{ backgroundColor: '#4F63A4' }}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Auto-generate Inbox
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setInboxSetupMode('imap')}
+                    >
+                      <Server className="w-4 h-4 mr-2" />
+                      Connect Your Mailbox
+                    </Button>
+                  </div>
                 </div>
-              ) : (
+              ) : inboxSetupMode === 'agentmail' ? (
                 <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div>
                     <Label htmlFor="inbox-username" className="text-sm font-medium">Username</Label>
@@ -742,6 +807,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   <div className="flex items-center gap-2 pt-2">
                     <Button
                       onClick={() => createInboxMutation.mutate({
+                        inboxType: 'agentmail',
                         username: inboxUsername || undefined,
                         displayName: inboxDisplayName || undefined,
                       })}
@@ -764,9 +830,198 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setIsCreateInboxOpen(false);
+                        setInboxSetupMode(null);
                         setInboxUsername("");
                         setInboxDisplayName("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Server className="w-4 h-4" style={{ color: '#4F63A4' }} />
+                    <span className="font-medium text-sm">IMAP Settings</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Host</Label>
+                      <Input
+                        placeholder="e.g. imap.gmail.com"
+                        value={imapConfig.host}
+                        onChange={(e) => setImapConfig({ ...imapConfig, host: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Port</Label>
+                      <Input
+                        type="number"
+                        value={imapConfig.port}
+                        onChange={(e) => setImapConfig({ ...imapConfig, port: parseInt(e.target.value) || 993 })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm">Username (email address)</Label>
+                    <Input
+                      placeholder="you@example.com"
+                      value={imapConfig.username}
+                      onChange={(e) => setImapConfig({ ...imapConfig, username: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Password (app password)
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="App password"
+                      value={imapConfig.password}
+                      onChange={(e) => setImapConfig({ ...imapConfig, password: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Encryption</Label>
+                    <Select value={imapConfig.encryption} onValueChange={(v) => setImapConfig({ ...imapConfig, encryption: v })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tls">TLS</SelectItem>
+                        <SelectItem value="ssl">SSL</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => testImapMutation.mutate(imapConfig)}
+                    disabled={testImapMutation.isPending || !imapConfig.host || !imapConfig.username || !imapConfig.password}
+                  >
+                    {testImapMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                    Test IMAP Connection
+                  </Button>
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                    <button
+                      className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                      onClick={() => {
+                        setShowSmtpSettings(!showSmtpSettings);
+                        if (!showSmtpSettings && !smtpConfig.username) {
+                          setSmtpConfig({ ...smtpConfig, username: imapConfig.username, password: imapConfig.password });
+                        }
+                      }}
+                    >
+                      {showSmtpSettings ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      <Server className="w-4 h-4" />
+                      SMTP Settings (for auto-replies)
+                    </button>
+                    {showSmtpSettings && (
+                      <div className="space-y-3 mt-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm">Host</Label>
+                            <Input
+                              placeholder="e.g. smtp.gmail.com"
+                              value={smtpConfig.host}
+                              onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">Port</Label>
+                            <Input
+                              type="number"
+                              value={smtpConfig.port}
+                              onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value) || 587 })}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-sm">Username</Label>
+                          <Input
+                            placeholder="Defaults to IMAP username"
+                            value={smtpConfig.username}
+                            onChange={(e) => setSmtpConfig({ ...smtpConfig, username: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Password
+                          </Label>
+                          <Input
+                            type="password"
+                            placeholder="Defaults to IMAP password"
+                            value={smtpConfig.password}
+                            onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">Encryption</Label>
+                          <Select value={smtpConfig.encryption} onValueChange={(v) => setSmtpConfig({ ...smtpConfig, encryption: v })}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="tls">TLS</SelectItem>
+                              <SelectItem value="ssl">SSL</SelectItem>
+                              <SelectItem value="none">None</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testSmtpMutation.mutate(smtpConfig)}
+                          disabled={testSmtpMutation.isPending || !smtpConfig.host || !smtpConfig.username || !smtpConfig.password}
+                        >
+                          {testSmtpMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                          Test SMTP Connection
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      onClick={() => createInboxMutation.mutate({
+                        inboxType: 'imap',
+                        imapConfig,
+                        smtpConfig: showSmtpSettings ? smtpConfig : undefined,
+                      })}
+                      disabled={createInboxMutation.isPending || !imapConfig.host || !imapConfig.username || !imapConfig.password}
+                      style={{ backgroundColor: '#4F63A4' }}
+                      className="flex-1"
+                    >
+                      {createInboxMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <Server className="w-4 h-4 mr-2" />
+                          Connect Mailbox
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setInboxSetupMode(null);
+                        setImapConfig({ host: '', port: 993, username: '', password: '', encryption: 'tls' });
+                        setSmtpConfig({ host: '', port: 587, username: '', password: '', encryption: 'tls' });
+                        setShowSmtpSettings(false);
                       }}
                     >
                       Cancel
