@@ -3933,8 +3933,10 @@ export default function SessionView() {
   // Get session status based on field verification
   const getSessionStatus = () => {
     if (validations.length === 0) return 'in_progress';
-    const allVerified = validations.every(v => v.validationStatus === 'valid' || v.validationStatus === 'manual');
-    return allVerified ? 'verified' : 'in_progress';
+    const total = getTotalFieldCount();
+    const verified = getVerifiedCount();
+    if (total === 0) return 'in_progress';
+    return verified >= total ? 'verified' : 'in_progress';
   };
 
   // Get verification count helpers
@@ -3943,7 +3945,26 @@ export default function SessionView() {
   };
 
   const getTotalFieldCount = () => {
-    return validations.length;
+    let expectedCount = 0;
+    if (project?.workflowSteps) {
+      project.workflowSteps.forEach((step: any) => {
+        if (step.stepType === 'infoPage' || step.stepType === 'info' || step.stepType === 'page') {
+          if (step.values && Array.isArray(step.values)) {
+            step.values.forEach((sv: any) => {
+              if (sv.fields && Array.isArray(sv.fields) && sv.fields.length > 0) {
+                expectedCount += sv.fields.length;
+              } else {
+                expectedCount += 1;
+              }
+            });
+          }
+        } else if (step.stepType === 'list') {
+          const stepValidations = validations.filter(v => v.collectionName === step.stepName);
+          expectedCount += stepValidations.length;
+        }
+      });
+    }
+    return Math.max(expectedCount, validations.length);
   };
 
   // Get verification progress
