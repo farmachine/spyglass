@@ -1012,7 +1012,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create inbox via AgentMail
       const { createProjectInbox, createWebhook } = await import('./integrations/agentmail');
-      const { email, inboxId } = await createProjectInbox(id);
+      const { username, displayName } = req.body || {};
+      const { email, inboxId } = await createProjectInbox(id, {
+        username: username || undefined,
+        domain: 'extrapl.io',
+        displayName: displayName || undefined,
+      });
       
       // Register webhook for this inbox to receive emails
       const domain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS || (process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000');
@@ -1040,6 +1045,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Create project inbox error:", error);
       res.status(500).json({ message: error.message || "Failed to create project inbox" });
+    }
+  });
+
+  // Delete inbox for a project
+  app.delete("/api/projects/:id/inbox", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const id = req.params.id;
+      const project = await storage.getProject(id, req.user!.organizationId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      if (!project.inboxEmailAddress || !project.inboxId) {
+        return res.status(400).json({ message: "No inbox configured for this project" });
+      }
+      
+      // Delete inbox via AgentMail
+      const { deleteProjectInbox } = await import('./integrations/agentmail');
+      try {
+        await deleteProjectInbox(project.inboxId);
+        console.log(`📧 Inbox ${project.inboxId} deleted from AgentMail`);
+      } catch (deleteErr: any) {
+        console.warn('📧 AgentMail inbox deletion warning:', deleteErr.message);
+      }
+      
+      // Clear inbox details from project
+      const updatedProject = await storage.updateProject(id, {
+        inboxEmailAddress: null,
+        inboxId: null
+      } as any, req.user!.organizationId);
+      
+      res.json({ message: "Inbox deleted successfully" });
+    } catch (error: any) {
+      console.error("Delete project inbox error:", error);
+      res.status(500).json({ message: error.message || "Failed to delete inbox" });
     }
   });
 

@@ -88,21 +88,38 @@ export async function getAgentMailClient() {
   });
 }
 
-export async function createProjectInbox(projectId: string): Promise<{ email: string; inboxId: string }> {
+export async function createProjectInbox(
+  projectId: string,
+  options?: { username?: string; domain?: string; displayName?: string }
+): Promise<{ email: string; inboxId: string }> {
   const client = await getAgentMailClient();
   
-  const username = `extrapl-${projectId.slice(0, 8)}`;
-  const inbox = await client.inboxes.create({
-    username: username,
-    clientId: `extrapl-project-${projectId}`,
-  });
+  const username = options?.username || `extrapl-${projectId.slice(0, 8)}`;
+  const domain = options?.domain || 'extrapl.io';
   
-  const email = `${username}@agentmail.to`;
+  const createParams: any = {
+    username: username,
+    domain: domain,
+    clientId: `extrapl-project-${projectId}`,
+  };
+  
+  if (options?.displayName) {
+    createParams.displayName = options.displayName;
+  }
+  
+  const inbox = await client.inboxes.create(createParams);
+  
+  const email = inbox.inboxId || `${username}@${domain}`;
   
   return {
     email: email,
     inboxId: inbox.inboxId
   };
+}
+
+export async function deleteProjectInbox(inboxId: string): Promise<void> {
+  const client = await getAgentMailClient();
+  await client.inboxes.delete(inboxId);
 }
 
 export async function getInboxMessages(inboxId: string) {

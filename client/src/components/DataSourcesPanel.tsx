@@ -29,18 +29,28 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [editingColumnName, setEditingColumnName] = useState("");
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [templateHtml, setTemplateHtml] = useState("");
+  const [isCreateInboxOpen, setIsCreateInboxOpen] = useState(false);
+  const [inboxUsername, setInboxUsername] = useState("");
+  const [inboxDisplayName, setInboxDisplayName] = useState("");
   
   const { data: project, refetch: refetchProject } = useProject(projectId);
 
   const createInboxMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { username?: string; displayName?: string }) => {
       return apiRequest(`/api/projects/${projectId}/inbox`, {
-        method: "POST"
+        method: "POST",
+        body: JSON.stringify({
+          username: params.username || undefined,
+          displayName: params.displayName || undefined,
+        })
       });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       refetchProject();
+      setIsCreateInboxOpen(false);
+      setInboxUsername("");
+      setInboxDisplayName("");
       toast({ 
         title: "Email inbox created", 
         description: `Sessions can now be created by emailing ${data.email}` 
@@ -50,6 +60,29 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       toast({ 
         title: "Error", 
         description: error.message || "Failed to create email inbox", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const deleteInboxMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/projects/${projectId}/inbox`, {
+        method: "DELETE"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      refetchProject();
+      toast({ 
+        title: "Inbox deleted", 
+        description: "The email inbox has been removed from this project" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete inbox", 
         variant: "destructive" 
       });
     }
@@ -645,29 +678,102 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 )}
                 Fix Webhook
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this inbox? This cannot be undone.')) {
+                    deleteInboxMutation.mutate();
+                  }
+                }}
+                disabled={deleteInboxMutation.isPending}
+                className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                title="Delete this email inbox"
+              >
+                {deleteInboxMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete Inbox
+              </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 flex-1">
-                No inbox configured. Create one to receive documents via email.
-              </p>
-              <Button
-                onClick={() => createInboxMutation.mutate()}
-                disabled={createInboxMutation.isPending}
-                style={{ backgroundColor: '#4F63A4' }}
-              >
-                {createInboxMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
+            <div>
+              {!isCreateInboxOpen ? (
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+                    No inbox configured. Create one to receive documents via email.
+                  </p>
+                  <Button
+                    onClick={() => setIsCreateInboxOpen(true)}
+                    style={{ backgroundColor: '#4F63A4' }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Inbox
-                  </>
-                )}
-              </Button>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div>
+                    <Label htmlFor="inbox-username" className="text-sm font-medium">Username</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        id="inbox-username"
+                        placeholder="e.g. sales"
+                        value={inboxUsername}
+                        onChange={(e) => setInboxUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">@extrapl.io</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="inbox-displayname" className="text-sm font-medium">Display Name</Label>
+                    <Input
+                      id="inbox-displayname"
+                      placeholder="e.g. Lead Generation Team"
+                      value={inboxDisplayName}
+                      onChange={(e) => setInboxDisplayName(e.target.value)}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">The name recipients will see when they receive emails</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      onClick={() => createInboxMutation.mutate({
+                        username: inboxUsername || undefined,
+                        displayName: inboxDisplayName || undefined,
+                      })}
+                      disabled={createInboxMutation.isPending || !inboxUsername.trim()}
+                      style={{ backgroundColor: '#4F63A4' }}
+                      className="flex-1"
+                    >
+                      {createInboxMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Inbox
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreateInboxOpen(false);
+                        setInboxUsername("");
+                        setInboxDisplayName("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {project?.inboxEmailAddress && (
