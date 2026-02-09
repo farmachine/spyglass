@@ -47,6 +47,7 @@ import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPa
 import { subdomainMiddleware, validateTenantAccess, isValidSubdomain, type SubdomainRequest } from "./subdomain";
 import { UserRole } from "@shared/schema";
 import { log } from "./vite";
+import { encryptCredential, decryptCredential, createLogger } from "./logger";
 import multer from "multer";
 
 // Async workflow test processing function
@@ -303,9 +304,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const baseDomain = process.env.BASE_DOMAIN;
   app.use(subdomainMiddleware(baseDomain));
 
-  // Health check endpoint to prevent continuous HEAD request spam
   app.head("/api", (req, res) => {
     res.status(200).end();
+  });
+
+  app.get("/api/health", async (req, res) => {
+    const start = Date.now();
+    let dbStatus = 'ok';
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query('SELECT 1');
+      if (!result) dbStatus = 'error';
+    } catch {
+      dbStatus = 'error';
+    }
+    const uptime = process.uptime();
+    const memUsage = process.memoryUsage();
+    res.json({
+      status: dbStatus === 'ok' ? 'healthy' : 'degraded',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(uptime),
+      database: dbStatus,
+      memory: {
+        heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+        rssMB: Math.round(memUsage.rss / 1024 / 1024),
+      },
+      responseTimeMs: Date.now() - start,
+    });
   });
 
   // Authentication Routes
@@ -1023,12 +1049,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imapHost,
           imapPort: Number(imapPort),
           imapUsername,
-          imapPassword,
+          imapPassword: encryptCredential(imapPassword),
           imapEncryption: imapEncryption || 'tls',
           smtpHost: smtpHost || null,
           smtpPort: smtpPort ? Number(smtpPort) : null,
           smtpUsername: smtpUsername || null,
-          smtpPassword: smtpPassword || null,
+          smtpPassword: smtpPassword ? encryptCredential(smtpPassword) : null,
           smtpEncryption: smtpEncryption || 'tls',
         } as any, req.user!.organizationId);
 
@@ -1224,19 +1250,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const imapHost = (project as any).imapHost;
         const imapPort = (project as any).imapPort;
         const imapUsername = (project as any).imapUsername;
-        const imapPassword = (project as any).imapPassword;
+        const imapPasswordEnc = (project as any).imapPassword;
         const imapEncryption = (project as any).imapEncryption || 'tls';
 
-        if (!imapHost || !imapUsername || !imapPassword) {
+        if (!imapHost || !imapUsername || !imapPasswordEnc) {
           return res.status(400).json({ message: "IMAP credentials not configured" });
         }
+
+        const imapPasswordDecrypted = decryptCredential(imapPasswordEnc);
 
         console.log(`📧 Processing IMAP emails for project: ${project.name} (${imapUsername})`);
 
         const { fetchImapEmails, sendSmtpEmail } = await import('./integrations/imapSmtp');
         const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
 
-        const imapConfig = { host: imapHost, port: imapPort, username: imapUsername, password: imapPassword, encryption: imapEncryption };
+        const imapConfig = { host: imapHost, port: imapPort, username: imapUsername, password: imapPasswordDecrypted, encryption: imapEncryption };
         const imapEmails = await fetchImapEmails(imapConfig);
 
         console.log(`📧 IMAP: Found ${imapEmails.length} unseen messages`);
@@ -1248,10 +1276,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const smtpHost = (project as any).smtpHost;
         const smtpPort = (project as any).smtpPort;
         const smtpUsername = (project as any).smtpUsername;
-        const smtpPassword = (project as any).smtpPassword;
+        const smtpPasswordEnc = (project as any).smtpPassword;
         const smtpEncryption = (project as any).smtpEncryption || 'tls';
-        const hasSmtp = smtpHost && smtpUsername && smtpPassword;
-        const smtpConfig = hasSmtp ? { host: smtpHost, port: smtpPort, username: smtpUsername, password: smtpPassword, encryption: smtpEncryption } : null;
+        const hasSmtp = smtpHost && smtpUsername && smtpPasswordEnc;
+        const smtpPasswordDecrypted = smtpPasswordEnc ? decryptCredential(smtpPasswordEnc) : null;
+        const smtpConfig = hasSmtp ? { host: smtpHost, port: smtpPort, username: smtpUsername, password: smtpPasswordDecrypted!, encryption: smtpEncryption } : null;
 
         for (const email of imapEmails) {
           const alreadyProcessed = await storage.isEmailProcessed(project.id, email.messageId);

@@ -1,23 +1,55 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { generateRequestId, createLogger } from "./logger";
+
+const serverLogger = createLogger('server');
 
 const app = express();
 
-// Set timeouts for long-running requests (AI extraction can take time)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !req.path.startsWith('/api'),
+});
+app.use(apiLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: 'Too many login attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+app.use((req: Request & { requestId?: string }, _res, next) => {
+  req.requestId = generateRequestId();
+  next();
+});
+
 app.use((req, res, next) => {
-  // Increase timeout for AI extraction endpoints
   if (req.path.includes('/ai-extraction') || req.path.includes('/gemini-extraction')) {
-    req.setTimeout(300000); // 5 minutes for AI extraction
+    req.setTimeout(300000);
     res.setTimeout(300000);
   } else {
-    req.setTimeout(120000); // 2 minutes for other requests
+    req.setTimeout(120000);
     res.setTimeout(120000);
   }
   next();
 });
 
-// Increase body parser limits for file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
@@ -75,12 +107,23 @@ app.use((req, res, next) => {
   // Set server timeout for long-running requests
   server.setTimeout(300000); // 5 minutes
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request & { requestId?: string }, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const requestId = req.requestId || 'unknown';
 
-    res.status(status).json({ message });
-    throw err;
+    serverLogger.error(`Request failed`, {
+      requestId,
+      method: req.method,
+      path: req.path,
+      status,
+      error: message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    });
+
+    if (!res.headersSent) {
+      res.status(status).json({ message, requestId });
+    }
   });
 
   // importantly only setup vite in development and after

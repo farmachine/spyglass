@@ -55,6 +55,8 @@ The design system uses Slate Blue (#4F63A4) as the primary color, features compr
 *   **Frontend**: React 18, TypeScript, Tailwind CSS with shadcn/ui, TanStack Query v5, Wouter, React Hook Form with Zod.
 *   **Backend**: Node.js with Express, TypeScript (ESM modules), PostgreSQL with Drizzle ORM, Google Gemini API, Python services, `connect-pg-simple`.
 *   **Infrastructure**: Deployed on Replit, database on Neon (PostgreSQL), NixOS.
+*   **Security**: Helmet security headers, express-rate-limit (200 req/15min API, 20 req/15min auth), AES-256-GCM credential encryption at rest, request ID tracking, structured logging (`server/logger.ts`).
+*   **Monitoring**: Health check endpoint at `GET /api/health` (database connectivity, memory usage, uptime). Structured logger with levels (debug/info/warn/error) and context tags.
 
 ### Feature Specifications
 *   **Subdomain Multi-Tenancy**: Organizations can be configured with unique subdomains (e.g., `acme.yourapp.com`). The system extracts subdomains from request host headers, validates user access, and redirects users to their organization's subdomain after login. Admin UI available at Organization Settings to configure subdomains. Environment variable `BASE_DOMAIN` configures the base domain for subdomain routing, and `VITE_BASE_DOMAIN` for frontend redirection.

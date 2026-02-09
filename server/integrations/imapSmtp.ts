@@ -1,6 +1,9 @@
 import Imap from 'imap';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
+import { createLogger } from '../logger';
+
+const logger = createLogger('imap-smtp');
 
 interface ImapConfig {
   host: string;
@@ -144,7 +147,7 @@ export async function fetchImapEmails(config: ImapConfig): Promise<FetchedEmail[
             return;
           }
 
-          console.log(`📧 IMAP: Found ${results.length} unseen messages`);
+          logger.info(`Found ${results.length} unseen messages`);
 
           const fetch = imap.fetch(results, { bodies: '', markSeen: true });
           const messagePromises: Promise<void>[] = [];
@@ -184,7 +187,7 @@ export async function fetchImapEmails(config: ImapConfig): Promise<FetchedEmail[
                   });
                   msgResolve();
                 }).catch((parseErr) => {
-                  console.error('📧 IMAP: Failed to parse message:', parseErr);
+                  logger.error('Failed to parse message', { error: String(parseErr) });
                   msgResolve();
                 });
               });
@@ -193,7 +196,7 @@ export async function fetchImapEmails(config: ImapConfig): Promise<FetchedEmail[
           });
 
           fetch.once('error', (fetchErr) => {
-            console.error('📧 IMAP: Fetch error:', fetchErr);
+            logger.error('Fetch error', { error: String(fetchErr) });
           });
 
           fetch.once('end', () => {
