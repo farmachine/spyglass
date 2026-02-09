@@ -1120,13 +1120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectInboxType = (project as any).inboxType;
       
       if (projectInboxType !== 'imap' && project.inboxId) {
-        const { deleteProjectInbox } = await import('./integrations/agentmail');
-        try {
-          await deleteProjectInbox(project.inboxId);
-          console.log(`📧 Inbox ${project.inboxId} deleted from AgentMail`);
-        } catch (deleteErr: any) {
-          console.warn('📧 AgentMail inbox deletion warning:', deleteErr.message);
-        }
+        console.log(`📧 Disconnecting inbox ${project.inboxId} from project (inbox preserved in AgentMail for reuse)`);
       }
       
       const updatedProject = await storage.updateProject(id, {

@@ -106,42 +106,32 @@ export async function createProjectInbox(
     createParams.displayName = options.displayName;
   }
   
-  console.log(`📧 Creating inbox with params:`, JSON.stringify(createParams));
+  const expectedInboxId = `${username}@${domain}`;
   
   let inbox;
+  try {
+    inbox = await client.inboxes.get(expectedInboxId);
+    console.log(`📧 Reusing existing inbox: ${expectedInboxId}`);
+    return { email: inbox.inboxId, inboxId: inbox.inboxId };
+  } catch (getErr: any) {
+    console.log(`📧 Inbox ${expectedInboxId} not found, creating new one`);
+  }
+  
+  console.log(`📧 Creating inbox with params:`, JSON.stringify(createParams));
+  
   try {
     inbox = await client.inboxes.create(createParams);
   } catch (err: any) {
     if (err?.statusCode === 403 && err?.body?.name === 'AlreadyExistsError') {
-      const expectedInboxId = `${username}@${domain}`;
       console.log(`📧 Inbox ${expectedInboxId} already exists, retrieving it`);
       try {
         inbox = await client.inboxes.get(expectedInboxId);
-        console.log(`📧 Retrieved existing inbox:`, JSON.stringify(inbox));
         return { email: inbox.inboxId, inboxId: inbox.inboxId };
-      } catch (getErr: any) {
-        console.log(`📧 Could not retrieve existing inbox: ${getErr.message}`);
+      } catch (getErr2: any) {
+        throw new Error(`Inbox ${expectedInboxId} exists but cannot be retrieved`);
       }
     }
-    
-    if (!inbox && (err?.statusCode === 404 || err?.statusCode === 403)) {
-      console.log(`📧 Username "${username}" is unavailable, trying alternatives`);
-      for (let i = 2; i <= 5; i++) {
-        try {
-          createParams.username = `${username}${i}`;
-          inbox = await client.inboxes.create(createParams);
-          console.log(`📧 Created with alternative: ${createParams.username}@${domain}`);
-          break;
-        } catch (retryErr: any) {
-          console.log(`📧 ${createParams.username} also unavailable`);
-        }
-      }
-      if (!inbox) {
-        throw new Error(`Could not create inbox: "${username}" and alternatives are unavailable on ${domain}`);
-      }
-    } else if (!inbox) {
-      throw err;
-    }
+    throw err;
   }
   
   console.log(`📧 Inbox created:`, JSON.stringify(inbox));
