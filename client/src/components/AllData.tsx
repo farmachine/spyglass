@@ -1259,16 +1259,34 @@ export default function AllData({ project }: AllDataProps) {
 
   // Get verification progress for a session (for non-kanban projects)
   const getSessionProgress = (sessionId: string) => {
-    // Safety check for sessionId
     if (!sessionId) return { verified: 0, total: 0, percentage: 0 };
     
-    // Fallback to field validation progress for non-kanban projects
     const sessionValidations = allValidations.filter(v => v.sessionId === sessionId);
-    if (sessionValidations.length === 0) return { verified: 0, total: 0, percentage: 0 };
+    
+    let expectedCount = 0;
+    if (project?.workflowSteps) {
+      project.workflowSteps.forEach((step: any) => {
+        if (step.stepType === 'infoPage' || step.stepType === 'info' || step.stepType === 'page') {
+          if (step.values && Array.isArray(step.values)) {
+            step.values.forEach((sv: any) => {
+              if (sv.fields && Array.isArray(sv.fields) && sv.fields.length > 0) {
+                expectedCount += sv.fields.length;
+              } else {
+                expectedCount += 1;
+              }
+            });
+          }
+        } else if (step.stepType === 'list') {
+          const stepValidations = sessionValidations.filter(v => v.collectionName === step.stepName);
+          expectedCount += stepValidations.length;
+        }
+      });
+    }
+    
+    const total = Math.max(expectedCount, sessionValidations.length);
+    if (total === 0) return { verified: 0, total: 0, percentage: 0 };
     
     const verified = sessionValidations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
-    const total = sessionValidations.length;
-    // Only show 100% if truly 100% verified, otherwise round down to avoid confusion
     const exactPercentage = (verified / total) * 100;
     const percentage = verified === total ? 100 : Math.floor(exactPercentage);
     
@@ -2072,12 +2090,16 @@ export default function AllData({ project }: AllDataProps) {
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <SortableHeader field="sessionName" className="py-3 w-1/3">{project.mainObjectName || 'Session'} Name</SortableHeader>
+                    <SortableHeader field="sessionName" className="py-3 w-1/5">{project.mainObjectName || 'Session'} Name</SortableHeader>
                     <SortableHeader field="createdAt" className="py-3 whitespace-nowrap">Created</SortableHeader>
                     {workflowStatusOptions.length > 0 && (
                       <TableHead className="py-3 whitespace-nowrap">
                         <span className="text-xs font-medium text-muted-foreground">Status</span>
                       </TableHead>
+                    )}
+                    {/* Fallback progress column for non-kanban projects - after Status */}
+                    {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
+                      <SortableHeader field="progress" className="py-3 whitespace-nowrap">Progress</SortableHeader>
                     )}
                     <SortableHeader field="documentCount" className="py-3 text-center">Docs</SortableHeader>
                     {/* Dynamic columns from info page fields */}
@@ -2092,10 +2114,6 @@ export default function AllData({ project }: AllDataProps) {
                         <span className="text-xs font-medium text-muted-foreground">{step.stepName}</span>
                       </TableHead>
                     ))}
-                    {/* Fallback progress column for non-kanban projects */}
-                    {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
-                      <SortableHeader field="progress" className="py-3 whitespace-nowrap">Progress</SortableHeader>
-                    )}
                     <SortableHeader field="status" className="py-3 text-center">
                       <div className="flex justify-center">
                         <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -2122,7 +2140,7 @@ export default function AllData({ project }: AllDataProps) {
                                 )}
                               </p>
                               {session.description && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                <p className="text-xs text-muted-foreground">
                                   {session.description}
                                 </p>
                               )}
@@ -2153,6 +2171,25 @@ export default function AllData({ project }: AllDataProps) {
                           </TableCell>
                         );
                       })()}
+                      {/* Fallback progress cell for non-kanban projects - after Status */}
+                      {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                              <div 
+                                className={`h-2.5 rounded-full transition-all duration-300 ${
+                                  progress.percentage === 100 ? 'bg-green-600' : 
+                                  progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
+                                }`}
+                                style={{ width: `${progress.percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
+                              {progress.percentage}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="py-3 text-sm text-gray-800 dark:text-gray-300 text-center">
                         {session.documentCount || 0}
                       </TableCell>
@@ -2186,25 +2223,6 @@ export default function AllData({ project }: AllDataProps) {
                           </TableCell>
                         );
                       })}
-                      {/* Fallback progress cell for non-kanban projects */}
-                      {(!kanbanProgressData?.hasKanban || !kanbanProgressData?.kanbanSteps?.length) && (
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                              <div 
-                                className={`h-2.5 rounded-full transition-all duration-300 ${
-                                  progress.percentage === 100 ? 'bg-green-600' : 
-                                  progress.percentage > 0 ? 'bg-green-600' : 'bg-gray-400'
-                                }`}
-                                style={{ width: `${progress.percentage}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-800 dark:text-gray-300 min-w-[32px]">
-                              {progress.percentage}%
-                            </span>
-                          </div>
-                        </TableCell>
-                      )}
                       <TableCell className="py-3 text-center">
                         <div className="flex justify-center">
                           {verificationStatus === 'verified' ? (
