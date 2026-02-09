@@ -1397,13 +1397,14 @@ Respond with JSON only:
                   const tmpFile = path.join(os.tmpdir(), `extract_${crypto.randomUUID()}.json`);
                   await fs.writeFile(tmpFile, JSON.stringify(extractionData));
                   
+                  const fsNode = await import('fs');
                   extractedContent = await new Promise<string>((resolve) => {
                     const python = spawn('python3', ['services/document_extractor.py'], {
                       env: { ...process.env }
                     });
                     const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 120000);
                     
-                    const inputStream = require('fs').createReadStream(tmpFile);
+                    const inputStream = fsNode.createReadStream(tmpFile);
                     inputStream.pipe(python.stdin);
                     
                     let output = '';
@@ -3690,11 +3691,12 @@ except Exception as e:
       const tmpFile = path.join(osMod.tmpdir(), `extract_${crypto.randomUUID()}.json`);
       await fs.writeFile(tmpFile, JSON.stringify(extractionData));
 
+      const fsSync = await import('fs');
       const extractedContent = await new Promise<string>((resolve) => {
         const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
         const timeout = setTimeout(() => { python.kill(); console.log(`Process timeout for ${doc.fileName}`); resolve(''); }, 120000);
         
-        const inputStream = require('fs').createReadStream(tmpFile);
+        const inputStream = fsSync.createReadStream(tmpFile);
         inputStream.pipe(python.stdin);
         
         let output = '';
@@ -13849,10 +13851,11 @@ Thank you.`;
                 
                 console.log(`📧 Extracting text from: ${filename} (${contentType})`);
                 
-                const fsSync = require('fs');
-                const os = require('os');
-                const tmpFile = require('path').join(os.tmpdir(), `extract_${crypto.randomUUID()}.json`);
-                fsSync.writeFileSync(tmpFile, JSON.stringify(extractionData));
+                const fsNode2 = await import('fs');
+                const osMod2 = await import('os');
+                const pathMod2 = await import('path');
+                const tmpFile = pathMod2.join(osMod2.tmpdir(), `extract_${crypto.randomUUID()}.json`);
+                fsNode2.writeFileSync(tmpFile, JSON.stringify(extractionData));
                 
                 const extractedResult = await new Promise<string>((resolve) => {
                   const python = spawn('python3', ['services/document_extractor.py'], {
@@ -13860,7 +13863,7 @@ Thank you.`;
                   });
                   const timeout = setTimeout(() => { python.kill(); console.log(`📧 Python extraction timeout for ${filename}`); resolve(''); }, 120000);
                   
-                  const inputStream = fsSync.createReadStream(tmpFile);
+                  const inputStream = fsNode2.createReadStream(tmpFile);
                   inputStream.pipe(python.stdin);
                   
                   let output = '';
@@ -13876,7 +13879,7 @@ Thank you.`;
                   
                   python.on('close', (code: number | null) => {
                     clearTimeout(timeout);
-                    try { fsSync.unlinkSync(tmpFile); } catch {}
+                    try { fsNode2.unlinkSync(tmpFile); } catch {}
                     if (errOutput) console.log(`📧 Python stderr for ${filename}: ${errOutput}`);
                     if (code !== 0) {
                       console.error(`📧 Document extraction error for ${filename}, code: ${code}`);
@@ -13895,7 +13898,7 @@ Thank you.`;
                       }
                     }
                   });
-                  python.on('error', (err: Error) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); try { fsSync.unlinkSync(tmpFile); } catch {} resolve(''); });
+                  python.on('error', (err: Error) => { clearTimeout(timeout); console.log(`📧 Python spawn error: ${err}`); try { fsNode2.unlinkSync(tmpFile); } catch {} resolve(''); });
                 });
                 
                 extractedContent = extractedResult;
