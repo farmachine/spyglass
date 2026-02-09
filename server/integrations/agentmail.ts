@@ -121,10 +121,27 @@ export async function createProjectInbox(
         return { email: inbox.inboxId, inboxId: inbox.inboxId };
       } catch (getErr: any) {
         console.log(`📧 Could not retrieve existing inbox: ${getErr.message}`);
-        throw new Error(`Inbox ${expectedInboxId} exists but cannot be retrieved`);
       }
     }
-    throw err;
+    
+    if (!inbox && (err?.statusCode === 404 || err?.statusCode === 403)) {
+      console.log(`📧 Username "${username}" is unavailable, trying alternatives`);
+      for (let i = 2; i <= 5; i++) {
+        try {
+          createParams.username = `${username}${i}`;
+          inbox = await client.inboxes.create(createParams);
+          console.log(`📧 Created with alternative: ${createParams.username}@${domain}`);
+          break;
+        } catch (retryErr: any) {
+          console.log(`📧 ${createParams.username} also unavailable`);
+        }
+      }
+      if (!inbox) {
+        throw new Error(`Could not create inbox: "${username}" and alternatives are unavailable on ${domain}`);
+      }
+    } else if (!inbox) {
+      throw err;
+    }
   }
   
   console.log(`📧 Inbox created:`, JSON.stringify(inbox));
