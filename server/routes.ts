@@ -3520,6 +3520,19 @@ except Exception as e:
     }
   });
 
+  app.get("/api/sessions/:sessionId/source-email", async (req, res) => {
+    try {
+      const sessionId = req.params.sessionId;
+      const sourceEmail = await storage.getSourceEmail(sessionId);
+      if (!sourceEmail) {
+        return res.status(404).json({ message: "No source email found for this session" });
+      }
+      res.json(sourceEmail);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch source email" });
+    }
+  });
+
   // Direct Excel export endpoint - bypass frontend filtering
   app.get('/api/sessions/:sessionId/direct-excel-data', async (req, res) => {
     try {
