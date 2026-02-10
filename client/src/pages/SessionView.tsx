@@ -5445,113 +5445,65 @@ Thank you for your assistance.`;
             </nav>
           </div>
           
-          {/* Session Navigation - Only visible in session view */}
-          <div className="border-t border-slate-200 dark:border-gray-700 p-4 flex-1">
-            {/* Continuous flow starting with Documents */}
-            <div className="relative">
-              {/* Vertical connecting line */}
-              <div className="absolute left-4 top-4 w-0.5 bg-slate-300 dark:bg-gray-600" style={{ 
-                height: `${(() => {
-                  let count = 1; // Start with 1 for Documents tab
-                  
-                  // Add all workflow steps (except Documents which is already counted)
-                  if (project.workflowSteps) {
-                    const otherSteps = project.workflowSteps.filter(step => 
-                      step.stepName !== 'Documents'
-                    ).length;
-                    count += otherSteps;
-                  }
-                  
-                  // Calculate height: 48px per item, but subtract some to stop at the last item's center
-                  return (count - 1) * 48 + 12; // Stop at last item's dot
-                })()}px` 
-              }}></div>
-              
-              <div className="space-y-3">
-                {/* Session Info Tab */}
-                <div className="relative flex items-center">
-                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has('session-info') ? { backgroundColor: '#4F63A4' } : {}}></div>
-                  </div>
-                  <div
-                    onClick={() => scrollToSection('session-info')}
-                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">Session Info</span>
-                      <span
-                        onClick={(e) => { e.stopPropagation(); toggleSection('session-info'); }}
-                        className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
-                      >
-                        {collapsedSections.has('session-info') ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+          {/* Session Navigation */}
+          <div className="border-t border-slate-200 dark:border-gray-700 px-3 py-3 flex-1">
+            <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">Sections</p>
+            <nav className="space-y-0.5">
+              <button
+                onClick={() => scrollToSection('session-info')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                  activeTab === 'session-info'
+                    ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
+                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
+                }`}
+              >
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Session Info</span>
+              </button>
 
-                {/* Documents Tab */}
-                <div className="relative flex items-center">
-                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has('documents') ? { backgroundColor: '#4F63A4' } : {}}></div>
-                  </div>
-                  <div
-                    onClick={() => scrollToSection('documents')}
-                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">Documents</span>
-                      <span
-                        onClick={(e) => { e.stopPropagation(); toggleSection('documents'); }}
-                        className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
-                      >
-                        {collapsedSections.has('documents') ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <button
+                onClick={() => scrollToSection('documents')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                  activeTab === 'documents'
+                    ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
+                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
+                }`}
+              >
+                <FolderOpen className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Documents</span>
+              </button>
+              
+              {(() => {
+                const allSteps: Array<{ id: string; name: string; stepType: string }> = [];
                 
-                {/* Workflow Steps - Both Info Pages and Data Tables */}
-                {(() => {
-                  const allSteps: Array<{ id: string; name: string; stepType: string }> = [];
-                  
-                  if (project.workflowSteps) {
-                    project.workflowSteps.forEach(step => {
-                      if (step.stepName !== 'Documents') {
-                        allSteps.push({
-                          id: step.id,
-                          name: step.stepName,
-                          stepType: step.stepType
-                        });
-                      }
-                    });
-                  }
-                  
-                  return allSteps.map((item) => {
-                    return (
-                      <div key={item.id} className="relative flex items-center">
-                        <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has(item.name) ? { backgroundColor: '#4F63A4' } : {}}></div>
-                        </div>
-                        <div
-                          onClick={() => scrollToSection(item.name)}
-                          className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="truncate">{item.name}</span>
-                            <span
-                              onClick={(e) => { e.stopPropagation(); toggleSection(item.name); }}
-                              className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
-                            >
-                              {collapsedSections.has(item.name) ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
+                if (project.workflowSteps) {
+                  project.workflowSteps.forEach(step => {
+                    if (step.stepName !== 'Documents') {
+                      allSteps.push({
+                        id: step.id,
+                        name: step.stepName,
+                        stepType: step.stepType
+                      });
+                    }
                   });
-                })()}
-              </div>
-            </div>
+                }
+                
+                return allSteps.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToSection(item.name)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                      activeTab === item.name
+                        ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
+                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
+                    }`}
+                  >
+                    {item.stepType === 'data_table' ? <TableIcon className="h-4 w-4 flex-shrink-0" /> : <FileText className="h-4 w-4 flex-shrink-0" />}
+                    <span className="truncate">{item.name}</span>
+                  </button>
+                ));
+              })()}
+            </nav>
           </div>
           
           {/* Settings Button - Always at the bottom */}
