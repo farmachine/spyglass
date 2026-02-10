@@ -2316,14 +2316,23 @@ export default function SessionView() {
   const { data: sessionDocuments = [], isLoading: documentsLoading } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'documents'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
-    enabled: !!sessionId
+    enabled: !!sessionId,
+    refetchInterval: (query) => {
+      const docs = query.state.data as any[];
+      const expectedCount = session?.documentCount || 0;
+      if (expectedCount > 0 && (!docs || docs.length < expectedCount)) {
+        return 5000;
+      }
+      return false;
+    },
   });
 
   const { data: sourceEmail } = useQuery<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: string | null }>({
     queryKey: ['/api/sessions', sessionId, 'source-email'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/source-email`).catch(() => null),
     enabled: !!sessionId,
-    retry: false
+    retry: false,
+    staleTime: 0,
   });
 
   // Log session documents when they change

@@ -1308,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
               }
             }
-            await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent, new Date());
+            await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent || email.htmlContent || '', new Date());
             continue;
           }
 
@@ -1405,7 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } catch (emailErr) {
                 console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
               }
-              await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent, new Date());
+              await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent || email.htmlContent || '', new Date());
               continue;
             }
 
@@ -1432,16 +1432,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Create session
           const sessionName = email.subject.slice(0, 100);
+          const emailBodyContent = email.textContent || email.htmlContent || '';
           const sessionData = {
             projectId: project.id,
             sessionName,
-            description: `Created from email by ${email.from}\nMessage ID: ${email.messageId}\n\n${email.textContent.slice(0, 500)}`,
+            description: `Created from email by ${email.from}`,
             status: 'pending' as const,
             documentCount: email.attachments.length,
             extractedData: '{}',
           };
           const session = await storage.createExtractionSession(sessionData);
-          await storage.markEmailProcessed(project.id, email.messageId, imapUsername, session.id, email.subject, email.from, email.textContent, new Date());
+          await storage.markEmailProcessed(project.id, email.messageId, imapUsername, session.id, email.subject, email.from, emailBodyContent, new Date());
           console.log(`📧 IMAP: Created session: ${session.id} - ${sessionName}`);
           sessionsCreated++;
 
@@ -1783,7 +1784,7 @@ Respond with JSON only:
         const sessionData = {
           projectId: project.id,
           sessionName,
-          description: `Created from email by ${fromEmail}\nMessage ID: ${messageId}\n\n${textContent.slice(0, 500)}`,
+          description: `Created from email by ${fromEmail}`,
           status: 'pending' as const,
           documentCount: attachments.length,
           extractedData: '{}',
@@ -14261,7 +14262,7 @@ Thank you.`;
       const sessionData = {
         projectId: project.id,
         sessionName,
-        description: `Created from email by ${fromEmail}\n\n${textContent.slice(0, 500)}`,
+        description: `Created from email by ${fromEmail}`,
         status: 'pending' as const,
         documentCount: attachments.length,
         extractedData: '{}',
