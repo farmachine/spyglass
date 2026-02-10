@@ -1308,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
               }
             }
-            await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from);
+            await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent, new Date());
             continue;
           }
 
@@ -1405,7 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } catch (emailErr) {
                 console.error(`📧 IMAP: Failed to send rejection:`, emailErr);
               }
-              await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from);
+              await storage.markEmailProcessed(project.id, email.messageId, imapUsername, null, email.subject, email.from, email.textContent, new Date());
               continue;
             }
 
@@ -1441,7 +1441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             extractedData: '{}',
           };
           const session = await storage.createExtractionSession(sessionData);
-          await storage.markEmailProcessed(project.id, email.messageId, imapUsername, session.id, email.subject, email.from);
+          await storage.markEmailProcessed(project.id, email.messageId, imapUsername, session.id, email.subject, email.from, email.textContent, new Date());
           console.log(`📧 IMAP: Created session: ${session.id} - ${sessionName}`);
           sessionsCreated++;
 
@@ -1601,7 +1601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // Mark as processed but don't create session
-            await storage.markEmailProcessed(project.id, messageId, project.inboxId!, null, subject, fromEmail);
+            await storage.markEmailProcessed(project.id, messageId, project.inboxId!, null, subject, fromEmail, textContent, new Date());
             continue;
           }
           
@@ -1744,7 +1744,7 @@ Respond with JSON only:
               console.error(`📧 Failed to send rejection email:`, emailErr);
             }
             
-            await storage.markEmailProcessed(project.id, messageId, project.inboxId!, null, subject, fromEmail);
+            await storage.markEmailProcessed(project.id, messageId, project.inboxId!, null, subject, fromEmail, textContent, new Date());
             continue;
           }
           
@@ -1783,7 +1783,7 @@ Respond with JSON only:
         };
         
         const session = await storage.createExtractionSession(sessionData);
-        await storage.markEmailProcessed(project.id, messageId, project.inboxId!, session.id, subject, fromEmail);
+        await storage.markEmailProcessed(project.id, messageId, project.inboxId!, session.id, subject, fromEmail, textContent, new Date());
         console.log(`📧 Created session: ${session.id} - ${sessionName}`);
         sessionsCreated++;
         
@@ -14010,7 +14010,7 @@ Thank you.`;
         }
         
         // Mark email as processed but don't create session
-        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail);
+        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail, textContent, new Date());
         
         return res.json({ 
           success: true, 
@@ -14219,7 +14219,7 @@ Thank you.`;
         }
         
         // Mark email as processed but don't create session
-        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail);
+        await storage.markEmailProcessed(project.id, messageId, inboxId, '', subject, fromEmail, textContent, new Date());
         
         return res.json({ 
           success: true, 
@@ -14244,7 +14244,7 @@ Thank you.`;
       console.log(`📧 Created session: ${session.id} - ${sessionName}`);
       
       // Mark email as processed immediately to prevent race conditions
-      await storage.markEmailProcessed(project.id, messageId, inboxId, session.id, subject, fromEmail);
+      await storage.markEmailProcessed(project.id, messageId, inboxId, session.id, subject, fromEmail, textContent, new Date());
       
       // Generate initial field validations
       await generateSchemaFieldValidations(session.id, project.id);
