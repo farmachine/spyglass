@@ -1673,6 +1673,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 console.log(`📧 Validating file: ${attachData.filename} (${attachData.contentType})`);
                 console.log(`📧 Content preview: ${attachData.content?.slice(0, 200) || 'No content extracted'}`);
                 
+                if (!attachData.content && (attachData.contentType?.includes('pdf') || attachData.contentType?.includes('document') || attachData.contentType?.includes('spreadsheet') || attachData.contentType?.includes('excel') || attachData.contentType?.includes('word'))) {
+                  console.log(`📧 Content extraction failed for ${attachData.filename} (likely scanned document) - accepting by default`);
+                  matched = true;
+                  matchedFile = attachData.filename;
+                  break;
+                }
+
                 const validationPrompt = `You are validating if a document matches an expected document type.
 Be lenient - if the document seems related to the topic, consider it a match.
 
@@ -14118,6 +14125,13 @@ Thank you.`;
           // Check each attachment against this document type
           for (const [attachId, attachData] of attachmentContents) {
             try {
+              if (!attachData.content && (attachData.contentType?.includes('pdf') || attachData.contentType?.includes('document') || attachData.contentType?.includes('spreadsheet') || attachData.contentType?.includes('excel') || attachData.contentType?.includes('word'))) {
+                console.log(`📧 Content extraction failed for ${attachData.filename} (likely scanned document) - accepting by default`);
+                matched = true;
+                matchedFile = attachData.filename;
+                break;
+              }
+
               const validationPrompt = `You are validating if a document matches an expected document type.
 
 Document Type Required: "${docType.name}"
