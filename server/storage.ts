@@ -351,7 +351,8 @@ export interface IStorage {
   
   // Processed Emails
   isEmailProcessed(projectId: string, messageId: string): Promise<boolean>;
-  markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string): Promise<void>;
+  markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string, emailBody?: string, receivedAt?: Date): Promise<void>;
+  getSourceEmail(sessionId: string): Promise<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: Date | null } | null>;
   
   // API Data Sources
   getApiDataSources(projectId: string): Promise<ApiDataSource[]>;
@@ -2395,8 +2396,11 @@ export class MemStorage implements IStorage {
   async isEmailProcessed(_projectId: string, _messageId: string): Promise<boolean> {
     return false;
   }
-  async markEmailProcessed(_projectId: string, _messageId: string, _inboxId: string, _sessionId: string, _subject?: string, _fromEmail?: string): Promise<void> {
+  async markEmailProcessed(_projectId: string, _messageId: string, _inboxId: string, _sessionId: string, _subject?: string, _fromEmail?: string, _emailBody?: string, _receivedAt?: Date): Promise<void> {
     // No-op in memory storage
+  }
+  async getSourceEmail(_sessionId: string): Promise<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: Date | null } | null> {
+    return null;
   }
   
   // API Data Sources (MemStorage stubs)
@@ -4557,7 +4561,7 @@ class PostgreSQLStorage implements IStorage {
     });
   }
 
-  async markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string): Promise<void> {
+  async markEmailProcessed(projectId: string, messageId: string, inboxId: string, sessionId: string, subject?: string, fromEmail?: string, emailBody?: string, receivedAt?: Date): Promise<void> {
     return this.retryOperation(async () => {
       await this.db.insert(processedEmails).values({
         projectId,
@@ -4565,8 +4569,22 @@ class PostgreSQLStorage implements IStorage {
         inboxId,
         sessionId,
         subject,
-        fromEmail
+        fromEmail,
+        emailBody,
+        receivedAt
       });
+    });
+  }
+
+  async getSourceEmail(sessionId: string): Promise<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: Date | null } | null> {
+    return this.retryOperation(async () => {
+      const result = await this.db.select({
+        subject: processedEmails.subject,
+        fromEmail: processedEmails.fromEmail,
+        emailBody: processedEmails.emailBody,
+        receivedAt: processedEmails.receivedAt,
+      }).from(processedEmails).where(eq(processedEmails.sessionId, sessionId)).limit(1);
+      return result.length > 0 ? result[0] : null;
     });
   }
 
