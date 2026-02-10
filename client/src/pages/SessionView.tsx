@@ -5796,9 +5796,6 @@ Thank you for your assistance.`;
                       {/* Info Page content */}
                       {isInfoPage && (
                         <>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
-                            Key information and fields extracted from this {stepName.toLowerCase()}.
-                          </p>
                     <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
                     <CardContent className="pt-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -5844,15 +5841,17 @@ Thank you for your assistance.`;
                                       v.valueId === stepValue.id || v.fieldId === stepValue.id
                                     );
                                     
+                                    const showValueHeader = fieldName !== stepName;
+                                    
                                     return (
                                       <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
+                                        {showValueHeader && (
                                         <div className="flex items-center justify-between mb-4">
                                           <h4 className="text-base font-bold text-[#3A4A7C] dark:text-white flex items-center gap-2">
                                             <div 
                                               className="w-2 h-2 rounded-full" 
                                               style={{ 
                                                 backgroundColor: (() => {
-                                                  // Check if all fields in this value are validated
                                                   const valueValidations = fieldValidations.filter(v => 
                                                     (v.valueId === stepValue.id || v.fieldId === stepValue.id) &&
                                                     v.extractedValue !== null && 
@@ -5862,7 +5861,6 @@ Thank you for your assistance.`;
                                                     v.extractedValue !== "undefined"
                                                   );
                                                   
-                                                  // Check if all fields have values and are valid
                                                   const hasAllFields = stepValue.fields && 
                                                     stepValue.fields.length > 0 && 
                                                     stepValue.fields.length === valueValidations.length;
@@ -5878,7 +5876,6 @@ Thank you for your assistance.`;
                                           </h4>
                                           <button
                                             onClick={() => {
-                                              // Set up extraction for this specific value
                                               const toolGroup = {
                                                 toolId: stepValue.toolId || 'manual',
                                                 stepValues: [stepValue]
@@ -5892,6 +5889,7 @@ Thank you for your assistance.`;
                                             <Wand2 className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
                                           </button>
                                         </div>
+                                        )}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           {stepValue.fields.map((field: any, fieldIndex: number) => {
                                               // Map validations by field identifierId, NOT by index
@@ -6113,9 +6111,11 @@ Thank you for your assistance.`;
                                         const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                         const isVerified = validation?.validationStatus === 'valid' || validation?.validationStatus === 'manual';
                                         const statusColor = hasValue && isVerified ? '#10b981' : '#4F63A4';
+                                        const showSingleHeader = fieldName !== stepName;
                                         
                                         return (
                                           <div key={stepValue.id} className="pb-6 mb-6 border-b border-[#4F63A4]/20 last:border-b-0 last:pb-0 last:mb-0">
+                                            {showSingleHeader && (
                                             <div className="flex items-center justify-between mb-4">
                                               <h4 className="text-base font-bold text-[#3A4A7C] dark:text-white flex items-center gap-2">
                                                 <div 
@@ -6126,7 +6126,6 @@ Thank you for your assistance.`;
                                               </h4>
                                               <button
                                                 onClick={() => {
-                                                  // Set up extraction for this specific single-field value
                                                   const toolGroup = {
                                                     toolId: stepValue.toolId || 'manual',
                                                     stepValues: [stepValue]
@@ -6140,6 +6139,7 @@ Thank you for your assistance.`;
                                                 <Wand2 className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
                                               </button>
                                             </div>
+                                            )}
                                             <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                                             <div className="flex-1">
                                               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
