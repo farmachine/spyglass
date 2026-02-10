@@ -5459,28 +5459,26 @@ Thank you for your assistance.`;
               }}></div>
               
               <div className="space-y-3">
-                {/* Source Email Tab */}
-                {sourceEmail && (
-                  <div className="relative flex items-center">
-                    <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has('source-email') ? { backgroundColor: '#4F63A4' } : {}}></div>
-                    </div>
-                    <div
-                      onClick={() => scrollToSection('source-email')}
-                      className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="truncate">Source Email</span>
-                        <span
-                          onClick={(e) => { e.stopPropagation(); toggleSection('source-email'); }}
-                          className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
-                        >
-                          {collapsedSections.has('source-email') ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                        </span>
-                      </div>
+                {/* Session Info Tab */}
+                <div className="relative flex items-center">
+                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has('session-info') ? { backgroundColor: '#4F63A4' } : {}}></div>
+                  </div>
+                  <div
+                    onClick={() => scrollToSection('session-info')}
+                    className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate">Session Info</span>
+                      <span
+                        onClick={(e) => { e.stopPropagation(); toggleSection('session-info'); }}
+                        className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
+                      >
+                        {collapsedSections.has('session-info') ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Documents Tab */}
                 <div className="relative flex items-center">
@@ -5605,19 +5603,19 @@ Thank you for your assistance.`;
             </div>
           </div>
 
-            {/* Source Email Section */}
-            {sourceEmail && (
-              <div ref={el => { sectionRefs.current['source-email'] = el; }} className="mb-6">
-                <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection('source-email')}>
-                  <div className="flex items-center gap-2">
-                    {collapsedSections.has('source-email') ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                    <h2 className="text-2xl font-bold dark:text-white">Source Email</h2>
-                  </div>
+            {/* Session Info Section */}
+            <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-6">
+              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection('session-info')}>
+                <div className="flex items-center gap-2">
+                  {collapsedSections.has('session-info') ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                  <h2 className="text-2xl font-bold dark:text-white">Session Info</h2>
                 </div>
-                {!collapsedSections.has('source-email') && (
-                  <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                    <CardContent className="pt-5 pb-5">
+              </div>
+              {!collapsedSections.has('session-info') && (
+                <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                  <CardContent className="pt-5 pb-5">
+                    {sourceEmail ? (
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
                           <Mail className="h-5 w-5 text-[#4F63A4]" />
@@ -5659,11 +5657,29 @@ Thank you for your assistance.`;
                           )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
+                          <Info className="h-5 w-5 text-[#4F63A4]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session?.sessionName || 'Untitled Session'}</p>
+                          {session?.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{session.description}</p>
+                          )}
+                          {session?.createdAt && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-2">
+                              <Clock className="h-3 w-3" />
+                              Created {new Date(session.createdAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
             {/* Documents Section */}
             <div ref={el => { sectionRefs.current['documents'] = el; }}>
