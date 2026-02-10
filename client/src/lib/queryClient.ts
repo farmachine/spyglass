@@ -115,13 +115,13 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: (failureCount, error) => {
-        // Retry network errors up to 2 times
-        if (error?.message?.includes('Network error') && failureCount < 2) {
-          return true;
-        }
+        if (failureCount >= 3) return false;
+        const msg = error?.message || '';
+        if (msg.includes('Network error')) return true;
+        if (msg.startsWith('500:') || msg.startsWith('502:') || msg.startsWith('503:') || msg.startsWith('504:')) return true;
         return false;
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     },
     mutations: {
       retry: false,
