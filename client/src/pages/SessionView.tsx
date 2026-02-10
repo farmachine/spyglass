@@ -5532,12 +5532,8 @@ Thank you for your assistance.`;
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
-          {/* Session Overall Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-              <h2 className="text-2xl font-bold dark:text-white">Session Overview</h2>
-            </div>
+          {/* Session Action Bar */}
+          <div className="flex items-center justify-end mb-4">
             <div className="flex items-center gap-3">
               {getVerificationProgress().percentage === 100 ? (
                 <CheckCircle className="h-4 w-4 text-green-600" />
