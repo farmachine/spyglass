@@ -1569,7 +1569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fullMessage = await getMessage(project.inboxId!, messageId);
         const subject = (fullMessage as any).subject || 'Email Session';
         const fromEmail = (fullMessage as any).from_?.[0] || (fullMessage as any).from || 'unknown@example.com';
-        const textContent = (fullMessage as any).textPlain || (fullMessage as any).text_plain || '';
+        const textContent = (fullMessage as any).textPlain || (fullMessage as any).text_plain || (fullMessage as any).textHtml || (fullMessage as any).text_html || '';
         const attachments = (fullMessage as any).attachments || [];
         
         // === DOCUMENT VALIDATION WITH AUTO-REPLY ===
@@ -13921,7 +13921,7 @@ Respond in JSON format:
       const messageId = payload.message_id;
       const subject = payload.subject || 'Email Session';
       const fromEmail = payload.from_?.[0] || 'unknown@example.com';
-      const textContent = payload.text_plain || '';
+      const textContent = payload.text_plain || payload.text_html || '';
       const attachments = payload.attachments || [];
       
       if (!inboxId) {
