@@ -378,6 +378,8 @@ export const processedEmails = pgTable("processed_emails", {
   sessionId: uuid("session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Created session
   subject: text("subject"),
   fromEmail: text("from_email"),
+  emailBody: text("email_body"),
+  receivedAt: timestamp("received_at"),
   processedAt: timestamp("processed_at").defaultNow().notNull(),
 });
 
