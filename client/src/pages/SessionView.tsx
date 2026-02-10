@@ -31,7 +31,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw, Circle, ExternalLink } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw, Circle, ExternalLink, Mail, Clock } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import { SiMicrosoft } from "react-icons/si";
 import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
@@ -2317,6 +2317,13 @@ export default function SessionView() {
     queryKey: ['/api/sessions', sessionId, 'documents'],
     queryFn: () => apiRequest(`/api/sessions/${sessionId}/documents`),
     enabled: !!sessionId
+  });
+
+  const { data: sourceEmail } = useQuery<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: string | null }>({
+    queryKey: ['/api/sessions', sessionId, 'source-email'],
+    queryFn: () => apiRequest(`/api/sessions/${sessionId}/source-email`).catch(() => null),
+    enabled: !!sessionId,
+    retry: false
   });
 
   // Log session documents when they change
@@ -5452,6 +5459,29 @@ Thank you for your assistance.`;
               }}></div>
               
               <div className="space-y-3">
+                {/* Source Email Tab */}
+                {sourceEmail && (
+                  <div className="relative flex items-center">
+                    <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-gray-500" style={!collapsedSections.has('source-email') ? { backgroundColor: '#4F63A4' } : {}}></div>
+                    </div>
+                    <div
+                      onClick={() => scrollToSection('source-email')}
+                      className="ml-3 flex-1 text-left px-3 py-2 text-sm rounded-lg transition-all duration-200 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate">Source Email</span>
+                        <span
+                          onClick={(e) => { e.stopPropagation(); toggleSection('source-email'); }}
+                          className="p-0.5 hover:bg-slate-200 dark:hover:bg-gray-600 rounded cursor-pointer"
+                        >
+                          {collapsedSections.has('source-email') ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Documents Tab */}
                 <div className="relative flex items-center">
                   <div className="relative z-10 w-8 h-8 flex items-center justify-center">
@@ -5574,6 +5604,59 @@ Thank you for your assistance.`;
               </Button>
             </div>
           </div>
+
+            {/* Source Email Section */}
+            {sourceEmail && (
+              <div ref={el => { sectionRefs.current['source-email'] = el; }} className="mb-6">
+                <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection('source-email')}>
+                  <div className="flex items-center gap-2">
+                    {collapsedSections.has('source-email') ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
+                    <h2 className="text-2xl font-bold dark:text-white">Source Email</h2>
+                  </div>
+                </div>
+                {!collapsedSections.has('source-email') && (
+                  <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
+                    <CardContent className="pt-6">
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <Mail className="h-5 w-5 text-[#4F63A4] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
+                              <div>
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">From</span>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subject</span>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.subject || 'No subject'}</p>
+                              </div>
+                              {sourceEmail.receivedAt && (
+                                <div>
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Received</span>
+                                  <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {new Date(sourceEmail.receivedAt).toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            {sourceEmail.emailBody && (
+                              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Message</span>
+                                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 max-h-48 overflow-y-auto">
+                                  {sourceEmail.emailBody}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
 
             {/* Documents Section */}
             <div ref={el => { sectionRefs.current['documents'] = el; }}>
