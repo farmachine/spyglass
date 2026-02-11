@@ -5133,49 +5133,9 @@ Thank you for your assistance.`;
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
               <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-3xl font-bold dark:text-white">
-                        {project.name}
-                      </h2>
-                      {session?.sessionName && (
-                        <>
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                          <h2 className="text-3xl font-bold dark:text-white">
-                            {isEditingSessionName ? (
-                              <Input
-                                value={sessionNameValue}
-                                onChange={(e) => setSessionNameValue(e.target.value)}
-                                onKeyDown={handleSessionNameKeyPress}
-                                onBlur={handleSessionNameSave}
-                                className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white"
-                                style={{ 
-                                  width: `${Math.max(sessionNameValue.length * 20, 100)}px`,
-                                  fontSize: '1.875rem',
-                                  fontWeight: '700',
-                                  lineHeight: '2.25rem'
-                                }}
-                                autoFocus
-                              />
-                            ) : (
-                              session.sessionName
-                            )}
-                          </h2>
-                        </>
-                      )}
-                    </div>
-                    {session?.sessionName && !isEditingSessionName && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleSessionNameEdit}
-                        className="opacity-60 hover:opacity-100 p-1 ml-2"
-                        title="Edit session name"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <h2 className="text-3xl font-bold dark:text-white">
+                    {project.name}
+                  </h2>
                 </div>
                 <div className="flex items-start space-x-2">
                   {project.description ? (
@@ -5450,18 +5410,6 @@ Thank you for your assistance.`;
             <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">Sections</p>
             <nav className="space-y-0.5">
               <button
-                onClick={() => scrollToSection('session-info')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
-                  activeTab === 'session-info'
-                    ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
-                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
-                }`}
-              >
-                <Info className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Session Info</span>
-              </button>
-
-              <button
                 onClick={() => scrollToSection('documents')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
                   activeTab === 'documents'
@@ -5521,9 +5469,41 @@ Thank you for your assistance.`;
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
-          {/* Session Action Bar */}
-          <div className="flex items-center justify-end mb-4">
-            <div className="flex items-center gap-3">
+          {/* Session Name + Action Bar */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#4F63A4' }}></div>
+              {isEditingSessionName ? (
+                <Input
+                  value={sessionNameValue}
+                  onChange={(e) => setSessionNameValue(e.target.value)}
+                  onKeyDown={handleSessionNameKeyPress}
+                  onBlur={handleSessionNameSave}
+                  className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white text-lg font-semibold"
+                  style={{ 
+                    width: `${Math.max(sessionNameValue.length * 10, 100)}px`,
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    lineHeight: '1.75rem'
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <h2 className="text-lg font-semibold dark:text-white truncate">{session?.sessionName || 'Untitled Session'}</h2>
+              )}
+              {!isEditingSessionName && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleSessionNameEdit}
+                  className="opacity-40 hover:opacity-100 p-1 flex-shrink-0"
+                  title="Edit session name"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
               {getVerificationProgress().percentage === 100 ? (
                 <CheckCircle className="h-4 w-4 text-green-600" />
               ) : (
@@ -5564,91 +5544,80 @@ Thank you for your assistance.`;
             </div>
           </div>
 
-            {/* Session Info Section */}
-            <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-6">
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection('session-info')}>
-                <div className="flex items-center gap-2">
-                  {collapsedSections.has('session-info') ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                  <h2 className="text-2xl font-bold dark:text-white">Session Info</h2>
-                </div>
-              </div>
-              {!collapsedSections.has('session-info') && (
-                <Card className="rounded-tl-none ml-0 bg-white dark:bg-slate-900 border-[#4F63A4]/30">
-                  <CardContent className="pt-5 pb-5">
-                    {sourceEmail ? (
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
-                          <Mail className="h-5 w-5 text-[#4F63A4]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-baseline gap-x-2">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
-                            {sourceEmail.receivedAt && (
-                              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(sourceEmail.receivedAt).toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 font-medium">{sourceEmail.subject || 'No subject'}</p>
-                          {sourceEmail.emailBody && (
-                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                              {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
-                                <iframe
-                                  srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
-                                  className="w-full border-0 rounded-md bg-gray-50 dark:bg-gray-800/30"
-                                  style={{ minHeight: '80px', maxHeight: '400px' }}
-                                  sandbox="allow-same-origin"
-                                  title="Email content"
-                                  onLoad={(e) => {
-                                    const iframe = e.target as HTMLIFrameElement;
-                                    if (iframe.contentDocument) {
-                                      const height = Math.min(iframe.contentDocument.body.scrollHeight + 16, 400);
-                                      iframe.style.height = `${height}px`;
-                                    }
-                                  }}
-                                />
-                              ) : (
-                                <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                  {sourceEmail.emailBody}
-                                </div>
-                              )}
+            {/* Session Info - Always visible, no title */}
+            <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-4">
+              <div className="py-3">
+                {sourceEmail ? (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
+                      <Mail className="h-4 w-4 text-[#4F63A4]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
+                        {sourceEmail.receivedAt && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(sourceEmail.receivedAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{sourceEmail.subject || 'No subject'}</p>
+                      {sourceEmail.emailBody && (
+                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                          {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
+                            <iframe
+                              srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
+                              className="w-full border-0 rounded-md bg-gray-50 dark:bg-gray-800/30"
+                              style={{ minHeight: '80px', maxHeight: '400px' }}
+                              sandbox="allow-same-origin"
+                              title="Email content"
+                              onLoad={(e) => {
+                                const iframe = e.target as HTMLIFrameElement;
+                                if (iframe.contentDocument) {
+                                  const height = Math.min(iframe.contentDocument.body.scrollHeight + 16, 400);
+                                  iframe.style.height = `${height}px`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                              {sourceEmail.emailBody}
                             </div>
                           )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
-                          <Info className="h-5 w-5 text-[#4F63A4]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session?.sessionName || 'Untitled Session'}</p>
-                          {session?.description && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{session.description}</p>
-                          )}
-                          {session?.createdAt && (
-                            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-2">
-                              <Clock className="h-3 w-3" />
-                              Created {new Date(session.createdAt).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
+                      <Info className="h-4 w-4 text-[#4F63A4]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {session?.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{session.description}</p>
+                      )}
+                      {session?.createdAt && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3" />
+                          Created {new Date(session.createdAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
+            <hr className="border-gray-200 dark:border-gray-700 mb-6" />
 
             {/* Documents Section */}
             <div ref={el => { sectionRefs.current['documents'] = el; }}>
-              <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection('documents')}>
+              <div className="flex items-center justify-between mb-3 cursor-pointer" onClick={() => toggleSection('documents')}>
                 <div className="flex items-center gap-2">
-                  {collapsedSections.has('documents') ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4F63A4' }}></div>
-                  <h2 className="text-2xl font-bold dark:text-white">Documents</h2>
+                  {collapsedSections.has('documents') ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Documents</h3>
                 </div>
               </div>
               {!collapsedSections.has('documents') && (
@@ -5782,29 +5751,11 @@ Thank you for your assistance.`;
 
               return (
                 <div key={currentStep.id} ref={el => { sectionRefs.current[stepName] = el; }} className="mt-6">
-                  <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => toggleSection(stepName)}>
+                  <hr className="border-gray-200 dark:border-gray-700 mb-6" />
+                  <div className="flex items-center justify-between mb-3 cursor-pointer" onClick={() => toggleSection(stepName)}>
                     <div className="flex items-center gap-2">
-                      {collapsedSections.has(stepName) ? <ChevronRight className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: (() => {
-                        if (currentStep?.values) {
-                          const allColumnsValid = currentStep.values.every(column => {
-                            const columnName = column.valueName;
-                            const columnValidations = validations.filter(v => 
-                              v.fieldName?.includes(`${stepName}.${columnName}[`) &&
-                              v.extractedValue !== null && 
-                              v.extractedValue !== undefined && 
-                              v.extractedValue !== "" && 
-                              v.extractedValue !== "null" && 
-                              v.extractedValue !== "undefined"
-                            );
-                            return columnValidations.length > 0 && 
-                                   columnValidations.every(v => v.validationStatus === 'valid');
-                          });
-                          return allColumnsValid ? '#10b981' : '#4F63A4';
-                        }
-                        return '#4F63A4';
-                      })() }}></div>
-                      <h2 className="text-2xl font-bold dark:text-white">{stepName}</h2>
+                      {collapsedSections.has(stepName) ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                      <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">{stepName}</h3>
                     </div>
                   </div>
 
