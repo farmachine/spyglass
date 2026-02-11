@@ -36,18 +36,37 @@ const SEARCHED_ICON = createColoredIcon("#4F63A4", [30, 49]);
 const NEARBY_ICON = createColoredIcon("#6B7280", [25, 41]);
 const SELECTED_ICON = createColoredIcon("#16a34a", [30, 49]);
 
-const CATEGORY_COLORS = [
-  "#e11d48", "#2563eb", "#d97706", "#059669", "#7c3aed",
-  "#db2777", "#0891b2", "#65a30d", "#c2410c", "#4f46e5",
-  "#0d9488", "#b91c1c", "#1d4ed8", "#a16207", "#15803d",
-  "#ea580c", "#0284c7", "#4338ca", "#be123c", "#047857",
-  "#7e22ce", "#0369a1", "#b45309", "#dc2626", "#16a34a",
-  "#9333ea", "#0e7490", "#ca8a04", "#e74694", "#0f766e",
-  "#6d28d9", "#1e40af", "#92400e", "#9f1239", "#166534",
-  "#5b21b6", "#075985", "#854d0e", "#c026d3", "#115e59",
-  "#a21caf", "#1e3a8a", "#78350f", "#831843", "#14532d",
-  "#86198f", "#0c4a6e", "#713f12", "#9d174d", "#064e3b",
+const CATEGORY_COLORS_POOL = [
+  "#e11d48", "#2563eb", "#16a34a", "#d97706", "#7c3aed",
+  "#0891b2", "#db2777", "#65a30d", "#c2410c", "#4f46e5",
+  "#0d9488", "#b91c1c", "#0284c7", "#a16207", "#15803d",
+  "#ea580c", "#4338ca", "#be123c", "#047857", "#7e22ce",
+  "#0369a1", "#b45309", "#dc2626", "#9333ea", "#0e7490",
+  "#ca8a04", "#e74694", "#0f766e", "#6d28d9", "#1e40af",
+  "#92400e", "#9f1239", "#166534", "#5b21b6", "#075985",
+  "#854d0e", "#c026d3", "#115e59", "#a21caf", "#1e3a8a",
+  "#78350f", "#831843", "#14532d", "#86198f", "#0c4a6e",
+  "#713f12", "#9d174d", "#064e3b", "#1d4ed8", "#059669",
 ];
+
+function pickSpacedColors(count: number): string[] {
+  if (count <= 0) return [];
+  if (count >= CATEGORY_COLORS_POOL.length) return [...CATEGORY_COLORS_POOL];
+  const highContrastPalette = [
+    "#e11d48", "#2563eb", "#16a34a", "#d97706", "#7c3aed",
+    "#0891b2", "#db2777", "#c2410c", "#4f46e5", "#0d9488",
+    "#b91c1c", "#65a30d", "#9333ea", "#0e7490", "#ea580c",
+  ];
+  if (count <= highContrastPalette.length) {
+    return highContrastPalette.slice(0, count);
+  }
+  const step = CATEGORY_COLORS_POOL.length / count;
+  const result: string[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push(CATEGORY_COLORS_POOL[Math.floor(i * step)]);
+  }
+  return result;
+}
 
 const RADIUS_KM = 3;
 
@@ -230,8 +249,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     });
     const colorMap = new Map<string, string>();
     const sorted = Array.from(uniqueCategories).sort();
+    const pickedColors = pickSpacedColors(sorted.length);
     sorted.forEach((cat, i) => {
-      colorMap.set(cat, CATEGORY_COLORS[i % CATEGORY_COLORS.length]);
+      colorMap.set(cat, pickedColors[i]);
     });
     return colorMap;
   }, [categoryColumn, safeData]);
