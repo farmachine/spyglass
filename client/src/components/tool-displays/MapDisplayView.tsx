@@ -692,15 +692,22 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       markersRef.current = markers;
 
       const legendMap = new Map<string, string>();
-      const allCatsOnMap = new Set(plottedCats);
-      if (searchedRecord && categoryColumn && searchedRecord[categoryColumn]) {
-        allCatsOnMap.add(searchedRecord[categoryColumn].toString());
+      if (categoryColumn) {
+        const allCatsOnMap = new Set<string>();
+        filteredNearby.forEach(record => {
+          const val = record[categoryColumn];
+          if (val != null && val !== '') allCatsOnMap.add(val.toString());
+        });
+        if (searchedRecord && searchedRecord[categoryColumn]) {
+          allCatsOnMap.add(searchedRecord[categoryColumn].toString());
+        }
+        const sortedCats = Array.from(allCatsOnMap).sort();
+        const fallbackColors = pickSpacedColors(sortedCats.length);
+        sortedCats.forEach((cat, i) => {
+          const color = colorMapSnapshot.get(cat) || fallbackColors[i] || '#6B7280';
+          legendMap.set(cat, color);
+        });
       }
-      const sortedCats = Array.from(allCatsOnMap).sort();
-      sortedCats.forEach(cat => {
-        const color = colorMapSnapshot.get(cat);
-        if (color) legendMap.set(cat, color);
-      });
 
       if (bounds.length > 0) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
