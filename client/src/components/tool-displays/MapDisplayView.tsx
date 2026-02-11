@@ -692,7 +692,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       markersRef.current = markers;
 
       const legendMap = new Map<string, string>();
-      const sortedCats = Array.from(plottedCats).sort();
+      const allCatsOnMap = new Set(plottedCats);
+      if (searchedRecord && categoryColumn && searchedRecord[categoryColumn]) {
+        allCatsOnMap.add(searchedRecord[categoryColumn].toString());
+      }
+      const sortedCats = Array.from(allCatsOnMap).sort();
       sortedCats.forEach(cat => {
         const color = colorMapSnapshot.get(cat);
         if (color) legendMap.set(cat, color);
