@@ -534,6 +534,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
 
+    const colorMapSnapshot = new Map(categoryColorMap);
+
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -611,7 +613,16 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         const coords = getRecordCoords(record);
         if (!coords) return;
 
-        const catIcon = getCategoryIconRef.current(record);
+        let catIcon: L.DivIcon | null = null;
+        if (categoryColumn && colorMapSnapshot.size > 0) {
+          const catVal = record[categoryColumn];
+          if (catVal != null && catVal !== '') {
+            const catColor = colorMapSnapshot.get(catVal.toString());
+            if (catColor) {
+              catIcon = createColoredIcon(catColor, [25, 41]);
+            }
+          }
+        }
         const defaultIcon = catIcon || NEARBY_ICON;
         const marker = L.marker([coords.lat, coords.lng], { icon: defaultIcon }).addTo(map);
         (marker as any)._recordData = record;
@@ -621,7 +632,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         let popupContent = "";
         if (categoryColumn && record[categoryColumn]) {
           const catVal = record[categoryColumn].toString();
-          const catColor = categoryColorMapRef.current.get(catVal) || '#6B7280';
+          const catColor = colorMapSnapshot.get(catVal) || '#6B7280';
           popupContent += `<div style="font-size:11px;color:${catColor};font-weight:600;margin-bottom:2px;">${getDisplayNameRef.current(categoryColumn)}: ${catVal}</div>`;
         }
         if (label) popupContent += `<strong>${label}</strong>`;
@@ -663,7 +674,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       const legendMap = new Map<string, string>();
       const sortedCats = Array.from(plottedCats).sort();
       sortedCats.forEach(cat => {
-        const color = categoryColorMapRef.current.get(cat);
+        const color = colorMapSnapshot.get(cat);
         if (color) legendMap.set(cat, color);
       });
 
@@ -689,7 +700,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn, categoryColorMap]);
 
   if (!mapConfig) return null;
 
