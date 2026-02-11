@@ -40,6 +40,13 @@ const CATEGORY_COLORS = [
   "#e11d48", "#2563eb", "#d97706", "#059669", "#7c3aed",
   "#db2777", "#0891b2", "#65a30d", "#c2410c", "#4f46e5",
   "#0d9488", "#b91c1c", "#1d4ed8", "#a16207", "#15803d",
+  "#ea580c", "#0284c7", "#4338ca", "#be123c", "#047857",
+  "#7e22ce", "#0369a1", "#b45309", "#dc2626", "#16a34a",
+  "#9333ea", "#0e7490", "#ca8a04", "#e74694", "#0f766e",
+  "#6d28d9", "#1e40af", "#92400e", "#9f1239", "#166534",
+  "#5b21b6", "#075985", "#854d0e", "#c026d3", "#115e59",
+  "#a21caf", "#1e3a8a", "#78350f", "#831843", "#14532d",
+  "#86198f", "#0c4a6e", "#713f12", "#9d174d", "#064e3b",
 ];
 
 const RADIUS_KM = 3;
@@ -481,12 +488,14 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     );
   }, [nearbyRecords, searchTerm, columns]);
 
-  const [plottedCategories, setPlottedCategories] = useState<Set<string>>(new Set());
+  const plottedCategoriesRef = useRef<Set<string>>(new Set());
+  const [plottedCategoriesVersion, setPlottedCategoriesVersion] = useState(0);
 
   const visibleCategoryColorMap = useMemo(() => {
-    if (!categoryColumn || categoryColorMap.size === 0 || plottedCategories.size === 0) return new Map<string, string>();
+    void plottedCategoriesVersion;
+    if (!categoryColumn || categoryColorMap.size === 0 || plottedCategoriesRef.current.size === 0) return new Map<string, string>();
     const visibleMap = new Map<string, string>();
-    plottedCategories.forEach(cat => {
+    plottedCategoriesRef.current.forEach(cat => {
       const color = categoryColorMap.get(cat);
       if (color) visibleMap.set(cat, color);
     });
@@ -494,7 +503,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     const result = new Map<string, string>();
     sorted.forEach(([k, v]) => result.set(k, v));
     return result;
-  }, [categoryColumn, categoryColorMap, plottedCategories]);
+  }, [categoryColumn, categoryColorMap, plottedCategoriesVersion]);
 
   const handleSelectRecord = useCallback(
     (record: any) => {
@@ -523,6 +532,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setSearchTerm("");
       setGeocodedPoints(new Map());
       setMapReady(false);
+      plottedCategoriesRef.current = new Set();
       return;
     }
   }, [isOpen]);
@@ -657,7 +667,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       });
 
       markersRef.current = markers;
-      setPlottedCategories(plottedCats);
+      plottedCategoriesRef.current = plottedCats;
 
       if (bounds.length > 0) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
@@ -668,6 +678,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           mapInstanceRef.current.invalidateSize();
         }
         setMapReady(true);
+        setPlottedCategoriesVersion(v => v + 1);
       }, 200);
     }, 150);
 
