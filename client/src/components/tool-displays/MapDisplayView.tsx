@@ -664,7 +664,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       }
 
       setTimeout(() => {
-        map.invalidateSize();
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
         setMapReady(true);
       }, 200);
     }, 150);
