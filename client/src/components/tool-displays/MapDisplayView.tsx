@@ -640,9 +640,24 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         }
       }
 
+      const usedCoords = new Map<string, number>();
+
       filteredNearby.forEach((record) => {
         const coords = getRecordCoords(record);
         if (!coords) return;
+
+        const coordKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
+        const overlapCount = usedCoords.get(coordKey) || 0;
+        usedCoords.set(coordKey, overlapCount + 1);
+
+        let adjustedLat = coords.lat;
+        let adjustedLng = coords.lng;
+        if (overlapCount > 0) {
+          const angle = (overlapCount * 137.508) * (Math.PI / 180);
+          const radius = 0.0003 * Math.ceil(overlapCount / 6);
+          adjustedLat += radius * Math.cos(angle);
+          adjustedLng += radius * Math.sin(angle);
+        }
 
         let catIcon: L.DivIcon | null = null;
         if (categoryColumn) {
@@ -655,7 +670,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           }
         }
         const defaultIcon = catIcon || NEARBY_ICON;
-        const marker = L.marker([coords.lat, coords.lng], { icon: defaultIcon }).addTo(map);
+        const marker = L.marker([adjustedLat, adjustedLng], { icon: defaultIcon }).addTo(map);
         (marker as any)._recordData = record;
         (marker as any)._defaultIcon = defaultIcon;
 
