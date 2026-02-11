@@ -481,24 +481,20 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     );
   }, [nearbyRecords, searchTerm, columns]);
 
+  const [plottedCategories, setPlottedCategories] = useState<Set<string>>(new Set());
+
   const visibleCategoryColorMap = useMemo(() => {
-    if (!categoryColumn || categoryColorMap.size === 0) return new Map<string, string>();
-    const visibleRecords = [...filteredNearby];
-    if (searchedRecord) visibleRecords.push(searchedRecord);
+    if (!categoryColumn || categoryColorMap.size === 0 || plottedCategories.size === 0) return new Map<string, string>();
     const visibleMap = new Map<string, string>();
-    visibleRecords.forEach(record => {
-      const val = record[categoryColumn];
-      if (val != null && val !== '') {
-        const key = val.toString();
-        const color = categoryColorMap.get(key);
-        if (color) visibleMap.set(key, color);
-      }
+    plottedCategories.forEach(cat => {
+      const color = categoryColorMap.get(cat);
+      if (color) visibleMap.set(cat, color);
     });
     const sorted = Array.from(visibleMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     const result = new Map<string, string>();
     sorted.forEach(([k, v]) => result.set(k, v));
     return result;
-  }, [categoryColumn, categoryColorMap, filteredNearby, searchedRecord]);
+  }, [categoryColumn, categoryColorMap, plottedCategories]);
 
   const handleSelectRecord = useCallback(
     (record: any) => {
@@ -562,6 +558,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
       const markers: L.Marker[] = [];
       const bounds: L.LatLngExpression[] = [];
+      const plottedCats = new Set<string>();
 
       if (searchedRecord) {
         const coords = getRecordCoords(searchedRecord);
@@ -602,6 +599,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           markers.push(searchedMarker);
           (searchedMarker as any)._recordData = searchedRecord;
           bounds.push([coords.lat, coords.lng]);
+          if (categoryColumn && searchedRecord[categoryColumn]) {
+            plottedCats.add(searchedRecord[categoryColumn].toString());
+          }
         }
       }
 
@@ -651,9 +651,13 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
         markers.push(marker);
         bounds.push([coords.lat, coords.lng]);
+        if (categoryColumn && record[categoryColumn]) {
+          plottedCats.add(record[categoryColumn].toString());
+        }
       });
 
       markersRef.current = markers;
+      setPlottedCategories(plottedCats);
 
       if (bounds.length > 0) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
