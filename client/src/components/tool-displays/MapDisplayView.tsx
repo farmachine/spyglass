@@ -164,6 +164,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const mapConfig = displayConfig.mapConfig;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const getCategoryIconRef = useRef<(record: any) => L.DivIcon | L.Icon | null>(() => null);
+  const categoryColorMapRef = useRef<Map<string, string>>(new Map());
+  const getDisplayNameRef = useRef<(col: string) => string>((col) => col);
   const markersRef = useRef<L.Marker[]>([]);
   const radiusCircleRef = useRef<L.Circle | null>(null);
 
@@ -242,6 +245,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     if (!color) return null;
     return createColoredIcon(color, [25, 41]);
   }, [categoryColumn, categoryColorMap]);
+
+  getCategoryIconRef.current = getCategoryIcon;
+  categoryColorMapRef.current = categoryColorMap;
+  getDisplayNameRef.current = getDisplayName;
 
   const resolvedInputValues = useMemo(() => {
     if (!initialFilters || !currentInputValues) return currentInputValues || {};
@@ -488,22 +495,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     );
   }, [nearbyRecords, searchTerm, columns]);
 
-  const plottedCategoriesRef = useRef<Set<string>>(new Set());
-  const [plottedCategoriesVersion, setPlottedCategoriesVersion] = useState(0);
-
-  const visibleCategoryColorMap = useMemo(() => {
-    void plottedCategoriesVersion;
-    if (!categoryColumn || categoryColorMap.size === 0 || plottedCategoriesRef.current.size === 0) return new Map<string, string>();
-    const visibleMap = new Map<string, string>();
-    plottedCategoriesRef.current.forEach(cat => {
-      const color = categoryColorMap.get(cat);
-      if (color) visibleMap.set(cat, color);
-    });
-    const sorted = Array.from(visibleMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    const result = new Map<string, string>();
-    sorted.forEach(([k, v]) => result.set(k, v));
-    return result;
-  }, [categoryColumn, categoryColorMap, plottedCategoriesVersion]);
+  const [visibleCategoryColorMap, setVisibleCategoryColorMap] = useState<Map<string, string>>(new Map());
 
   const handleSelectRecord = useCallback(
     (record: any) => {
@@ -532,7 +524,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setSearchTerm("");
       setGeocodedPoints(new Map());
       setMapReady(false);
-      plottedCategoriesRef.current = new Set();
+      setVisibleCategoryColorMap(new Map());
       return;
     }
   }, [isOpen]);
@@ -589,7 +581,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           if (label) popupContent += `<br/><strong>${label}</strong>`;
           columns.slice(0, 6).forEach((col) => {
             const val = searchedRecord[col] ?? "";
-            if (val) popupContent += `<br/><span style="color:#666;">${getDisplayName(col)}:</span> ${val}`;
+            if (val) popupContent += `<br/><span style="color:#666;">${getDisplayNameRef.current(col)}:</span> ${val}`;
           });
           popupContent += `</div>`;
           searchedMarker.bindPopup(popupContent);
@@ -599,7 +591,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
               if (rd === searchedRecord) {
                 m.setIcon(SELECTED_ICON);
               } else {
-                const catIcon = getCategoryIcon(rd);
+                const catIcon = getCategoryIconRef.current(rd);
                 m.setIcon(catIcon || NEARBY_ICON);
               }
             });
@@ -619,7 +611,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         const coords = getRecordCoords(record);
         if (!coords) return;
 
-        const catIcon = getCategoryIcon(record);
+        const catIcon = getCategoryIconRef.current(record);
         const defaultIcon = catIcon || NEARBY_ICON;
         const marker = L.marker([coords.lat, coords.lng], { icon: defaultIcon }).addTo(map);
         (marker as any)._recordData = record;
@@ -629,8 +621,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         let popupContent = "";
         if (categoryColumn && record[categoryColumn]) {
           const catVal = record[categoryColumn].toString();
-          const catColor = categoryColorMap.get(catVal) || '#6B7280';
-          popupContent += `<div style="font-size:11px;color:${catColor};font-weight:600;margin-bottom:2px;">${getDisplayName(categoryColumn)}: ${catVal}</div>`;
+          const catColor = categoryColorMapRef.current.get(catVal) || '#6B7280';
+          popupContent += `<div style="font-size:11px;color:${catColor};font-weight:600;margin-bottom:2px;">${getDisplayNameRef.current(categoryColumn)}: ${catVal}</div>`;
         }
         if (label) popupContent += `<strong>${label}</strong>`;
         const displayFields = mapConfig.popupFields && mapConfig.popupFields.length > 0
@@ -638,7 +630,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           : columns.slice(0, 5);
         popupContent += "<div style='margin-top:4px;font-size:12px;'>";
         displayFields.forEach((field: string) => {
-          const displayName = getDisplayName(field);
+          const displayName = getDisplayNameRef.current(field);
           const val = record[field] ?? "";
           if (val) popupContent += `<div><b>${displayName}:</b> ${val}</div>`;
         });
@@ -651,7 +643,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             if (rd === searchedRecord) {
               m.setIcon(SEARCHED_ICON);
             } else {
-              const mCatIcon = getCategoryIcon(rd);
+              const mCatIcon = getCategoryIconRef.current(rd);
               m.setIcon(mCatIcon || NEARBY_ICON);
             }
           });
@@ -667,7 +659,13 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       });
 
       markersRef.current = markers;
-      plottedCategoriesRef.current = plottedCats;
+
+      const legendMap = new Map<string, string>();
+      const sortedCats = Array.from(plottedCats).sort();
+      sortedCats.forEach(cat => {
+        const color = categoryColorMapRef.current.get(cat);
+        if (color) legendMap.set(cat, color);
+      });
 
       if (bounds.length > 0) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
@@ -678,7 +676,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           mapInstanceRef.current.invalidateSize();
         }
         setMapReady(true);
-        setPlottedCategoriesVersion(v => v + 1);
+        setVisibleCategoryColorMap(legendMap);
       }, 200);
     }, 150);
 
@@ -691,7 +689,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, getCategoryIcon, categoryColumn, categoryColorMap, getDisplayName]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn]);
 
   if (!mapConfig) return null;
 
