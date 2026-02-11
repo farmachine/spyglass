@@ -1727,13 +1727,14 @@ export default function SessionView() {
     rowIdentifierId: string | null;
     datasourceData: any[];
     columnMappings: Record<string, string>;
-    filters: Array<{column: string; operator: string; inputField: string; fuzziness: number; role?: string}>;
+    filters: Array<{column: string; operator: string; inputField: string; fuzziness: number}>;
     outputColumn: string;
     currentInputValues: Record<string, string>;
     fieldName: string;
     collectionName: string;
     recordIndex: number;
     displayConfig: ToolDisplayConfig;
+    categoryColumn?: string;
   } | null>(null);
 
   // Helper function to find schema field data
@@ -6424,7 +6425,8 @@ Thank you for your assistance.`;
                                                                       fieldName: fieldName,
                                                                       collectionName: currentStep?.stepName || '',
                                                                       recordIndex: 0,
-                                                                      displayConfig: toolDisplayConfig as ToolDisplayConfig
+                                                                      displayConfig: toolDisplayConfig as ToolDisplayConfig,
+                                                                      categoryColumn: inputValues._categoryColumn || undefined
                                                                     });
                                                                   } catch (error) {
                                                                     console.error('Error loading datasource:', error);
@@ -7051,7 +7053,8 @@ Thank you for your assistance.`;
                                                               fieldName: columnName,
                                                               collectionName: collection.collectionName,
                                                               recordIndex: originalIndex,
-                                                              displayConfig: colDisplayConfig as ToolDisplayConfig
+                                                              displayConfig: colDisplayConfig as ToolDisplayConfig,
+                                                              categoryColumn: inputValues._categoryColumn || undefined
                                                             });
                                                           } catch (error) {
                                                             console.error('Error loading datasource:', error);
@@ -7731,6 +7734,7 @@ Thank you for your assistance.`;
           outputColumn={toolDisplayModal.outputColumn}
           currentInputValues={toolDisplayModal.currentInputValues}
           displayConfig={toolDisplayModal.displayConfig}
+          categoryColumn={toolDisplayModal.categoryColumn}
         />
       )}
 

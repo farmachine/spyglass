@@ -151,6 +151,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     outputColumn,
     currentInputValues,
     displayConfig,
+    categoryColumn: categoryColumnProp,
   } = props;
 
   const mapConfig = displayConfig.mapConfig;
@@ -190,8 +191,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const addressColumns = useMemo(() => {
     if (!initialFilters || initialFilters.length === 0) return null;
     const cityFilter = initialFilters.find(f => (f as any).role === 'city');
-    const streetFilter = initialFilters.find(f => (f as any).role === 'street');
     if (cityFilter) {
+      const streetFilter = initialFilters.find(f => (f as any).role === 'street');
       return {
         cityColumn: cityFilter.column,
         streetColumn: streetFilter?.column,
@@ -204,10 +205,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   }, [initialFilters]);
 
   const categoryColumn = useMemo(() => {
+    if (categoryColumnProp) return categoryColumnProp;
     if (!initialFilters) return null;
     const catFilter = initialFilters.find(f => (f as any).role === 'category');
     return catFilter?.column || null;
-  }, [initialFilters]);
+  }, [categoryColumnProp, initialFilters]);
 
   const categoryColorMap = useMemo(() => {
     if (!categoryColumn || safeData.length === 0) return new Map<string, string>();

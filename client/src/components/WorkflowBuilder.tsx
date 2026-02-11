@@ -1965,12 +1965,23 @@ function ValueCard({
                   const columnMappings = (selectedDataSource?.columnMappings as Record<string, string>) || {};
                   const rawSelectedColumns = (value.inputValues as Record<string, any>)?._searchByColumns || [];
                   
+                  // Migrate legacy role-based category to _categoryColumn
+                  const currentInputValues = (value.inputValues as Record<string, any>) || {};
+                  if (!currentInputValues._categoryColumn) {
+                    const legacyCat = rawSelectedColumns.find((item: any) => typeof item === 'object' && item.role === 'category');
+                    if (legacyCat) {
+                      onUpdate({ inputValues: { ...currentInputValues, _categoryColumn: legacyCat.column } });
+                    }
+                  }
+                  
                   // Normalize to new format: {column, operator, inputField, fuzziness}
                   const selectedColumns: Array<{column: string, operator: string, inputField: string, fuzziness: number}> = 
-                    rawSelectedColumns.map((item: any) => 
+                    rawSelectedColumns
+                    .filter((item: any) => !(typeof item === 'object' && item.role === 'category'))
+                    .map((item: any) => 
                       typeof item === 'string' 
                         ? { column: item, operator: 'equals', inputField: '', fuzziness: 0 }
-                        : { ...item, fuzziness: item.fuzziness ?? 0 }
+                        : { column: item.column, operator: item.operator || 'equals', inputField: item.inputField || '', fuzziness: item.fuzziness ?? 0 }
                     );
                   
                   // Get available input fields from previous values in step (expand info page fields for database lookup)
@@ -1993,27 +2004,6 @@ function ValueCard({
                       <Label className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">
                         Search By Columns (filter priority order)
                       </Label>
-                      {(() => {
-                        const toolDC = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
-                        if (toolDC?.modalType === 'map') {
-                          const hasCity = selectedColumns.some((c: any) => c.role === 'city');
-                          const hasStreet = selectedColumns.some((c: any) => c.role === 'street');
-                          return (
-                            <div className="mb-2">
-                              <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
-                                Assign roles to columns: City and Street are used for geographic search. Category (optional) color-codes pins on the map.
-                              </p>
-                              {(!hasCity || !hasStreet) && selectedColumns.length > 0 && (
-                                <p className="text-[10px] text-red-500 dark:text-red-400 mt-1">
-                                  {!hasCity ? 'Please assign a City role to one column. ' : ''}
-                                  {!hasStreet ? 'Please assign a Street role to one column.' : ''}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
                       
                       {/* Selected columns with order */}
                       {selectedColumns.length > 0 && (
@@ -2032,42 +2022,18 @@ function ValueCard({
                                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[60px]" title={filterConfig.column !== displayName ? `${displayName} (${filterConfig.column})` : filterConfig.column}>
                                     {displayName}
                                     {(() => {
-                                      const toolDC2 = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
-                                      if (toolDC2?.modalType === 'map' && (filterConfig as any).role) {
-                                        const roleLabel = (filterConfig as any).role === 'city' ? 'City' : (filterConfig as any).role === 'street' ? 'Street' : 'Category';
-                                        const roleColor = (filterConfig as any).role === 'category' ? 'text-purple-500' : 'text-[#4F63A4] dark:text-slate-400';
-                                        return <span className={`ml-1 ${roleColor} text-[10px]`}>({roleLabel})</span>;
+                                      const isMapTool = (selectedTool as any)?.displayConfig?.modalType === 'map' || (selectedTool as any)?.display_config?.modalType === 'map';
+                                      if (isMapTool) {
+                                        const posLabel = index === 0 ? 'City' : index === 1 ? 'Street' : null;
+                                        if (posLabel) return <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">({posLabel})</span>;
+                                        return null;
                                       }
-                                      if (!((selectedTool as any)?.displayConfig?.modalType === 'map' || (selectedTool as any)?.display_config?.modalType === 'map') && index === 0) {
+                                      if (index === 0) {
                                         return <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">(Primary)</span>;
                                       }
                                       return null;
                                     })()}
                                   </span>
-                                  
-                                  {/* Role selector for map tools */}
-                                  {(() => {
-                                    const toolDC3 = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
-                                    if (toolDC3?.modalType === 'map') {
-                                      return (
-                                        <select
-                                          value={(filterConfig as any).role || ''}
-                                          onChange={(e) => {
-                                            const newColumns = [...selectedColumns];
-                                            newColumns[index] = { ...filterConfig, role: e.target.value || undefined } as any;
-                                            onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
-                                          }}
-                                          className="text-[10px] px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                                        >
-                                          <option value="">Role...</option>
-                                          <option value="city">City</option>
-                                          <option value="street">Street</option>
-                                          <option value="category">Category</option>
-                                        </select>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
                                   
                                   {/* Operator selector */}
                                   <select
@@ -2201,6 +2167,41 @@ function ValueCard({
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Click to add columns. First column = primary filter (most restrictive).
                       </p>
+                      
+                      {/* Categorization Column - only for map tools */}
+                      {(() => {
+                        const toolDCCat = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
+                        if (toolDCCat?.modalType === 'map') {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1.5 block">
+                                Categorization Column <span className="text-gray-400 dark:text-gray-500">(optional)</span>
+                              </Label>
+                              <select
+                                value={(value.inputValues as Record<string, any>)?._categoryColumn || ''}
+                                onChange={(e) => {
+                                  onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _categoryColumn: e.target.value || '' } });
+                                }}
+                                className="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              >
+                                <option value="">None</option>
+                                {columns.map((col) => {
+                                  const displayName = columnMappings[col] || col;
+                                  return (
+                                    <option key={col} value={col}>
+                                      {displayName} {col !== displayName ? `(${col})` : ''}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Color-codes map pins by category values.
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       {/* Output Column Selector */}
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
