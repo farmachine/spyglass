@@ -7,7 +7,7 @@ interface ToolResultModalProps {
   onSelect: (value: string) => void;
   datasourceData: any[];
   columnMappings: Record<string, string>;
-  initialFilters: Array<{column: string; operator: string; inputField: string; fuzziness: number}>;
+  initialFilters: Array<{column: string; operator: string; inputField: string; fuzziness: number; role?: string}>;
   outputColumn: string;
   currentInputValues: Record<string, string>;
   displayConfig: ToolDisplayConfig;

@@ -1996,10 +1996,20 @@ function ValueCard({
                       {(() => {
                         const toolDC = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
                         if (toolDC?.modalType === 'map') {
+                          const hasCity = selectedColumns.some((c: any) => c.role === 'city');
+                          const hasStreet = selectedColumns.some((c: any) => c.role === 'street');
                           return (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
-                              For map lookup: select the City column first, then the Street column. The first column maps to City and the second to Street for geographic search.
-                            </p>
+                            <div className="mb-2">
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                                Assign roles to columns: City and Street are used for geographic search. Category (optional) color-codes pins on the map.
+                              </p>
+                              {(!hasCity || !hasStreet) && selectedColumns.length > 0 && (
+                                <p className="text-[10px] text-red-500 dark:text-red-400 mt-1">
+                                  {!hasCity ? 'Please assign a City role to one column. ' : ''}
+                                  {!hasStreet ? 'Please assign a Street role to one column.' : ''}
+                                </p>
+                              )}
+                            </div>
                           );
                         }
                         return null;
@@ -2021,8 +2031,43 @@ function ValueCard({
                                   </span>
                                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[60px]" title={filterConfig.column !== displayName ? `${displayName} (${filterConfig.column})` : filterConfig.column}>
                                     {displayName}
-                                    {index === 0 && <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">(Primary)</span>}
+                                    {(() => {
+                                      const toolDC2 = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
+                                      if (toolDC2?.modalType === 'map' && (filterConfig as any).role) {
+                                        const roleLabel = (filterConfig as any).role === 'city' ? 'City' : (filterConfig as any).role === 'street' ? 'Street' : 'Category';
+                                        const roleColor = (filterConfig as any).role === 'category' ? 'text-purple-500' : 'text-[#4F63A4] dark:text-slate-400';
+                                        return <span className={`ml-1 ${roleColor} text-[10px]`}>({roleLabel})</span>;
+                                      }
+                                      if (!((selectedTool as any)?.displayConfig?.modalType === 'map' || (selectedTool as any)?.display_config?.modalType === 'map') && index === 0) {
+                                        return <span className="ml-1 text-[#4F63A4] dark:text-slate-400 text-[10px]">(Primary)</span>;
+                                      }
+                                      return null;
+                                    })()}
                                   </span>
+                                  
+                                  {/* Role selector for map tools */}
+                                  {(() => {
+                                    const toolDC3 = (selectedTool as any)?.displayConfig || (selectedTool as any)?.display_config;
+                                    if (toolDC3?.modalType === 'map') {
+                                      return (
+                                        <select
+                                          value={(filterConfig as any).role || ''}
+                                          onChange={(e) => {
+                                            const newColumns = [...selectedColumns];
+                                            newColumns[index] = { ...filterConfig, role: e.target.value || undefined } as any;
+                                            onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _searchByColumns: newColumns } });
+                                          }}
+                                          className="text-[10px] px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                        >
+                                          <option value="">Role...</option>
+                                          <option value="city">City</option>
+                                          <option value="street">Street</option>
+                                          <option value="category">Category</option>
+                                        </select>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                   
                                   {/* Operator selector */}
                                   <select

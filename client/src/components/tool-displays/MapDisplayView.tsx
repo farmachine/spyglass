@@ -36,6 +36,12 @@ const SEARCHED_ICON = createColoredIcon("#4F63A4", [30, 49]);
 const NEARBY_ICON = createColoredIcon("#6B7280", [25, 41]);
 const SELECTED_ICON = createColoredIcon("#16a34a", [30, 49]);
 
+const CATEGORY_COLORS = [
+  "#e11d48", "#2563eb", "#d97706", "#059669", "#7c3aed",
+  "#db2777", "#0891b2", "#65a30d", "#c2410c", "#4f46e5",
+  "#0d9488", "#b91c1c", "#1d4ed8", "#a16207", "#15803d",
+];
+
 const RADIUS_KM = 3;
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -183,11 +189,49 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
   const addressColumns = useMemo(() => {
     if (!initialFilters || initialFilters.length === 0) return null;
+    const cityFilter = initialFilters.find(f => (f as any).role === 'city');
+    const streetFilter = initialFilters.find(f => (f as any).role === 'street');
+    if (cityFilter) {
+      return {
+        cityColumn: cityFilter.column,
+        streetColumn: streetFilter?.column,
+      };
+    }
     return {
       cityColumn: initialFilters[0]?.column,
       streetColumn: initialFilters.length > 1 ? initialFilters[1]?.column : undefined,
     };
   }, [initialFilters]);
+
+  const categoryColumn = useMemo(() => {
+    if (!initialFilters) return null;
+    const catFilter = initialFilters.find(f => (f as any).role === 'category');
+    return catFilter?.column || null;
+  }, [initialFilters]);
+
+  const categoryColorMap = useMemo(() => {
+    if (!categoryColumn || safeData.length === 0) return new Map<string, string>();
+    const uniqueCategories = new Set<string>();
+    safeData.forEach(record => {
+      const val = record[categoryColumn];
+      if (val != null && val !== '') uniqueCategories.add(val.toString());
+    });
+    const colorMap = new Map<string, string>();
+    const sorted = Array.from(uniqueCategories).sort();
+    sorted.forEach((cat, i) => {
+      colorMap.set(cat, CATEGORY_COLORS[i % CATEGORY_COLORS.length]);
+    });
+    return colorMap;
+  }, [categoryColumn, safeData]);
+
+  const getCategoryIcon = useCallback((record: any) => {
+    if (!categoryColumn) return null;
+    const val = record[categoryColumn];
+    if (val == null || val === '') return null;
+    const color = categoryColorMap.get(val.toString());
+    if (!color) return null;
+    return createColoredIcon(color, [25, 41]);
+  }, [categoryColumn, categoryColorMap]);
 
   const resolvedInputValues = useMemo(() => {
     if (!initialFilters || !currentInputValues) return currentInputValues || {};
@@ -526,7 +570,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
               if (rd === searchedRecord) {
                 m.setIcon(SELECTED_ICON);
               } else {
-                m.setIcon(NEARBY_ICON);
+                const catIcon = getCategoryIcon(rd);
+                m.setIcon(catIcon || NEARBY_ICON);
               }
             });
             searchedMarker.setIcon(SELECTED_ICON);
@@ -542,11 +587,19 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         const coords = getRecordCoords(record);
         if (!coords) return;
 
-        const marker = L.marker([coords.lat, coords.lng], { icon: NEARBY_ICON }).addTo(map);
+        const catIcon = getCategoryIcon(record);
+        const defaultIcon = catIcon || NEARBY_ICON;
+        const marker = L.marker([coords.lat, coords.lng], { icon: defaultIcon }).addTo(map);
         (marker as any)._recordData = record;
+        (marker as any)._defaultIcon = defaultIcon;
 
         const label = mapConfig.labelField ? record[mapConfig.labelField] : "";
         let popupContent = "";
+        if (categoryColumn && record[categoryColumn]) {
+          const catVal = record[categoryColumn].toString();
+          const catColor = categoryColorMap.get(catVal) || '#6B7280';
+          popupContent += `<div style="font-size:11px;color:${catColor};font-weight:600;margin-bottom:2px;">${getDisplayName(categoryColumn)}: ${catVal}</div>`;
+        }
         if (label) popupContent += `<strong>${label}</strong>`;
         const displayFields = mapConfig.popupFields && mapConfig.popupFields.length > 0
           ? mapConfig.popupFields
@@ -566,7 +619,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             if (rd === searchedRecord) {
               m.setIcon(SEARCHED_ICON);
             } else {
-              m.setIcon(NEARBY_ICON);
+              const mCatIcon = getCategoryIcon(rd);
+              m.setIcon(mCatIcon || NEARBY_ICON);
             }
           });
           marker.setIcon(SELECTED_ICON);
@@ -598,7 +652,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, getCategoryIcon, categoryColumn, categoryColorMap, getDisplayName]);
 
   if (!mapConfig) return null;
 
@@ -639,6 +693,19 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
                   {totalNearby} nearby ({RADIUS_KM}km)
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Category Legend */}
+          {!isGeocoding && mapReady && categoryColumn && categoryColorMap.size > 0 && (
+            <div className="flex items-center gap-1 flex-wrap px-1">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mr-1">{getDisplayName(categoryColumn)}:</span>
+              {Array.from(categoryColorMap.entries()).map(([cat, color]) => (
+                <span key={cat} className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5">
+                  <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: color }} />
+                  {cat}
+                </span>
+              ))}
             </div>
           )}
 
@@ -708,7 +775,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
                         if (rd === searchedRecord) {
                           m.setIcon(SEARCHED_ICON);
                         } else {
-                          m.setIcon(NEARBY_ICON);
+                          const catIcon = getCategoryIcon(rd);
+                          m.setIcon(catIcon || NEARBY_ICON);
                         }
                       });
                     }}

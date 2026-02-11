@@ -1727,7 +1727,7 @@ export default function SessionView() {
     rowIdentifierId: string | null;
     datasourceData: any[];
     columnMappings: Record<string, string>;
-    filters: Array<{column: string; operator: string; inputField: string; fuzziness: number}>;
+    filters: Array<{column: string; operator: string; inputField: string; fuzziness: number; role?: string}>;
     outputColumn: string;
     currentInputValues: Record<string, string>;
     fieldName: string;
