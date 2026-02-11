@@ -553,9 +553,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
-    if (categoryColumn && categoryColorMap.size === 0) return;
-
-    const colorMapSnapshot = new Map(categoryColorMap);
 
     const timer = setTimeout(() => {
       if (mapInstanceRef.current) {
@@ -565,6 +562,23 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       if (radiusCircleRef.current) {
         radiusCircleRef.current = null;
       }
+
+      const visibleCats = new Set<string>();
+      if (categoryColumn) {
+        if (searchedRecord && searchedRecord[categoryColumn]) {
+          visibleCats.add(searchedRecord[categoryColumn].toString());
+        }
+        filteredNearby.forEach(record => {
+          const val = record[categoryColumn];
+          if (val != null && val !== '') visibleCats.add(val.toString());
+        });
+      }
+      const sortedVisibleCats = Array.from(visibleCats).sort();
+      const visibleColors = pickSpacedColors(sortedVisibleCats.length);
+      const localColorMap = new Map<string, string>();
+      sortedVisibleCats.forEach((cat, i) => {
+        localColorMap.set(cat, visibleColors[i]);
+      });
 
       const defaultCenter: [number, number] = mapConfig.defaultCenter || [51.1657, 10.4515];
       const defaultZoom = mapConfig.defaultZoom || 6;
@@ -583,7 +597,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
       const markers: L.Marker[] = [];
       const bounds: L.LatLngExpression[] = [];
-      const plottedCats = new Set<string>();
 
       if (searchedRecord) {
         const coords = getRecordCoords(searchedRecord);
@@ -614,8 +627,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
               if (rd === searchedRecord) {
                 m.setIcon(SELECTED_ICON);
               } else {
-                const catIcon = getCategoryIconRef.current(rd);
-                m.setIcon(catIcon || NEARBY_ICON);
+                const catColor = categoryColumn && rd[categoryColumn] ? localColorMap.get(rd[categoryColumn].toString()) : null;
+                m.setIcon(catColor ? createColoredIcon(catColor, [25, 41]) : NEARBY_ICON);
               }
             });
             searchedMarker.setIcon(SELECTED_ICON);
@@ -624,9 +637,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           markers.push(searchedMarker);
           (searchedMarker as any)._recordData = searchedRecord;
           bounds.push([coords.lat, coords.lng]);
-          if (categoryColumn && searchedRecord[categoryColumn]) {
-            plottedCats.add(searchedRecord[categoryColumn].toString());
-          }
         }
       }
 
@@ -635,10 +645,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         if (!coords) return;
 
         let catIcon: L.DivIcon | null = null;
-        if (categoryColumn && colorMapSnapshot.size > 0) {
+        if (categoryColumn) {
           const catVal = record[categoryColumn];
           if (catVal != null && catVal !== '') {
-            const catColor = colorMapSnapshot.get(catVal.toString());
+            const catColor = localColorMap.get(catVal.toString());
             if (catColor) {
               catIcon = createColoredIcon(catColor, [25, 41]);
             }
@@ -653,7 +663,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         let popupContent = "";
         if (categoryColumn && record[categoryColumn]) {
           const catVal = record[categoryColumn].toString();
-          const catColor = colorMapSnapshot.get(catVal) || '#6B7280';
+          const catColor = localColorMap.get(catVal) || '#6B7280';
           popupContent += `<div style="font-size:11px;color:${catColor};font-weight:600;margin-bottom:2px;">${getDisplayNameRef.current(categoryColumn)}: ${catVal}</div>`;
         }
         if (label) popupContent += `<strong>${label}</strong>`;
@@ -675,8 +685,8 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             if (rd === searchedRecord) {
               m.setIcon(SEARCHED_ICON);
             } else {
-              const mCatIcon = getCategoryIconRef.current(rd);
-              m.setIcon(mCatIcon || NEARBY_ICON);
+              const catColor = categoryColumn && rd[categoryColumn] ? localColorMap.get(rd[categoryColumn].toString()) : null;
+              m.setIcon(catColor ? createColoredIcon(catColor, [25, 41]) : NEARBY_ICON);
             }
           });
           marker.setIcon(SELECTED_ICON);
@@ -685,29 +695,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
         markers.push(marker);
         bounds.push([coords.lat, coords.lng]);
-        if (categoryColumn && record[categoryColumn]) {
-          plottedCats.add(record[categoryColumn].toString());
-        }
       });
 
       markersRef.current = markers;
 
-      const legendMap = new Map<string, string>();
-      if (categoryColumn) {
-        const allCatsOnMap = new Set<string>();
-        filteredNearby.forEach(record => {
-          const val = record[categoryColumn];
-          if (val != null && val !== '') allCatsOnMap.add(val.toString());
-        });
-        if (searchedRecord && searchedRecord[categoryColumn]) {
-          allCatsOnMap.add(searchedRecord[categoryColumn].toString());
-        }
-        const sortedCats = Array.from(allCatsOnMap).sort();
-        sortedCats.forEach((cat) => {
-          const color = colorMapSnapshot.get(cat);
-          if (color) legendMap.set(cat, color);
-        });
-      }
+      const legendMap = new Map<string, string>(localColorMap);
 
       if (bounds.length > 0) {
         map.fitBounds(L.latLngBounds(bounds as L.LatLngExpression[]), { padding: [50, 50] });
@@ -731,7 +723,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       radiusCircleRef.current = null;
       markersRef.current = [];
     };
-  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn, categoryColorMap]);
+  }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn]);
 
   if (!mapConfig) return null;
 
