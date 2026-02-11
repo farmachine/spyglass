@@ -226,6 +226,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     return colorMap;
   }, [categoryColumn, safeData]);
 
+
   const getCategoryIcon = useCallback((record: any) => {
     if (!categoryColumn) return null;
     const val = record[categoryColumn];
@@ -480,6 +481,25 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     );
   }, [nearbyRecords, searchTerm, columns]);
 
+  const visibleCategoryColorMap = useMemo(() => {
+    if (!categoryColumn || categoryColorMap.size === 0) return new Map<string, string>();
+    const visibleRecords = [...filteredNearby];
+    if (searchedRecord) visibleRecords.push(searchedRecord);
+    const visibleMap = new Map<string, string>();
+    visibleRecords.forEach(record => {
+      const val = record[categoryColumn];
+      if (val != null && val !== '') {
+        const key = val.toString();
+        const color = categoryColorMap.get(key);
+        if (color) visibleMap.set(key, color);
+      }
+    });
+    const sorted = Array.from(visibleMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    const result = new Map<string, string>();
+    sorted.forEach(([k, v]) => result.set(k, v));
+    return result;
+  }, [categoryColumn, categoryColorMap, filteredNearby, searchedRecord]);
+
   const handleSelectRecord = useCallback(
     (record: any) => {
       setSelectedRecord(record);
@@ -699,10 +719,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           )}
 
           {/* Category Legend */}
-          {!isGeocoding && mapReady && categoryColumn && categoryColorMap.size > 0 && (
+          {!isGeocoding && mapReady && categoryColumn && visibleCategoryColorMap.size > 0 && (
             <div className="flex items-center gap-1 flex-wrap px-1">
               <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mr-1">{getDisplayName(categoryColumn)}:</span>
-              {Array.from(categoryColorMap.entries()).map(([cat, color]) => (
+              {Array.from(visibleCategoryColorMap.entries()).map(([cat, color]) => (
                 <span key={cat} className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5">
                   <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: color }} />
                   {cat}
