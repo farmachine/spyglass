@@ -53,9 +53,9 @@ function pickSpacedColors(count: number): string[] {
   if (count <= 0) return [];
   if (count >= CATEGORY_COLORS_POOL.length) return [...CATEGORY_COLORS_POOL];
   const highContrastPalette = [
-    "#e11d48", "#2563eb", "#16a34a", "#d97706", "#7c3aed",
-    "#0891b2", "#db2777", "#c2410c", "#4f46e5", "#0d9488",
-    "#b91c1c", "#65a30d", "#9333ea", "#0e7490", "#ea580c",
+    "#dc2626", "#2563eb", "#16a34a", "#d97706", "#7c3aed",
+    "#0891b2", "#c2410c", "#ec4899", "#15803d", "#6d28d9",
+    "#0e7490", "#b45309", "#4f46e5", "#059669", "#be123c",
   ];
   if (count <= highContrastPalette.length) {
     return highContrastPalette.slice(0, count);
@@ -553,6 +553,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
 
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
+    if (categoryColumn && categoryColorMap.size === 0) return;
 
     const colorMapSnapshot = new Map(categoryColorMap);
 
@@ -702,10 +703,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           allCatsOnMap.add(searchedRecord[categoryColumn].toString());
         }
         const sortedCats = Array.from(allCatsOnMap).sort();
-        const fallbackColors = pickSpacedColors(sortedCats.length);
-        sortedCats.forEach((cat, i) => {
-          const color = colorMapSnapshot.get(cat) || fallbackColors[i] || '#6B7280';
-          legendMap.set(cat, color);
+        sortedCats.forEach((cat) => {
+          const color = colorMapSnapshot.get(cat);
+          if (color) legendMap.set(cat, color);
         });
       }
 
