@@ -1631,6 +1631,11 @@ function ValueCard({
                           <Brain className="h-3 w-3 mr-1" />
                           {selectedTool.name}
                         </>
+                      ) : selectedTool.toolType === "DATASOURCE_DROPDOWN" ? (
+                        <>
+                          <List className="h-3 w-3 mr-1" />
+                          {selectedTool.name}
+                        </>
                       ) : (
                         <>
                           <Code className="h-3 w-3 mr-1" />
@@ -1889,7 +1894,9 @@ function ValueCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual">Manual Entry</SelectItem>
-                  <div className="px-2 py-1 text-xs text-gray-500 font-semibold">AI Tools</div>
+                  {excelFunctions.filter(f => f.toolType === "AI_ONLY").length > 0 && (
+                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold">AI Tools</div>
+                  )}
                   {excelFunctions.filter(f => f.toolType === "AI_ONLY").map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       <div className="flex items-center gap-2">
@@ -1898,11 +1905,24 @@ function ValueCard({
                       </div>
                     </SelectItem>
                   ))}
-                  <div className="px-2 py-1 text-xs text-gray-500 font-semibold mt-2">Function Tools</div>
-                  {excelFunctions.filter(f => f.toolType !== "AI_ONLY").map((func) => (
+                  {excelFunctions.filter(f => f.toolType === "CODE" || f.toolType === "DATABASE_LOOKUP").length > 0 && (
+                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold mt-2">Function Tools</div>
+                  )}
+                  {excelFunctions.filter(f => f.toolType === "CODE" || f.toolType === "DATABASE_LOOKUP").map((func) => (
                     <SelectItem key={func.id} value={func.id}>
                       <div className="flex items-center gap-2">
                         <Code className="h-3 w-3 text-blue-500" />
+                        <span>{func.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {excelFunctions.filter(f => f.toolType === "DATASOURCE_DROPDOWN").length > 0 && (
+                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold mt-2">Dropdown Tools</div>
+                  )}
+                  {excelFunctions.filter(f => f.toolType === "DATASOURCE_DROPDOWN").map((func) => (
+                    <SelectItem key={func.id} value={func.id}>
+                      <div className="flex items-center gap-2">
+                        <List className="h-3 w-3 text-teal-500" />
                         <span>{func.name}</span>
                       </div>
                     </SelectItem>
