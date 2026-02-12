@@ -525,6 +525,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   }, [nearbyRecords, searchTerm, columns]);
 
   const [visibleCategoryColorMap, setVisibleCategoryColorMap] = useState<Map<string, string>>(new Map());
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
 
   const handleSelectRecord = useCallback(
     (record: any) => {
@@ -554,6 +555,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodedPoints(new Map());
       setMapReady(false);
       setVisibleCategoryColorMap(new Map());
+      setActiveCategoryFilter(null);
       return;
     }
   }, [isOpen]);
@@ -749,6 +751,25 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     };
   }, [isOpen, searchedRecord, filteredNearby, mapConfig, handleSelectRecord, columns, getRecordCoords, shouldShowMap, categoryColumn]);
 
+  useEffect(() => {
+    if (!mapInstanceRef.current || !categoryColumn || markersRef.current.length === 0) return;
+    
+    markersRef.current.forEach((marker) => {
+      const record = (marker as any)._recordData;
+      if (!record) return;
+      const catVal = record[categoryColumn];
+      const catStr = catVal != null && catVal !== '' ? catVal.toString() : null;
+      
+      if (activeCategoryFilter === null) {
+        marker.setOpacity(1);
+      } else if (catStr === activeCategoryFilter) {
+        marker.setOpacity(1);
+      } else {
+        marker.setOpacity(0.15);
+      }
+    });
+  }, [activeCategoryFilter, categoryColumn]);
+
   if (!mapConfig) return null;
 
   const totalNearby = nearbyRecords.length;
@@ -791,16 +812,44 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
             </div>
           )}
 
-          {/* Category Legend */}
+          {/* Category Legend - clickable to filter */}
           {!isGeocoding && mapReady && categoryColumn && visibleCategoryColorMap.size > 0 && (
             <div className="flex items-center gap-1 flex-wrap px-1">
               <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mr-1">{getDisplayName(categoryColumn)}:</span>
-              {Array.from(visibleCategoryColorMap.entries()).map(([cat, color]) => (
-                <span key={cat} className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5">
-                  <span className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: color }} />
-                  {cat}
-                </span>
-              ))}
+              {Array.from(visibleCategoryColorMap.entries()).map(([cat, color]) => {
+                const isActive = activeCategoryFilter === cat;
+                const isDimmed = activeCategoryFilter !== null && !isActive;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategoryFilter(prev => prev === cat ? null : cat)}
+                    className={`flex items-center gap-1 text-[11px] rounded px-1.5 py-0.5 transition-all cursor-pointer border ${
+                      isActive
+                        ? 'bg-gray-200 dark:bg-gray-600 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100 font-semibold ring-1 ring-gray-400 dark:ring-gray-500'
+                        : isDimmed
+                          ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 opacity-50'
+                          : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0 transition-opacity"
+                      style={{ backgroundColor: color, opacity: isDimmed ? 0.4 : 1 }}
+                    />
+                    {cat}
+                  </button>
+                );
+              })}
+              {activeCategoryFilter !== null && (
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryFilter(null)}
+                  className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-1 cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </button>
+              )}
             </div>
           )}
 
