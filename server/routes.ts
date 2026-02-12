@@ -7756,10 +7756,22 @@ print(json.dumps(results))
     const newValueIds = new Set((stepData.values || []).map((v: any) => v.id));
     
     // Delete values that are no longer in the new data
+    const deletedValueIds: string[] = [];
     for (const existingValue of existingValues) {
       if (!newValueIds.has(existingValue.id)) {
         console.log(`  🗑️ Deleting removed value: ${existingValue.id}`);
         await storage.deleteStepValue(existingValue.id);
+        deletedValueIds.push(existingValue.id);
+      }
+    }
+    
+    // Clean up stale references to deleted values in remaining values
+    if (deletedValueIds.length > 0) {
+      for (const value of (stepData.values || [])) {
+        if (value.inputValues?._categoryFilterByValue && deletedValueIds.includes(value.inputValues._categoryFilterByValue)) {
+          console.log(`  🧹 Cleaning stale _categoryFilterByValue reference in value: ${value.name}`);
+          delete value.inputValues._categoryFilterByValue;
+        }
       }
     }
     
