@@ -435,7 +435,33 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           setGeocodingProgress(geocoded);
         }
       } else {
-        const searchCity = resolvedInputValues ? Object.values(resolvedInputValues).find(v => v) : null;
+        let searchCity: string | null = null;
+        if (resolvedInputValues && addressColumns.cityColumn) {
+          const cityColLower = addressColumns.cityColumn.toLowerCase();
+          for (const [key, val] of Object.entries(resolvedInputValues)) {
+            if (!val) continue;
+            const keyLower = key.toLowerCase();
+            const parts = key.split('.');
+            const fieldName = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : keyLower;
+            if (fieldName === cityColLower || keyLower.endsWith(`.${cityColLower}`) || fieldName.includes('city') || fieldName.includes('stadt') || fieldName.includes('ort')) {
+              searchCity = val.toString();
+              break;
+            }
+          }
+          if (!searchCity) {
+            const streetColLower = (addressColumns.streetColumn || "").toLowerCase();
+            for (const [key, val] of Object.entries(resolvedInputValues)) {
+              if (!val) continue;
+              const keyLower = key.toLowerCase();
+              const parts = key.split('.');
+              const fieldName = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : keyLower;
+              if (fieldName.includes('street') || fieldName.includes('straße') || fieldName.includes('strasse') || fieldName.includes('address') || fieldName.includes('adresse')) {
+                searchCity = val.toString();
+                break;
+              }
+            }
+          }
+        }
 
         const recordsToGeocode: { idx: number; record: any }[] = [];
         
