@@ -387,7 +387,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           newCoords.set(idx, coords);
         }
 
-        if (geocodingAbortRef.current) { setIsGeocoding(false); return; }
+        if (geocodingAbortRef.current) { setIsGeocoding(false); setGeocodingDone(true); return; }
 
         const sameCityRecords: { idx: number; record: any }[] = [];
         const searchedCity = city.toLowerCase().trim();
@@ -499,6 +499,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodedPoints(new Map(newCoords));
       setIsGeocoding(false);
       setGeocodingLabel("");
+      setGeocodingDone(true);
     };
 
     doGeocode();
@@ -568,11 +569,13 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodingTotal(0);
       setGeocodingLabel("");
       setIsGeocoding(false);
+      setGeocodingDone(false);
       return;
     }
   }, [isOpen]);
 
-  const shouldShowMap = hasNativeLatLng || (!isGeocoding && geocodedPoints.size > 0);
+  const [geocodingDone, setGeocodingDone] = useState(false);
+  const shouldShowMap = hasNativeLatLng || (!isGeocoding && (geocodedPoints.size > 0 || geocodingDone));
 
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
