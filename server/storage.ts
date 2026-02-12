@@ -4377,6 +4377,7 @@ class PostgreSQLStorage implements IStorage {
 
   async deleteStepValue(id: string): Promise<boolean> {
     return this.retryOperation(async () => {
+      await this.db.delete(fieldValidations).where(eq(fieldValidations.valueId, id));
       const result = await this.db.delete(stepValues).where(eq(stepValues.id, id));
       return result.rowCount > 0;
     });
