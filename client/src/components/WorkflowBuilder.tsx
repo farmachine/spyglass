@@ -1696,7 +1696,7 @@ function ValueCard({
                   </span>
                   {selectedTool && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {selectedTool.toolType === "AI_ONLY" ? 'AI Tool' : 'Function Tool'}
+                      {selectedTool.toolType === "AI_ONLY" ? 'AI Tool' : selectedTool.toolType === "DATASOURCE_DROPDOWN" ? 'Dropdown Tool' : 'Function Tool'}
                     </div>
                   )}
                 </div>

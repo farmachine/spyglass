@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-import { Play, Edit3, Trash2, Brain, Code } from "lucide-react";
+import { Play, Edit3, Trash2, Brain, Code, List } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import CreateToolDialog from "./CreateToolDialog";
 
@@ -16,7 +16,7 @@ interface ExcelTool {
   id: string;
   name: string;
   description: string;
-  toolType: 'AI_ONLY' | 'CODE';
+  toolType: 'AI_ONLY' | 'CODE' | 'DATABASE_LOOKUP' | 'DATASOURCE_DROPDOWN';
   functionCode?: string;
   inputParameters: any[];
   outputType: 'single' | 'multiple';
@@ -366,6 +366,8 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                 <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
                   {tool.toolType === 'AI_ONLY' ? (
                     <Brain className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
+                  ) : tool.toolType === 'DATASOURCE_DROPDOWN' ? (
+                    <List className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
                   ) : (
                     <Code className="h-4 w-4 text-[#4F63A4] dark:text-[#5A70B5]" />
                   )}
@@ -384,7 +386,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       Used {tool.usageCount} times
                     </div>
                     <Badge variant="outline" className="text-xs h-4 px-1.5 dark:border-gray-600 dark:text-gray-300">
-                      {tool.toolType === 'AI_ONLY' ? 'AI' : 'Code'}
+                      {tool.toolType === 'AI_ONLY' ? 'AI' : tool.toolType === 'DATASOURCE_DROPDOWN' ? 'Dropdown' : 'Code'}
                     </Badge>
                   </div>
                 </div>
@@ -392,6 +394,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
 
               {/* Tool Actions */}
               <div className="flex items-center gap-1 ml-4">
+                {tool.toolType !== 'DATASOURCE_DROPDOWN' && (
                 <Button 
                   size="sm" 
                   variant="outline" 
@@ -401,6 +404,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                   <Play className="h-3 w-3 mr-1" />
                   Test
                 </Button>
+                )}
                 <Button 
                   size="sm" 
                   onClick={() => handleEdit(tool)}
