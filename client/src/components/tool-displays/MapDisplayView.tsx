@@ -205,11 +205,12 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const rawData = Array.isArray(datasourceData) ? datasourceData : [];
   const safeData = useMemo(() => {
     if (!categoryFilterByValue || !categoryColumnProp || rawData.length === 0) return rawData;
-    return rawData.filter(record => {
+    const filtered = rawData.filter(record => {
       const val = record[categoryColumnProp];
       if (val === undefined || val === null) return false;
       return String(val).toLowerCase() === categoryFilterByValue.toLowerCase();
     });
+    return filtered.length > 0 ? filtered : rawData;
   }, [rawData, categoryFilterByValue, categoryColumnProp]);
   const columns = useMemo(() => {
     if (rawData.length === 0) return [];
