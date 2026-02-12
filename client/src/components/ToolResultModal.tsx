@@ -12,6 +12,7 @@ interface ToolResultModalProps {
   currentInputValues: Record<string, string>;
   displayConfig: ToolDisplayConfig;
   categoryColumn?: string;
+  categoryFilterByValue?: string;
 }
 
 export function ToolResultModal(props: ToolResultModalProps) {

@@ -1737,6 +1737,7 @@ export default function SessionView() {
     recordIndex: number;
     displayConfig: ToolDisplayConfig;
     categoryColumn?: string;
+    categoryFilterByValue?: string;
   } | null>(null);
 
   // Helper function to find schema field data
@@ -6492,7 +6493,33 @@ Thank you for your assistance.`;
                                                                       collectionName: currentStep?.stepName || '',
                                                                       recordIndex: 0,
                                                                       displayConfig: toolDisplayConfig as ToolDisplayConfig,
-                                                                      categoryColumn: inputValues._categoryColumn || undefined
+                                                                      categoryColumn: inputValues._categoryColumn || undefined,
+                                                                      categoryFilterByValue: (() => {
+                                                                        const filterValId = inputValues._categoryFilterByValue;
+                                                                        if (!filterValId) return undefined;
+                                                                        // Resolve value ID to extracted value
+                                                                        // Check if it's a field reference (valueId::fieldName)
+                                                                        if (filterValId.includes('::')) {
+                                                                          const [valId, fieldName] = filterValId.split('::');
+                                                                          const matchVal = currentStep?.values?.find((v: any) => v.id === valId);
+                                                                          if (matchVal) {
+                                                                            return currentInputValues[`${matchVal.valueName}.${fieldName}`] || undefined;
+                                                                          }
+                                                                        }
+                                                                        // Single value reference
+                                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === filterValId);
+                                                                        if (matchVal) {
+                                                                          return currentInputValues[matchVal.valueName] || undefined;
+                                                                        }
+                                                                        // Try looking up in all steps
+                                                                        for (const st of (steps || [])) {
+                                                                          const found = st.values?.find((v: any) => v.id === filterValId);
+                                                                          if (found) {
+                                                                            return currentInputValues[found.valueName] || undefined;
+                                                                          }
+                                                                        }
+                                                                        return undefined;
+                                                                      })()
                                                                     });
                                                                   } catch (error) {
                                                                     console.error('Error loading datasource:', error);
@@ -7186,7 +7213,23 @@ Thank you for your assistance.`;
                                                               collectionName: collection.collectionName,
                                                               recordIndex: originalIndex,
                                                               displayConfig: colDisplayConfig as ToolDisplayConfig,
-                                                              categoryColumn: inputValues._categoryColumn || undefined
+                                                              categoryColumn: inputValues._categoryColumn || undefined,
+                                                              categoryFilterByValue: (() => {
+                                                                const filterValId = inputValues._categoryFilterByValue;
+                                                                if (!filterValId) return undefined;
+                                                                if (filterValId.includes('::')) {
+                                                                  const [valId, fName] = filterValId.split('::');
+                                                                  const matchV = workflowStep?.values?.find((v: any) => v.id === valId);
+                                                                  if (matchV) return currentInputValues[`${matchV.valueName}.${fName}`] || undefined;
+                                                                }
+                                                                const matchV = workflowStep?.values?.find((v: any) => v.id === filterValId);
+                                                                if (matchV) return currentInputValues[matchV.valueName] || undefined;
+                                                                for (const st of (steps || [])) {
+                                                                  const found = st.values?.find((v: any) => v.id === filterValId);
+                                                                  if (found) return currentInputValues[found.valueName] || undefined;
+                                                                }
+                                                                return undefined;
+                                                              })()
                                                             });
                                                           } catch (error) {
                                                             console.error('Error loading datasource:', error);
@@ -7867,6 +7910,7 @@ Thank you for your assistance.`;
           currentInputValues={toolDisplayModal.currentInputValues}
           displayConfig={toolDisplayModal.displayConfig}
           categoryColumn={toolDisplayModal.categoryColumn}
+          categoryFilterByValue={toolDisplayModal.categoryFilterByValue}
         />
       )}
 

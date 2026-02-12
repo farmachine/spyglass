@@ -29,6 +29,7 @@ export interface ToolDisplayComponentProps {
   currentInputValues: Record<string, string>;
   displayConfig: ToolDisplayConfig;
   categoryColumn?: string;
+  categoryFilterByValue?: string;
 }
 
 const displayRegistry: Record<string, ComponentType<ToolDisplayComponentProps>> = {};

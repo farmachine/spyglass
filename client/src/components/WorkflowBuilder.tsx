@@ -2316,6 +2316,31 @@ function ValueCard({
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 Color-codes map pins by category values.
                               </p>
+                              
+                              {(value.inputValues as Record<string, any>)?._categoryColumn && (
+                                <div className="mt-2">
+                                  <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1.5 block">
+                                    Filter by <span className="text-gray-400 dark:text-gray-500">(optional)</span>
+                                  </Label>
+                                  <select
+                                    value={(value.inputValues as Record<string, any>)?._categoryFilterByValue || ''}
+                                    onChange={(e) => {
+                                      onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _categoryFilterByValue: e.target.value || '' } });
+                                    }}
+                                    className="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                  >
+                                    <option value="">No filter</option>
+                                    {getAvailableValues(true).map((av) => (
+                                      <option key={av.id} value={av.id}>
+                                        {av.stepName} → {av.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Pre-filter results by matching the category column to a previously collected value.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           );
                         }

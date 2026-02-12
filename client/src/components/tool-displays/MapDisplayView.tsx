@@ -178,6 +178,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     currentInputValues,
     displayConfig,
     categoryColumn: categoryColumnProp,
+    categoryFilterByValue,
   } = props;
 
   const mapConfig = displayConfig.mapConfig;
@@ -201,11 +202,19 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const geocodingAbortRef = useRef(false);
   const finalPointsRef = useRef<Map<number, { lat: number; lng: number }>>(new Map());
 
-  const safeData = Array.isArray(datasourceData) ? datasourceData : [];
+  const rawData = Array.isArray(datasourceData) ? datasourceData : [];
+  const safeData = useMemo(() => {
+    if (!categoryFilterByValue || !categoryColumnProp || rawData.length === 0) return rawData;
+    return rawData.filter(record => {
+      const val = record[categoryColumnProp];
+      if (val === undefined || val === null) return false;
+      return String(val).toLowerCase() === categoryFilterByValue.toLowerCase();
+    });
+  }, [rawData, categoryFilterByValue, categoryColumnProp]);
   const columns = useMemo(() => {
-    if (safeData.length === 0) return [];
-    return Object.keys(safeData[0]);
-  }, [safeData]);
+    if (rawData.length === 0) return [];
+    return Object.keys(rawData[0]);
+  }, [rawData]);
 
   const getDisplayName = (col: string) => columnMappings[col] || col;
 
