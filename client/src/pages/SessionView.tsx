@@ -1767,19 +1767,21 @@ export default function SessionView() {
   // Modal editing removed - now using inline editing for all fields
 
   // Handler for inline table field editing
-  const fetchDropdownOptions = async (toolId: string) => {
-    if (dropdownOptionsCache[toolId]) return;
+  const fetchDropdownOptions = async (toolId: string, valueInputs?: Record<string, any>) => {
+    const cacheKey = valueInputs?._dropdownDataSourceId 
+      ? `${toolId}_${valueInputs._dropdownDataSourceId}_${valueInputs._dropdownColumn}` 
+      : toolId;
+    if (dropdownOptionsCache[cacheKey]) return;
     const tool = toolsMap.get(toolId);
     if (!tool || tool.toolType !== 'DATASOURCE_DROPDOWN') return;
-    const dsId = tool.dataSourceId || tool.data_source_id;
-    const meta = tool.metadata || {};
-    const col = meta.dropdownColumn;
+    const dsId = valueInputs?._dropdownDataSourceId || tool.dataSourceId || tool.data_source_id;
+    const col = valueInputs?._dropdownColumn || (tool.metadata || {}).dropdownColumn;
     if (!dsId || !col) return;
     try {
       const data = await apiRequest(`/api/data-sources/${dsId}/data`);
       if (Array.isArray(data)) {
         const uniqueValues = [...new Set(data.map((row: any) => String(row[col] || '')).filter(Boolean))].sort();
-        setDropdownOptionsCache(prev => ({ ...prev, [toolId]: uniqueValues }));
+        setDropdownOptionsCache(prev => ({ ...prev, [cacheKey]: uniqueValues }));
       }
     } catch (err) {
       console.error('Failed to fetch dropdown options:', err);
@@ -6991,13 +6993,17 @@ Thank you for your assistance.`;
                                               if (isEditingThisField) {
                                                 const cellTool = column.toolId ? toolsMap.get(column.toolId) : null;
                                                 const isDropdownTool = cellTool?.toolType === 'DATASOURCE_DROPDOWN';
-                                                const ddOptions = isDropdownTool ? (dropdownOptionsCache[column.toolId] || []) : [];
+                                                const colInputValues = (column as any).inputValues as Record<string, any> | undefined;
+                                                const ddCacheKey = colInputValues?._dropdownDataSourceId 
+                                                  ? `${column.toolId}_${colInputValues._dropdownDataSourceId}_${colInputValues._dropdownColumn}` 
+                                                  : column.toolId;
+                                                const ddOptions = isDropdownTool ? (dropdownOptionsCache[ddCacheKey] || []) : [];
                                                 const filteredDdOptions = ddOptions.filter(opt => 
                                                   !dropdownFilter || opt.toLowerCase().includes(dropdownFilter.toLowerCase())
                                                 );
                                                 
                                                 if (isDropdownTool && ddOptions.length === 0 && column.toolId) {
-                                                  fetchDropdownOptions(column.toolId);
+                                                  fetchDropdownOptions(column.toolId, colInputValues);
                                                 }
                                                 
                                                 if (isDropdownTool) {
@@ -7211,7 +7217,8 @@ Thank you for your assistance.`;
                                                 
                                                 const handleEditClick = () => {
                                                   if (isDropdownColumn && columnTool?.id) {
-                                                    fetchDropdownOptions(columnTool.id);
+                                                    const colIV = (column as any).inputValues as Record<string, any> | undefined;
+                                                    fetchDropdownOptions(columnTool.id, colIV);
                                                   }
                                                   if (validation) {
                                                     handleEditTableField(validation);

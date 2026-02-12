@@ -1936,6 +1936,93 @@ function ValueCard({
               )}
             </div>
 
+            {/* Data Source & Column Selector for DATASOURCE_DROPDOWN tools */}
+            {selectedTool?.toolType === "DATASOURCE_DROPDOWN" && (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Data Source *</Label>
+                  <Select 
+                    value={(value.inputValues as Record<string, any>)?._dropdownDataSourceId || ''} 
+                    onValueChange={(v) => onUpdate({ 
+                      inputValues: { 
+                        ...(value.inputValues as Record<string, any> || {}), 
+                        _dropdownDataSourceId: v,
+                        _dropdownColumn: ''
+                      } 
+                    })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select data source..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dataSources.filter(ds => ds.isActive).map((ds) => (
+                        <SelectItem key={ds.id} value={ds.id}>
+                          <div className="flex items-center gap-2">
+                            <Database className="h-3 w-3 text-green-500" />
+                            <span>{ds.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {dataSources.filter(ds => ds.isActive).length === 0 && (
+                        <div className="px-2 py-2 text-xs text-gray-500">
+                          No data sources configured. Add one in the Connect tab.
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(value.inputValues as Record<string, any>)?._dropdownDataSourceId && (() => {
+                  const selectedDS = dataSources.find(
+                    ds => ds.id === (value.inputValues as Record<string, any>)?._dropdownDataSourceId
+                  ) as any;
+                  const cachedData = selectedDS?.cachedData;
+                  let columns: string[] = [];
+                  if (cachedData) {
+                    try {
+                      const parsed = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData;
+                      const dataArray = Array.isArray(parsed) ? parsed : 
+                                        parsed?.data?.entries || parsed?.entries || parsed?.data || [];
+                      if (dataArray.length > 0) {
+                        columns = Object.keys(dataArray[0]);
+                      }
+                    } catch (e) {
+                      console.error('Failed to parse data source columns:', e);
+                    }
+                  }
+                  const columnMappings = (selectedDS?.columnMappings as Record<string, string>) || {};
+                  if (columns.length === 0) return null;
+                  return (
+                    <div>
+                      <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1">Output Column *</Label>
+                      <Select 
+                        value={(value.inputValues as Record<string, any>)?._dropdownColumn || ''} 
+                        onValueChange={(v) => onUpdate({ 
+                          inputValues: { 
+                            ...(value.inputValues as Record<string, any> || {}), 
+                            _dropdownColumn: v
+                          } 
+                        })}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Select column for dropdown values..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {columns.map((col) => (
+                            <SelectItem key={col} value={col}>
+                              {columnMappings[col] || col}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Users will see a searchable dropdown with unique values from this column.
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Data Source Selector for DATABASE_LOOKUP tools */}
             {selectedTool?.toolType === "DATABASE_LOOKUP" && (
               <div>
