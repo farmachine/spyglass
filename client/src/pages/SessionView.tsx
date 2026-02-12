@@ -6454,26 +6454,26 @@ Thank you for your assistance.`;
                                                                 
                                                                 if (dataSourceId) {
                                                                   try {
-                                                                    const datasourceResponse = await apiRequest(`/api/data-sources/${dataSourceId}/data`);
-                                                                    const datasourceInfo = await apiRequest(`/api/data-sources/${dataSourceId}`);
+                                                                    console.log(`📋 Loading datasource ${dataSourceId} for lookup...`);
+                                                                    const [datasourceResponse, datasourceInfo] = await Promise.all([
+                                                                      apiRequest(`/api/data-sources/${dataSourceId}/data`),
+                                                                      apiRequest(`/api/data-sources/${dataSourceId}`)
+                                                                    ]);
+                                                                    console.log(`📋 Datasource loaded: ${Array.isArray(datasourceResponse) ? datasourceResponse.length : 0} records`);
                                                                     
-                                                                    // Get filter configuration from the value's inputValues
                                                                     const rawFilters = inputValues._searchByColumns || [];
                                                                     const outputColumn = inputValues._outputColumn || '';
                                                                     
-                                                                    // Normalize filters
                                                                     const filters = rawFilters.map((f: any) => 
                                                                       typeof f === 'string' 
                                                                         ? { column: f, operator: 'equals', inputField: '', fuzziness: 0 }
                                                                         : { ...f, fuzziness: f.fuzziness ?? 0 }
                                                                     );
                                                                     
-                                                                    // Get current input values from other info page values in this step
                                                                     const currentInputValues: Record<string, string> = {};
                                                                     if (currentStep?.values) {
                                                                       currentStep.values.forEach((v: any) => {
                                                                         if (v.orderIndex < stepValue.orderIndex) {
-                                                                          // For multi-field values, get all field values
                                                                           if (v.fields && v.fields.length > 0) {
                                                                             v.fields.forEach((field: any) => {
                                                                               const fieldId = field.identifierId || field.id;
@@ -6485,7 +6485,6 @@ Thank you for your assistance.`;
                                                                               }
                                                                             });
                                                                           } else {
-                                                                            // Single-field value
                                                                             const val = validations.find(vd => 
                                                                               vd.fieldId === v.id || vd.valueId === v.id
                                                                             );
@@ -6499,13 +6498,38 @@ Thank you for your assistance.`;
                                                                     
                                                                     console.log('Opening tool display modal with currentInputValues:', currentInputValues);
                                                                     
+                                                                    let categoryFilterByValue: string | undefined;
+                                                                    const filterValId = inputValues._categoryFilterByValue;
+                                                                    if (filterValId && typeof filterValId === 'string') {
+                                                                      if (filterValId.includes('::')) {
+                                                                        const [valId, fName] = filterValId.split('::');
+                                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === valId);
+                                                                        if (matchVal) {
+                                                                          categoryFilterByValue = currentInputValues[`${matchVal.valueName}.${fName}`] || undefined;
+                                                                        }
+                                                                      } else {
+                                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === filterValId);
+                                                                        if (matchVal) {
+                                                                          categoryFilterByValue = currentInputValues[matchVal.valueName] || undefined;
+                                                                        } else {
+                                                                          for (const st of (steps || [])) {
+                                                                            const found = st.values?.find((v: any) => v.id === filterValId);
+                                                                            if (found) {
+                                                                              categoryFilterByValue = currentInputValues[found.valueName] || undefined;
+                                                                              break;
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                    
                                                                     setToolDisplayModal({
                                                                       isOpen: true,
                                                                       validation: validation || null,
                                                                       column: stepValue,
                                                                       rowIdentifierId: null,
                                                                       datasourceData: Array.isArray(datasourceResponse) ? datasourceResponse : [],
-                                                                      columnMappings: datasourceInfo?.columnMappings || {},
+                                                                      columnMappings: datasourceInfo?.columnMappings || datasourceInfo?.column_mappings || {},
                                                                       filters,
                                                                       outputColumn,
                                                                       currentInputValues,
@@ -6514,38 +6538,13 @@ Thank you for your assistance.`;
                                                                       recordIndex: 0,
                                                                       displayConfig: toolDisplayConfig as ToolDisplayConfig,
                                                                       categoryColumn: inputValues._categoryColumn || undefined,
-                                                                      categoryFilterByValue: (() => {
-                                                                        const filterValId = inputValues._categoryFilterByValue;
-                                                                        if (!filterValId) return undefined;
-                                                                        // Resolve value ID to extracted value
-                                                                        // Check if it's a field reference (valueId::fieldName)
-                                                                        if (filterValId.includes('::')) {
-                                                                          const [valId, fieldName] = filterValId.split('::');
-                                                                          const matchVal = currentStep?.values?.find((v: any) => v.id === valId);
-                                                                          if (matchVal) {
-                                                                            return currentInputValues[`${matchVal.valueName}.${fieldName}`] || undefined;
-                                                                          }
-                                                                        }
-                                                                        // Single value reference
-                                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === filterValId);
-                                                                        if (matchVal) {
-                                                                          return currentInputValues[matchVal.valueName] || undefined;
-                                                                        }
-                                                                        // Try looking up in all steps
-                                                                        for (const st of (steps || [])) {
-                                                                          const found = st.values?.find((v: any) => v.id === filterValId);
-                                                                          if (found) {
-                                                                            return currentInputValues[found.valueName] || undefined;
-                                                                          }
-                                                                        }
-                                                                        return undefined;
-                                                                      })()
+                                                                      categoryFilterByValue
                                                                     });
-                                                                  } catch (error) {
+                                                                  } catch (error: any) {
                                                                     console.error('Error loading datasource:', error);
                                                                     toast({
                                                                       title: "Error",
-                                                                      description: "Failed to load database for lookup",
+                                                                      description: `Failed to load database for lookup: ${error?.message || 'Unknown error'}`,
                                                                       variant: "destructive"
                                                                     });
                                                                   }
@@ -7187,22 +7186,23 @@ Thank you for your assistance.`;
                                                         // Get the datasource data
                                                         if (dataSourceId) {
                                                           try {
-                                                            const datasourceResponse = await apiRequest(`/api/data-sources/${dataSourceId}/data`);
-                                                            const datasourceInfo = await apiRequest(`/api/data-sources/${dataSourceId}`);
+                                                            console.log(`📋 Loading datasource ${dataSourceId} for data table lookup...`);
+                                                            const [datasourceResponse, datasourceInfo] = await Promise.all([
+                                                              apiRequest(`/api/data-sources/${dataSourceId}/data`),
+                                                              apiRequest(`/api/data-sources/${dataSourceId}`)
+                                                            ]);
+                                                            console.log(`📋 Datasource loaded: ${Array.isArray(datasourceResponse) ? datasourceResponse.length : 0} records`);
                                                             
-                                                            // Get filter configuration from the column's inputValues
-                                                            const inputValues = column.inputValues || {};
-                                                            const rawFilters = inputValues._searchByColumns || [];
-                                                            const outputColumn = inputValues._outputColumn || '';
+                                                            const colInputValues = column.inputValues || {};
+                                                            const rawFilters = colInputValues._searchByColumns || [];
+                                                            const outputColumn = colInputValues._outputColumn || '';
                                                             
-                                                            // Normalize filters
                                                             const filters = rawFilters.map((f: any) => 
                                                               typeof f === 'string' 
                                                                 ? { column: f, operator: 'equals', inputField: '', fuzziness: 0 }
                                                                 : { ...f, fuzziness: f.fuzziness ?? 0 }
                                                             );
                                                             
-                                                            // Get current input values from the row's previous columns
                                                             const currentInputValues: Record<string, string> = {};
                                                             if (workflowStep?.values) {
                                                               workflowStep.values.forEach((v: any) => {
@@ -7219,13 +7219,36 @@ Thank you for your assistance.`;
                                                               });
                                                             }
                                                             
+                                                            let categoryFilterByValue: string | undefined;
+                                                            const filterValId = colInputValues._categoryFilterByValue;
+                                                            if (filterValId && typeof filterValId === 'string') {
+                                                              if (filterValId.includes('::')) {
+                                                                const [valId, fName] = filterValId.split('::');
+                                                                const matchV = workflowStep?.values?.find((v: any) => v.id === valId);
+                                                                if (matchV) categoryFilterByValue = currentInputValues[`${matchV.valueName}.${fName}`] || undefined;
+                                                              } else {
+                                                                const matchV = workflowStep?.values?.find((v: any) => v.id === filterValId);
+                                                                if (matchV) {
+                                                                  categoryFilterByValue = currentInputValues[matchV.valueName] || undefined;
+                                                                } else {
+                                                                  for (const st of (steps || [])) {
+                                                                    const found = st.values?.find((v: any) => v.id === filterValId);
+                                                                    if (found) {
+                                                                      categoryFilterByValue = currentInputValues[found.valueName] || undefined;
+                                                                      break;
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                            
                                                             setToolDisplayModal({
                                                               isOpen: true,
                                                               validation: validation || null,
                                                               column,
                                                               rowIdentifierId,
                                                               datasourceData: Array.isArray(datasourceResponse) ? datasourceResponse : [],
-                                                              columnMappings: datasourceInfo?.columnMappings || {},
+                                                              columnMappings: datasourceInfo?.columnMappings || datasourceInfo?.column_mappings || {},
                                                               filters,
                                                               outputColumn,
                                                               currentInputValues,
@@ -7233,29 +7256,14 @@ Thank you for your assistance.`;
                                                               collectionName: collection.collectionName,
                                                               recordIndex: originalIndex,
                                                               displayConfig: colDisplayConfig as ToolDisplayConfig,
-                                                              categoryColumn: inputValues._categoryColumn || undefined,
-                                                              categoryFilterByValue: (() => {
-                                                                const filterValId = inputValues._categoryFilterByValue;
-                                                                if (!filterValId) return undefined;
-                                                                if (filterValId.includes('::')) {
-                                                                  const [valId, fName] = filterValId.split('::');
-                                                                  const matchV = workflowStep?.values?.find((v: any) => v.id === valId);
-                                                                  if (matchV) return currentInputValues[`${matchV.valueName}.${fName}`] || undefined;
-                                                                }
-                                                                const matchV = workflowStep?.values?.find((v: any) => v.id === filterValId);
-                                                                if (matchV) return currentInputValues[matchV.valueName] || undefined;
-                                                                for (const st of (steps || [])) {
-                                                                  const found = st.values?.find((v: any) => v.id === filterValId);
-                                                                  if (found) return currentInputValues[found.valueName] || undefined;
-                                                                }
-                                                                return undefined;
-                                                              })()
+                                                              categoryColumn: colInputValues._categoryColumn || undefined,
+                                                              categoryFilterByValue
                                                             });
-                                                          } catch (error) {
+                                                          } catch (error: any) {
                                                             console.error('Error loading datasource:', error);
                                                             toast({
                                                               title: "Error",
-                                                              description: "Failed to load database for lookup",
+                                                              description: `Failed to load database for lookup: ${error?.message || 'Unknown error'}`,
                                                               variant: "destructive"
                                                             });
                                                           }
