@@ -2389,7 +2389,16 @@ export default function SessionView() {
       const docs = query.state.data as any[];
       const expectedCount = session?.documentCount || 0;
       if (expectedCount > 0 && (!docs || docs.length < expectedCount)) {
-        return 5000;
+        return 3000;
+      }
+      if (session?.source === 'email') {
+        if (!docs || docs.length === 0) {
+          return 3000;
+        }
+        const sessionAge = session?.createdAt ? Date.now() - new Date(session.createdAt).getTime() : Infinity;
+        if (sessionAge < 2 * 60 * 1000) {
+          return 5000;
+        }
       }
       return false;
     },

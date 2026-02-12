@@ -38,7 +38,9 @@ export default function ProjectLayout({ projectId }: ProjectLayoutProps) {
   // Debug logging for tab state
 
   const addCollectionCallbackRef = useRef<(() => void) | null>(null);
-  const { data: project, isLoading, error } = useProject(projectId);
+  const { data: project, isLoading, error } = useProject(projectId, {
+    pollingWhenInbox: true,
+  });
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

@@ -13926,18 +13926,19 @@ Respond in JSON format:
   app.post('/api/webhooks/email', async (req, res) => {
     try {
       console.log('📧 Received inbound email webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
+      console.log('📧 Webhook payload keys:', Object.keys(req.body));
       
       const payload = req.body;
-      const inboxId = payload.inbox_id;
-      const messageId = payload.message_id;
+      const inboxId = payload.inbox_id || payload.inboxId;
+      const messageId = payload.message_id || payload.messageId || payload.id;
       const subject = payload.subject || 'Email Session';
-      const fromEmail = payload.from_?.[0] || 'unknown@example.com';
-      const textContent = payload.text_plain || payload.text_html || '';
+      const fromEmail = payload.from_?.[0] || payload.from || 'unknown@example.com';
+      const textContent = payload.text_plain || payload.text_html || payload.body || '';
       const attachments = payload.attachments || [];
       
       if (!inboxId) {
-        console.error('📧 No inbox_id in webhook payload');
-        return res.status(400).json({ error: 'Missing inbox_id' });
+        console.log('📧 No inbox_id in webhook payload, ignoring (may be a notification event)');
+        return res.status(200).json({ status: 'ignored', reason: 'no_inbox_id' });
       }
       
       if (!messageId) {

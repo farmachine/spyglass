@@ -13,11 +13,15 @@ export function useProjects() {
   });
 }
 
-export function useProject(id: string) {
+export function useProject(id: string, options?: { pollingWhenInbox?: boolean }) {
   return useQuery({
     queryKey: ["/api/projects", id],
     queryFn: () => projectsApi.getById(id),
     enabled: !!id,
+    refetchInterval: options?.pollingWhenInbox ? (query) => {
+      const data = query.state.data as any;
+      return data?.inboxEmailAddress ? 30000 : false;
+    } : false,
   });
 }
 
