@@ -436,37 +436,36 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         }
       } else {
         let searchCity: string | null = null;
-        if (resolvedInputValues && addressColumns.cityColumn) {
-          const cityColLower = addressColumns.cityColumn.toLowerCase();
-          for (const [key, val] of Object.entries(resolvedInputValues)) {
-            if (!val) continue;
-            const keyLower = key.toLowerCase();
-            const parts = key.split('.');
-            const fieldName = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : keyLower;
-            if (fieldName === cityColLower || keyLower.endsWith(`.${cityColLower}`) || fieldName.includes('city') || fieldName.includes('stadt') || fieldName.includes('ort')) {
-              searchCity = val.toString();
-              break;
-            }
+        let searchStreet: string | null = null;
+
+        if (initialFilters && resolvedInputValues) {
+          const cityFilter = initialFilters.find(f => (f as any).role === 'city') || initialFilters[0];
+          const streetFilter = initialFilters.find(f => (f as any).role === 'street') || (initialFilters.length > 1 ? initialFilters[1] : null);
+
+          if (cityFilter?.inputField && resolvedInputValues[cityFilter.inputField]) {
+            searchCity = resolvedInputValues[cityFilter.inputField].toString();
           }
-          if (!searchCity) {
-            const streetColLower = (addressColumns.streetColumn || "").toLowerCase();
-            for (const [key, val] of Object.entries(resolvedInputValues)) {
-              if (!val) continue;
-              const keyLower = key.toLowerCase();
-              const parts = key.split('.');
-              const fieldName = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : keyLower;
-              if (fieldName.includes('street') || fieldName.includes('straße') || fieldName.includes('strasse') || fieldName.includes('address') || fieldName.includes('adresse')) {
-                searchCity = val.toString();
-                break;
-              }
-            }
+          if (streetFilter?.inputField && resolvedInputValues[streetFilter.inputField]) {
+            searchStreet = resolvedInputValues[streetFilter.inputField].toString();
           }
         }
+
+        if (searchCity) {
+          setGeocodingLabel("Locating session address...");
+          setGeocodingTotal(1);
+          setGeocodingProgress(0);
+          const sessionCoords = await geocodeAddress(searchCity, searchStreet || undefined);
+          if (sessionCoords) {
+            newCoords.set(-1, sessionCoords);
+          }
+          setGeocodingProgress(1);
+        }
+
+        if (geocodingAbortRef.current) { setIsGeocoding(false); setGeocodingDone(true); return; }
 
         const recordsToGeocode: { idx: number; record: any }[] = [];
         
         if (searchCity && addressColumns.cityColumn) {
-          setGeocodingLabel("Searching for matching records...");
           const cityLower = searchCity.toString().toLowerCase().trim();
           for (let i = 0; i < safeData.length; i++) {
             const recCity = (safeData[i][addressColumns.cityColumn] || "").toString().toLowerCase().trim();
@@ -477,7 +476,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
         }
         
         if (recordsToGeocode.length === 0 && addressColumns.cityColumn) {
-          setGeocodingLabel("Loading all locations...");
           for (let i = 0; i < safeData.length; i++) {
             recordsToGeocode.push({ idx: i, record: safeData[i] });
           }
@@ -495,7 +493,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           }
 
           const totalToGeocode = Math.min(uniqueAddresses.size, MAX_GEOCODE);
-          setGeocodingLabel("Locating records...");
+          setGeocodingLabel("Locating nearby records...");
           setGeocodingTotal(totalToGeocode);
           setGeocodingProgress(0);
 
@@ -536,19 +534,24 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   }, [isOpen, hasNativeLatLng, addressColumns, searchedRecord, safeData]);
 
   const nearbyRecords = useMemo(() => {
-    if (!searchedRecord) return allValidPoints;
+    let centerCoords: { lat: number; lng: number } | null = null;
 
-    const centerCoords = getRecordCoords(searchedRecord);
+    if (searchedRecord) {
+      centerCoords = getRecordCoords(searchedRecord);
+    } else if (geocodedPoints.has(-1)) {
+      centerCoords = geocodedPoints.get(-1)!;
+    }
+
     if (!centerCoords) return allValidPoints;
 
     return allValidPoints.filter((record) => {
       if (record === searchedRecord) return false;
       const coords = getRecordCoords(record);
       if (!coords) return false;
-      const dist = haversineDistance(centerCoords.lat, centerCoords.lng, coords.lat, coords.lng);
+      const dist = haversineDistance(centerCoords!.lat, centerCoords!.lng, coords.lat, coords.lng);
       return dist <= RADIUS_KM;
     });
-  }, [allValidPoints, searchedRecord, getRecordCoords]);
+  }, [allValidPoints, searchedRecord, getRecordCoords, geocodedPoints]);
 
   const filteredNearby = useMemo(() => {
     if (!searchTerm.trim()) return nearbyRecords;
@@ -650,9 +653,12 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       const markers: L.Marker[] = [];
       const bounds: L.LatLngExpression[] = [];
 
+      let centerPoint: { lat: number; lng: number } | null = null;
+
       if (searchedRecord) {
         const coords = getRecordCoords(searchedRecord);
         if (coords) {
+          centerPoint = coords;
           const circle = L.circle([coords.lat, coords.lng], {
             radius: RADIUS_KM * 1000,
             color: '#4F63A4',
@@ -690,6 +696,22 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           (searchedMarker as any)._recordData = searchedRecord;
           bounds.push([coords.lat, coords.lng]);
         }
+      } else if (geocodedPoints.has(-1)) {
+        const sessionPt = geocodedPoints.get(-1)!;
+        centerPoint = sessionPt;
+        const circle = L.circle([sessionPt.lat, sessionPt.lng], {
+          radius: RADIUS_KM * 1000,
+          color: '#4F63A4',
+          fillColor: '#4F63A4',
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: '6, 4',
+        }).addTo(map);
+        radiusCircleRef.current = circle;
+
+        const sessionMarker = L.marker([sessionPt.lat, sessionPt.lng], { icon: SEARCHED_ICON, zIndexOffset: 1000 }).addTo(map);
+        sessionMarker.bindPopup(`<div style="font-size:13px;"><strong style="color:#4F63A4;">Session Location</strong></div>`);
+        bounds.push([sessionPt.lat, sessionPt.lng]);
       }
 
       const usedCoords = new Map<string, number>();
