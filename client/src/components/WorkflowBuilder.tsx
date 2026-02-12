@@ -1706,7 +1706,7 @@ function ValueCard({
                   </span>
                   {selectedTool && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {selectedTool.toolType === "AI_ONLY" ? 'AI Tool' : selectedTool.toolType === "DATASOURCE_DROPDOWN" ? 'Dropdown Tool' : 'Function Tool'}
+                      {selectedTool.toolType === "AI_ONLY" ? 'AI Data Extraction' : selectedTool.toolType === "DATASOURCE_DROPDOWN" ? 'Dropdown Tool' : 'Function Tool'}
                     </div>
                   )}
                 </div>
@@ -1905,7 +1905,7 @@ function ValueCard({
                 <SelectContent>
                   <SelectItem value="manual">Manual Entry</SelectItem>
                   {excelFunctions.filter(f => f.toolType === "AI_ONLY").length > 0 && (
-                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold">AI Tools</div>
+                    <div className="px-2 py-1 text-xs text-gray-500 font-semibold">AI Data Extraction</div>
                   )}
                   {excelFunctions.filter(f => f.toolType === "AI_ONLY").map((func) => (
                     <SelectItem key={func.id} value={func.id}>

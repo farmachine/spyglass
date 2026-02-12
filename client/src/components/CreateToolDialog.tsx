@@ -1080,7 +1080,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <SelectValue placeholder="Select tool type" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                  <SelectItem value="AI_ONLY" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">AI</SelectItem>
+                  <SelectItem value="AI_ONLY" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">AI Data Extraction</SelectItem>
                   <SelectItem value="CODE" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Code</SelectItem>
                   <SelectItem value="DATABASE_LOOKUP" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Database Lookup</SelectItem>
                   <SelectItem value="DATASOURCE_DROPDOWN" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Data Source Dropdown</SelectItem>
@@ -1093,7 +1093,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   ? "Data is looked up from an external data source with AI-powered matching"
                   : toolType === "DATASOURCE_DROPDOWN"
                   ? "Users select a value from a data source column via a searchable dropdown"
-                  : "Data is processed using AI"
+                  : "AI extracts data from documents. The extraction method is automatically determined by where the tool is used in your workflow."
                 }
               </p>
 
@@ -1183,26 +1183,36 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   Inputs *
                 </CardTitle>
                 
-                {/* Output Type Selectors - Top Right */}
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    Method
-                  </Label>
-                  <Select value={operationType} onValueChange={(value: "create" | "update") => setOperationType(value)}>
-                    <SelectTrigger className="w-[100px] h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="create">Create</SelectItem>
-                      <SelectItem value="update">Update</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {toolType !== 'AI_ONLY' && (
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      Method
+                    </Label>
+                    <Select value={operationType} onValueChange={(value: "create" | "update") => setOperationType(value)}>
+                      <SelectTrigger className="w-[100px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="create">Create</SelectItem>
+                        <SelectItem value="update">Update</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Information about automatic incremental data for UPDATE operations */}
-              {operationType === 'update' && (
+              {toolType === 'AI_ONLY' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex gap-3">
+                    <InfoIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      The extraction method (create vs update, single value vs list) is determined automatically based on where this tool is assigned in your workflow.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {toolType !== 'AI_ONLY' && operationType === 'update' && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex gap-3">
                     <InfoIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />

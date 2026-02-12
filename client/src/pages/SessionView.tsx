@@ -3190,19 +3190,19 @@ export default function SessionView() {
         columns.includes(workflowStep?.values[0]?.valueName || ''));
     }
     
-    // Get tool information if available
-    // Note: Tools are not part of the project object, so we'll need to fetch them separately
-    // For now, we'll determine the operation type from the tool description
-    const toolInfo = null; // project?.tools doesn't exist
+    // Infer operation type from step context (matches server-side inference)
+    const isIdentifierValue = valueToRun.isIdentifier === true || 
+      (valueToRun.orderIndex === 0 && workflowStep?.stepType === 'data_table');
     
-    // Infer operation type from description - if it "finds" or "identifies" something, it's creating new records
-    const inferredOperationType = valueToRun.description && 
-      (valueToRun.description.toLowerCase().includes('find') || 
-       valueToRun.description.toLowerCase().includes('identif') ||
-       valueToRun.description.toLowerCase().includes('discover') ||
-       valueToRun.description.toLowerCase().includes('detect')) 
-      ? 'createMultiple' 
-      : 'updateMultiple';
+    let inferredOperationType: string;
+    if (workflowStep?.stepType === 'info_page' || workflowStep?.stepType === 'kanban') {
+      inferredOperationType = 'updateSingle';
+    } else if (isIdentifierValue) {
+      inferredOperationType = 'createMultiple';
+    } else {
+      inferredOperationType = 'updateMultiple';
+    }
+    console.log(`🔄 Client-side inferred operationType: ${inferredOperationType} (stepType: ${workflowStep?.stepType}, isIdentifier: ${isIdentifierValue})`);
     
     // 🎯 CRITICAL FIX: For UPDATE operations, include existing validation data for this specific column
     if (inferredOperationType === 'updateMultiple' && previousColumnsData.length === 0) {

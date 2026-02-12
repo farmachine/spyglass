@@ -45,6 +45,14 @@ The system ensures data chain integrity for multi-column extraction by building 
 ### Batch Processing System
 The platform supports batch extraction for AI tools, processing large datasets in 50-record batches. The frontend and backend collaborate to filter and limit unvalidated records for efficient user workflow.
 
+### Tool Architecture: Consolidated AI Data Extraction
+All AI-powered extraction uses a single unified tool type: **AI Data Extraction** (`toolType: 'AI_ONLY'`). The operation mode is automatically inferred at extraction time based on step context:
+- **Info Page / Kanban step** → `updateSingle` (extracts individual data points)
+- **Data Table, identifier (first) column** → `createMultiple` (creates new records)
+- **Data Table, subsequent columns** → `updateMultiple` (updates existing records with new data)
+
+This inference happens server-side in both `/api/sessions/:sessionId/extract` and `/api/sessions/:sessionId/extract-column` routes. The tool's stored `operationType` is overridden at runtime for AI_ONLY tools. Non-AI tools (Code, Database Lookup, Data Source Dropdown) retain their manually configured operation types.
+
 ### Tool Architecture: Identifier Array Handling
 Both AI and Code tools consistently support identifier arrays for UPDATE operations. Reference data (read-only) is used for context, while update data is modified to extract new values, always preserving `identifierId`.
 

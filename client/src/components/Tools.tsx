@@ -386,7 +386,7 @@ export default function Tools({ projectId }: ExcelToolsProps) {
                       Used {tool.usageCount} times
                     </div>
                     <Badge variant="outline" className="text-xs h-4 px-1.5 dark:border-gray-600 dark:text-gray-300">
-                      {tool.toolType === 'AI_ONLY' ? 'AI' : tool.toolType === 'DATASOURCE_DROPDOWN' ? 'Dropdown' : 'Code'}
+                      {tool.toolType === 'AI_ONLY' ? 'AI Data Extraction' : tool.toolType === 'DATASOURCE_DROPDOWN' ? 'Dropdown' : 'Code'}
                     </Badge>
                   </div>
                 </div>

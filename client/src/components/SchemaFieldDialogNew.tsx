@@ -392,7 +392,7 @@ export function SchemaFieldDialogNew({
                                 )}
                                 <span>{tool.name}</span>
                                 <Badge variant="outline" className="ml-2 text-xs">
-                                  {tool.toolType === "AI_ONLY" ? "AI" : "CODE"}
+                                  {tool.toolType === "AI_ONLY" ? "AI Data Extraction" : "CODE"}
                                 </Badge>
                               </div>
                             </SelectItem>

@@ -4767,6 +4767,46 @@ except Exception as e:
         
         console.log(`🎯 Using tool: ${tool.name} (type: ${tool.toolType})`);
         
+        // For AI_ONLY tools, automatically infer operationType from step context
+        if (tool.toolType === 'AI_ONLY') {
+          // Get authoritative step data from DB if not in project_data
+          let workflowStep = project_data?.workflowSteps?.find((s: any) => s.id === step_id);
+          let stepType = workflowStep?.stepType;
+          
+          if (!stepType && step_id) {
+            const dbStep = await storage.getWorkflowStep(step_id);
+            if (dbStep) {
+              stepType = dbStep.stepType;
+              console.log(`🔄 Loaded step type from DB: ${stepType}`);
+            }
+          }
+          
+          // Check if this is the identifier (first) value
+          let isIdentifierValue = workflowValue?.isIdentifier === true;
+          if (!isIdentifierValue && value_id) {
+            const dbValue = await storage.getStepValue(value_id);
+            if (dbValue) {
+              isIdentifierValue = dbValue.isIdentifier === true || 
+                (dbValue.orderIndex === 0 && stepType === 'data_table');
+            }
+          }
+          
+          let inferredOperationType: string;
+          if (stepType === 'info_page' || stepType === 'kanban') {
+            inferredOperationType = 'updateSingle';
+            console.log(`🔄 AI tool operationType inferred as updateSingle (${stepType} step)`);
+          } else if (isIdentifierValue) {
+            inferredOperationType = 'createMultiple';
+            console.log(`🔄 AI tool operationType inferred as createMultiple (identifier column in data table)`);
+          } else {
+            inferredOperationType = 'updateMultiple';
+            console.log(`🔄 AI tool operationType inferred as updateMultiple (subsequent column in data table)`);
+          }
+          
+          console.log(`🔄 Overriding tool operationType from "${tool.operationType}" to "${inferredOperationType}"`);
+          (tool as any).operationType = inferredOperationType;
+        }
+        
         // Import tool engine to execute the tool
         const { toolEngine } = await import('./toolEngine');
         
@@ -9408,6 +9448,27 @@ def extract_function(Column_Name, Excel_File):
       
       console.log(`🔧 Using tool: ${tool.name} (${tool.toolType})`);
       console.log(`   Operation Type: ${tool.operationType || 'not set'}`);
+      
+      // For AI_ONLY tools, automatically infer operationType from step context
+      if (tool.toolType === 'AI_ONLY') {
+        const isIdentifierValue = value.isIdentifier === true || 
+          (value.orderIndex === 0 && step.stepType === 'data_table');
+        
+        let inferredOperationType: string;
+        if (step.stepType === 'info_page' || step.stepType === 'kanban') {
+          inferredOperationType = 'updateSingle';
+          console.log(`🔄 AI tool operationType inferred as updateSingle (${step.stepType} step)`);
+        } else if (isIdentifierValue) {
+          inferredOperationType = 'createMultiple';
+          console.log(`🔄 AI tool operationType inferred as createMultiple (identifier column in data table)`);
+        } else {
+          inferredOperationType = 'updateMultiple';
+          console.log(`🔄 AI tool operationType inferred as updateMultiple (subsequent column in data table)`);
+        }
+        
+        console.log(`🔄 Overriding tool operationType from "${tool.operationType}" to "${inferredOperationType}"`);
+        (tool as any).operationType = inferredOperationType;
+      }
       
       // Get session documents
       const session = await storage.getExtractionSession(sessionId);
