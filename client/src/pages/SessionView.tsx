@@ -5653,7 +5653,7 @@ Thank you for your assistance.`;
                       )}
                     </div>
                     {sourceEmail.emailBody && !collapsedSections.has('email-body') && (
-                      <div className="mt-3 ml-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <div className="mt-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                         {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
                           <iframe
                             srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
