@@ -205,12 +205,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   const rawData = Array.isArray(datasourceData) ? datasourceData : [];
   const safeData = useMemo(() => {
     if (!categoryFilterByValue || !categoryColumnProp || rawData.length === 0) return rawData;
-    const filtered = rawData.filter(record => {
+    return rawData.filter(record => {
       const val = record[categoryColumnProp];
       if (val === undefined || val === null) return false;
       return String(val).toLowerCase() === categoryFilterByValue.toLowerCase();
     });
-    return filtered.length > 0 ? filtered : rawData;
   }, [rawData, categoryFilterByValue, categoryColumnProp]);
   const columns = useMemo(() => {
     if (rawData.length === 0) return [];
@@ -387,7 +386,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           newCoords.set(idx, coords);
         }
 
-        if (geocodingAbortRef.current) { setIsGeocoding(false); setGeocodingDone(true); return; }
+        if (geocodingAbortRef.current) { setIsGeocoding(false); return; }
 
         const sameCityRecords: { idx: number; record: any }[] = [];
         const searchedCity = city.toLowerCase().trim();
@@ -435,56 +434,23 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           setGeocodingProgress(geocoded);
         }
       } else {
-        let searchCity: string | null = null;
-        let searchStreet: string | null = null;
+        const searchCity = resolvedInputValues ? Object.values(resolvedInputValues).find(v => v) : null;
 
-        if (initialFilters && resolvedInputValues) {
-          const cityFilter = initialFilters.find(f => (f as any).role === 'city') || initialFilters[0];
-          const streetFilter = initialFilters.find(f => (f as any).role === 'street') || (initialFilters.length > 1 ? initialFilters[1] : null);
-
-          if (cityFilter?.inputField && resolvedInputValues[cityFilter.inputField]) {
-            searchCity = resolvedInputValues[cityFilter.inputField].toString();
-          }
-          if (streetFilter?.inputField && resolvedInputValues[streetFilter.inputField]) {
-            searchStreet = resolvedInputValues[streetFilter.inputField].toString();
-          }
-        }
-
-        if (searchCity) {
-          setGeocodingLabel("Locating session address...");
-          setGeocodingTotal(1);
-          setGeocodingProgress(0);
-          const sessionCoords = await geocodeAddress(searchCity, searchStreet || undefined);
-          if (sessionCoords) {
-            newCoords.set(-1, sessionCoords);
-          }
-          setGeocodingProgress(1);
-        }
-
-        if (geocodingAbortRef.current) { setIsGeocoding(false); setGeocodingDone(true); return; }
-
-        const recordsToGeocode: { idx: number; record: any }[] = [];
-        
         if (searchCity && addressColumns.cityColumn) {
+          setGeocodingLabel("Searching for matching records...");
+
+          const matchingRecords: { idx: number; record: any }[] = [];
           const cityLower = searchCity.toString().toLowerCase().trim();
           for (let i = 0; i < safeData.length; i++) {
             const recCity = (safeData[i][addressColumns.cityColumn] || "").toString().toLowerCase().trim();
             if (recCity.includes(cityLower) || cityLower.includes(recCity)) {
-              recordsToGeocode.push({ idx: i, record: safeData[i] });
+              matchingRecords.push({ idx: i, record: safeData[i] });
             }
           }
-        }
-        
-        if (recordsToGeocode.length === 0 && addressColumns.cityColumn) {
-          for (let i = 0; i < safeData.length; i++) {
-            recordsToGeocode.push({ idx: i, record: safeData[i] });
-          }
-        }
 
-        if (recordsToGeocode.length > 0) {
           const MAX_GEOCODE = 25;
           const uniqueAddresses = new Map<string, number[]>();
-          for (const { idx: rIdx, record } of recordsToGeocode) {
+          for (const { idx: rIdx, record } of matchingRecords) {
             const recCity = (record[addressColumns.cityColumn] || "").toString().toLowerCase().trim();
             const street = addressColumns.streetColumn ? (record[addressColumns.streetColumn] || "").toString().toLowerCase().trim() : "";
             const key = `${recCity}|${street}`;
@@ -493,7 +459,7 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           }
 
           const totalToGeocode = Math.min(uniqueAddresses.size, MAX_GEOCODE);
-          setGeocodingLabel("Locating nearby records...");
+          setGeocodingLabel("Locating records...");
           setGeocodingTotal(totalToGeocode);
           setGeocodingProgress(0);
 
@@ -523,7 +489,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodedPoints(new Map(newCoords));
       setIsGeocoding(false);
       setGeocodingLabel("");
-      setGeocodingDone(true);
     };
 
     doGeocode();
@@ -534,24 +499,19 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
   }, [isOpen, hasNativeLatLng, addressColumns, searchedRecord, safeData]);
 
   const nearbyRecords = useMemo(() => {
-    let centerCoords: { lat: number; lng: number } | null = null;
+    if (!searchedRecord) return allValidPoints;
 
-    if (searchedRecord) {
-      centerCoords = getRecordCoords(searchedRecord);
-    } else if (geocodedPoints.has(-1)) {
-      centerCoords = geocodedPoints.get(-1)!;
-    }
-
+    const centerCoords = getRecordCoords(searchedRecord);
     if (!centerCoords) return allValidPoints;
 
     return allValidPoints.filter((record) => {
       if (record === searchedRecord) return false;
       const coords = getRecordCoords(record);
       if (!coords) return false;
-      const dist = haversineDistance(centerCoords!.lat, centerCoords!.lng, coords.lat, coords.lng);
+      const dist = haversineDistance(centerCoords.lat, centerCoords.lng, coords.lat, coords.lng);
       return dist <= RADIUS_KM;
     });
-  }, [allValidPoints, searchedRecord, getRecordCoords, geocodedPoints]);
+  }, [allValidPoints, searchedRecord, getRecordCoords]);
 
   const filteredNearby = useMemo(() => {
     if (!searchTerm.trim()) return nearbyRecords;
@@ -594,17 +554,11 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodedPoints(new Map());
       setMapReady(false);
       setVisibleCategoryColorMap(new Map());
-      setGeocodingProgress(0);
-      setGeocodingTotal(0);
-      setGeocodingLabel("");
-      setIsGeocoding(false);
-      setGeocodingDone(false);
       return;
     }
   }, [isOpen]);
 
-  const [geocodingDone, setGeocodingDone] = useState(false);
-  const shouldShowMap = hasNativeLatLng || (!isGeocoding && (geocodedPoints.size > 0 || geocodingDone));
+  const shouldShowMap = hasNativeLatLng || (!isGeocoding && geocodedPoints.size > 0);
 
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || !mapConfig || !shouldShowMap) return;
@@ -653,12 +607,9 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       const markers: L.Marker[] = [];
       const bounds: L.LatLngExpression[] = [];
 
-      let centerPoint: { lat: number; lng: number } | null = null;
-
       if (searchedRecord) {
         const coords = getRecordCoords(searchedRecord);
         if (coords) {
-          centerPoint = coords;
           const circle = L.circle([coords.lat, coords.lng], {
             radius: RADIUS_KM * 1000,
             color: '#4F63A4',
@@ -696,22 +647,6 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           (searchedMarker as any)._recordData = searchedRecord;
           bounds.push([coords.lat, coords.lng]);
         }
-      } else if (geocodedPoints.has(-1)) {
-        const sessionPt = geocodedPoints.get(-1)!;
-        centerPoint = sessionPt;
-        const circle = L.circle([sessionPt.lat, sessionPt.lng], {
-          radius: RADIUS_KM * 1000,
-          color: '#4F63A4',
-          fillColor: '#4F63A4',
-          fillOpacity: 0.06,
-          weight: 1.5,
-          dashArray: '6, 4',
-        }).addTo(map);
-        radiusCircleRef.current = circle;
-
-        const sessionMarker = L.marker([sessionPt.lat, sessionPt.lng], { icon: SEARCHED_ICON, zIndexOffset: 1000 }).addTo(map);
-        sessionMarker.bindPopup(`<div style="font-size:13px;"><strong style="color:#4F63A4;">Session Location</strong></div>`);
-        bounds.push([sessionPt.lat, sessionPt.lng]);
       }
 
       const usedCoords = new Map<string, number>();

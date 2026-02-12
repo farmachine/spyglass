@@ -6352,112 +6352,8 @@ Thank you for your assistance.`;
                                               {(() => {
                                                 const isEditing = editingField === fieldName;
                                                 const fieldType = stepValue.dataType;
-                                                const infoValueTool = stepValue.toolId ? toolsMap.get(stepValue.toolId) : null;
-                                                const isInfoDropdown = infoValueTool?.toolType === 'DATASOURCE_DROPDOWN';
                                                 
                                                 if (isEditing) {
-                                                  if (isInfoDropdown) {
-                                                    const infoInputValues = stepValue.inputValues || {};
-                                                    const infoDdCacheKey = infoInputValues._dropdownDataSourceId 
-                                                      ? `${stepValue.toolId}_${infoInputValues._dropdownDataSourceId}_${infoInputValues._dropdownColumn}` 
-                                                      : stepValue.toolId;
-                                                    const infoDdOptions = dropdownOptionsCache[infoDdCacheKey || ''] || [];
-                                                    
-                                                    if (infoDdOptions.length === 0 && stepValue.toolId) {
-                                                      fetchDropdownOptions(stepValue.toolId, infoInputValues);
-                                                    }
-                                                    
-                                                    let filteredInfoDdOptions = infoDdOptions;
-                                                    const filterValId = infoInputValues._categoryFilterByValue;
-                                                    if (filterValId && infoInputValues._categoryColumn) {
-                                                      let filterValue: string | undefined;
-                                                      if (filterValId.includes('::')) {
-                                                        const [valId, fName] = filterValId.split('::');
-                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === valId);
-                                                        if (matchVal) {
-                                                          const fv = validations.find(vd => vd.fieldId === matchVal.id || vd.valueId === matchVal.id);
-                                                          filterValue = fv?.extractedValue || undefined;
-                                                        }
-                                                      } else {
-                                                        const matchVal = currentStep?.values?.find((v: any) => v.id === filterValId);
-                                                        if (matchVal) {
-                                                          const fv = validations.find(vd => vd.fieldId === matchVal.id || vd.valueId === matchVal.id);
-                                                          filterValue = fv?.extractedValue || undefined;
-                                                        }
-                                                      }
-                                                      if (filterValue) {
-                                                        const dsId = infoInputValues._dropdownDataSourceId || infoValueTool?.dataSourceId || (infoValueTool as any)?.data_source_id;
-                                                        const catCol = infoInputValues._categoryColumn;
-                                                        const ddCol = infoInputValues._dropdownColumn;
-                                                        const fullCacheKey = `${dsId}_full`;
-                                                        if (dsId && !dropdownOptionsCache[fullCacheKey]) {
-                                                          apiRequest(`/api/data-sources/${dsId}/data`).then((data: any) => {
-                                                            if (Array.isArray(data)) {
-                                                              setDropdownOptionsCache(prev => ({ ...prev, [fullCacheKey]: data }));
-                                                            }
-                                                          }).catch(() => {});
-                                                        }
-                                                        const fullData = dropdownOptionsCache[fullCacheKey];
-                                                        if (Array.isArray(fullData)) {
-                                                          filteredInfoDdOptions = [...new Set(
-                                                            fullData
-                                                              .filter((row: any) => String(row[catCol] || '') === filterValue)
-                                                              .map((row: any) => String(row[ddCol] || ''))
-                                                              .filter(Boolean)
-                                                          )].sort();
-                                                        }
-                                                      }
-                                                    }
-                                                    
-                                                    const searchFilteredOptions = filteredInfoDdOptions.filter(opt =>
-                                                      !dropdownFilter || opt.toLowerCase().includes(dropdownFilter.toLowerCase())
-                                                    );
-                                                    
-                                                    return (
-                                                      <div className="relative">
-                                                        <div className="border border-blue-500 rounded-md bg-white dark:bg-gray-800">
-                                                          <Input
-                                                            type="text"
-                                                            value={dropdownFilter || editValue}
-                                                            onChange={(e) => {
-                                                              setDropdownFilter(e.target.value);
-                                                              setEditValue(e.target.value);
-                                                            }}
-                                                            placeholder="Search options..."
-                                                            className="border-0 focus-visible:ring-0"
-                                                            autoFocus
-                                                          />
-                                                          <div className="max-h-[200px] overflow-y-auto border-t border-gray-200 dark:border-gray-600">
-                                                            {infoDdOptions.length === 0 ? (
-                                                              <div className="p-2 text-sm text-gray-500">Loading options...</div>
-                                                            ) : searchFilteredOptions.length === 0 ? (
-                                                              <div className="p-2 text-sm text-gray-500">No matching options</div>
-                                                            ) : (
-                                                              searchFilteredOptions.map((opt) => (
-                                                                <button
-                                                                  key={opt}
-                                                                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-[#4F63A4]/10 dark:hover:bg-[#4F63A4]/20 cursor-pointer"
-                                                                  onClick={() => {
-                                                                    setEditValue(opt);
-                                                                    setDropdownFilter("");
-                                                                    handleSave(fieldName, opt);
-                                                                  }}
-                                                                >
-                                                                  {opt}
-                                                                </button>
-                                                              ))
-                                                            )}
-                                                          </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                          <Button size="sm" variant="outline" onClick={() => { setEditingField(null); setDropdownFilter(""); }}>
-                                                            Cancel
-                                                          </Button>
-                                                        </div>
-                                                      </div>
-                                                    );
-                                                  }
-                                                  
                                                   return (
                                                     <div className="flex items-center gap-2">
                                                       {fieldType === 'DATE' ? (
@@ -6659,25 +6555,7 @@ Thank you for your assistance.`;
                                                           );
                                                         }
                                                         
-                                                        if (isInfoDropdown) {
-                                                          return (
-                                                            <Button
-                                                              size="sm"
-                                                              variant="ghost"
-                                                              onClick={() => {
-                                                                if (stepValue.toolId) {
-                                                                  fetchDropdownOptions(stepValue.toolId, stepValue.inputValues);
-                                                                }
-                                                                handleEdit(fieldName, displayValue);
-                                                              }}
-                                                              className="h-6 px-2"
-                                                              title="Select from dropdown"
-                                                            >
-                                                              <ChevronDown className="h-3 w-3 text-[#4F63A4]" />
-                                                            </Button>
-                                                          );
-                                                        }
-                                                        
+                                                        // Regular edit button for non-database-lookup values
                                                         return (
                                                           <Button
                                                             size="sm"
