@@ -2432,7 +2432,7 @@ function ValueCard({
                   <div key={param.id} className="space-y-1">
                     <Label className="text-xs text-gray-600 dark:text-gray-400">
                       {param.name || param.label || param.id}
-                      {param.required !== false && <span className="text-red-500 ml-1">*</span>}
+                      {param.required !== false && paramType !== 'document' && !isFieldReference && !isBoolean && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     {isFieldReference && !isReferenceDocument ? (
                       <div className="space-y-2">
@@ -2654,25 +2654,26 @@ function ValueCard({
                         </SelectContent>
                       </Select>
                     ) : isBoolean ? (
-                      <Select
-                        value={String(value.inputValues?.[param.id] || 'false')}
-                        onValueChange={(v) => {
-                          onUpdate({
-                            inputValues: {
-                              ...value.inputValues,
-                              [param.id]: v === 'true'
-                            }
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">Yes</SelectItem>
-                          <SelectItem value="false">No</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2 h-8">
+                        <Checkbox
+                          id={`checkbox-${param.id}`}
+                          checked={!!value.inputValues?.[param.id]}
+                          onCheckedChange={(checked) => {
+                            onUpdate({
+                              inputValues: {
+                                ...value.inputValues,
+                                [param.id]: !!checked
+                              }
+                            });
+                          }}
+                        />
+                        <label
+                          htmlFor={`checkbox-${param.id}`}
+                          className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none"
+                        >
+                          {value.inputValues?.[param.id] ? 'Yes' : 'No'}
+                        </label>
+                      </div>
                     ) : isPrompt ? (
                       <Textarea
                         value={value.inputValues?.[param.id] || ''}
