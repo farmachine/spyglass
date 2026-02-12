@@ -1595,7 +1595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fullMessage = await getMessage(project.inboxId!, messageId);
         const subject = (fullMessage as any).subject || 'Email Session';
         const fromEmail = (fullMessage as any).from_?.[0] || (fullMessage as any).from || 'unknown@example.com';
-        const textContent = (fullMessage as any).textPlain || (fullMessage as any).text_plain || (fullMessage as any).textHtml || (fullMessage as any).text_html || '';
+        const textContent = (fullMessage as any).text || (fullMessage as any).textPlain || (fullMessage as any).text_plain || (fullMessage as any).html || (fullMessage as any).textHtml || (fullMessage as any).text_html || '';
         const attachments = (fullMessage as any).attachments || [];
         
         // === DOCUMENT VALIDATION WITH AUTO-REPLY ===
@@ -13978,10 +13978,36 @@ Respond in JSON format:
       const payload = req.body;
       const inboxId = payload.inbox_id || payload.inboxId;
       const messageId = payload.message_id || payload.messageId || payload.id;
-      const subject = payload.subject || 'Email Session';
-      const fromEmail = payload.from_?.[0] || payload.from || 'unknown@example.com';
-      const textContent = payload.text_plain || payload.text_html || payload.body || '';
-      const rawAttachments = payload.attachments || [];
+      let subject = payload.subject || 'Email Session';
+      let fromEmail = payload.from_?.[0] || payload.from || 'unknown@example.com';
+      let textContent = payload.text_plain || payload.text_html || payload.body || '';
+      let rawAttachments = payload.attachments || [];
+      
+      // Webhook payloads often lack the full message body - fetch from AgentMail API if missing
+      if (inboxId && messageId && (!textContent || rawAttachments.length === 0)) {
+        try {
+          const { getMessage } = await import('./integrations/agentmail');
+          const fullMessage = await getMessage(inboxId, messageId) as any;
+          if (fullMessage) {
+            if (!textContent) {
+              textContent = fullMessage.text || fullMessage.text_plain || fullMessage.textPlain || fullMessage.html || fullMessage.text_html || fullMessage.textHtml || fullMessage.body || '';
+              console.log(`📧 Webhook: Fetched email body from API (${textContent.length} chars)`);
+            }
+            if (!subject || subject === 'Email Session') {
+              subject = fullMessage.subject || subject;
+            }
+            if (!fromEmail || fromEmail === 'unknown@example.com') {
+              fromEmail = fullMessage.from_?.[0] || fullMessage.from || fromEmail;
+            }
+            if (rawAttachments.length === 0 && fullMessage.attachments?.length > 0) {
+              rawAttachments = fullMessage.attachments;
+              console.log(`📧 Webhook: Fetched ${rawAttachments.length} attachments from API`);
+            }
+          }
+        } catch (fetchErr) {
+          console.log(`📧 Webhook: Could not fetch full message from API:`, fetchErr);
+        }
+      }
       const attachments = rawAttachments.filter((att: any) => {
         const fname = att.filename || att.fileName || '';
         const ftype = att.content_type || att.contentType || '';
