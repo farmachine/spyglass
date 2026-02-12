@@ -526,7 +526,7 @@ export default function DefineData({
           <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <span style={{ color: '#4F63A4' }}>•</span> 
-              <span>Extraction</span>
+              <span>Project Config</span>
             </h1>
             <p className="text-gray-600 dark:text-gray-100 mt-1">
               Design your data extraction workflow
@@ -542,7 +542,7 @@ export default function DefineData({
               }}
               className="bg-gray-700 hover:bg-gray-800 text-white border border-gray-600"
             >
-              Save Extraction
+              Save Config
             </Button>
           </div>
         </div>

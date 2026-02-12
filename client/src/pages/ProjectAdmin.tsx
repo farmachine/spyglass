@@ -107,7 +107,7 @@ export default function ProjectAdmin({ projectId }: ProjectAdminProps) {
   }
 
   const adminNavItems = [
-    { id: "data" as const, label: "Extraction", icon: StreamIcon, disabled: false },
+    { id: "data" as const, label: "Project Config", icon: StreamIcon, disabled: false },
     ...(canAccessConfigTabs ? [
       { id: "knowledge" as const, label: "Knowledge Base", icon: GraduationCap, disabled: false },
       { id: "rules" as const, label: "Rulebook", icon: Brain, disabled: false },
