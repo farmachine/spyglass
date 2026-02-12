@@ -50,6 +50,24 @@ import { log } from "./vite";
 import { encryptCredential, decryptCredential, createLogger } from "./logger";
 import multer from "multer";
 
+function isEmailSignatureAttachment(filename: string, contentType: string, fileSize?: number): boolean {
+  const name = (filename || '').toLowerCase();
+  const type = (contentType || '').toLowerCase();
+  const size = fileSize || 0;
+
+  if (type.startsWith('image/') && size > 0 && size < 30000) {
+    if (/^(outlook|image\d{3}|logo|signature|banner|icon|spacer|pixel|tracking)/i.test(name)) return true;
+    if (/^(linkedin|facebook|twitter|instagram|x-logo|social|youtube|github|tiktok)/i.test(name)) return true;
+    if (name.includes('signature') || name.includes('logo') || name.includes('banner')) return true;
+    if (/\.(gif|bmp)$/.test(name) && size < 10000) return true;
+    if (size < 5000 && type.includes('image/png')) return true;
+    if (/^[a-f0-9]{8,}[-_]?[a-f0-9]*\.(png|jpg|gif)$/.test(name)) return true;
+    if (/^(cid|inline|unnamed)/i.test(name)) return true;
+  }
+
+  return false;
+}
+
 // Async workflow test processing function
 async function processWorkflowTestAsync(
   jobId: string,
@@ -1448,8 +1466,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           await generateSchemaFieldValidations(session.id, project.id);
 
-          // Process attachments
-          for (const att of email.attachments) {
+          // Process attachments (filter out signature images)
+          const realAttachments = email.attachments.filter((att: any) => {
+            if (isEmailSignatureAttachment(att.filename, att.contentType, att.data?.length)) {
+              console.log(`📧 IMAP: Skipping signature attachment: ${att.filename} (${att.data?.length} bytes)`);
+              return false;
+            }
+            return true;
+          });
+          for (const att of realAttachments) {
             try {
               const fs = await import('fs/promises');
               const path = await import('path');
@@ -1798,9 +1823,19 @@ Respond with JSON only:
         // Generate initial field validations
         await generateSchemaFieldValidations(session.id, project.id);
         
-        // Process attachments if any
-        if (attachments.length > 0) {
-          for (const attachment of attachments) {
+        // Process attachments if any (filter out signature images)
+        const realPollAttachments = attachments.filter((att: any) => {
+          const fname = att.filename || att.fileName || '';
+          const ftype = att.content_type || att.contentType || '';
+          const fsize = att.size || att.fileSize || 0;
+          if (isEmailSignatureAttachment(fname, ftype, fsize)) {
+            console.log(`📧 Skipping signature attachment: ${fname} (${fsize} bytes)`);
+            return false;
+          }
+          return true;
+        });
+        if (realPollAttachments.length > 0) {
+          for (const attachment of realPollAttachments) {
             try {
               const attachmentId = attachment.attachmentId || attachment.attachment_id || attachment.id;
               console.log(`📧 Downloading attachment: ${attachment.filename || attachment.fileName}`);
@@ -13946,7 +13981,20 @@ Respond in JSON format:
       const subject = payload.subject || 'Email Session';
       const fromEmail = payload.from_?.[0] || payload.from || 'unknown@example.com';
       const textContent = payload.text_plain || payload.text_html || payload.body || '';
-      const attachments = payload.attachments || [];
+      const rawAttachments = payload.attachments || [];
+      const attachments = rawAttachments.filter((att: any) => {
+        const fname = att.filename || att.fileName || '';
+        const ftype = att.content_type || att.contentType || '';
+        const fsize = att.size || att.fileSize || 0;
+        if (isEmailSignatureAttachment(fname, ftype, fsize)) {
+          console.log(`📧 Webhook: Skipping signature attachment: ${fname} (${fsize} bytes)`);
+          return false;
+        }
+        return true;
+      });
+      if (rawAttachments.length !== attachments.length) {
+        console.log(`📧 Webhook: Filtered ${rawAttachments.length - attachments.length} signature attachment(s)`);
+      }
       
       if (!inboxId) {
         console.log('📧 No inbox_id in webhook payload, ignoring (may be a notification event)');

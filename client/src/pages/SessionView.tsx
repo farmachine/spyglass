@@ -5631,6 +5631,7 @@ Thank you for your assistance.`;
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">From:</span>
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
                         {sourceEmail.receivedAt && (
                           <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
@@ -5639,7 +5640,10 @@ Thank you for your assistance.`;
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{sourceEmail.subject || 'No subject'}</p>
+                      <div className="flex items-baseline gap-x-2 mt-0.5">
+                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Subject:</span>
+                        <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">{sourceEmail.subject || 'No subject'}</p>
+                      </div>
                       {sourceEmail.emailBody && (
                         <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
                           {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
