@@ -2426,7 +2426,7 @@ function ValueCard({
                   // Check for text types
                   const isPrompt = paramType === 'text' && (param.multiline === true || paramName.includes('instruction') || 
                                                             paramName.includes('prompt'));
-                  const isBoolean = paramType === 'boolean' || paramType === 'bool';
+                  const isBoolean = paramType === 'boolean' || paramType === 'bool' || paramType === 'checkbox';
                   
                   return (
                   <div key={param.id} className="space-y-1">
@@ -2535,35 +2535,87 @@ function ValueCard({
                         </Select>
                       </div>
                     ) : isReferenceDocument ? (
-                      <Select
-                        value={value.inputValues?.[param.id] || ''}
-                        onValueChange={(v) => {
-                          onUpdate({
-                            inputValues: {
-                              ...value.inputValues,
-                              [param.id]: v
+                      <div className="space-y-2">
+                        <div className="border rounded-lg p-2 bg-white dark:bg-gray-800 min-h-[32px]">
+                          <div className="flex flex-wrap gap-1">
+                            {(() => {
+                              const selectedDocs = value.inputValues?.[param.id] || [];
+                              const selectedArray = Array.isArray(selectedDocs) ? selectedDocs : 
+                                                   (selectedDocs ? [selectedDocs] : []);
+                              
+                              return selectedArray.length > 0 ? (
+                                selectedArray.map((docId: string) => {
+                                  const doc = knowledgeDocuments.find(d => d.id === docId);
+                                  return doc ? (
+                                    <div key={docId} className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded text-xs">
+                                      <FileText className="h-3 w-3 text-blue-500" />
+                                      <span>{doc.displayName || doc.fileName || 'Untitled'}</span>
+                                      <button
+                                        onClick={() => {
+                                          const newDocs = selectedArray.filter((d: string) => d !== docId);
+                                          onUpdate({
+                                            inputValues: {
+                                              ...value.inputValues,
+                                              [param.id]: newDocs
+                                            }
+                                          });
+                                        }}
+                                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ) : null;
+                                })
+                              ) : (
+                                <span className="text-xs text-gray-400">Select knowledge documents...</span>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        
+                        <Select
+                          value=""
+                          onValueChange={(v) => {
+                            const currentDocs = value.inputValues?.[param.id] || [];
+                            const currentArray = Array.isArray(currentDocs) ? currentDocs : 
+                                               (currentDocs ? [currentDocs] : []);
+                            if (!currentArray.includes(v)) {
+                              onUpdate({
+                                inputValues: {
+                                  ...value.inputValues,
+                                  [param.id]: [...currentArray, v]
+                                }
+                              });
                             }
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
-                          <SelectValue placeholder="Select knowledge document..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {knowledgeDocuments.length > 0 ? (
-                            knowledgeDocuments.map((doc) => (
-                              <SelectItem key={doc.id} value={doc.id}>
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-3 w-3 text-gray-400" />
-                                  <span>{doc.displayName || doc.fileName || 'Untitled Document'}</span>
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="px-2 py-1 text-xs text-gray-500">No knowledge documents available</div>
-                          )}
-                        </SelectContent>
-                      </Select>
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-white dark:bg-gray-800">
+                            <SelectValue placeholder="Add knowledge document..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {knowledgeDocuments.length > 0 ? (
+                              knowledgeDocuments
+                                .filter(doc => {
+                                  const currentDocs = value.inputValues?.[param.id] || [];
+                                  const currentArray = Array.isArray(currentDocs) ? currentDocs : 
+                                                     (currentDocs ? [currentDocs] : []);
+                                  return !currentArray.includes(doc.id);
+                                })
+                                .map((doc) => (
+                                  <SelectItem key={doc.id} value={doc.id}>
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-3 w-3 text-gray-400" />
+                                      <span>{doc.displayName || doc.fileName || 'Untitled Document'}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                            ) : (
+                              <div className="px-2 py-1 text-xs text-gray-500">No knowledge documents available</div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     ) : isUserDocument ? (
                       <Select
                         value={value.inputValues?.[param.id] || ''}

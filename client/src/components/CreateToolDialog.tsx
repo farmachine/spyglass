@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, FileText, Database, Type, Copy, Check, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code, Info as InfoIcon } from "lucide-react";
+import { Plus, X, FileText, Database, Type, Copy, Check, CheckSquare, Upload, Loader2, ChevronDown, ChevronRight, Key, RefreshCw, Brain, Code, Info as InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -22,7 +22,7 @@ interface SampleDataRow {
 interface InputParameter {
   id: string;
   name: string;
-  type: "text" | "data" | "document";
+  type: "text" | "data" | "document" | "checkbox";
   description: string;
   multiline?: boolean; // Only applies to text type
   documentType?: "all" | "excel" | "word" | "pdf"; // Document type filter for document inputs
@@ -1288,6 +1288,12 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                                     <div className="flex items-center gap-2">
                                       <FileText className="h-4 w-4" />
                                       Document
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="checkbox">
+                                    <div className="flex items-center gap-2">
+                                      <CheckSquare className="h-4 w-4" />
+                                      Checkbox
                                     </div>
                                   </SelectItem>
                                 </SelectContent>

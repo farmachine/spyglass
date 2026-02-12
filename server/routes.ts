@@ -956,9 +956,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await storage.createProject(projectData);
       
       // Auto-import default tools from the standard project template
+      // Only import the generic "AI Data Extraction" and "Match Database Record" tools
       const DEFAULT_TOOLS_PROJECT_ID = 'adcdee71-ec36-4df9-bfdb-ff84bf923a62';
+      const DEFAULT_TOOL_NAMES = ['AI Data Extraction', 'Match Database Record for a list of items'];
       try {
-        const defaultTools = await storage.getExcelWizardryFunctionsByProject(DEFAULT_TOOLS_PROJECT_ID);
+        const allDefaultTools = await storage.getExcelWizardryFunctionsByProject(DEFAULT_TOOLS_PROJECT_ID);
+        const defaultTools = allDefaultTools.filter(t => DEFAULT_TOOL_NAMES.includes(t.name));
         if (defaultTools.length > 0) {
           for (const tool of defaultTools) {
             await storage.createExcelWizardryFunction({
