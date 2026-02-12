@@ -5625,50 +5625,57 @@ Thank you for your assistance.`;
             <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-4">
               <div className="py-3">
                 {sourceEmail ? (
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
-                      <Mail className="h-4 w-4 text-[#4F63A4]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">From:</span>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
-                        {sourceEmail.receivedAt && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(sourceEmail.receivedAt).toLocaleString()}
-                          </span>
-                        )}
+                  <div>
+                    <div className="flex items-start gap-3 cursor-pointer" onClick={() => sourceEmail.emailBody && toggleSection('email-body')}>
+                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
+                        <Mail className="h-4 w-4 text-[#4F63A4]" />
                       </div>
-                      <div className="flex items-baseline gap-x-2 mt-0.5">
-                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Subject:</span>
-                        <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">{sourceEmail.subject || 'No subject'}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">From:</span>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
+                          {sourceEmail.receivedAt && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(sourceEmail.receivedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-baseline gap-x-2 mt-0.5">
+                          <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Subject:</span>
+                          <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">{sourceEmail.subject || 'No subject'}</p>
+                        </div>
                       </div>
                       {sourceEmail.emailBody && (
-                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
-                          {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
-                            <iframe
-                              srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
-                              className="w-full border-0 rounded-md bg-gray-50 dark:bg-gray-800/30"
-                              style={{ minHeight: '80px', maxHeight: '400px' }}
-                              sandbox="allow-same-origin"
-                              title="Email content"
-                              onLoad={(e) => {
-                                const iframe = e.target as HTMLIFrameElement;
-                                if (iframe.contentDocument) {
-                                  const height = Math.min(iframe.contentDocument.body.scrollHeight + 16, 400);
-                                  iframe.style.height = `${height}px`;
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                              {sourceEmail.emailBody}
-                            </div>
-                          )}
+                        <div className="flex-shrink-0 mt-1">
+                          {collapsedSections.has('email-body') ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
                         </div>
                       )}
                     </div>
+                    {sourceEmail.emailBody && !collapsedSections.has('email-body') && (
+                      <div className="mt-3 ml-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
+                          <iframe
+                            srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
+                            className="w-full border-0 rounded-md"
+                            style={{ minHeight: '60px', maxHeight: '400px' }}
+                            sandbox="allow-same-origin"
+                            title="Email content"
+                            onLoad={(e) => {
+                              const iframe = e.target as HTMLIFrameElement;
+                              if (iframe.contentDocument) {
+                                const height = Math.min(iframe.contentDocument.body.scrollHeight + 16, 400);
+                                iframe.style.height = `${height}px`;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {sourceEmail.emailBody}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-start gap-3">
