@@ -437,21 +437,30 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       } else {
         const searchCity = resolvedInputValues ? Object.values(resolvedInputValues).find(v => v) : null;
 
+        const recordsToGeocode: { idx: number; record: any }[] = [];
+        
         if (searchCity && addressColumns.cityColumn) {
           setGeocodingLabel("Searching for matching records...");
-
-          const matchingRecords: { idx: number; record: any }[] = [];
           const cityLower = searchCity.toString().toLowerCase().trim();
           for (let i = 0; i < safeData.length; i++) {
             const recCity = (safeData[i][addressColumns.cityColumn] || "").toString().toLowerCase().trim();
             if (recCity.includes(cityLower) || cityLower.includes(recCity)) {
-              matchingRecords.push({ idx: i, record: safeData[i] });
+              recordsToGeocode.push({ idx: i, record: safeData[i] });
             }
           }
+        }
+        
+        if (recordsToGeocode.length === 0 && addressColumns.cityColumn) {
+          setGeocodingLabel("Loading all locations...");
+          for (let i = 0; i < safeData.length; i++) {
+            recordsToGeocode.push({ idx: i, record: safeData[i] });
+          }
+        }
 
+        if (recordsToGeocode.length > 0) {
           const MAX_GEOCODE = 25;
           const uniqueAddresses = new Map<string, number[]>();
-          for (const { idx: rIdx, record } of matchingRecords) {
+          for (const { idx: rIdx, record } of recordsToGeocode) {
             const recCity = (record[addressColumns.cityColumn] || "").toString().toLowerCase().trim();
             const street = addressColumns.streetColumn ? (record[addressColumns.streetColumn] || "").toString().toLowerCase().trim() : "";
             const key = `${recCity}|${street}`;
@@ -555,6 +564,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
       setGeocodedPoints(new Map());
       setMapReady(false);
       setVisibleCategoryColorMap(new Map());
+      setGeocodingProgress(0);
+      setGeocodingTotal(0);
+      setGeocodingLabel("");
+      setIsGeocoding(false);
       return;
     }
   }, [isOpen]);
