@@ -47,7 +47,9 @@ interface CreateToolDialogProps {
 
 export default function CreateToolDialog({ projectId, editingFunction, setEditingFunction, trigger }: CreateToolDialogProps) {
   const [open, setOpen] = useState(false);
-  const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | "DATABASE_LOOKUP" | null>(null);
+  const [toolType, setToolType] = useState<"AI_ONLY" | "CODE" | "DATABASE_LOOKUP" | "DATASOURCE_DROPDOWN" | null>(null);
+  const [dropdownDataSourceId, setDropdownDataSourceId] = useState<string>("");
+  const [dropdownColumn, setDropdownColumn] = useState<string>("");
   const [aiAssistanceRequired, setAiAssistanceRequired] = useState(false);
   const [operationType, setOperationType] = useState<"create" | "update">("update");
   const [inputParameters, setInputParameters] = useState<InputParameter[]>([]);
@@ -84,10 +86,25 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
 
   const queryClient = useQueryClient();
 
+  const { data: dataSources = [] } = useQuery<any[]>({
+    queryKey: [`/api/projects/${projectId}/data-sources`],
+    enabled: !!projectId,
+  });
+
+  const { data: dropdownSourceData } = useQuery<any[]>({
+    queryKey: [`/api/data-sources/${dropdownDataSourceId}/data`],
+    enabled: !!dropdownDataSourceId && toolType === 'DATASOURCE_DROPDOWN',
+  });
+
+  const dropdownSourceColumns = dropdownSourceData && dropdownSourceData.length > 0
+    ? Object.keys(dropdownSourceData[0])
+    : [];
+
   const resetForm = () => {
     setFormData({ name: "", description: "", aiAssistancePrompt: "", functionCode: "", aiPrompt: "", llmModel: "gemini-2.0-flash" });
     setToolType(null);
-    // outputType removed - always use multiple
+    setDropdownDataSourceId("");
+    setDropdownColumn("");
     setOperationType("update");
     setInputParameters([]);
     setAiAssistanceRequired(false);
@@ -125,10 +142,15 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
         });
         // Set tool type properly for all three options
         const tt = editingFunction.toolType;
-        if (tt === 'AI_ONLY' || tt === 'CODE' || tt === 'DATABASE_LOOKUP') {
+        if (tt === 'AI_ONLY' || tt === 'CODE' || tt === 'DATABASE_LOOKUP' || tt === 'DATASOURCE_DROPDOWN') {
           setToolType(tt);
         } else {
           setToolType('CODE');
+        }
+        if (tt === 'DATASOURCE_DROPDOWN') {
+          setDropdownDataSourceId(editingFunction.dataSourceId || "");
+          const meta = editingFunction.metadata || {};
+          setDropdownColumn(meta.dropdownColumn || "");
         }
         
         // Parse the full operationType enum back to base form
@@ -190,7 +212,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
           functionCode: data.toolType === 'CODE' ? (data.functionCode || editingFunction.functionCode) : null,
           aiPrompt: (data.toolType === 'AI_ONLY' || data.toolType === 'DATABASE_LOOKUP') ? (data.aiPrompt || editingFunction.aiPrompt) : null,
           toolType: data.toolType,
-          dataSourceId: data.toolType === 'DATABASE_LOOKUP' ? data.dataSourceId : null,
+          dataSourceId: (data.toolType === 'DATABASE_LOOKUP' || data.toolType === 'DATASOURCE_DROPDOWN') ? data.dataSourceId : null,
           outputType: "multiple",
           operationType: data.operationType,
           inputParameters: data.inputParameters,
@@ -934,8 +956,15 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       return;
     }
 
+    if (toolType === 'DATASOURCE_DROPDOWN' && (!dropdownDataSourceId || !dropdownColumn)) {
+      console.error("Validation Error: DATASOURCE_DROPDOWN tools require a data source and column.");
+      return;
+    }
+
     // Build the full operationType enum value - always Multiple
-    const fullOperationType = `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
+    const fullOperationType = toolType === 'DATASOURCE_DROPDOWN'
+      ? 'createMultiple' as const
+      : `${operationType}Multiple` as 'createMultiple' | 'updateMultiple';
 
     const toolData = {
       projectId,
@@ -944,22 +973,24 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
       toolType,
       outputType: "multiple",
       operationType: fullOperationType,
-      inputParameters,
+      inputParameters: toolType === 'DATASOURCE_DROPDOWN' ? [] : inputParameters,
       aiAssistanceRequired: toolType === "CODE" ? aiAssistanceRequired : false,
       aiAssistancePrompt: aiAssistanceRequired ? formData.aiAssistancePrompt : null,
-      // Include the actual content based on tool type
       aiPrompt: (toolType === 'AI_ONLY' || toolType === 'DATABASE_LOOKUP') ? formData.aiPrompt : null,
       functionCode: toolType === 'CODE' ? formData.functionCode : null,
       llmModel: formData.llmModel || "gemini-2.0-flash",
-      // Add required schema fields
       inputSchema: {
-        parameters: inputParameters
+        parameters: toolType === 'DATASOURCE_DROPDOWN' ? [] : inputParameters
       },
       outputSchema: {
         format: "field_validations_compatible"
       },
       tags: [],
-      displayConfig: displayConfig.modalType !== 'none' ? displayConfig : null
+      displayConfig: displayConfig.modalType !== 'none' ? displayConfig : null,
+      ...(toolType === 'DATASOURCE_DROPDOWN' ? {
+        dataSourceId: dropdownDataSourceId,
+        metadata: { dropdownColumn }
+      } : {})
     };
 
     console.log('🚀 SUBMITTING TOOL DATA:', JSON.stringify(toolData, null, 2));
@@ -1036,10 +1067,13 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
               <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Tool Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP") => {
+              <Select value={toolType || ""} onValueChange={(value: "AI_ONLY" | "CODE" | "DATABASE_LOOKUP" | "DATASOURCE_DROPDOWN") => {
                 setToolType(value);
                 if (value === 'DATABASE_LOOKUP' && displayConfig.modalType === 'none') {
                   setDisplayConfig({ modalType: 'table', modalSize: 'xl' });
+                }
+                if (value === 'DATASOURCE_DROPDOWN') {
+                  setOperationType('create');
                 }
               }}>
                 <SelectTrigger className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
@@ -1049,6 +1083,7 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   <SelectItem value="AI_ONLY" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">AI</SelectItem>
                   <SelectItem value="CODE" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Code</SelectItem>
                   <SelectItem value="DATABASE_LOOKUP" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Database Lookup</SelectItem>
+                  <SelectItem value="DATASOURCE_DROPDOWN" className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">Data Source Dropdown</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -1056,6 +1091,8 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
                   ? "Data is processed using a coded function"
                   : toolType === "DATABASE_LOOKUP"
                   ? "Data is looked up from an external data source with AI-powered matching"
+                  : toolType === "DATASOURCE_DROPDOWN"
+                  ? "Users select a value from a data source column via a searchable dropdown"
                   : "Data is processed using AI"
                 }
               </p>
@@ -1088,8 +1125,57 @@ export default function CreateToolDialog({ projectId, editingFunction, setEditin
             </Card>
           )}
 
-          {/* Inputs - Only show when tool type is selected */}
-          {(toolType || isEditMode) && (
+          {/* DATASOURCE_DROPDOWN Configuration */}
+          {toolType === "DATASOURCE_DROPDOWN" && (
+            <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-100">Dropdown Configuration</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Data Source</Label>
+                  <Select value={dropdownDataSourceId} onValueChange={(value) => {
+                    setDropdownDataSourceId(value);
+                    setDropdownColumn("");
+                  }}>
+                    <SelectTrigger className="mt-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+                      <SelectValue placeholder="Select a data source" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                      {dataSources.map((ds: any) => (
+                        <SelectItem key={ds.id} value={String(ds.id)} className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">
+                          {ds.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {dropdownDataSourceId && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Column to Display</Label>
+                    <Select value={dropdownColumn} onValueChange={setDropdownColumn}>
+                      <SelectTrigger className="mt-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+                        <SelectValue placeholder="Select column" />
+                      </SelectTrigger>
+                      <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                        {dropdownSourceColumns.map((col: string) => (
+                          <SelectItem key={col} value={col} className="dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:bg-gray-700">
+                            {col}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Unique values from this column will appear as dropdown options
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Inputs - Only show when tool type is selected (but not for DATASOURCE_DROPDOWN) */}
+          {(toolType || isEditMode) && toolType !== "DATASOURCE_DROPDOWN" && (
             <Card className="border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">

@@ -8037,6 +8037,15 @@ print(json.dumps(results))
             errors: [{ path: ['aiPrompt'], message: 'Required for DATABASE_LOOKUP tools' }]
           });
         }
+      } else if (toolType === 'DATASOURCE_DROPDOWN') {
+        // DATASOURCE_DROPDOWN tools require dataSourceId and dropdownColumn in metadata
+        if (!dataSourceId) {
+          console.error('❌ DATASOURCE_DROPDOWN tools require dataSourceId');
+          return res.status(400).json({ 
+            message: "Data Source Dropdown tools must have a data source selected", 
+            errors: [{ path: ['dataSourceId'], message: 'Required for DATASOURCE_DROPDOWN tools' }]
+          });
+        }
       }
       
       // Process input parameters and extract document content if needed
@@ -8051,6 +8060,7 @@ print(json.dumps(results))
         toolType,
         aiPrompt: (toolType === 'AI_ONLY' || toolType === 'DATABASE_LOOKUP') ? aiPrompt : null,
         functionCode: toolType === 'CODE' ? functionCode : null,
+        dataSourceId: (toolType === 'DATABASE_LOOKUP' || toolType === 'DATASOURCE_DROPDOWN') ? dataSourceId : null,
         metadata
       };
 

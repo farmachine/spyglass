@@ -1652,6 +1652,8 @@ export default function SessionView() {
   const [editValue, setEditValue] = useState("");
   const [editingTableField, setEditingTableField] = useState<string | null>(null);
   const [editTableValue, setEditTableValue] = useState("");
+  const [dropdownOptionsCache, setDropdownOptionsCache] = useState<Record<string, string[]>>({});
+  const [dropdownFilter, setDropdownFilter] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
   
@@ -1765,6 +1767,71 @@ export default function SessionView() {
   // Modal editing removed - now using inline editing for all fields
 
   // Handler for inline table field editing
+  const fetchDropdownOptions = async (toolId: string) => {
+    if (dropdownOptionsCache[toolId]) return;
+    const tool = toolsMap.get(toolId);
+    if (!tool || tool.toolType !== 'DATASOURCE_DROPDOWN') return;
+    const dsId = tool.dataSourceId || tool.data_source_id;
+    const meta = tool.metadata || {};
+    const col = meta.dropdownColumn;
+    if (!dsId || !col) return;
+    try {
+      const data = await apiRequest(`/api/data-sources/${dsId}/data`);
+      if (Array.isArray(data)) {
+        const uniqueValues = [...new Set(data.map((row: any) => String(row[col] || '')).filter(Boolean))].sort();
+        setDropdownOptionsCache(prev => ({ ...prev, [toolId]: uniqueValues }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdown options:', err);
+    }
+  };
+
+  const handleSaveDropdownValue = async (value: string) => {
+    if (!editingTableField) return;
+    const validation = validations.find(v => {
+      const fk = `${v.collectionName}.${v.fieldName}[${v.recordIndex}]`;
+      return fk === editingTableField;
+    });
+    const match = editingTableField.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
+    if (!match) return;
+    const [, collectionName, fieldName, indexStr] = match;
+    const recordIndex = parseInt(indexStr);
+    setEditingTableField(null);
+    setEditTableValue("");
+    setDropdownFilter("");
+    if (validation) {
+      await handleSaveFieldEdit(validation.id, value, 'valid');
+    } else {
+      const workflowStep = project?.workflowSteps?.find(step =>
+        ((step.stepType === 'data_table' || step.stepType === 'list') && step.collectionName === collectionName) ||
+        ((step.stepType === 'data_table' || step.stepType === 'list') && step.stepName === collectionName)
+      );
+      const stepValues = workflowStep?.values || [];
+      const stepValue = stepValues.find((sv: any) => sv.valueName === fieldName);
+      const fieldId = stepValue?.id;
+      if (fieldId && sessionId) {
+        try {
+          await apiRequest('/api/field-validations', {
+            method: 'POST',
+            body: JSON.stringify({
+              sessionId: parseInt(sessionId),
+              fieldId,
+              collectionName,
+              fieldName,
+              recordIndex,
+              extractedValue: value,
+              status: 'valid',
+              validationType: 'manual'
+            })
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'field-validations'] });
+        } catch (err) {
+          console.error('Failed to save dropdown value:', err);
+        }
+      }
+    }
+  };
+
   const handleEditTableField = (validation: FieldValidation) => {
     const fieldKey = `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`;
     console.log('handleEditTableField called with:', {
@@ -1773,14 +1840,11 @@ export default function SessionView() {
       extractedValue: validation.extractedValue
     });
     setEditingTableField(fieldKey);
-    // If the value is null/undefined (displayed as "Not Found"), start with empty string
-    // so user can enter a new value. If it has "Not Found" as actual text, keep it
+    setDropdownFilter("");
     if (validation.extractedValue === null || validation.extractedValue === undefined) {
       setEditTableValue("");
-      console.log('Setting edit value to empty string for null/undefined');
     } else {
       setEditTableValue(validation.extractedValue || "");
-      console.log('Setting edit value to:', validation.extractedValue);
     }
   };
 
@@ -6925,6 +6989,68 @@ Thank you for your assistance.`;
                                               const isEditingThisField = editingTableField === fieldKey;
                                               
                                               if (isEditingThisField) {
+                                                const cellTool = column.toolId ? toolsMap.get(column.toolId) : null;
+                                                const isDropdownTool = cellTool?.toolType === 'DATASOURCE_DROPDOWN';
+                                                const ddOptions = isDropdownTool ? (dropdownOptionsCache[column.toolId] || []) : [];
+                                                const filteredDdOptions = ddOptions.filter(opt => 
+                                                  !dropdownFilter || opt.toLowerCase().includes(dropdownFilter.toLowerCase())
+                                                );
+                                                
+                                                if (isDropdownTool && ddOptions.length === 0 && column.toolId) {
+                                                  fetchDropdownOptions(column.toolId);
+                                                }
+                                                
+                                                if (isDropdownTool) {
+                                                  return (
+                                                    <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
+                                                      <div className="relative h-full">
+                                                        <input
+                                                          type="text"
+                                                          value={dropdownFilter}
+                                                          onChange={(e) => setDropdownFilter(e.target.value)}
+                                                          placeholder="Type to search..."
+                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-8"
+                                                          autoFocus
+                                                          onKeyDown={(e) => {
+                                                            if (e.key === 'Escape') {
+                                                              handleCancelTableFieldEdit();
+                                                            } else if (e.key === 'Enter' && filteredDdOptions.length === 1) {
+                                                              handleSaveDropdownValue(filteredDdOptions[0]);
+                                                            }
+                                                          }}
+                                                        />
+                                                        <Button
+                                                          size="sm"
+                                                          variant="ghost"
+                                                          onClick={handleCancelTableFieldEdit}
+                                                          className="absolute top-1/2 right-1 transform -translate-y-1/2 h-6 px-1 text-xs"
+                                                        >
+                                                          x
+                                                        </Button>
+                                                      </div>
+                                                      <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                                                        {ddOptions.length === 0 ? (
+                                                          <div className="px-3 py-2 text-xs text-gray-400">Loading options...</div>
+                                                        ) : filteredDdOptions.length === 0 ? (
+                                                          <div className="px-3 py-2 text-xs text-gray-400">No matches</div>
+                                                        ) : (
+                                                          filteredDdOptions.map((opt, i) => (
+                                                            <div
+                                                              key={i}
+                                                              className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 ${
+                                                                editTableValue === opt ? 'bg-blue-100 dark:bg-gray-600 font-medium' : ''
+                                                              }`}
+                                                              onClick={() => handleSaveDropdownValue(opt)}
+                                                            >
+                                                              {opt}
+                                                            </div>
+                                                          ))
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                }
+                                                
                                                 return (
                                                   <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
                                                     <div className="relative h-full">
@@ -6974,7 +7100,7 @@ Thank you for your assistance.`;
                                                           onClick={handleCancelTableFieldEdit}
                                                           className="h-6 px-2 text-xs"
                                                         >
-                                                          ×
+                                                          x
                                                         </Button>
                                                       </div>
                                                     </div>
@@ -7081,41 +7207,40 @@ Thank you for your assistance.`;
                                                   );
                                                 }
                                                 
-                                                // Regular edit button for non-database-lookup columns
+                                                const isDropdownColumn = columnTool?.toolType === 'DATASOURCE_DROPDOWN';
+                                                
+                                                const handleEditClick = () => {
+                                                  if (isDropdownColumn && columnTool?.id) {
+                                                    fetchDropdownOptions(columnTool.id);
+                                                  }
+                                                  if (validation) {
+                                                    handleEditTableField(validation);
+                                                  } else {
+                                                    const tempValidation = {
+                                                      id: `temp-${Date.now()}`,
+                                                      collectionName: collection.collectionName,
+                                                      fieldName: columnName,
+                                                      recordIndex: originalIndex,
+                                                      extractedValue: null,
+                                                      identifierId: rowIdentifierId
+                                                    } as FieldValidation;
+                                                    handleEditTableField(tempValidation);
+                                                  }
+                                                };
+                                                
                                                 return (
                                                   <Button
                                                     size="sm"
                                                     variant="ghost"
-                                                    onClick={() => {
-                                                      console.log('Edit button clicked for:', {
-                                                        collectionName: collection.collectionName,
-                                                        columnName,
-                                                        originalIndex,
-                                                        rowIdentifierId,
-                                                        hasValidation: !!validation
-                                                      });
-                                                      
-                                                      if (validation) {
-                                                        console.log('Editing existing validation:', validation);
-                                                        handleEditTableField(validation);
-                                                      } else {
-                                                        // Create a temporary validation object for fields without validation
-                                                        const tempValidation = {
-                                                          id: `temp-${Date.now()}`,
-                                                          collectionName: collection.collectionName,
-                                                          fieldName: columnName,
-                                                          recordIndex: originalIndex,
-                                                          extractedValue: null,
-                                                          identifierId: rowIdentifierId
-                                                        } as FieldValidation;
-                                                        console.log('Creating temp validation for editing:', tempValidation);
-                                                        handleEditTableField(tempValidation);
-                                                      }
-                                                    }}
+                                                    onClick={handleEditClick}
                                                     className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title="Edit field value"
+                                                    title={isDropdownColumn ? "Select from dropdown" : "Edit field value"}
                                                   >
-                                                    <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                    {isDropdownColumn ? (
+                                                      <ChevronDown className="h-3 w-3 text-[#4F63A4]" />
+                                                    ) : (
+                                                      <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                    )}
                                                   </Button>
                                                 );
                                               }
