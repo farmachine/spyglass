@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,6 +215,8 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   onMainObjectNameChange
 }, ref) => {
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const stepsRef = useRef<WorkflowStep[]>([]);
+  stepsRef.current = steps;
   const [editingDescription, setEditingDescription] = useState<string | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -302,8 +304,12 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
 
   const saveWorkflow = async () => {
     try {
-      await onSave(steps);
-      // Also save document types when saving extraction config
+      const currentSteps = stepsRef.current;
+      console.log('📝 WorkflowBuilder saving steps:', currentSteps.map(s => ({
+        id: s.id, name: s.name, valueCount: s.values.length,
+        valueNames: s.values.map(v => v.name)
+      })));
+      await onSave(currentSteps);
       onDocumentTypesChange?.(documentTypes);
       toast({
         title: "Success",
@@ -334,7 +340,7 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   const updateStep = (stepId: string, updates: Partial<WorkflowStep>) => {
-    setSteps(steps.map(step => 
+    setSteps(prevSteps => prevSteps.map(step => 
       step.id === stepId ? { ...step, ...updates } : step
     ));
   };
@@ -419,20 +425,24 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
   };
 
   const deleteValue = (stepId: string, valueId: string) => {
-    const step = steps.find(s => s.id === stepId);
-    if (!step) return;
+    setSteps(prevSteps => {
+      const step = prevSteps.find(s => s.id === stepId);
+      if (!step) return prevSteps;
 
-    const deletedValueIndex = step.values.findIndex(v => v.id === valueId);
-    const updatedValues = step.values.filter(v => v.id !== valueId);
-    
-    // Update orderIndex for remaining values
-    updatedValues.forEach((v, index) => {
-      if (v.orderIndex > deletedValueIndex) {
-        v.orderIndex--;
-      }
+      const deletedValueIndex = step.values.findIndex(v => v.id === valueId);
+      const updatedValues = step.values
+        .filter(v => v.id !== valueId)
+        .map(v => ({
+          ...v,
+          orderIndex: v.orderIndex > deletedValueIndex ? v.orderIndex - 1 : v.orderIndex
+        }));
+
+      console.log(`🗑️ Deleted value ${valueId} from step ${stepId}. Remaining values:`, updatedValues.map(v => v.name));
+
+      return prevSteps.map(s =>
+        s.id === stepId ? { ...s, values: updatedValues } : s
+      );
     });
-
-    updateStep(stepId, { values: updatedValues });
   };
 
   const addField = (stepId: string, valueId: string) => {
