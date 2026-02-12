@@ -1260,19 +1260,17 @@ export const WorkflowBuilder = forwardRef<any, WorkflowBuilderProps>(({
                         <>
                           {step.values.map((value, valueIndex) => (
                             <div key={value.id}>
-                              {!step.actionConfig && (
-                                <div className="group/insert flex items-center gap-2 py-1 -my-1">
-                                  <div className="flex-1 h-px bg-transparent group-hover/insert:bg-[#4F63A4]/30 transition-colors" />
-                                  <button
-                                    onClick={() => addValue(step.id, value.orderIndex !== undefined ? value.orderIndex : valueIndex)}
-                                    className="opacity-0 group-hover/insert:opacity-100 transition-opacity px-2 py-0.5 text-xs text-gray-400 hover:text-[#4F63A4] dark:text-gray-500 dark:hover:text-[#5A70B5] flex items-center gap-1 rounded hover:bg-[#4F63A4]/10"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                    Insert
-                                  </button>
-                                  <div className="flex-1 h-px bg-transparent group-hover/insert:bg-[#4F63A4]/30 transition-colors" />
-                                </div>
-                              )}
+                              <div className="group/insert flex items-center gap-2 py-1 -my-1">
+                                <div className="flex-1 h-px bg-transparent group-hover/insert:bg-[#4F63A4]/30 transition-colors" />
+                                <button
+                                  onClick={() => addValue(step.id, value.orderIndex !== undefined ? value.orderIndex : valueIndex)}
+                                  className="opacity-0 group-hover/insert:opacity-100 transition-opacity px-2 py-0.5 text-xs text-gray-400 hover:text-[#4F63A4] dark:text-gray-500 dark:hover:text-[#5A70B5] flex items-center gap-1 rounded hover:bg-[#4F63A4]/10"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  Insert
+                                </button>
+                                <div className="flex-1 h-px bg-transparent group-hover/insert:bg-[#4F63A4]/30 transition-colors" />
+                              </div>
                               <ValueCard
                                 step={step}
                                 value={value}
