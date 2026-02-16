@@ -1,3 +1,16 @@
+/**
+ * Structured Logger
+ *
+ * Provides structured logging with two output modes:
+ * - Human-readable format for development
+ * - JSON format for CloudWatch ingestion in production
+ *
+ * Encryption functions have been moved to server/encryption.ts.
+ * Re-exported here for backwards compatibility with existing imports.
+ *
+ * ISO 27001 A.12.4: Logging and monitoring
+ */
+
 import crypto from 'crypto';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -10,17 +23,25 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const currentLevel: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 'info';
-
-function formatTimestamp(): string {
-  return new Date().toISOString();
-}
+const isProduction = process.env.NODE_ENV === 'production';
 
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
 }
 
 function formatMessage(level: LogLevel, context: string, message: string, meta?: Record<string, any>): string {
-  const timestamp = formatTimestamp();
+  if (isProduction) {
+    // Structured JSON for CloudWatch
+    return JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: level.toUpperCase(),
+      context,
+      message,
+      ...meta,
+    });
+  }
+  // Human-readable for development
+  const timestamp = new Date().toISOString();
   const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
   return `[${timestamp}] [${level.toUpperCase()}] [${context}] ${message}${metaStr}`;
 }
@@ -46,38 +67,5 @@ export function generateRequestId(): string {
   return crypto.randomUUID().slice(0, 8);
 }
 
-const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
-
-function getEncryptionKey(): Buffer {
-  const secret = process.env.CREDENTIAL_ENCRYPTION_KEY || process.env.JWT_SECRET || 'default-encryption-key-change-me';
-  return crypto.scryptSync(secret, 'extrapl-salt', 32);
-}
-
-export function encryptCredential(plaintext: string): string {
-  const key = getEncryptionKey();
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag().toString('hex');
-  return `enc:${iv.toString('hex')}:${authTag}:${encrypted}`;
-}
-
-export function decryptCredential(encryptedStr: string): string {
-  if (!encryptedStr.startsWith('enc:')) {
-    return encryptedStr;
-  }
-  const parts = encryptedStr.split(':');
-  if (parts.length !== 4) {
-    return encryptedStr;
-  }
-  const [, ivHex, authTagHex, encrypted] = parts;
-  const key = getEncryptionKey();
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
+// Re-export encryption functions from the dedicated module for backwards compatibility
+export { encryptCredential, decryptCredential } from './encryption';

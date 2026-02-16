@@ -1,0 +1,202 @@
+# =============================================================================
+# Extrapl SaaS Platform - Security Scanning
+# =============================================================================
+# Runs on a weekly schedule (Monday 06:00 UTC) and on pull requests.
+# Performs CodeQL analysis for JavaScript/TypeScript, Trivy container
+# scanning on the Dockerfile, and npm dependency auditing.
+# =============================================================================
+
+name: Security Scan
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday at 06:00 UTC
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.js"
+      - "**/*.jsx"
+      - "package.json"
+      - "package-lock.json"
+      - "Dockerfile"
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: read
+  security-events: write   # For uploading SARIF results
+  actions: read
+
+concurrency:
+  group: security-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # CodeQL Analysis (JavaScript/TypeScript)
+  # ---------------------------------------------------------------------------
+  codeql-analysis:
+    name: "CodeQL Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ---------------------------------------------------------------------------
+  # Trivy Container Scan
+  # ---------------------------------------------------------------------------
+  trivy-scan:
+    name: "Trivy Container Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: extrapl:security-scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "extrapl:security-scan"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+          category: "trivy-container"
+
+      - name: Run Trivy and fail on critical
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "extrapl:security-scan"
+          format: "table"
+          severity: "CRITICAL"
+          exit-code: "1"
+
+  # ---------------------------------------------------------------------------
+  # Trivy Filesystem Scan (IaC and Config)
+  # ---------------------------------------------------------------------------
+  trivy-config-scan:
+    name: "Trivy Config & IaC Scan"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan (misconfig)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-config-results.sarif"
+          scanners: "misconfig,secret"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+
+      - name: Upload config scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-config-results.sarif"
+          category: "trivy-config"
+
+  # ---------------------------------------------------------------------------
+  # npm Audit
+  # ---------------------------------------------------------------------------
+  npm-audit:
+    name: "npm Dependency Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (high + critical)
+        run: |
+          echo "## npm Audit Results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm audit --audit-level=high 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail on critical vulnerabilities
+        run: npm audit --audit-level=critical
+
+  # ---------------------------------------------------------------------------
+  # Security Scan Summary
+  # ---------------------------------------------------------------------------
+  summary:
+    name: "Security Scan Summary"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [codeql-analysis, trivy-scan, trivy-config-scan, npm-audit]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Security Scan Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Scan | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trivy Container Scan | ${{ needs.trivy-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trivy Config Scan | ${{ needs.trivy-config-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| npm Audit | ${{ needs.npm-audit.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"

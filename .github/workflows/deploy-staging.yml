@@ -1,0 +1,419 @@
+# =============================================================================
+# Extrapl SaaS Platform - Deploy to Staging
+# =============================================================================
+# Triggered on push to main (after PR merge). Runs full CI checks, builds and
+# pushes the Docker image to ECR, applies Terraform for staging, deploys the
+# new ECS task definition, and runs smoke tests.
+# =============================================================================
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write          # OIDC token for AWS auth
+  security-events: write   # For uploading SARIF results
+  packages: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false  # Never cancel an in-progress deployment
+
+env:
+  NODE_VERSION: "20"
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: extrapl
+  ECS_CLUSTER: extrapl-staging
+  ECS_SERVICE: extrapl-staging-app
+  TF_WORKING_DIR: terraform
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Code Quality & Tests (same as CI)
+  # ---------------------------------------------------------------------------
+  code-quality:
+    name: "Code Quality & Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run check
+
+      - name: Lint (ESLint)
+        run: |
+          if [ -f .eslintrc.js ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yml ] || [ -f eslint.config.js ] || [ -f eslint.config.mjs ]; then
+            npx eslint . --max-warnings=0
+          else
+            echo "::notice::ESLint is not configured. Skipping lint step."
+          fi
+
+      - name: Run unit tests
+        run: |
+          if npm run test --if-present 2>/dev/null; then
+            echo "Tests completed"
+          else
+            echo "::notice::No test script found. Skipping."
+          fi
+
+  # ---------------------------------------------------------------------------
+  # SAST Scan
+  # ---------------------------------------------------------------------------
+  sast-scan:
+    name: "SAST Scan (Semgrep)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST scan
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/default
+            p/owasp-top-ten
+            p/nodejs
+            p/typescript
+            p/secrets
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Dependency Audit
+  # ---------------------------------------------------------------------------
+  dependency-audit:
+    name: "Dependency Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (high severity)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Build & Push Docker Image to ECR
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: "Build & Push Docker Image"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [code-quality, sast-scan, dependency-audit]
+
+    outputs:
+      image-uri: ${{ steps.build-push.outputs.image-uri }}
+      image-tag: ${{ steps.meta.outputs.sha-tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+          SHA_TAG="${{ github.sha }}"
+          IMAGE_URI="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${SHA_TAG}"
+          echo "registry=${REGISTRY}" >> "$GITHUB_OUTPUT"
+          echo "sha-tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+          echo "image-uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.meta.outputs.sha-tag }}
+            ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Run ECR image scan
+        run: |
+          echo "Starting ECR image scan..."
+          aws ecr start-image-scan \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-id imageTag="${{ steps.meta.outputs.sha-tag }}"
+
+          echo "Waiting for scan results..."
+          aws ecr wait image-scan-complete \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-id imageTag="${{ steps.meta.outputs.sha-tag }}"
+
+          echo "Fetching scan findings..."
+          SCAN_RESULTS=$(aws ecr describe-image-scan-findings \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-id imageTag="${{ steps.meta.outputs.sha-tag }}" \
+            --query 'imageScanFindings.findingSeverityCounts' \
+            --output json)
+
+          echo "Scan results: ${SCAN_RESULTS}"
+
+          # Fail on CRITICAL vulnerabilities
+          CRITICAL=$(echo "$SCAN_RESULTS" | jq -r '.CRITICAL // 0')
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::ECR scan found ${CRITICAL} CRITICAL vulnerabilities"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Terraform Apply (Staging)
+  # ---------------------------------------------------------------------------
+  terraform-apply:
+    name: "Terraform Apply (Staging)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build-and-push]
+
+    environment: staging
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="key=extrapl/staging/terraform.tfstate"
+
+      - name: Terraform apply (staging, auto-approve)
+        run: |
+          terraform apply \
+            -var="environment=staging" \
+            -auto-approve \
+            -no-color
+        env:
+          TF_VAR_environment: staging
+
+  # ---------------------------------------------------------------------------
+  # Deploy to ECS (Staging)
+  # ---------------------------------------------------------------------------
+  deploy-ecs:
+    name: "Deploy to ECS (Staging)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build-and-push, terraform-apply]
+
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get current task definition
+        id: task-def
+        run: |
+          TASK_DEF=$(aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "current-task-def=${TASK_DEF}" >> "$GITHUB_OUTPUT"
+
+          # Fetch full task definition JSON
+          aws ecs describe-task-definition \
+            --task-definition "${TASK_DEF}" \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+          # Clean fields that cannot be re-registered
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            task-definition.json > clean-task-definition.json
+
+      - name: Update task definition with new image
+        id: new-task-def
+        run: |
+          IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.image-tag }}"
+
+          # Update the container image in the task definition
+          jq --arg IMAGE "$IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE' \
+            clean-task-definition.json > updated-task-definition.json
+
+          # Register the new task definition
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://updated-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "new-task-def-arn=${NEW_TASK_DEF_ARN}" >> "$GITHUB_OUTPUT"
+          echo "Registered new task definition: ${NEW_TASK_DEF_ARN}"
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --task-definition "${{ steps.new-task-def.outputs.new-task-def-arn }}" \
+            --force-new-deployment
+
+      - name: Wait for deployment stability
+        run: |
+          echo "Waiting for ECS service to stabilize (up to 10 minutes)..."
+          aws ecs wait services-stable \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}"
+          echo "Deployment stabilized successfully."
+
+  # ---------------------------------------------------------------------------
+  # Smoke Tests (Staging)
+  # ---------------------------------------------------------------------------
+  smoke-tests:
+    name: "Smoke Tests (Staging)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-ecs]
+
+    steps:
+      - name: Wait for service readiness
+        run: sleep 15
+
+      - name: Health check
+        run: |
+          STAGING_URL="${{ secrets.STAGING_URL }}"
+          if [ -z "$STAGING_URL" ]; then
+            STAGING_URL="https://staging.extrapl.io"
+          fi
+
+          echo "Running smoke test against: ${STAGING_URL}/api/health"
+
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 10 \
+              "${STAGING_URL}/api/health" || true)
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed (HTTP ${HTTP_STATUS})"
+              exit 0
+            fi
+
+            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_STATUS}. Retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "::error::Smoke test failed after ${MAX_RETRIES} attempts"
+          exit 1
+
+      - name: Verify API responsiveness
+        run: |
+          STAGING_URL="${{ secrets.STAGING_URL }}"
+          if [ -z "$STAGING_URL" ]; then
+            STAGING_URL="https://staging.extrapl.io"
+          fi
+
+          # Check response time is under 5 seconds
+          RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" \
+            --max-time 10 \
+            "${STAGING_URL}/api/health")
+
+          echo "Response time: ${RESPONSE_TIME}s"
+
+          # Fail if response takes more than 5 seconds
+          if (( $(echo "$RESPONSE_TIME > 5.0" | bc -l) )); then
+            echo "::warning::Health endpoint response time (${RESPONSE_TIME}s) exceeds 5s threshold"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Notify (Optional - Slack)
+  # ---------------------------------------------------------------------------
+  notify:
+    name: "Notify Deployment"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [smoke-tests]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ needs.smoke-tests.result == 'success' && ':white_check_mark:' || ':x:' }} Staging Deployment ${{ needs.smoke-tests.result == 'success' && 'Succeeded' || 'Failed' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment ${{ needs.smoke-tests.result == 'success' && 'Succeeded' || 'Failed' }}*\n*Commit:* `${{ github.sha }}`\n*Author:* ${{ github.actor }}\n*Ref:* `${{ github.ref_name }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }

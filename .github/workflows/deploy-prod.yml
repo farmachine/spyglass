@@ -1,0 +1,343 @@
+# =============================================================================
+# Extrapl SaaS Platform - Deploy to Production
+# =============================================================================
+# Manual trigger only. Promotes the staging-verified Docker image to production,
+# applies Terraform for the production environment, updates the ECS service,
+# and runs smoke tests against extrapl.io.
+# =============================================================================
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag to deploy (git SHA from staging)"
+        required: true
+        type: string
+      confirm_deploy:
+        description: "Type 'production' to confirm deployment"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write          # OIDC token for AWS auth
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false  # Never cancel an in-progress production deployment
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: extrapl
+  ECS_CLUSTER: extrapl-production
+  ECS_SERVICE: extrapl-production-app
+  TF_WORKING_DIR: terraform
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Validate Inputs
+  # ---------------------------------------------------------------------------
+  validate:
+    name: "Validate Deployment Request"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate confirmation input
+        run: |
+          if [ "${{ github.event.inputs.confirm_deploy }}" != "production" ]; then
+            echo "::error::Deployment confirmation failed. You must type 'production' to confirm."
+            exit 1
+          fi
+          echo "Deployment confirmed for image tag: ${{ github.event.inputs.image_tag }}"
+
+  # ---------------------------------------------------------------------------
+  # Promote Image to Production
+  # ---------------------------------------------------------------------------
+  promote-image:
+    name: "Promote Image to Production"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate]
+
+    environment: production
+
+    outputs:
+      image-uri: ${{ steps.tag.outputs.image-uri }}
+
+    steps:
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Verify staging image exists
+        run: |
+          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+
+          echo "Verifying image ${REGISTRY}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG} exists..."
+
+          aws ecr describe-images \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-ids imageTag="${IMAGE_TAG}" \
+            --output json
+
+          if [ $? -ne 0 ]; then
+            echo "::error::Image with tag ${IMAGE_TAG} not found in ECR"
+            exit 1
+          fi
+
+          echo "Image verified successfully."
+
+      - name: Tag image for production
+        id: tag
+        run: |
+          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          SOURCE_IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+          PROD_IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:production"
+
+          # Pull, re-tag, and push for production
+          MANIFEST=$(aws ecr batch-get-image \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-ids imageTag="${IMAGE_TAG}" \
+            --query 'images[0].imageManifest' \
+            --output text)
+
+          aws ecr put-image \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-tag "production" \
+            --image-manifest "$MANIFEST" || true
+
+          aws ecr put-image \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-tag "production-$(date +%Y%m%d-%H%M%S)" \
+            --image-manifest "$MANIFEST" || true
+
+          echo "image-uri=${SOURCE_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Tagged ${IMAGE_TAG} as production"
+
+  # ---------------------------------------------------------------------------
+  # Terraform Apply (Production)
+  # ---------------------------------------------------------------------------
+  terraform-apply:
+    name: "Terraform Apply (Production)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [promote-image]
+
+    environment: production
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="key=extrapl/production/terraform.tfstate"
+
+      - name: Terraform plan (production)
+        run: |
+          terraform plan \
+            -var="environment=production" \
+            -out=tfplan-production \
+            -no-color
+        env:
+          TF_VAR_environment: production
+
+      - name: Terraform apply (production, auto-approve)
+        run: |
+          terraform apply \
+            -auto-approve \
+            tfplan-production
+        env:
+          TF_VAR_environment: production
+
+  # ---------------------------------------------------------------------------
+  # Deploy to ECS (Production)
+  # ---------------------------------------------------------------------------
+  deploy-ecs:
+    name: "Deploy to ECS (Production)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [promote-image, terraform-apply]
+
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get current task definition
+        id: task-def
+        run: |
+          TASK_DEF=$(aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "current-task-def=${TASK_DEF}" >> "$GITHUB_OUTPUT"
+
+          # Fetch full task definition JSON
+          aws ecs describe-task-definition \
+            --task-definition "${TASK_DEF}" \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+          # Clean fields that cannot be re-registered
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            task-definition.json > clean-task-definition.json
+
+      - name: Update task definition with new image
+        id: new-task-def
+        run: |
+          IMAGE="${{ needs.promote-image.outputs.image-uri }}"
+
+          # Update the container image in the task definition
+          jq --arg IMAGE "$IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE' \
+            clean-task-definition.json > updated-task-definition.json
+
+          # Register the new task definition
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://updated-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "new-task-def-arn=${NEW_TASK_DEF_ARN}" >> "$GITHUB_OUTPUT"
+          echo "Registered new task definition: ${NEW_TASK_DEF_ARN}"
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --task-definition "${{ steps.new-task-def.outputs.new-task-def-arn }}" \
+            --force-new-deployment
+
+      - name: Wait for deployment stability
+        run: |
+          echo "Waiting for ECS service to stabilize (up to 15 minutes)..."
+          aws ecs wait services-stable \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}"
+          echo "Deployment stabilized successfully."
+
+  # ---------------------------------------------------------------------------
+  # Smoke Tests (Production)
+  # ---------------------------------------------------------------------------
+  smoke-tests:
+    name: "Smoke Tests (Production)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [deploy-ecs]
+
+    steps:
+      - name: Wait for service readiness
+        run: sleep 20
+
+      - name: Health check
+        run: |
+          PROD_URL="https://extrapl.io"
+
+          echo "Running smoke test against: ${PROD_URL}/api/health"
+
+          MAX_RETRIES=5
+          RETRY_DELAY=15
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 15 \
+              "${PROD_URL}/api/health" || true)
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed (HTTP ${HTTP_STATUS})"
+              exit 0
+            fi
+
+            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_STATUS}. Retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "::error::Production smoke test failed after ${MAX_RETRIES} attempts"
+          exit 1
+
+      - name: Verify API responsiveness
+        run: |
+          PROD_URL="https://extrapl.io"
+
+          # Check response time is under 5 seconds
+          RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" \
+            --max-time 15 \
+            "${PROD_URL}/api/health")
+
+          echo "Response time: ${RESPONSE_TIME}s"
+
+          if (( $(echo "$RESPONSE_TIME > 5.0" | bc -l) )); then
+            echo "::warning::Health endpoint response time (${RESPONSE_TIME}s) exceeds 5s threshold"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Notify (Slack)
+  # ---------------------------------------------------------------------------
+  notify:
+    name: "Notify Deployment"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [smoke-tests]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ needs.smoke-tests.result == 'success' && ':white_check_mark:' || ':x:' }} Production Deployment ${{ needs.smoke-tests.result == 'success' && 'Succeeded' || 'Failed' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment ${{ needs.smoke-tests.result == 'success' && 'Succeeded' || 'Failed' }}*\n*Image Tag:* `${{ github.event.inputs.image_tag }}`\n*Triggered by:* ${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
