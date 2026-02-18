@@ -29,10 +29,10 @@ concurrency:
   cancel-in-progress: false  # Never cancel an in-progress production deployment
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: extrapl
-  ECS_CLUSTER: extrapl-production
-  ECS_SERVICE: extrapl-production-app
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: extrapl-staging-app
+  ECS_CLUSTER: extrapl-production-cluster
+  ECS_SERVICE: extrapl-production-app-service
   TF_WORKING_DIR: terraform
 
 jobs:

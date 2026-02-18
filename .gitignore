@@ -4,3 +4,28 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+tfplan-*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Claude Code worktrees
+.claude/worktrees/

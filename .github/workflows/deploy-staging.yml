@@ -24,10 +24,10 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY: extrapl
-  ECS_CLUSTER: extrapl-staging
-  ECS_SERVICE: extrapl-staging-app
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: extrapl-staging-app
+  ECS_CLUSTER: extrapl-staging-cluster
+  ECS_SERVICE: extrapl-staging-app-service
   TF_WORKING_DIR: terraform
 
 jobs:
@@ -166,10 +166,11 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64
+          build-args: |
+            VITE_BASE_DOMAIN=extrapl.it
           tags: |
             ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.meta.outputs.sha-tag }}
-            ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-            ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
@@ -343,7 +344,7 @@ jobs:
         run: |
           STAGING_URL="${{ secrets.STAGING_URL }}"
           if [ -z "$STAGING_URL" ]; then
-            STAGING_URL="https://staging.extrapl.io"
+            STAGING_URL="https://extrapl.it"
           fi
 
           echo "Running smoke test against: ${STAGING_URL}/api/health"
@@ -372,7 +373,7 @@ jobs:
         run: |
           STAGING_URL="${{ secrets.STAGING_URL }}"
           if [ -z "$STAGING_URL" ]; then
-            STAGING_URL="https://staging.extrapl.io"
+            STAGING_URL="https://extrapl.it"
           fi
 
           # Check response time is under 5 seconds
