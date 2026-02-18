@@ -516,6 +516,16 @@ export const refreshTokens = pgTable("refresh_tokens", {
   ipAddress: text("ip_address"), // Client IP for audit
 });
 
+// Password reset tokens for self-service password recovery
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hash of the reset token
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"), // Set when token is consumed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Audit log table for security events (ISO 27001 A.12.4)
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -734,6 +744,7 @@ export type InsertSessionLink = z.infer<typeof insertSessionLinkSchema>;
 export type ApiDataSource = typeof apiDataSources.$inferSelect;
 export type InsertApiDataSource = z.infer<typeof insertApiDataSourceSchema>;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 
 // Validation status types
@@ -797,6 +808,16 @@ export const resetPasswordSchema = z.object({
 // API schema for password changes (backend only)
 export const changePasswordApiSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
+// Forgot password (self-service) validation schemas
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordWithTokenSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
   newPassword: z.string().min(6, "New password must be at least 6 characters"),
 });
 
