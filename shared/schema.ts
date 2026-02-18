@@ -53,6 +53,8 @@ export const users = pgTable("users", {
   role: text("role").default("user").notNull(), // 'admin', 'user'
   isActive: boolean("is_active").default(true).notNull(),
   isTemporaryPassword: boolean("is_temporary_password").default(false).notNull(),
+  mfaSecret: text("mfa_secret"), // TOTP secret (encrypted), null if MFA not set up
+  mfaEnabled: boolean("mfa_enabled").default(false).notNull(), // Whether MFA is active
   projectOrder: jsonb("project_order"), // Array of project IDs for custom ordering
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -501,6 +503,46 @@ export const apiDataSources = pgTable("api_data_sources", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Refresh tokens for JWT token rotation (ISO 27001 A.9 - session management)
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hash of the refresh token
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at"), // Set when token is revoked (logout, rotation)
+  replacedByHash: text("replaced_by_hash"), // Points to the new token hash on rotation
+  userAgent: text("user_agent"), // Browser/client info for audit
+  ipAddress: text("ip_address"), // Client IP for audit
+});
+
+// Password reset tokens for self-service password recovery
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hash of the reset token
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"), // Set when token is consumed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Audit log table for security events (ISO 27001 A.12.4)
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  action: text("action").notNull(), // e.g., 'auth.login', 'document.upload'
+  outcome: text("outcome").notNull(), // 'success', 'failure', 'denied'
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  userEmail: text("user_email"),
+  organizationId: uuid("organization_id"),
+  resource: text("resource"), // e.g., 'project', 'session', 'document'
+  resourceId: text("resource_id"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  requestId: text("request_id"),
+  details: jsonb("details"), // Additional context
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
   id: true,
@@ -701,6 +743,9 @@ export type SessionLink = typeof sessionLinks.$inferSelect;
 export type InsertSessionLink = z.infer<typeof insertSessionLinkSchema>;
 export type ApiDataSource = typeof apiDataSources.$inferSelect;
 export type InsertApiDataSource = z.infer<typeof insertApiDataSourceSchema>;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
 
 // Validation status types
 export type ValidationStatus = 'valid' | 'invalid' | 'pending' | 'manual' | 'verified' | 'unverified' | 'extracted';
@@ -763,6 +808,16 @@ export const resetPasswordSchema = z.object({
 // API schema for password changes (backend only)
 export const changePasswordApiSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
+// Forgot password (self-service) validation schemas
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordWithTokenSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
   newPassword: z.string().min(6, "New password must be at least 6 characters"),
 });
 

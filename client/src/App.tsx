@@ -17,6 +17,8 @@ import ProjectAdminView from "@/pages/ProjectAdminView";
 import OrganizationConfig from "@/pages/OrganizationConfig";
 import DebugView from "@/pages/DebugView";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 import TenantNotFound from "@/pages/TenantNotFound";
 import ComingSoon from "@/pages/ComingSoon";
@@ -87,6 +89,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
 
       <Route path="/">
         <ProtectedRoute>

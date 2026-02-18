@@ -39,11 +39,14 @@ import {
   registerUserSchema,
   resetPasswordSchema,
   changePasswordApiSchema,
+  forgotPasswordSchema,
+  resetPasswordWithTokenSchema,
   insertChatMessageSchema,
   insertExcelWizardryFunctionSchema
 } from "@shared/schema";
 import { generateChatResponse } from "./chatService";
-import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, type AuthRequest } from "./auth";
+import { authenticateToken, requireAdmin, generateToken, comparePassword, hashPassword, hashRefreshToken, type AuthRequest } from "./auth";
+import crypto from "crypto";
 import { subdomainMiddleware, validateTenantAccess, isValidSubdomain, type SubdomainRequest } from "./subdomain";
 import { UserRole } from "@shared/schema";
 import { log } from "./vite";
@@ -517,6 +520,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Forgot password endpoint (self-service, no auth required)
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const result = forgotPasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid email", errors: result.error.errors });
+      }
+
+      const user = await storage.getUserByEmail(result.data.email);
+
+      // Always return success to prevent email enumeration
+      if (!user || !user.isActive) {
+        return res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+      }
+
+      // Invalidate any existing reset tokens for this user
+      await storage.invalidatePasswordResetTokensForUser(user.id);
+
+      // Generate a reset token (48 random bytes → 96 hex chars)
+      const rawToken = crypto.randomBytes(48).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.createPasswordResetToken(user.id, tokenHash, expiresAt);
+
+      // Build the reset URL
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+
+      // Log the reset URL (always, for admin access)
+      console.log(`[PASSWORD RESET] Token generated for ${user.email}: ${resetUrl}`);
+
+      // In non-production, also return the URL in the response for convenience
+      if (process.env.NODE_ENV !== 'production') {
+        return res.json({
+          message: "If an account exists with that email, a password reset link has been sent.",
+          resetUrl, // Only included in non-production for testing
+        });
+      }
+
+      res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process forgot password request" });
+    }
+  });
+
+  // Reset password with token (self-service, no auth required)
+  app.post("/api/auth/reset-password-with-token", async (req, res) => {
+    try {
+      const result = resetPasswordWithTokenSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid reset data", errors: result.error.errors });
+      }
+
+      // Hash the provided token to look it up
+      const tokenHash = crypto.createHash('sha256').update(result.data.token).digest('hex');
+      const resetToken = await storage.getPasswordResetToken(tokenHash);
+
+      if (!resetToken) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Check if token has already been used
+      if (resetToken.usedAt) {
+        return res.status(400).json({ message: "This reset token has already been used" });
+      }
+
+      // Check if token has expired
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.status(400).json({ message: "This reset token has expired" });
+      }
+
+      // Hash the new password and update the user
+      const newPasswordHash = await hashPassword(result.data.newPassword);
+      await storage.updateUserPassword(resetToken.userId, newPasswordHash, false);
+
+      // Mark the token as used
+      await storage.markPasswordResetTokenUsed(tokenHash);
+
+      // Invalidate all other tokens for this user
+      await storage.invalidatePasswordResetTokensForUser(resetToken.userId);
+
+      console.log(`[PASSWORD RESET] Password successfully reset for user ${resetToken.userId}`);
+
+      res.json({ message: "Password has been reset successfully. You can now sign in with your new password." });
+    } catch (error) {
+      console.error("Reset password with token error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Contact form endpoint (public, no auth required)
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, message } = req.body;
+      if (!name || !email || !message) {
+        return res.status(400).json({ message: "Name, email, and message are required" });
+      }
+      // Log the contact submission for now (can be extended to send emails later)
+      console.log(`[CONTACT FORM] Name: ${name}, Email: ${email}, Message: ${message}`);
+      res.json({ message: "Message received. We'll get back to you soon." });
+    } catch (error) {
+      console.error("Contact form error:", error);
+      res.status(500).json({ message: "Failed to send message" });
     }
   });
 

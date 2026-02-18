@@ -104,7 +104,8 @@ import {
   processedEmails,
   workflowStatusHistory,
   type WorkflowStatusHistory,
-  type InsertWorkflowStatusHistory
+  type InsertWorkflowStatusHistory,
+  passwordResetTokens,
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -360,6 +361,12 @@ export interface IStorage {
   createApiDataSource(source: InsertApiDataSource): Promise<ApiDataSource>;
   updateApiDataSource(id: string, source: Partial<InsertApiDataSource>): Promise<ApiDataSource | undefined>;
   deleteApiDataSource(id: string): Promise<boolean>;
+
+  // Password Reset Tokens
+  createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
+  getPasswordResetToken(tokenHash: string): Promise<{ id: string; userId: string; expiresAt: Date; usedAt: Date | null } | undefined>;
+  markPasswordResetTokenUsed(tokenHash: string): Promise<void>;
+  invalidatePasswordResetTokensForUser(userId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -2419,6 +2426,14 @@ export class MemStorage implements IStorage {
   async deleteApiDataSource(_id: string): Promise<boolean> {
     return false;
   }
+
+  // Password Reset Tokens (not supported in MemStorage)
+  async createPasswordResetToken(_userId: string, _tokenHash: string, _expiresAt: Date): Promise<void> {}
+  async getPasswordResetToken(_tokenHash: string): Promise<{ id: string; userId: string; expiresAt: Date; usedAt: Date | null } | undefined> {
+    return undefined;
+  }
+  async markPasswordResetTokenUsed(_tokenHash: string): Promise<void> {}
+  async invalidatePasswordResetTokensForUser(_userId: string): Promise<void> {}
 }
 
 // PostgreSQL Storage Implementation
@@ -4635,6 +4650,56 @@ class PostgreSQLStorage implements IStorage {
         .where(eq(apiDataSources.id, id))
         .returning();
       return result.length > 0;
+    });
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    return this.retryOperation(async () => {
+      await this.db.insert(passwordResetTokens).values({
+        userId,
+        tokenHash,
+        expiresAt,
+      });
+    });
+  }
+
+  async getPasswordResetToken(tokenHash: string): Promise<{ id: string; userId: string; expiresAt: Date; usedAt: Date | null } | undefined> {
+    return this.retryOperation(async () => {
+      const result = await this.db
+        .select({
+          id: passwordResetTokens.id,
+          userId: passwordResetTokens.userId,
+          expiresAt: passwordResetTokens.expiresAt,
+          usedAt: passwordResetTokens.usedAt,
+        })
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.tokenHash, tokenHash))
+        .limit(1);
+      return result[0];
+    });
+  }
+
+  async markPasswordResetTokenUsed(tokenHash: string): Promise<void> {
+    return this.retryOperation(async () => {
+      await this.db
+        .update(passwordResetTokens)
+        .set({ usedAt: sql`NOW()` })
+        .where(eq(passwordResetTokens.tokenHash, tokenHash));
+    });
+  }
+
+  async invalidatePasswordResetTokensForUser(userId: string): Promise<void> {
+    return this.retryOperation(async () => {
+      await this.db
+        .update(passwordResetTokens)
+        .set({ usedAt: sql`NOW()` })
+        .where(
+          and(
+            eq(passwordResetTokens.userId, userId),
+            isNull(passwordResetTokens.usedAt)
+          )
+        );
     });
   }
 }

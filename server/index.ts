@@ -6,15 +6,61 @@ import { setupVite, serveStatic, log } from "./vite";
 import { generateRequestId, createLogger } from "./logger";
 
 const serverLogger = createLogger('server');
+const isProduction = process.env.NODE_ENV === 'production';
 
 const app = express();
 
 app.set('trust proxy', 1);
 
+// Security headers (ISO 27001 A.14)
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: isProduction ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "https://*.extrapl.io", "https://generativelanguage.googleapis.com"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  } : false,
   crossOriginEmbedderPolicy: false,
+  hsts: isProduction ? {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  } : false,
 }));
+
+// CORS: restrict origins in production
+if (isProduction) {
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : [];
+  // Add wildcard subdomain matching for extrapl.io
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      const isAllowed = allowedOrigins.some(o => origin === o) ||
+        /^https:\/\/[a-z0-9-]+\.extrapl\.io$/.test(origin) ||
+        origin === 'https://extrapl.io';
+      if (isAllowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      }
+    }
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+}
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,8 +98,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// Reduced body size limit: documents go through presigned URL uploads, not request body
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -73,14 +120,14 @@ app.use((req, res, next) => {
       if (path.includes("/validations") && req.method === "GET" && res.statusCode === 304) {
         return; // Skip these frequent validation checks
       }
-      
+
       // Skip health check HEAD requests to /api
       if (path === "/api" && req.method === "HEAD") {
         return; // Skip external health check requests
       }
 
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      
+
       // Only show JSON response for non-GET requests or errors
       if (capturedJsonResponse && (req.method !== "GET" || res.statusCode >= 400)) {
         // Truncate long JSON responses to keep logs readable
@@ -103,12 +150,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Block debug endpoints in production (ISO 27001 A.14)
+if (isProduction) {
+  app.use('/debug-*', (_req, res) => {
+    res.status(404).json({ message: 'Not found' });
+  });
+  app.use('/api/dev/*', (_req, res) => {
+    res.status(404).json({ message: 'Not found' });
+  });
+}
+
 (async () => {
   const server = await registerRoutes(app);
 
   // Set server timeout for long-running requests
   server.setTimeout(300000); // 5 minutes
 
+  // Error handler - never leak stack traces in production
   app.use((err: any, req: Request & { requestId?: string }, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -120,7 +178,7 @@ app.use((req, res, next) => {
       path: req.path,
       status,
       error: message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      stack: isProduction ? undefined : err.stack,
     });
 
     if (!res.headersSent) {
@@ -137,10 +195,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
     host: "0.0.0.0",
@@ -148,4 +203,21 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown for ECS task draining (ISO 27001 A.17 - operational resilience)
+  const shutdown = (signal: string) => {
+    serverLogger.info(`Received ${signal}, starting graceful shutdown`);
+    server.close(() => {
+      serverLogger.info('HTTP server closed');
+      process.exit(0);
+    });
+    // Force exit after 30 seconds if graceful shutdown doesn't complete
+    setTimeout(() => {
+      serverLogger.error('Graceful shutdown timed out, forcing exit');
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 })();
