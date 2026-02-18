@@ -257,6 +257,7 @@ resource "aws_cloudtrail" "main" {
 ################################################################################
 
 resource "aws_guardduty_detector" "main" {
+  count  = var.enable_guardduty ? 1 : 0
   enable = true
 
   finding_publishing_frequency = "FIFTEEN_MINUTES"
@@ -277,6 +278,7 @@ resource "aws_guardduty_detector" "main" {
 ################################################################################
 
 resource "aws_cloudwatch_event_rule" "guardduty_findings" {
+  count       = var.enable_guardduty ? 1 : 0
   name        = "${local.name_prefix}-guardduty-findings"
   description = "Forward GuardDuty findings with severity >= MEDIUM to SNS"
 
@@ -296,7 +298,8 @@ resource "aws_cloudwatch_event_rule" "guardduty_findings" {
 }
 
 resource "aws_cloudwatch_event_target" "guardduty_sns" {
-  rule      = aws_cloudwatch_event_rule.guardduty_findings.name
+  count     = var.enable_guardduty ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.guardduty_findings[0].name
   target_id = "SendToSNS"
   arn       = aws_sns_topic.security_alerts.arn
 }
@@ -305,9 +308,12 @@ resource "aws_cloudwatch_event_target" "guardduty_sns" {
 # Security Hub
 ################################################################################
 
-resource "aws_securityhub_account" "main" {}
+resource "aws_securityhub_account" "main" {
+  count = var.enable_securityhub ? 1 : 0
+}
 
 resource "aws_securityhub_standards_subscription" "aws_foundational" {
+  count         = var.enable_securityhub ? 1 : 0
   depends_on    = [aws_securityhub_account.main]
   standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standards/aws-foundational-security-best-practices/v/1.0.0"
 }
@@ -317,6 +323,7 @@ resource "aws_securityhub_standards_subscription" "aws_foundational" {
 ################################################################################
 
 resource "aws_cloudwatch_event_rule" "securityhub_findings" {
+  count       = var.enable_securityhub ? 1 : 0
   name        = "${local.name_prefix}-securityhub-findings"
   description = "Forward Security Hub high/critical findings to SNS"
 
@@ -341,7 +348,8 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings" {
 }
 
 resource "aws_cloudwatch_event_target" "securityhub_sns" {
-  rule      = aws_cloudwatch_event_rule.securityhub_findings.name
+  count     = var.enable_securityhub ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.securityhub_findings[0].name
   target_id = "SendToSNS"
   arn       = aws_sns_topic.security_alerts.arn
 }

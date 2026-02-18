@@ -23,6 +23,18 @@ variable "alert_email" {
   default     = ""
 }
 
+variable "enable_guardduty" {
+  description = "Enable GuardDuty (requires service subscription to be active)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_securityhub" {
+  description = "Enable Security Hub (requires service subscription to be active)"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)

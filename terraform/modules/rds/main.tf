@@ -85,13 +85,20 @@ resource "aws_db_parameter_group" "main" {
   }
 
   parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements"
+    name         = "shared_preload_libraries"
+    value        = "pg_stat_statements"
+    apply_method = "pending-reboot"
   }
 
   parameter {
     name  = "pg_stat_statements.track"
     value = "all"
+  }
+
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 
   tags = merge(var.tags, {
@@ -149,7 +156,7 @@ resource "aws_db_instance" "main" {
   multi_az = var.multi_az
 
   # Backup
-  backup_retention_period   = 30
+  backup_retention_period   = var.environment == "prod" ? 30 : 1
   backup_window             = "03:00-04:00"
   maintenance_window        = "sun:04:00-sun:05:00"
   copy_tags_to_snapshot     = true

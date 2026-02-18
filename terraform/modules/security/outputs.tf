@@ -29,10 +29,10 @@ output "cloudtrail_log_group_name" {
 
 output "guardduty_detector_id" {
   description = "ID of the GuardDuty detector"
-  value       = aws_guardduty_detector.main.id
+  value       = var.enable_guardduty ? aws_guardduty_detector.main[0].id : null
 }
 
 output "securityhub_account_id" {
   description = "Security Hub account resource ID"
-  value       = aws_securityhub_account.main.id
+  value       = var.enable_securityhub ? aws_securityhub_account.main[0].id : null
 }

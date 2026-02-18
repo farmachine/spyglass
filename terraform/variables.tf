@@ -22,13 +22,13 @@ variable "environment" {
 variable "aws_region" {
   description = "AWS region for resource deployment"
   type        = string
-  default     = "us-east-1"
+  default     = "eu-west-1"
 }
 
 variable "domain_name" {
   description = "Primary domain name for the platform"
   type        = string
-  default     = "extrapl.io"
+  default     = "extrapl.it"
 }
 
 variable "alert_email" {
@@ -50,7 +50,7 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   description = "List of availability zones to use"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  default     = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 }
 
 ################################################################################
