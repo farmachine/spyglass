@@ -81,6 +81,24 @@ variable "app_count_max" {
   default     = 10
 }
 
+variable "db_driver" {
+  description = "Database driver to use (neon or pg)"
+  type        = string
+  default     = "neon"
+}
+
+variable "s3_bucket_name" {
+  description = "Name of the S3 bucket for document storage"
+  type        = string
+  default     = ""
+}
+
+variable "base_domain" {
+  description = "Base domain for subdomain multi-tenancy (e.g., extrapl.it)"
+  type        = string
+  default     = "extrapl.it"
+}
+
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)

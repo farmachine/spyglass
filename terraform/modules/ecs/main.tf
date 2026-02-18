@@ -319,6 +319,18 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "AWS_REGION"
           value = data.aws_region.current.name
+        },
+        {
+          name  = "DB_DRIVER"
+          value = var.db_driver
+        },
+        {
+          name  = "S3_BUCKET_NAME"
+          value = var.s3_bucket_name
+        },
+        {
+          name  = "BASE_DOMAIN"
+          value = var.base_domain
         }
       ]
 

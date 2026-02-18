@@ -132,6 +132,10 @@ module "ecs" {
   app_count_min = var.ecs_app_count_min
   app_count_max = var.ecs_app_count_max
 
+  db_driver      = "neon"
+  s3_bucket_name = module.s3.bucket_name
+  base_domain    = var.domain_name
+
   tags = local.common_tags
 }
 
@@ -182,5 +186,7 @@ module "security" {
   environment           = var.environment
   cloudwatch_kms_key_arn = module.kms.cloudwatch_key_arn
   alert_email           = var.alert_email
+  enable_guardduty      = false  # Enable after AWS account subscription activates
+  enable_securityhub    = false  # Enable after AWS account subscription activates
   tags                  = local.common_tags
 }

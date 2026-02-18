@@ -3,14 +3,20 @@
 # ==============================================================================
 FROM node:20-slim AS node-builder
 
+# Build-time args for Vite (baked into frontend bundle)
+ARG VITE_BASE_DOMAIN=extrapl.it
+
 WORKDIR /app
 
 # Install build dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 
 # Copy source code
 COPY . .
+
+# Set Vite env vars for the build
+ENV VITE_BASE_DOMAIN=${VITE_BASE_DOMAIN}
 
 # Build frontend (Vite) and backend (esbuild)
 RUN npm run build
