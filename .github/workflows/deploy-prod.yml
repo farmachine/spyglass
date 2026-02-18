@@ -323,7 +323,7 @@ jobs:
 
     steps:
       - name: Send Slack notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ vars.SLACK_ENABLED == 'true' }}
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
