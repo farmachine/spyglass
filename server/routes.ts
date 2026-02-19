@@ -622,8 +622,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!name || !email || !message) {
         return res.status(400).json({ message: "Name, email, and message are required" });
       }
-      // Log the contact submission for now (can be extended to send emails later)
+
+      // Always log the contact submission
       console.log(`[CONTACT FORM] Name: ${name}, Email: ${email}, Message: ${message}`);
+
+      // Send notification email to info@extrapl.io via AWS SES
+      try {
+        const { sendContactFormEmail } = await import('./email');
+        await sendContactFormEmail({ name, email, message });
+        console.log(`[CONTACT FORM] Email notification sent to info@extrapl.io via SES`);
+      } catch (emailError) {
+        // Don't fail the request if email sending fails — the submission is still logged
+        console.error("[CONTACT FORM] Failed to send email notification:", emailError);
+      }
+
       res.json({ message: "Message received. We'll get back to you soon." });
     } catch (error) {
       console.error("Contact form error:", error);
