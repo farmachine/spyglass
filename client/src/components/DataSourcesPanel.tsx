@@ -786,30 +786,21 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
               ) : inboxSetupMode === 'ses' ? (
                 <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div>
-                    <Label htmlFor="inbox-username" className="text-sm font-medium">Inbox Name</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        id="inbox-username"
-                        placeholder="e.g. sales"
-                        value={inboxUsername}
-                        onChange={(e) => setInboxUsername(e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, ''))}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">.{orgSlug}@extrapl.it</span>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Your project inbox will be:
+                    </p>
+                    <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <span className="font-mono text-sm font-medium">
+                        {(project?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')}@extrapl.it
+                      </span>
                     </div>
-                    {inboxUsername && orgSlug && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Full address: <span className="font-mono font-medium">{inboxUsername}.{orgSlug}@extrapl.it</span>
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2 pt-2">
                     <Button
                       onClick={() => createInboxMutation.mutate({
                         inboxType: 'ses',
-                        username: inboxUsername || undefined,
                       })}
-                      disabled={createInboxMutation.isPending || !inboxUsername.trim()}
+                      disabled={createInboxMutation.isPending}
                       style={{ backgroundColor: '#4F63A4' }}
                       className="flex-1"
                     >
@@ -829,7 +820,6 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                       variant="outline"
                       onClick={() => {
                         setInboxSetupMode(null);
-                        setInboxUsername("");
                       }}
                     >
                       Cancel

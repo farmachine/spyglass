@@ -1213,34 +1213,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // SES flow — "creating an inbox" is just a database write
       // SES catch-all receives all emails to @extrapl.it; no per-inbox provisioning needed
       if (inboxType === 'ses' || !inboxType) {
-        const { username } = req.body || {};
-        if (!username || !username.trim()) {
-          return res.status(400).json({ message: "Username is required for SES inbox" });
-        }
-
-        // Sanitize username: lowercase, alphanumeric + dots/hyphens only
-        const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9.-]/g, '').slice(0, 30);
-        if (!sanitizedUsername) {
-          return res.status(400).json({ message: "Invalid username. Use only letters, numbers, dots and hyphens." });
-        }
-
-        // Get org to derive slug
-        const org = await storage.getOrganization(req.user!.organizationId);
-        if (!org) {
-          return res.status(400).json({ message: "Organization not found" });
-        }
-
-        // Derive org slug from subdomain or name
-        const orgSlug = ((org as any).subdomain || org.name)
+        // Use project name as the inbox address: projectname@extrapl.it
+        const sanitizedName = project.name
           .toLowerCase()
           .replace(/[^a-z0-9]/g, '')
-          .slice(0, 30);
+          .slice(0, 60);
 
-        if (!orgSlug) {
-          return res.status(400).json({ message: "Organization name is required to generate inbox" });
+        if (!sanitizedName) {
+          return res.status(400).json({ message: "Project name is required to generate inbox" });
         }
 
-        const email = `${sanitizedUsername}.${orgSlug}@extrapl.it`;
+        const email = `${sanitizedName}@extrapl.it`;
 
         // Check uniqueness
         const existing = await storage.getProjectByEmailAddress(email);
