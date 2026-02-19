@@ -17,7 +17,6 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetUrl, setResetUrl] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -43,11 +42,6 @@ export default function ForgotPassword() {
       }
 
       setIsSubmitted(true);
-
-      // In dev/staging, the API returns the reset URL for convenience
-      if (result.resetUrl) {
-        setResetUrl(result.resetUrl);
-      }
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -79,19 +73,6 @@ export default function ForgotPassword() {
               <div className="flex justify-center">
                 <CheckCircle className="h-12 w-12 text-green-500" />
               </div>
-              {resetUrl && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-1">
-                    Development mode - Reset link:
-                  </p>
-                  <a
-                    href={resetUrl}
-                    className="text-sm text-blue-600 dark:text-blue-400 underline break-all"
-                  >
-                    {resetUrl}
-                  </a>
-                </div>
-              )}
               <div className="text-center">
                 <Link href="/login">
                   <Button variant="ghost" className="gap-2">
