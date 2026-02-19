@@ -10,8 +10,27 @@ variable "environment" {
 }
 
 variable "domain" {
-  description = "Domain to verify for SES email sending (e.g., extrapl.io)"
+  description = "Domain to verify for SES email sending (e.g., extrapl.it)"
   type        = string
+}
+
+variable "documents_bucket_name" {
+  description = "Name of the S3 bucket for storing inbound emails"
+  type        = string
+  default     = ""
+}
+
+variable "documents_bucket_arn" {
+  description = "ARN of the S3 bucket for storing inbound emails"
+  type        = string
+  default     = ""
+}
+
+variable "webhook_secret" {
+  description = "Shared secret for authenticating webhook calls from Lambda to the app"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "tags" {

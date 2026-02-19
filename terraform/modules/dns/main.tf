@@ -76,6 +76,18 @@ resource "aws_route53_record" "root" {
 }
 
 ################################################################################
+# MX Record - SES Inbound Email
+################################################################################
+
+resource "aws_route53_record" "mx" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "MX"
+  ttl     = 300
+  records = ["10 inbound-smtp.eu-west-1.amazonaws.com"]
+}
+
+################################################################################
 # A Record - Wildcard *.domain -> ALB
 ################################################################################
 

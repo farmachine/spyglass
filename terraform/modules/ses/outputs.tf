@@ -46,5 +46,3 @@ output "dns_records_needed" {
     }
   }
 }
-
-data "aws_region" "current" {}

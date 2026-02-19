@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, RefreshCw, Database, CheckCircle, XCircle, Eye, EyeOff, ChevronDown, ChevronRight, Pencil, Check, X, Mail, Copy, Loader2, Settings, Lock, Server } from "lucide-react";
 import type { ApiDataSource } from "@shared/schema";
 import { useProject } from "@/hooks/useProjects";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DataSourcesPanelProps {
   projectId: string;
@@ -21,6 +22,11 @@ interface DataSourcesPanelProps {
 
 export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const orgSlug = (user?.organization?.subdomain || user?.organization?.name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 30);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [expandedSource, setExpandedSource] = useState<string | null>(null);
@@ -32,7 +38,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
   const [isCreateInboxOpen, setIsCreateInboxOpen] = useState(false);
   const [inboxUsername, setInboxUsername] = useState("");
   const [inboxDisplayName, setInboxDisplayName] = useState("");
-  const [inboxSetupMode, setInboxSetupMode] = useState<'select' | 'agentmail' | 'imap' | null>(null);
+  const [inboxSetupMode, setInboxSetupMode] = useState<'select' | 'ses' | 'imap' | null>(null);
   const [imapConfig, setImapConfig] = useState({ host: '', port: 993, username: '', password: '', encryption: 'tls' });
   const [smtpConfig, setSmtpConfig] = useState({ host: '', port: 587, username: '', password: '', encryption: 'tls' });
   const [showSmtpSettings, setShowSmtpSettings] = useState(false);
@@ -62,9 +68,8 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
       return apiRequest(`/api/projects/${projectId}/inbox`, {
         method: "POST",
         body: JSON.stringify({
-          inboxType: 'agentmail',
+          inboxType: 'ses',
           username: params.username || undefined,
-          displayName: params.displayName || undefined,
         })
       });
     },
@@ -690,7 +695,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   <Mail className="w-4 h-4 text-gray-400" />
                   <span className="font-mono text-sm">{project.inboxEmailAddress}</span>
                   <Badge variant="secondary" className="text-xs">
-                    {(project as any).inboxType === 'imap' ? 'IMAP' : 'AgentMail'}
+                    {(project as any).inboxType === 'imap' ? 'IMAP' : (project as any).inboxType === 'ses' ? 'SES' : 'AgentMail'}
                   </Badge>
                 </div>
               </div>
@@ -717,7 +722,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                 )}
                 Check for Emails
               </Button>
-              {(project as any).inboxType !== 'imap' && (
+              {(project as any).inboxType === 'agentmail' && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -763,7 +768,7 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                   </p>
                   <div className="flex items-center gap-3">
                     <Button
-                      onClick={() => setInboxSetupMode('agentmail')}
+                      onClick={() => setInboxSetupMode('ses')}
                       style={{ backgroundColor: '#4F63A4' }}
                     >
                       <Mail className="w-4 h-4 mr-2" />
@@ -778,38 +783,31 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                     </Button>
                   </div>
                 </div>
-              ) : inboxSetupMode === 'agentmail' ? (
+              ) : inboxSetupMode === 'ses' ? (
                 <div className="space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div>
-                    <Label htmlFor="inbox-username" className="text-sm font-medium">Username</Label>
+                    <Label htmlFor="inbox-username" className="text-sm font-medium">Inbox Name</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <Input
                         id="inbox-username"
                         placeholder="e.g. sales"
                         value={inboxUsername}
-                        onChange={(e) => setInboxUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                        onChange={(e) => setInboxUsername(e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, ''))}
                         className="flex-1"
                       />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">@intake.extrapl.io</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">.{orgSlug}@extrapl.it</span>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="inbox-displayname" className="text-sm font-medium">Display Name</Label>
-                    <Input
-                      id="inbox-displayname"
-                      placeholder="e.g. Lead Generation Team"
-                      value={inboxDisplayName}
-                      onChange={(e) => setInboxDisplayName(e.target.value)}
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">The name recipients will see when they receive emails</p>
+                    {inboxUsername && orgSlug && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Full address: <span className="font-mono font-medium">{inboxUsername}.{orgSlug}@extrapl.it</span>
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 pt-2">
                     <Button
                       onClick={() => createInboxMutation.mutate({
-                        inboxType: 'agentmail',
+                        inboxType: 'ses',
                         username: inboxUsername || undefined,
-                        displayName: inboxDisplayName || undefined,
                       })}
                       disabled={createInboxMutation.isPending || !inboxUsername.trim()}
                       style={{ backgroundColor: '#4F63A4' }}
@@ -832,7 +830,6 @@ export default function DataSourcesPanel({ projectId }: DataSourcesPanelProps) {
                       onClick={() => {
                         setInboxSetupMode(null);
                         setInboxUsername("");
-                        setInboxDisplayName("");
                       }}
                     >
                       Cancel

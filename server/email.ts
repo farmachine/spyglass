@@ -216,6 +216,53 @@ export async function sendPasswordResetEmail(params: {
   await client.send(command);
 }
 
+/**
+ * Send an email from a project's SES inbox address (e.g., sales.acme@extrapl.it).
+ * Used for auto-reply confirmation/rejection emails from project inboxes.
+ */
+export async function sendProjectEmail(params: {
+  from: string;
+  to: string;
+  subject: string;
+  textContent: string;
+  htmlContent?: string;
+}): Promise<void> {
+  const { from, to, subject, textContent, htmlContent } = params;
+
+  const client = getSesClient();
+
+  const command = new SendEmailCommand({
+    FromEmailAddress: from,
+    Destination: {
+      ToAddresses: [to],
+    },
+    Content: {
+      Simple: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8',
+        },
+        Body: {
+          Text: {
+            Data: textContent,
+            Charset: 'UTF-8',
+          },
+          ...(htmlContent
+            ? {
+                Html: {
+                  Data: htmlContent,
+                  Charset: 'UTF-8',
+                },
+              }
+            : {}),
+        },
+      },
+    },
+  });
+
+  await client.send(command);
+}
+
 /** Escape HTML special characters to prevent XSS in email templates */
 function escapeHtml(str: string): string {
   return str

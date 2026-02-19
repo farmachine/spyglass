@@ -1210,37 +1210,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Default: AgentMail flow
+      // SES flow — "creating an inbox" is just a database write
+      // SES catch-all receives all emails to @extrapl.it; no per-inbox provisioning needed
+      if (inboxType === 'ses' || !inboxType) {
+        const { username } = req.body || {};
+        if (!username || !username.trim()) {
+          return res.status(400).json({ message: "Username is required for SES inbox" });
+        }
+
+        // Sanitize username: lowercase, alphanumeric + dots/hyphens only
+        const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9.-]/g, '').slice(0, 30);
+        if (!sanitizedUsername) {
+          return res.status(400).json({ message: "Invalid username. Use only letters, numbers, dots and hyphens." });
+        }
+
+        // Get org to derive slug
+        const org = await storage.getOrganization(req.user!.organizationId);
+        if (!org) {
+          return res.status(400).json({ message: "Organization not found" });
+        }
+
+        // Derive org slug from subdomain or name
+        const orgSlug = ((org as any).subdomain || org.name)
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+          .slice(0, 30);
+
+        if (!orgSlug) {
+          return res.status(400).json({ message: "Organization name is required to generate inbox" });
+        }
+
+        const email = `${sanitizedUsername}.${orgSlug}@extrapl.it`;
+
+        // Check uniqueness
+        const existing = await storage.getProjectByEmailAddress(email);
+        if (existing) {
+          return res.status(409).json({ message: `Email address ${email} is already in use by another project` });
+        }
+
+        await storage.updateProject(id, {
+          inboxEmailAddress: email,
+          inboxId: email,
+          inboxType: 'ses',
+        } as any, req.user!.organizationId);
+
+        console.log(`📧 SES inbox created for project ${project.name}: ${email}`);
+
+        return res.json({
+          email,
+          inboxId: email,
+          inboxType: 'ses',
+          message: "Inbox created successfully"
+        });
+      }
+
+      // Legacy AgentMail flow (Replit only)
       const { createProjectInbox, createWebhook } = await import('./integrations/agentmail');
-      const { username, displayName } = req.body || {};
+      const { username: amUsername, displayName } = req.body || {};
       const { email, inboxId } = await createProjectInbox(id, {
-        username: username || undefined,
+        username: amUsername || undefined,
         domain: 'intake.extrapl.io',
         displayName: displayName || undefined,
       });
-      
+
       const domain = process.env.REPLIT_DEV_DOMAIN || process.env.REPLIT_DOMAINS || (process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 'localhost:5000');
       const webhookUrl = `https://${domain}/api/webhooks/email`;
       console.log(`📧 Registering webhook for inbox ${inboxId} at: ${webhookUrl}`);
-      
+
       try {
         await createWebhook(inboxId, webhookUrl);
         console.log(`📧 Webhook registered successfully`);
       } catch (webhookErr) {
         console.warn('📧 Webhook registration failed (may already exist):', webhookErr);
       }
-      
+
       const updatedProject = await storage.updateProject(id, {
         inboxEmailAddress: email,
         inboxId: inboxId,
         inboxType: 'agentmail',
       } as any, req.user!.organizationId);
-      
-      res.json({ 
-        email, 
+
+      res.json({
+        email,
         inboxId,
         inboxType: 'agentmail',
-        message: "Inbox created successfully" 
+        message: "Inbox created successfully"
       });
     } catch (error: any) {
       console.error("Create project inbox error:", error);
@@ -1383,6 +1437,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projectInboxType = (project as any).inboxType;
+
+      // SES flow — emails are received via webhook (push), no polling needed
+      if (projectInboxType === 'ses') {
+        return res.json({
+          sessionsCreated: 0,
+          message: "SES inboxes receive emails automatically via webhook. No manual polling needed."
+        });
+      }
 
       // IMAP flow
       if (projectInboxType === 'imap') {
@@ -14152,6 +14214,172 @@ Respond in JSON format:
     } catch (error) {
       console.error('Error getting session links:', error);
       res.status(500).json({ error: 'Failed to get session links' });
+    }
+  });
+
+  // SES inbound webhook endpoint — receives metadata from Lambda, reads full email from S3
+  app.post('/api/webhooks/ses-inbound', async (req, res) => {
+    try {
+      console.log('📧 SES: Received inbound webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
+
+      const { messageId, from, to, subject, s3Key, s3Bucket, spamVerdict, virusVerdict } = req.body;
+
+      if (!messageId || !s3Key) {
+        return res.status(400).json({ error: 'Missing messageId or s3Key' });
+      }
+
+      // Reject spam/virus
+      if (spamVerdict === 'FAIL' || virusVerdict === 'FAIL') {
+        console.log(`📧 SES: Rejecting email ${messageId} — spam: ${spamVerdict}, virus: ${virusVerdict}`);
+        return res.json({ success: true, message: 'Email rejected (spam/virus)' });
+      }
+
+      // Find the recipient address that matches a project inbox
+      const toAddresses: string[] = Array.isArray(to) ? to : [to];
+      let project = null;
+      let recipientEmail = '';
+
+      for (const addr of toAddresses) {
+        const normalizedAddr = addr.toLowerCase().replace(/^.*</, '').replace(/>.*$/, '').trim();
+        if (normalizedAddr.endsWith('@extrapl.it')) {
+          project = await storage.getProjectByEmailAddress(normalizedAddr);
+          if (project) {
+            recipientEmail = normalizedAddr;
+            break;
+          }
+        }
+      }
+
+      if (!project) {
+        console.log(`📧 SES: No project found for recipients: ${toAddresses.join(', ')}`);
+        return res.status(200).json({ status: 'ignored', reason: 'no_matching_project' });
+      }
+
+      console.log(`📧 SES: Found project "${project.name}" (${project.id}) for ${recipientEmail}`);
+
+      // Deduplicate
+      const alreadyProcessed = await storage.isEmailProcessed(project.id, messageId);
+      if (alreadyProcessed) {
+        console.log(`📧 SES: Email ${messageId} already processed, skipping`);
+        return res.json({ success: true, message: 'Email already processed', duplicate: true });
+      }
+
+      // Parse the full email from S3
+      const { parseRawEmailFromS3 } = await import('./integrations/sesInbound');
+      const parsedEmail = await parseRawEmailFromS3(s3Key, s3Bucket);
+
+      const fromEmail = parsedEmail.from;
+      const emailSubject = parsedEmail.subject || subject || 'Email Session';
+      const textContent = parsedEmail.textContent || '';
+      const attachments = parsedEmail.attachments;
+
+      // Get required document types and email template for this project
+      const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+      // Import sendProjectEmail for auto-replies from the project's SES inbox
+      const { sendProjectEmail } = await import('./email');
+
+      // Helper to send auto-reply via SES
+      const sendReply = async (replySubject: string, replyText: string) => {
+        try {
+          await sendProjectEmail({
+            from: recipientEmail,
+            to: fromEmail,
+            subject: replySubject,
+            textContent: replyText,
+            htmlContent: renderEmailTemplate(emailTemplate, {
+              subject: replySubject,
+              body: replyText.replace(/\n/g, '<br>'),
+              projectName: project!.name,
+              senderEmail: fromEmail,
+            }),
+          });
+          console.log(`📧 SES: Sent reply to ${fromEmail}`);
+        } catch (err) {
+          console.error('📧 SES: Failed to send reply:', err);
+        }
+      };
+
+      // Validate required documents
+      if (requiredDocTypes.length > 0 && attachments.length === 0) {
+        console.log(`📧 SES: No attachments but ${requiredDocTypes.length} document types required`);
+
+        let rejectionBody = `Thank you for your email to ${project.name}.\n\nUnfortunately, we could not find any document attachments in your email. To process your request, we need the following documents:\n\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`;
+
+        try {
+          const { GoogleGenerativeAI } = await import("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+          const aiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+          const aiResult = await aiModel.generateContent(`Generate a professional, helpful email response for an automated document intake system.\n\nContext:\n- The sender submitted an email without any document attachments to "${project.name}"\n- This project requires specific documents to be attached\n- Original email subject: "${emailSubject}"\n\nMissing Documents (ALL required):\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nWrite a polite, professional email explaining:\n1. We received their email\n2. Unfortunately, no document attachments were found\n3. List each required document type and what it should contain\n4. Encourage them to reply with the correct documents attached\n\nKeep the tone helpful and professional. Format as plain text email body only (no subject line).`);
+          rejectionBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 SES: AI rejection generation failed:', err);
+        }
+
+        await sendReply(`Re: ${emailSubject} - Documents Required`, rejectionBody);
+        await storage.markEmailProcessed(project.id, messageId);
+        return res.json({ success: true, message: 'Rejection sent — no attachments' });
+      }
+
+      // Upload attachments to S3 and create session
+      console.log(`📧 SES: Creating session for project ${project.id} with ${attachments.length} attachment(s)`);
+
+      // Create the extraction session
+      const session = await storage.createExtractionSession({
+        projectId: project.id,
+        sessionName: emailSubject,
+        documentCount: attachments.length,
+        status: 'in_progress',
+        workflowStatus: (project as any).defaultWorkflowStatus || 'New',
+      });
+
+      console.log(`📧 SES: Created session ${session.id}`);
+
+      // Upload each attachment to S3 and create a session document record
+      const { S3Client: S3C, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = new S3C({ region: process.env.AWS_REGION || 'eu-west-1' });
+      const bucketName = process.env.S3_BUCKET_NAME;
+
+      for (const att of attachments) {
+        try {
+          const docKey = `documents/${project.id}/${session.id}/${Date.now()}-${att.filename}`;
+          await s3.send(new PutObjectCommand({
+            Bucket: bucketName,
+            Key: docKey,
+            Body: att.content,
+            ContentType: att.contentType,
+          }));
+
+          await storage.createSessionDocument({
+            sessionId: session.id,
+            fileName: att.filename,
+            fileSize: att.size,
+            mimeType: att.contentType,
+          });
+
+          console.log(`📧 SES: Uploaded ${att.filename} (${att.size} bytes) to ${docKey}`);
+        } catch (err) {
+          console.error(`📧 SES: Failed to upload attachment ${att.filename}:`, err);
+        }
+      }
+
+      // Mark email as processed
+      await storage.markEmailProcessed(project.id, messageId);
+
+      // Send confirmation auto-reply
+      const confirmBody = `Thank you for your submission to ${project.name}.\n\nWe have received your email with ${attachments.length} document(s). Your submission is now being processed.\n\nReference: ${session.name}\n\nYou will receive updates as your documents are reviewed.`;
+      await sendReply(`Re: ${emailSubject} - Received`, confirmBody);
+
+      res.json({
+        success: true,
+        sessionId: session.id,
+        documentsCreated: attachments.length,
+      });
+    } catch (error: any) {
+      console.error('📧 SES webhook error:', error);
+      res.status(500).json({ error: error.message || 'Failed to process inbound email' });
     }
   });
 
