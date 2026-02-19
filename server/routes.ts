@@ -564,14 +564,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("[PASSWORD RESET] Failed to send email:", emailError);
       }
 
-      // In non-production, also return the URL in the response for convenience
-      if (process.env.NODE_ENV !== 'production') {
-        return res.json({
-          message: "If an account exists with that email, a password reset link has been sent.",
-          resetUrl, // Only included in non-production for testing
-        });
-      }
-
       res.json({ message: "If an account exists with that email, a password reset link has been sent." });
     } catch (error) {
       console.error("Forgot password error:", error);
