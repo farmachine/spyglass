@@ -183,7 +183,7 @@ module "ses" {
   source = "./modules/ses"
 
   environment = var.environment
-  domain      = "extrapl.io"
+  domain      = "extrapl.it"
   tags        = local.common_tags
 }
 
