@@ -555,6 +555,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the reset URL (always, for admin access)
       console.log(`[PASSWORD RESET] Token generated for ${user.email}: ${resetUrl}`);
 
+      // Send the password reset email via AWS SES
+      try {
+        const { sendPasswordResetEmail } = await import('./email');
+        await sendPasswordResetEmail({ to: user.email, resetUrl });
+        console.log(`[PASSWORD RESET] Email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error("[PASSWORD RESET] Failed to send email:", emailError);
+      }
+
       // In non-production, also return the URL in the response for convenience
       if (process.env.NODE_ENV !== 'production') {
         return res.json({
