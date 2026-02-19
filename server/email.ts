@@ -5,7 +5,7 @@
  * Falls back to console logging if SES is not configured.
  *
  * Prerequisites:
- * - AWS SES domain verification for extrapl.io
+ * - AWS SES domain verification for extrapl.it
  * - SES send permissions on the ECS task IAM role
  * - If in SES sandbox mode, recipient emails must be verified too
  */
@@ -13,7 +13,7 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 const CONTACT_FORM_RECIPIENT = 'info@extrapl.io';
-const CONTACT_FORM_SENDER = 'contact@extrapl.io';
+const CONTACT_FORM_SENDER = 'contact@extrapl.it';
 
 // SES client — uses IAM role credentials automatically on ECS
 let sesClient: SESv2Client | null = null;
