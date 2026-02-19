@@ -204,6 +204,20 @@ resource "aws_iam_role_policy" "task" {
           "logs:DescribeLogStreams"
         ]
         Resource = "${aws_cloudwatch_log_group.app.arn}:*"
+      },
+      {
+        Sid    = "AllowSESSendEmail"
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "ses:FromAddress" = "contact@extrapl.io"
+          }
+        }
       }
     ]
   })
