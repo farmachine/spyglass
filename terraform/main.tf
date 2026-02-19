@@ -182,9 +182,12 @@ module "waf" {
 module "ses" {
   source = "./modules/ses"
 
-  environment = var.environment
-  domain      = "extrapl.it"
-  tags        = local.common_tags
+  environment           = var.environment
+  domain                = "extrapl.it"
+  documents_bucket_name = module.s3.bucket_name
+  documents_bucket_arn  = module.s3.bucket_arn
+  webhook_secret        = "" # TODO: Add to secrets manager
+  tags                  = local.common_tags
 }
 
 ################################################################################

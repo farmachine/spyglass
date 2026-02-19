@@ -214,11 +214,8 @@ resource "aws_iam_role_policy" "task" {
         ]
         Resource = "*"
         Condition = {
-          StringEquals = {
-            "ses:FromAddress" = [
-              "contact@extrapl.it",
-              "noreply@extrapl.it"
-            ]
+          StringLike = {
+            "ses:FromAddress" = "*@extrapl.it"
           }
         }
       }
