@@ -194,7 +194,7 @@ jobs:
           TF_VAR_environment: staging
 
       - name: Upload Terraform plan artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tfplan-staging
           path: ${{ env.TF_WORKING_DIR }}/tfplan-staging
