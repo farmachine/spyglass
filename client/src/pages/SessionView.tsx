@@ -60,6 +60,7 @@ import UserProfile from "@/components/UserProfile";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
 // import { EditFieldValueDialog } from "@/components/EditFieldValueDialog"; // Replaced with inline editing
+import { FieldEditorPopover } from "@/components/FieldEditorPopover";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionLinkingModal from "@/components/SessionLinkingModal";
@@ -1944,23 +1945,23 @@ export default function SessionView() {
   };
 
   // Handler to save inline table field edit
-  const handleSaveTableFieldEdit = async () => {
+  const handleSaveTableFieldEdit = async (newValue?: string) => {
     console.log('handleSaveTableFieldEdit called, editingTableField:', editingTableField);
     if (!editingTableField) {
       console.log('No field being edited, returning');
       return;
     }
-    
+
     // Find the validation that we're editing
     const validation = validations.find(v => {
       const fieldKey = `${v.collectionName}.${v.fieldName}[${v.recordIndex}]`;
       return fieldKey === editingTableField;
     });
-    
+
     console.log('Looking for validation with key:', editingTableField);
     console.log('Found validation:', validation);
     console.log('All validations count:', validations.length);
-    
+
     // Parse the field key to get collection, field, and index
     // Handle collection names with dots (like "Section 5.1") by matching from the end
     const match = editingTableField.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
@@ -1968,15 +1969,17 @@ export default function SessionView() {
       console.log('Failed to parse field key:', editingTableField);
       return;
     }
-    
+
     const [, collectionName, fieldName, indexStr] = match;
     const recordIndex = parseInt(indexStr);
-    
+
+    // Use provided value or fall back to editTableValue state
+    const currentValue = newValue !== undefined ? newValue : editTableValue;
+
     console.log('Parsed field info:', { collectionName, fieldName, recordIndex });
-    console.log('Edit value to save:', editTableValue);
-    
+    console.log('Edit value to save:', currentValue);
+
     // Clear editing state immediately for responsive UI
-    const currentValue = editTableValue;
     setEditingTableField(null);
     setEditTableValue("");
     
@@ -6507,86 +6510,53 @@ Thank you for your assistance.`;
                                   return <div className="w-3 h-3 flex-shrink-0"></div>;
                                 })()}
                                 {(() => {
-                                  const isEditing = editingField === fieldFullName;
                                   const fieldType = field.dataType || stepValue.dataType;
-                                  
-                                  if (isEditing) {
-                                    return (
-                                      <div className="flex items-center gap-2 flex-1">
-                                        {fieldType === 'DATE' ? (
-                                          <Input
-                                            type="date"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        ) : fieldType === 'NUMBER' ? (
-                                          <Input
-                                            type="number"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        ) : fieldType === 'BOOLEAN' ? (
-                                          <Select value={editValue} onValueChange={setEditValue}>
-                                            <SelectTrigger className="flex-1">
-                                              <SelectValue placeholder="Select value" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="true">True</SelectItem>
-                                              <SelectItem value="false">False</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        ) : fieldType === 'TEXTAREA' ? (
-                                          <textarea
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            rows={4}
-                                          />
-                                        ) : (
-                                          <Input
-                                            type="text"
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            className="flex-1"
-                                          />
-                                        )}
-                                        <Button size="sm" onClick={() => handleSave(fieldFullName)}>
-                                          Save
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-1">
-                                          {fieldType === 'TEXTAREA' ? (
-                                            <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
-                                              <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
-                                                {formatValueForDisplay(displayValue, fieldType)}
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                  const popoverFieldType = fieldType === 'DATE' ? 'DATE' as const
+                                    : fieldType === 'NUMBER' ? 'NUMBER' as const
+                                    : fieldType === 'BOOLEAN' ? 'BOOLEAN' as const
+                                    : fieldType === 'TEXTAREA' ? 'TEXTAREA' as const
+                                    : 'TEXT' as const;
+
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1">
+                                        {fieldType === 'TEXTAREA' ? (
+                                          <div className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md min-h-[60px]">
+                                            <span className={formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : ''}>
                                               {formatValueForDisplay(displayValue, fieldType)}
                                             </span>
-                                          )}
-                                        </div>
+                                          </div>
+                                        ) : (
+                                          <span className={`text-sm ${formatValueForDisplay(displayValue, fieldType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                            {formatValueForDisplay(displayValue, fieldType)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <FieldEditorPopover
+                                        open={editingField === fieldFullName}
+                                        onOpenChange={(isOpen) => {
+                                          if (isOpen) {
+                                            handleEdit(fieldFullName, displayValue);
+                                          } else {
+                                            setEditingField(null);
+                                          }
+                                        }}
+                                        fieldName={field.name}
+                                        initialValue={displayValue || ""}
+                                        fieldType={popoverFieldType}
+                                        onSave={(val) => handleSave(fieldFullName, val)}
+                                        onCancel={() => setEditingField(null)}
+                                      >
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => handleEdit(fieldFullName, displayValue)}
                                           className="h-6 px-2"
                                         >
                                           <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
                                         </Button>
-                                      </div>
-                                    );
-                                  }
+                                      </FieldEditorPopover>
+                                    </div>
+                                  );
                                 })()}
                                 </div>
                               </div>
@@ -6737,60 +6707,13 @@ Thank you for your assistance.`;
                                             </div>
                                             <div>
                                               {(() => {
-                                                const isEditing = editingField === fieldName;
                                                 const fieldType = stepValue.dataType;
-                                                
-                                                if (isEditing) {
-                                                  return (
-                                                    <div className="flex items-center gap-2">
-                                                      {fieldType === 'DATE' ? (
-                                                        <Input
-                                                          type="date"
-                                                          value={editValue}
-                                                          onChange={(e) => setEditValue(e.target.value)}
-                                                          className="flex-1"
-                                                        />
-                                                      ) : fieldType === 'NUMBER' ? (
-                                                        <Input
-                                                          type="number"
-                                                          value={editValue}
-                                                          onChange={(e) => setEditValue(e.target.value)}
-                                                          className="flex-1"
-                                                        />
-                                                      ) : fieldType === 'BOOLEAN' ? (
-                                                        <Select value={editValue} onValueChange={setEditValue}>
-                                                          <SelectTrigger className="flex-1">
-                                                            <SelectValue placeholder="Select value" />
-                                                          </SelectTrigger>
-                                                          <SelectContent>
-                                                            <SelectItem value="true">True</SelectItem>
-                                                            <SelectItem value="false">False</SelectItem>
-                                                          </SelectContent>
-                                                        </Select>
-                                                      ) : fieldType === 'TEXTAREA' ? (
-                                                        <textarea
-                                                          value={editValue}
-                                                          onChange={(e) => setEditValue(e.target.value)}
-                                                          className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                          rows={4}
-                                                        />
-                                                      ) : (
-                                                        <Input
-                                                          type="text"
-                                                          value={editValue}
-                                                          onChange={(e) => setEditValue(e.target.value)}
-                                                          className="flex-1"
-                                                        />
-                                                      )}
-                                                      <Button size="sm" onClick={() => handleSave(fieldName)}>
-                                                        Save
-                                                      </Button>
-                                                      <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
-                                                        Cancel
-                                                      </Button>
-                                                    </div>
-                                                  );
-                                                } else {
+                                                const popoverFieldType = fieldType === 'DATE' ? 'DATE' as const
+                                                  : fieldType === 'NUMBER' ? 'NUMBER' as const
+                                                  : fieldType === 'BOOLEAN' ? 'BOOLEAN' as const
+                                                  : fieldType === 'TEXTAREA' ? 'TEXTAREA' as const
+                                                  : 'TEXT' as const;
+
                                                   return (
                                                     <div className="flex items-center gap-2">
                                                       <div className="flex-1">
@@ -6945,19 +6868,33 @@ Thank you for your assistance.`;
                                                         
                                                         // Regular edit button for non-database-lookup values
                                                         return (
-                                                          <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => handleEdit(fieldName, displayValue)}
-                                                            className="h-6 px-2"
+                                                          <FieldEditorPopover
+                                                            open={editingField === fieldName}
+                                                            onOpenChange={(isOpen) => {
+                                                              if (isOpen) {
+                                                                handleEdit(fieldName, displayValue);
+                                                              } else {
+                                                                setEditingField(null);
+                                                              }
+                                                            }}
+                                                            fieldName={fieldName}
+                                                            initialValue={displayValue || ""}
+                                                            fieldType={popoverFieldType}
+                                                            onSave={(val) => handleSave(fieldName, val)}
+                                                            onCancel={() => setEditingField(null)}
                                                           >
-                                                            <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
-                                                          </Button>
+                                                            <Button
+                                                              size="sm"
+                                                              variant="ghost"
+                                                              className="h-6 px-2"
+                                                            >
+                                                              <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                            </Button>
+                                                          </FieldEditorPopover>
                                                         );
                                                       })()}
                                                     </div>
                                                   );
-                                                }
                                               })()}
                                               </div>
                                             </div>
@@ -7438,130 +7375,7 @@ Thank you for your assistance.`;
                                                 ? `${validation.collectionName}.${validation.fieldName}[${validation.recordIndex}]`
                                                 : `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                               const isEditingThisField = editingTableField === fieldKey;
-                                              
-                                              if (isEditingThisField) {
-                                                const cellTool = column.toolId ? toolsMap.get(column.toolId) : null;
-                                                const isDropdownTool = cellTool?.toolType === 'DATASOURCE_DROPDOWN';
-                                                const colInputValues = (column as any).inputValues as Record<string, any> | undefined;
-                                                const ddCacheKey = colInputValues?._dropdownDataSourceId 
-                                                  ? `${column.toolId}_${colInputValues._dropdownDataSourceId}_${colInputValues._dropdownColumn}` 
-                                                  : column.toolId;
-                                                const ddOptions = isDropdownTool ? (dropdownOptionsCache[ddCacheKey] || []) : [];
-                                                const filteredDdOptions = ddOptions.filter(opt => 
-                                                  !dropdownFilter || opt.toLowerCase().includes(dropdownFilter.toLowerCase())
-                                                );
-                                                
-                                                if (isDropdownTool && ddOptions.length === 0 && column.toolId) {
-                                                  fetchDropdownOptions(column.toolId, colInputValues);
-                                                }
-                                                
-                                                if (isDropdownTool) {
-                                                  return (
-                                                    <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
-                                                      <div className="relative h-full">
-                                                        <input
-                                                          type="text"
-                                                          value={dropdownFilter}
-                                                          onChange={(e) => setDropdownFilter(e.target.value)}
-                                                          placeholder="Type to search..."
-                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-8"
-                                                          autoFocus
-                                                          onKeyDown={(e) => {
-                                                            if (e.key === 'Escape') {
-                                                              handleCancelTableFieldEdit();
-                                                            } else if (e.key === 'Enter' && filteredDdOptions.length === 1) {
-                                                              handleSaveDropdownValue(filteredDdOptions[0]);
-                                                            }
-                                                          }}
-                                                        />
-                                                        <Button
-                                                          size="sm"
-                                                          variant="ghost"
-                                                          onClick={handleCancelTableFieldEdit}
-                                                          className="absolute top-1/2 right-1 transform -translate-y-1/2 h-6 px-1 text-xs"
-                                                        >
-                                                          x
-                                                        </Button>
-                                                      </div>
-                                                      <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
-                                                        {ddOptions.length === 0 ? (
-                                                          <div className="px-3 py-2 text-xs text-gray-400">Loading options...</div>
-                                                        ) : filteredDdOptions.length === 0 ? (
-                                                          <div className="px-3 py-2 text-xs text-gray-400">No matches</div>
-                                                        ) : (
-                                                          filteredDdOptions.map((opt, i) => (
-                                                            <div
-                                                              key={i}
-                                                              className={`px-3 py-1.5 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 ${
-                                                                editTableValue === opt ? 'bg-blue-100 dark:bg-gray-600 font-medium' : ''
-                                                              }`}
-                                                              onClick={() => handleSaveDropdownValue(opt)}
-                                                            >
-                                                              {opt}
-                                                            </div>
-                                                          ))
-                                                        )}
-                                                      </div>
-                                                    </div>
-                                                  );
-                                                }
-                                                
-                                                return (
-                                                  <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded z-10 border border-blue-500">
-                                                    <div className="relative h-full">
-                                                      {columnType === 'TEXTAREA' ? (
-                                                        <textarea
-                                                          value={editTableValue}
-                                                          onChange={(e) => setEditTableValue(e.target.value)}
-                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none resize-none bg-transparent pr-20"
-                                                          autoFocus
-                                                          onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' && e.ctrlKey) {
-                                                              handleSaveTableFieldEdit();
-                                                            } else if (e.key === 'Escape') {
-                                                              handleCancelTableFieldEdit();
-                                                            }
-                                                          }}
-                                                        />
-                                                      ) : (
-                                                        <input
-                                                          type={columnType === 'NUMBER' ? 'number' : columnType === 'DATE' ? 'date' : 'text'}
-                                                          value={editTableValue}
-                                                          onChange={(e) => setEditTableValue(e.target.value)}
-                                                          className="w-full h-full px-2 py-1 text-sm border-none outline-none bg-transparent pr-20"
-                                                          autoFocus
-                                                          onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                              handleSaveTableFieldEdit();
-                                                            } else if (e.key === 'Escape') {
-                                                              handleCancelTableFieldEdit();
-                                                            }
-                                                          }}
-                                                        />
-                                                      )}
-                                                      
-                                                      {/* Save/Cancel buttons */}
-                                                      <div className="absolute top-1/2 right-1 transform -translate-y-1/2 flex gap-1">
-                                                        <Button
-                                                          size="sm"
-                                                          onClick={handleSaveTableFieldEdit}
-                                                          className="h-6 px-2 text-xs"
-                                                        >
-                                                          ✓
-                                                        </Button>
-                                                        <Button
-                                                          size="sm"
-                                                          variant="outline"
-                                                          onClick={handleCancelTableFieldEdit}
-                                                          className="h-6 px-2 text-xs"
-                                                        >
-                                                          x
-                                                        </Button>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              } else {
+
                                                 const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
                                                 const colDisplayConfig = columnTool?.displayConfig || columnTool?.display_config;
                                                 const hasColModalDisplay = (colDisplayConfig && colDisplayConfig.modalType && colDisplayConfig.modalType !== 'none') ||
@@ -7718,7 +7532,14 @@ Thank you for your assistance.`;
                                                 }
                                                 
                                                 const isDropdownColumn = columnTool?.toolType === 'DATASOURCE_DROPDOWN';
-                                                
+
+                                                // Dropdown options for DATASOURCE_DROPDOWN columns
+                                                const colInputValues = (column as any).inputValues as Record<string, any> | undefined;
+                                                const ddCacheKey = colInputValues?._dropdownDataSourceId
+                                                  ? `${column.toolId}_${colInputValues._dropdownDataSourceId}_${colInputValues._dropdownColumn}`
+                                                  : column.toolId;
+                                                const ddOptions = isDropdownColumn ? (dropdownOptionsCache[ddCacheKey] || []) : [];
+
                                                 const handleEditClick = () => {
                                                   if (isDropdownColumn && columnTool?.id) {
                                                     const colIV = (column as any).inputValues as Record<string, any> | undefined;
@@ -7738,23 +7559,51 @@ Thank you for your assistance.`;
                                                     handleEditTableField(tempValidation);
                                                   }
                                                 };
-                                                
+
+                                                const popoverFieldType = isDropdownColumn ? 'DROPDOWN' as const
+                                                  : columnType === 'TEXTAREA' ? 'TEXTAREA' as const
+                                                  : columnType === 'DATE' ? 'DATE' as const
+                                                  : columnType === 'NUMBER' ? 'NUMBER' as const
+                                                  : 'TEXT' as const;
+
                                                 return (
-                                                  <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={handleEditClick}
-                                                    className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title={isDropdownColumn ? "Select from dropdown" : "Edit field value"}
+                                                  <FieldEditorPopover
+                                                    open={isEditingThisField}
+                                                    onOpenChange={(isOpen) => {
+                                                      if (isOpen) {
+                                                        handleEditClick();
+                                                      } else {
+                                                        handleCancelTableFieldEdit();
+                                                      }
+                                                    }}
+                                                    fieldName={columnName.replace(/\b\w+/g, (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())}
+                                                    initialValue={validation?.extractedValue || ""}
+                                                    fieldType={popoverFieldType}
+                                                    onSave={(val) => {
+                                                      if (isDropdownColumn) {
+                                                        handleSaveDropdownValue(val);
+                                                      } else {
+                                                        handleSaveTableFieldEdit(val);
+                                                      }
+                                                    }}
+                                                    onCancel={handleCancelTableFieldEdit}
+                                                    dropdownOptions={ddOptions}
+                                                    dropdownLoading={isDropdownColumn && ddOptions.length === 0}
                                                   >
-                                                    {isDropdownColumn ? (
-                                                      <ChevronDown className="h-3 w-3 text-[#4F63A4]" />
-                                                    ) : (
-                                                      <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
-                                                    )}
-                                                  </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                      title={isDropdownColumn ? "Select from dropdown" : "Edit field value"}
+                                                    >
+                                                      {isDropdownColumn ? (
+                                                        <ChevronDown className="h-3 w-3 text-[#4F63A4]" />
+                                                      ) : (
+                                                        <Edit3 className="h-3 w-3 text-gray-600 dark:text-blue-200" />
+                                                      )}
+                                                    </Button>
+                                                  </FieldEditorPopover>
                                                 );
-                                              }
                                             })()}
                                           </div>
                                           
