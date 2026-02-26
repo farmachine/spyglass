@@ -8400,18 +8400,14 @@ Thank you for your assistance.`;
                 for (const siblingCol of siblingColumns) {
                   const siblingOutputCol = siblingCol.inputValues?._outputColumn || '';
                   const siblingValue = siblingOutputCol ? (selectedRecord[siblingOutputCol]?.toString() || '') : '';
+                  const siblingFieldName = `${collectionName}.${siblingCol.valueName}[${recordIndex}]`;
 
-                  console.log(`  Sibling ${siblingCol.valueName}: outputColumn=${siblingOutputCol}, value=${siblingValue}`);
+                  console.log(`  Sibling ${siblingCol.valueName}: outputColumn=${siblingOutputCol}, value=${siblingValue}, fieldName=${siblingFieldName}`);
 
-                  // Find existing validation for this sibling
+                  // Find existing validation by fieldName pattern (most reliable for multi-field)
                   const siblingValidation = validations.find(v =>
-                    v.valueId === siblingCol.valueId &&
                     v.identifierId === rowIdentifierId &&
-                    v.fieldName?.includes(siblingCol.valueName)
-                  ) || validations.find(v =>
-                    v.valueId === siblingCol.valueId &&
-                    v.identifierId === rowIdentifierId &&
-                    v.fieldId === siblingCol.valueId
+                    v.fieldName?.includes(`.${siblingCol.valueName}[`)
                   );
 
                   if (siblingValidation?.id) {
@@ -8430,7 +8426,7 @@ Thank you for your assistance.`;
                       validationType: 'step_value',
                       dataType: siblingCol.dataType || 'text',
                       fieldId: siblingCol.valueId,
-                      fieldName: `${collectionName}.${siblingCol.valueName}[${recordIndex}]`,
+                      fieldName: siblingFieldName,
                       collectionName,
                       recordIndex,
                       identifierId: rowIdentifierId,
