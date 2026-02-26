@@ -7484,7 +7484,7 @@ except Exception as e:
       res.status(201).json(validation);
     } catch (error) {
       console.error('CREATE VALIDATION - Error:', error);
-      res.status(500).json({ message: "Failed to create field validation" });
+      res.status(500).json({ message: "Failed to create field validation", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
