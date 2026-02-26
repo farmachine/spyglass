@@ -143,7 +143,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-gray-100"
+                className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => setIsMinimized(!isMinimized)}
               >
                 {isMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
@@ -151,7 +151,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-gray-100"
+                className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-3 w-3" />
@@ -165,11 +165,11 @@ export default function SessionChat({ sessionId, session, validations }: Session
             <ScrollArea className="flex-1 p-3">
               <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-xs text-gray-500 text-center py-8">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">
                     Loading messages...
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-xs text-gray-500 text-center py-8">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">
                     Ask me anything about this session's data!
                   </div>
                 ) : (
@@ -188,7 +188,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
                           className={`px-3 py-2 rounded-lg text-sm leading-relaxed ${
                             msg.role === 'user'
                               ? 'bg-[#4F63A4] text-white'
-                              : 'bg-gray-100 text-gray-900'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                           }`}
                         >
                           {msg.role === 'assistant' ? formatMessageContent(msg.content) : msg.content}
@@ -197,7 +197,7 @@ export default function SessionChat({ sessionId, session, validations }: Session
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-1 h-6 w-6 p-0 self-end hover:bg-gray-200"
+                            className="mt-1 h-6 w-6 p-0 self-end hover:bg-gray-200 dark:hover:bg-gray-700"
                             onClick={() => copyToClipboard(msg.content, msg.id)}
                           >
                             {copiedMessageId === msg.id ? (
@@ -222,11 +222,11 @@ export default function SessionChat({ sessionId, session, validations }: Session
                     <div className="flex-shrink-0 w-6 h-6 bg-[#4F63A4] rounded-full flex items-center justify-center">
                       <Bot className="h-3 w-3 text-white" />
                     </div>
-                    <div className="bg-gray-100 text-gray-900 px-2 py-1.5 rounded-lg text-xs">
+                    <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 rounded-lg text-xs">
                       <div className="flex gap-1">
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       </div>
                     </div>
                   </div>

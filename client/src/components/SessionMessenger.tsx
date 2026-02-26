@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, MailOpen, ArrowLeft, Plus, MessageCircle, Star, X, AlertCircle, Paperclip, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import DOMPurify from "dompurify";
 import type { Project, SessionEmail, SessionConversation, ConversationParticipant } from "@shared/schema";
 
 interface SessionMessengerProps {
@@ -475,7 +476,7 @@ export default function SessionMessenger({ sessionId, project }: SessionMessenge
                     </div>
                   )}
                   <div className={`max-w-[80%] ${email.direction === 'outbound' ? 'text-right' : ''}`}>
-                    <div className="text-[10px] text-gray-400 mb-0.5">
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">
                       {email.direction === 'inbound' ? (
                         <span>From: {email.fromEmail}</span>
                       ) : (
@@ -486,14 +487,23 @@ export default function SessionMessenger({ sessionId, project }: SessionMessenge
                     </div>
                     <div
                       className={`px-3 py-2 rounded-lg text-sm leading-relaxed ${
-                        email.direction === 'outbound'
+                        email.direction === 'outbound' && !email.htmlBody
                           ? 'bg-[#4F63A4] text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          : email.direction === 'outbound' && email.htmlBody
+                            ? 'bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 text-gray-900 dark:text-gray-100 border border-[#4F63A4]/20 dark:border-[#4F63A4]/30'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                       }`}
                     >
-                      {trimEmailChain(email.body).split('\n').map((line, i) => (
-                        <div key={i}>{line || <br />}</div>
-                      ))}
+                      {email.htmlBody ? (
+                        <div
+                          className="email-html-content prose prose-sm max-w-none dark:prose-invert [&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_th]:border [&_th]:border-gray-300 dark:[&_th]:border-gray-600 [&_th]:bg-gray-100 dark:[&_th]:bg-gray-700 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-gray-300 dark:[&_td]:border-gray-600 [&_td]:px-2 [&_td]:py-1 [&_p]:my-1"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.htmlBody) }}
+                        />
+                      ) : (
+                        trimEmailChain(email.body).split('\n').map((line, i) => (
+                          <div key={i}>{line || <br />}</div>
+                        ))
+                      )}
                     </div>
                     {(email as any).attachments?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
