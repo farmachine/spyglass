@@ -7116,7 +7116,7 @@ Thank you for your assistance.`;
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1 text-xs font-semibold text-gray-700 dark:text-gray-300">{columnName}</span>
+                                        <span className="truncate pl-1 text-xs font-semibold text-gray-700 dark:text-gray-300">{columnName.replace(/\b\w+/g, (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())}</span>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2">
                                         {isLastOfGroup && (
