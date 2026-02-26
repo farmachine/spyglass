@@ -536,10 +536,19 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
     [outputColumn]
   );
 
-  const handleUpdate = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleUpdate = async () => {
     if (selectedValue) {
-      onSelect(selectedValue);
-      onClose();
+      setIsSaving(true);
+      try {
+        await onSelect(selectedValue);
+        onClose();
+      } catch (error) {
+        // Error is handled by the onSelect callback's own catch block
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -949,10 +958,10 @@ export function MapDisplayView(props: ToolDisplayComponentProps) {
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleUpdate}
-            disabled={!selectedValue}
+            disabled={!selectedValue || isSaving}
             className="bg-[#4F63A4] hover:bg-[#3d4f8a] text-white"
           >
-            Update
+            {isSaving ? 'Saving...' : 'Update'}
           </Button>
         </DialogFooter>
       </DialogContent>

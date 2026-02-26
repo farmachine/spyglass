@@ -17,7 +17,7 @@ interface FilterConfig {
 interface DatabaseLookupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (value: string) => void;
+  onSelect: (value: string) => Promise<void> | void;
   datasourceData: any[];
   columnMappings: Record<string, string>;
   initialFilters: FilterConfig[];
@@ -199,10 +199,20 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
     setSelectedValue(value ? value.toString() : "");
   };
 
-  const handleUpdate = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleUpdate = async () => {
     if (selectedValue) {
-      onSelect(selectedValue);
-      onClose();
+      setIsSaving(true);
+      try {
+        await onSelect(selectedValue);
+        onClose();
+      } catch (error) {
+        // Error is handled by the onSelect callback's own catch block
+        // Don't close the modal so the user can retry
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -365,12 +375,12 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleUpdate}
-              disabled={!selectedValue}
+              disabled={!selectedValue || isSaving}
               className="bg-[#4F63A4] hover:bg-[#3A4A7C]"
             >
-              Update
+              {isSaving ? 'Saving...' : 'Update'}
             </Button>
           </div>
         </DialogFooter>

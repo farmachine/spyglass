@@ -7871,17 +7871,20 @@ Thank you for your assistance.`;
           onClose={() => setToolDisplayModal(null)}
           onSelect={async (selectedValue: string) => {
             if (!toolDisplayModal) return;
-            
+
             const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = toolDisplayModal;
-            
+
             console.log('Database lookup value selected:', {
               selectedValue,
               fieldName,
               collectionName,
               recordIndex,
-              rowIdentifierId
+              rowIdentifierId,
+              validationId: validation?.id,
+              columnId: column?.id,
+              columnStepId: column?.stepId
             });
-            
+
             try {
               if (validation?.id) {
                 await apiRequest(`/api/validations/${validation.id}`, {
@@ -7895,40 +7898,47 @@ Thank you for your assistance.`;
                   })
                 });
               } else {
+                // Build POST body with proper step-based fields
+                const postBody: Record<string, any> = {
+                  validationType: 'step_value',
+                  dataType: column.dataType || 'text',
+                  fieldId: column.id,
+                  collectionName,
+                  recordIndex,
+                  identifierId: rowIdentifierId,
+                  valueId: column.id,
+                  extractedValue: selectedValue,
+                  validationStatus: 'valid',
+                  manuallyUpdated: true,
+                  aiReasoning: 'Manually selected from database lookup',
+                  confidenceScore: 100
+                };
+                // Include stepId if available from the column
+                if (column.stepId) {
+                  postBody.stepId = column.stepId;
+                }
                 await apiRequest(`/api/sessions/${sessionId}/validations`, {
                   method: 'POST',
-                  body: JSON.stringify({
-                    validationType: 'collection',
-                    dataType: 'text',
-                    fieldId: column.id,
-                    collectionName,
-                    fieldName,
-                    recordIndex,
-                    identifierId: rowIdentifierId,
-                    valueId: column.id,
-                    extractedValue: selectedValue,
-                    validationStatus: 'valid',
-                    manuallyUpdated: true,
-                    aiReasoning: 'Manually selected from database lookup',
-                    confidenceScore: 100
-                  })
+                  body: JSON.stringify(postBody)
                 });
               }
-              
+
               // Invalidate validations to refresh the UI
               await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
-              
+
               toast({
                 title: "Value Updated",
                 description: `Selected: ${selectedValue}`,
               });
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error saving database lookup value:', error);
+              const errorMsg = error?.message || 'Unknown error';
               toast({
                 title: "Error",
-                description: "Failed to save selected value",
+                description: `Failed to save selected value: ${errorMsg}`,
                 variant: "destructive"
               });
+              throw error; // Re-throw so the modal knows to stay open
             }
           }}
           datasourceData={toolDisplayModal.datasourceData}
