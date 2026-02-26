@@ -118,11 +118,11 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 p-3">
         {isLoading ? (
-          <div className="text-xs text-gray-500 text-center py-8">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">
             Loading timeline...
           </div>
         ) : activities.length === 0 ? (
-          <div className="text-xs text-gray-500 text-center py-8">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-8">
             No activity recorded yet.
           </div>
         ) : (
@@ -145,7 +145,7 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
                   <div key={activity.id}>
                     {/* Activity item */}
                     <div
-                      className={`relative flex gap-3 items-start py-2 ${expandable ? 'cursor-pointer hover:bg-[#4F63A4]/[0.03] rounded-lg px-1 -mx-1' : ''}`}
+                      className={`relative flex gap-3 items-start py-2 ${expandable ? 'cursor-pointer hover:bg-[#4F63A4]/[0.03] dark:hover:bg-[#4F63A4]/[0.08] rounded-lg px-1 -mx-1' : ''}`}
                       onClick={() => expandable && toggleExpand(activity.id)}
                     >
                       {/* Icon */}
@@ -156,7 +156,7 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-900 leading-snug">
+                          <p className="text-sm text-gray-900 dark:text-gray-100 leading-snug">
                             {activity.description}
                           </p>
                           {expandable && (
@@ -170,13 +170,13 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
                             {formatRelativeTime(activity.createdAt)}
                           </span>
                           {activity.actorEmail && (
                             <>
-                              <span className="text-[10px] text-gray-300">&middot;</span>
-                              <span className="text-[10px] text-gray-400 truncate">
+                              <span className="text-[10px] text-gray-300 dark:text-gray-600">&middot;</span>
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                                 {activity.actorEmail}
                               </span>
                             </>
@@ -190,7 +190,7 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
                       <div className="ml-9 mb-2">
                         {/* Status change details */}
                         {activity.activityType === 'workflow_status_changed' && metadata && (
-                          <div className="text-[11px] text-gray-500 py-1.5">
+                          <div className="text-[11px] text-gray-500 dark:text-gray-400 py-1.5">
                             <span className="inline-flex items-center gap-1.5">
                               <span className="px-2 py-0.5 rounded bg-[#4F63A4]/10 text-[#4F63A4] font-medium">
                                 {metadata.fromStatus || 'none'}
@@ -205,17 +205,17 @@ export default function SessionTimeline({ sessionId }: SessionTimelineProps) {
 
                         {/* Email content */}
                         {emailContent && (
-                          <div className="bg-gray-50 rounded-lg border border-gray-100 p-3 mt-1">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 mt-1">
                             {metadata?.subject && (
-                              <div className="text-[11px] font-medium text-gray-600 mb-1.5">
+                              <div className="text-[11px] font-medium text-gray-600 dark:text-gray-300 mb-1.5">
                                 {metadata.subject}
                               </div>
                             )}
-                            <div className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
+                            <div className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                               {emailContent.trimmed || '(empty)'}
                             </div>
                             {emailContent.wasTrimmed && (
-                              <div className="text-[10px] text-gray-400 mt-2 italic">
+                              <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 italic">
                                 Earlier messages in chain trimmed
                               </div>
                             )}
