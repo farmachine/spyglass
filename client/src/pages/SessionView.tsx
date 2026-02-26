@@ -8400,11 +8400,11 @@ Thank you for your assistance.`;
                 const postBody: Record<string, any> = {
                   validationType: 'step_value',
                   dataType: column.dataType || 'text',
-                  fieldId: column.id,
+                  fieldId: column.valueId,
                   collectionName,
                   recordIndex,
                   identifierId: rowIdentifierId,
-                  valueId: column.id,
+                  valueId: column.valueId,
                   extractedValue: selectedValue,
                   validationStatus: 'valid',
                   manuallyUpdated: true,
