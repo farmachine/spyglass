@@ -64,11 +64,11 @@ if (isProduction) {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   message: { message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => !req.path.startsWith('/api'),
+  skip: (req) => !req.path.startsWith('/api') || req.path === '/api/health',
 });
 app.use(apiLimiter);
 
