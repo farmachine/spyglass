@@ -21,7 +21,7 @@ export interface ToolDisplayConfig {
 export interface ToolDisplayComponentProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (value: string) => void;
+  onSelect: (value: string) => Promise<void> | void;
   datasourceData: any[];
   columnMappings: Record<string, string>;
   initialFilters: Array<{column: string; operator: string; inputField: string; fuzziness: number}>;
