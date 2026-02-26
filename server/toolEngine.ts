@@ -852,19 +852,62 @@ export class ToolEngine {
       // Check for multi-field extraction (Info Page fields)
       // This takes priority over CREATE operation because Info Page extractions need identifierIds
       if (inputs.__infoPageFields) {
-        // Multi-field extraction: AI returns results with identifierIds from __infoPageFields
-        // This works whether or not there's reference data in inputArray
+        // Multi-field extraction: AI returns results in same order as __infoPageFields
+        // Map by index since AI doesn't know our internal identifierIds
+        const targetFields = inputs.__infoPageFields as any[];
         console.log(`📋 Multi-field extraction: processing ${parsedResults.length} field results`);
+        console.log(`📋 Mapping to ${targetFields.length} target fields by index`);
         console.log(`📋 Reference data provided: ${inputArray.length} items (for context only)`);
-        results = parsedResults.map((item: any) => ({
-          identifierId: item.identifierId, // CRITICAL: Preserve the identifierId from AI response
-          extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
-          validationStatus: item.validationStatus || "valid",
-          aiReasoning: item.aiReasoning || "",
-          confidenceScore: item.confidenceScore || 85,
-          documentSource: item.documentSource || ""
-        }));
-        console.log(`✅ Multi-field extraction mapped ${results.length} results with identifierIds`);
+        results = parsedResults.map((item: any, idx: number) => {
+          const targetField = targetFields[idx];
+          return {
+            identifierId: item.identifierId || targetField?.identifierId || `field_${idx}`,
+            extractedValue: item.extractedValue !== undefined ? item.extractedValue : item.value || item,
+            validationStatus: item.validationStatus || "valid",
+            aiReasoning: item.aiReasoning || "",
+            confidenceScore: item.confidenceScore || 85,
+            documentSource: item.documentSource || ""
+          };
+        });
+        console.log(`✅ Multi-field extraction mapped ${results.length} results with identifierIds from target fields`);
+      } else if (inputs.__dataTableFields) {
+        // Data Table multi-field extraction: AI returns per-row objects each with a fields[] array
+        // Flatten into individual per-cell results for storage
+        console.log(`📋 Data Table multi-field extraction: processing ${parsedResults.length} row results`);
+        results = [];
+        parsedResults.forEach((row: any, rowIdx: number) => {
+          const rowIdentifierId = row.identifierId || null;
+          const fields = row.fields || [];
+
+          if (Array.isArray(fields) && fields.length > 0) {
+            // Nested format: each row has a fields[] array
+            fields.forEach((field: any) => {
+              results.push({
+                identifierId: rowIdentifierId,
+                fieldId: field.fieldId || field.identifierId,
+                fieldName: field.fieldName || field.name,
+                extractedValue: field.extractedValue !== undefined ? field.extractedValue : field.value || null,
+                validationStatus: field.validationStatus || "valid",
+                aiReasoning: field.aiReasoning || "",
+                confidenceScore: field.confidenceScore || 85,
+                documentSource: field.documentSource || ""
+              });
+            });
+          } else {
+            // Fallback: flat format — AI returned per-field objects directly
+            results.push({
+              identifierId: rowIdentifierId,
+              fieldId: row.fieldId || row.identifierId,
+              fieldName: row.fieldName || row.name,
+              extractedValue: row.extractedValue !== undefined ? row.extractedValue : row.value || null,
+              validationStatus: row.validationStatus || "valid",
+              aiReasoning: row.aiReasoning || "",
+              confidenceScore: row.confidenceScore || 85,
+              documentSource: row.documentSource || ""
+            });
+          }
+        });
+        console.log(`✅ Data Table multi-field extraction flattened to ${results.length} cell results from ${parsedResults.length} rows`);
       } else if (isCreateOperation) {
         // CREATE operations: AI generates new records
         results = parsedResults.map((item: any) => ({
@@ -1071,6 +1114,13 @@ export class ToolEngine {
       console.log('📋 Preserving multi-field definitions for prompt:', infoPageFields.length, 'fields');
       // DO NOT DELETE __infoPageFields - we need it later to detect multi-field extraction
     }
+
+    // Check for multi-field Data Table extraction
+    const dataTableFields = inputs.__dataTableFields;
+    if (dataTableFields) {
+      console.log('📋 Preserving data table multi-field definitions for prompt:', dataTableFields.length, 'fields');
+      // DO NOT DELETE __dataTableFields - we need it later to detect multi-field extraction
+    }
     
     // Extract value configuration - this tells us what field is being extracted
     const valueConfig = inputs['valueConfiguration'];
@@ -1117,6 +1167,16 @@ export class ToolEngine {
       } else if (param.type === 'data') {
         // Data arrays are handled separately (dataArray parameter)
         console.log(`📊 Data parameter ${paramName} will use provided dataArray`);
+      } else {
+        // FALLBACK: Unknown param type - include non-empty string values
+        // This catches document content that has a non-standard param type
+        if (paramValue && typeof paramValue === 'string' && paramValue.length > 0) {
+          // Skip @-references and internal metadata
+          if (!paramValue.startsWith('@') || paramValue.split(' ').length > 1) {
+            processedInputs[paramName] = paramValue;
+            console.log(`📦 Found input for ${paramName} (type: ${param.type || 'unknown'}): ${paramValue.length} chars`);
+          }
+        }
       }
     }
     
@@ -1154,7 +1214,7 @@ Example format:
 `;
     
     // CRITICAL: Add which specific column/field is being extracted
-    if (valueName && !infoPageFields) {
+    if (valueName && !infoPageFields && !dataTableFields) {
       // This is a single column extraction (not multi-field Info Page)
       prompt += `**🚨 CRITICAL EXTRACTION INSTRUCTION 🚨**
 ================================================================================
@@ -1197,7 +1257,19 @@ This is a SINGLE COLUMN extraction for: ${valueName}
 `;
       }
     }
-    
+
+    // SAFETY NET: If sessionDocumentContent exists but was not captured by any tool parameter,
+    // include it directly in the prompt. This ensures document content is always available to the AI.
+    const hasDocumentInPrompt = Object.values(processedInputs).some(
+      v => typeof v === 'string' && v.length > 500 && v === inputs.sessionDocumentContent
+    );
+    if (inputs.sessionDocumentContent && !hasDocumentInPrompt) {
+      console.log(`🔒 SAFETY NET: Adding sessionDocumentContent to prompt (${inputs.sessionDocumentContent.length} chars) - not captured by any tool parameter`);
+      prompt += `**Document Content**: ${inputs.sessionDocumentContent}
+
+`;
+    }
+
     // Add field definitions for multi-field Info Page extraction
     if (infoPageFields && Array.isArray(infoPageFields) && infoPageFields.length > 0) {
       prompt += `
@@ -1232,7 +1304,53 @@ Example response format:
 
 `;
     }
-    
+
+    // Add field definitions for multi-field Data Table extraction
+    if (dataTableFields && Array.isArray(dataTableFields) && dataTableFields.length > 0) {
+      prompt += `
+=== DATA TABLE COLUMNS TO EXTRACT ===
+You must extract the following ${dataTableFields.length} columns for EACH ROW/RECORD found.
+IMPORTANT: Each column has a unique fieldId that MUST be included in your response.
+
+`;
+      dataTableFields.forEach((field: any, idx: number) => {
+        const fieldId = field.fieldId || field.identifierId || `field_${idx}`;
+        prompt += `**Column ${idx + 1}: ${field.name}**
+- Field ID: ${fieldId}
+- Data Type: ${field.dataType}
+- Description: ${field.description || 'Extract this column value'}
+
+`;
+      });
+
+      prompt += `IMPORTANT: Return a JSON array where EACH ELEMENT represents ONE ROW/RECORD.
+Each row object must have:
+- identifierId: A unique identifier for the row (use the one provided if updating existing data, or null for new rows)
+- fields: An array of objects, one for each column listed above
+
+Each field object in the fields array must have:
+- fieldId: The EXACT Field ID from the column definition above
+- fieldName: The column name
+- extractedValue: The value extracted for this column in this row
+- validationStatus: Either "valid" or "invalid"
+- aiReasoning: Your explanation
+- confidenceScore: A number between 0 and 100
+- documentSource: Where in the document this was found
+
+Example response format for 2 rows with ${dataTableFields.length} columns:
+[
+  {
+    "identifierId": null,
+    "fields": [
+      {"fieldId": "${dataTableFields[0]?.fieldId || dataTableFields[0]?.identifierId || 'field_0'}", "fieldName": "${dataTableFields[0]?.name}", "extractedValue": "...", "validationStatus": "valid", "aiReasoning": "...", "confidenceScore": 95, "documentSource": "..."}${dataTableFields.length > 1 ? `,
+      {"fieldId": "${dataTableFields[1]?.fieldId || dataTableFields[1]?.identifierId || 'field_1'}", "fieldName": "${dataTableFields[1]?.name}", "extractedValue": "...", "validationStatus": "valid", "aiReasoning": "...", "confidenceScore": 90, "documentSource": "..."}` : ''}
+    ]
+  }
+]
+
+`;
+    }
+
     // Add List Items (the data to process) - only if data is provided
     if (dataArray && dataArray.length > 0) {
       // Check if this is a column extraction with existing data
@@ -1662,7 +1780,82 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
       }
       
       console.log(`📊 Data source contains ${dataSourceData.length} records`);
-      
+
+      // Multi-field expansion helper: expands single-per-row DATABASE_LOOKUP results
+      // into per-field results by looking up each field's outputColumn in the matched record
+      const expandToMultiField = (results: any[]): any[] => {
+        if (!inputs.__dataTableFields || !Array.isArray(inputs.__dataTableFields)) {
+          return results; // No multi-field, return as-is
+        }
+
+        const dataTableFields = inputs.__dataTableFields as any[];
+        console.log(`\n📋 MULTI-FIELD EXPANSION: Expanding ${results.length} results into ${results.length * dataTableFields.length} per-field results`);
+        console.log(`   Fields: ${dataTableFields.map((f: any) => `${f.name} (outputColumn: ${f.outputColumn})`).join(', ')}`);
+
+        const expandedResults: any[] = [];
+
+        // Build a map of dataSourceData by record ID for fast lookup
+        const recordById = new Map<string, any>();
+        dataSourceData.forEach((record: any) => {
+          if (record.id !== undefined && record.id !== null) {
+            recordById.set(String(record.id), record);
+            recordById.set(String(record.id).toLowerCase().trim(), record);
+          }
+        });
+
+        for (const result of results) {
+          // Find the matched record in the data source
+          let matchedRecord: any = null;
+          if (result.extractedValue) {
+            const evStr = String(result.extractedValue);
+            matchedRecord = recordById.get(evStr)
+              || recordById.get(evStr.toLowerCase().trim());
+
+            // Fallback: linear search for matching id
+            if (!matchedRecord) {
+              matchedRecord = dataSourceData.find((r: any) =>
+                String(r.id).trim() === evStr.trim()
+              );
+            }
+          }
+
+          if (matchedRecord) {
+            console.log(`   ✅ Found matched record for extractedValue="${result.extractedValue}"`);
+          } else if (result.extractedValue) {
+            console.log(`   ⚠️ Could not find record for extractedValue="${result.extractedValue}" in ${dataSourceData.length} records`);
+          }
+
+          // Expand into per-field results
+          for (const field of dataTableFields) {
+            let fieldValue: any = null;
+            if (matchedRecord && field.outputColumn) {
+              fieldValue = matchedRecord[field.outputColumn];
+              if (fieldValue === undefined || fieldValue === null) {
+                // Try case-insensitive column lookup
+                const matchingKey = Object.keys(matchedRecord).find(
+                  k => k.toLowerCase() === field.outputColumn.toLowerCase()
+                );
+                if (matchingKey) fieldValue = matchedRecord[matchingKey];
+              }
+            }
+
+            expandedResults.push({
+              extractedValue: fieldValue !== null && fieldValue !== undefined ? String(fieldValue) : null,
+              validationStatus: fieldValue ? (result.validationStatus || "valid") : "invalid",
+              aiReasoning: result.aiReasoning || "",
+              confidenceScore: fieldValue ? (result.confidenceScore || 85) : 0,
+              documentSource: result.documentSource || dataSource.name,
+              identifierId: result.identifierId,
+              fieldName: field.name,
+              fieldId: field.fieldId
+            });
+          }
+        }
+
+        console.log(`✅ Multi-field expansion: ${results.length} rows × ${dataTableFields.length} fields = ${expandedResults.length} results`);
+        return expandedResults;
+      };
+
       // 3. Find data input array if exists (for UPDATE operations)
       const dataInput = this.findDataInput(tool, inputs);
       let inputArray: any[] = [];
@@ -1901,7 +2094,13 @@ ${dataArray.slice(0, 2).map(item => `  {"identifierId": "${item.identifierId}", 
           
           // Standard: check input array items
           for (const item of inputArray) {
-            const val = item[inputField];
+            let val = item[inputField];
+            // If not found directly and inputField uses dot notation (e.g., "Products.Finished Product"),
+            // try just the field part after the dot (multi-field data table keys use field name only)
+            if (!val && inputField.includes('.')) {
+              const fieldPart = inputField.split('.').slice(1).join('.');
+              if (fieldPart) val = item[fieldPart];
+            }
             if (val && typeof val === 'string' && val.trim()) {
               values.add(val.trim().toLowerCase());
             }
@@ -2151,6 +2350,15 @@ OUTPUT FORMAT (JSON):
         // PHASE 2: Match ALL input items against ALL candidates in ONE call
         console.log('\n📍 PHASE 2: Matching ALL input items against candidates...');
         
+        // Build dynamic matching instructions from configured search-by columns
+        const searchColumnInstructions = searchByColumnsConfig.length > 0
+          ? searchByColumnsConfig.map((cfg, i) => {
+              const friendlyName = (columnMappings as Record<string, string>)[cfg.column] || cfg.column;
+              const inputRef = cfg.inputField || friendlyName;
+              return `${i + 1}. ${friendlyName} (column: ${cfg.column}) — match against input field "${inputRef}"${cfg.fuzziness ? ` (allow ${cfg.fuzziness}% fuzziness)` : ''}`;
+            }).join('\n')
+          : 'Match using the most relevant columns based on the input data fields.';
+
         const matchPrompt = `You are a database lookup assistant. Match each input item to a record from the candidate database.
 
 CANDIDATE DATABASE RECORDS (${limitedCandidates.length} pre-filtered records):
@@ -2162,28 +2370,25 @@ ${aiPrompt}
 INPUT ITEMS TO MATCH (${inputArray.length} items):
 ${JSON.stringify(inputArray, null, 2)}
 
-MATCHING RULES - STRICT REQUIREMENTS:
-1. For EACH input item, find a candidate where BOTH city AND street match
-2. CITY MUST MATCH: The candidate's city (c_text_0002) must match the input city
-   - "Moorslede" input must match "Moorslede" candidate (not "HAM", not "Ixelles")
-   - Do NOT match across different cities
-3. STREET MUST ALSO MATCH: The candidate's street (c_text_0001) should match the input street
-   - Use fuzzy matching for variations (straat/str, weg/w, different cases)
-4. If CITY does not match, the record is NOT a valid match - return null
-5. If no candidate has matching city AND street, return null with "invalid" status
+MATCHING RULES — ONLY MATCH ON THESE CONFIGURED COLUMNS:
+${searchColumnInstructions}
 
-CRITICAL - extractedValue MUST BE EXACT:
+STRICT REQUIREMENTS:
+- ONLY use the columns listed above for matching. Do NOT use other columns for determining matches.
+- ALL configured columns must match for a record to be valid.
+- Use fuzzy matching for spelling variations and abbreviations where fuzziness is configured.
+- If no candidate matches on ALL configured columns, return null with "invalid" status.
+
+CRITICAL — extractedValue MUST BE EXACT:
 - The extractedValue MUST be the EXACT "id" field value from the matched candidate record
 - DO NOT modify, truncate, or abbreviate the ID
 - DO NOT invent or hallucinate IDs
-- Example: Input "Moorslede, Kortrijksestraat" should match candidate with city="Moorslede" and street containing "Kortrijk"
-- If matched candidate has "id": "20331248 MOOR Kor 91", return EXACTLY "20331248 MOOR Kor 91"
 - If no match found, return null (not a made-up value)
 
-CRITICAL - IDENTIFIER ALIGNMENT:
-- Each input item has an "identifierId" field (UUID like "bf182744-a59a-478c-b8a2-9cdfe0801a26")
+CRITICAL — IDENTIFIER ALIGNMENT:
+- Each input item has an "identifierId" field
 - You MUST copy the EXACT identifierId from each input to its corresponding output
-- This links the result to the correct row - DO NOT mix up identifierIds between rows
+- This links the result to the correct row — DO NOT mix up identifierIds between rows
 - Return EXACTLY ${inputArray.length} results, one for each input item
 
 OUTPUT FORMAT (one result per input, preserving identifierId):
@@ -2192,7 +2397,7 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
     "identifierId": "COPY EXACTLY from the input item's identifierId field",
     "extractedValue": "EXACT id from matched candidate record, or null if no match",
     "validationStatus": "valid" if confident match, "invalid" if no match,
-    "aiReasoning": "Brief: matched [input city+street] to [candidate city+street]",
+    "aiReasoning": "Brief explanation of how you matched using the configured columns",
     "confidenceScore": 0-100,
     "documentSource": "Name of matched record"
   }
@@ -2286,8 +2491,8 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
           console.log(`   Items processed: ${inputArray.length}`);
           console.log(`   Successful matches: ${matchedCount}`);
           console.log('━'.repeat(80));
-          
-          return processedResults;
+
+          return expandToMultiField(processedResults);
         } catch (matchError) {
           console.error(`   ❌ Matching failed:`, matchError);
           // Return null results for all items
@@ -2313,6 +2518,17 @@ OUTPUT FORMAT (one result per input, preserving identifierId):
       const sampleRecords = limitedData.slice(0, 3);
       console.log('📊 Sample database records for AI context:', JSON.stringify(sampleRecords, null, 2));
       
+      // Build dynamic matching column instructions for direct matching path
+      const directMatchColumnInstructions = searchByColumnsConfig.length > 0
+        ? `\nCONFIGURED MATCH COLUMNS (ONLY use these for determining matches):\n` +
+          searchByColumnsConfig.map((cfg, i) => {
+            const friendlyName = (columnMappings as Record<string, string>)[cfg.column] || cfg.column;
+            const inputRef = cfg.inputField || friendlyName;
+            return `${i + 1}. ${friendlyName} (column: ${cfg.column}) — match against input field "${inputRef}"${cfg.fuzziness ? ` (allow ${cfg.fuzziness}% fuzziness)` : ''}`;
+          }).join('\n') +
+          `\n\nSTRICT: Only use the columns above for matching. ALL must match for a valid result.`
+        : `\nMATCHING GUIDANCE:\n1. ANALYZE the database columns to understand what data is available\n2. PARSE input data to extract matching criteria\n3. IDENTIFY which database column(s) can be matched against\n4. Use fuzzy matching for spelling variations, abbreviations, and partial matches\n5. When multiple database records could match, choose the BEST match based on all available criteria`;
+
       const systemPrompt = `You are a database lookup assistant that performs intelligent fuzzy matching between input records and a reference database.
 
 REFERENCE DATABASE SCHEMA:
@@ -2328,26 +2544,19 @@ ${JSON.stringify(limitedData, null, 2)}
 
 USER LOOKUP INSTRUCTIONS:
 ${aiPrompt}
-
-CRITICAL MATCHING GUIDANCE:
-1. ANALYZE the database columns to understand what data is available (e.g., postal codes, cities, regions, names)
-2. PARSE input data to extract matching criteria (e.g., extract postal code "2250" from address "Processieweg 1, 2250 Olen")
-3. IDENTIFY which database column(s) can be matched against (e.g., postal code column, city column, region column)
-4. For addresses: extract postal codes and cities to match against location columns
-5. Use fuzzy matching for spelling variations, abbreviations, and partial matches
-6. When multiple database records could match, choose the BEST match based on all available criteria
+${directMatchColumnInstructions}
 
 WHAT TO RETURN AS extractedValue:
-- Return the PRIMARY IDENTIFIER or NAME from the matched database record
-- This is usually the first column or a column named like "name", "id", "code", "title", etc.
-- Look at the database columns and return the value that best identifies the matched record
+- Return the EXACT "id" field value from the matched database record
+- DO NOT modify, truncate, or abbreviate the ID
+- If no match found, return null (not a made-up value)
 
 OUTPUT FORMAT (JSON array with one result per input record):
 [
   {
-    "extractedValue": "The primary identifier/name from the matched database record (or null if no match)",
+    "extractedValue": "The EXACT id field from the matched database record (or null if no match)",
     "validationStatus": "valid" for confident match, "invalid" if uncertain/no match,
-    "aiReasoning": "Explain HOW you matched (e.g., 'Matched postal code 2250 to Olen region')",
+    "aiReasoning": "Explain HOW you matched using the configured columns",
     "confidenceScore": 0-100,
     "documentSource": "Which database record was matched"
   }
@@ -2416,7 +2625,7 @@ ${inputs.__infoPageFields ? `\nExtract these fields: ${inputs.__infoPageFields.m
       
       // 9. Map results back to input records if needed (preserve identifierIds)
       if (inputArray.length > 0) {
-        return parsedResults.map((r, idx) => {
+        const mappedResults = parsedResults.map((r, idx) => {
           const inputRecord = inputArray[idx];
           return {
             extractedValue: r.extractedValue ?? null,
@@ -2427,15 +2636,16 @@ ${inputs.__infoPageFields ? `\nExtract these fields: ${inputs.__infoPageFields.m
             identifierId: inputRecord?.identifierId
           };
         });
+        return expandToMultiField(mappedResults);
       }
-      
-      return parsedResults.map(r => ({
+
+      return expandToMultiField(parsedResults.map(r => ({
         extractedValue: r.extractedValue ?? null,
         validationStatus: r.validationStatus || (r.extractedValue ? "valid" : "invalid"),
         aiReasoning: r.aiReasoning || "Database lookup result",
         confidenceScore: r.confidenceScore ?? (r.extractedValue ? 85 : 0),
         documentSource: r.documentSource || dataSource.name
-      }));
+      })));
       
     } catch (error) {
       console.error('Database lookup error:', error);
@@ -2581,29 +2791,40 @@ ${inputs.__infoPageFields ? `\nExtract these fields: ${inputs.__infoPageFields.m
     inputs: Record<string, any>,
     sessionId: string,
     projectId: string,
-    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string}> // For multi-field Info Page values with identifierIds
+    fields?: Array<{name: string; dataType: string; description: string; identifierId?: string; fieldId?: string}>, // For multi-field values with identifierIds
+    options?: { isDataTable?: boolean } // Flag to route to data table multi-field path
   ): Promise<ToolResult[]> {
-    console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length });
-    
+    console.log('🎯 runToolForExtraction called', { toolId, sessionId, projectId, fieldsCount: fields?.length, isDataTable: options?.isDataTable });
+
     // Get the tool from storage
     const tool = await storage.getExcelWizardryFunction(toolId);
     if (!tool) {
       throw new Error(`Tool not found: ${toolId}`);
     }
-    
+
     console.log('📦 Tool found:', tool.name, 'Type:', tool.toolType);
     console.log('📊 Fields provided:', fields?.length || 0);
-    
-    // If fields are provided (Info Page multi-field extraction), modify inputs to include fields info
+
+    // If fields are provided, modify inputs to include fields info
     // CRITICAL: Add fields for BOTH AI and CODE tools to support identifier mapping
     if (fields && fields.length > 0) {
-      inputs.__infoPageFields = fields;
-      console.log('📋 Multi-field Info Page extraction with identifierIds for', tool.toolType, 'tool:');
-      fields.forEach((f, idx) => {
-        console.log(`  Field ${idx + 1}: ${f.name} (ID: ${f.identifierId})`);
-      });
+      if (options?.isDataTable) {
+        // Data Table multi-field: each field = a column, extract per row
+        inputs.__dataTableFields = fields;
+        console.log('📋 Multi-field Data Table extraction with fieldIds for', tool.toolType, 'tool:');
+        fields.forEach((f, idx) => {
+          console.log(`  Column ${idx + 1}: ${f.name} (fieldId: ${f.fieldId || f.identifierId})`);
+        });
+      } else {
+        // Info Page multi-field: each field = a single value
+        inputs.__infoPageFields = fields;
+        console.log('📋 Multi-field Info Page extraction with identifierIds for', tool.toolType, 'tool:');
+        fields.forEach((f, idx) => {
+          console.log(`  Field ${idx + 1}: ${f.name} (ID: ${f.identifierId})`);
+        });
+      }
     }
-    
+
     // Execute the tool
     return this.testTool(tool, inputs);
   }

@@ -106,6 +106,18 @@ import {
   type WorkflowStatusHistory,
   type InsertWorkflowStatusHistory,
   passwordResetTokens,
+  sessionEmails,
+  sessionConversations,
+  conversationParticipants,
+  sessionActivityLog,
+  type SessionEmail,
+  type InsertSessionEmail,
+  type SessionConversation,
+  type InsertSessionConversation,
+  type ConversationParticipant,
+  type InsertConversationParticipant,
+  type SessionActivityLog,
+  type InsertSessionActivityLog,
 } from "@shared/schema";
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -277,6 +289,27 @@ export interface IStorage {
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 
+  // Session Emails (Messenger)
+  getSessionEmails(sessionId: string): Promise<SessionEmail[]>;
+  createSessionEmail(email: InsertSessionEmail): Promise<SessionEmail>;
+
+  // Session Conversations
+  getSessionConversations(sessionId: string): Promise<SessionConversation[]>;
+  getSessionConversation(id: string): Promise<SessionConversation | undefined>;
+  getSessionConversationByCardId(cardId: string): Promise<SessionConversation | undefined>;
+  createSessionConversation(conversation: InsertSessionConversation): Promise<SessionConversation>;
+  getConversationEmails(conversationId: string): Promise<SessionEmail[]>;
+  getEmailAttachments(emailId: string): Promise<SessionDocument[]>;
+
+  // Conversation Participants
+  getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]>;
+  addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant>;
+  removeConversationParticipant(id: string): Promise<boolean>;
+
+  // Session Activity Log (Timeline)
+  getSessionActivityLog(sessionId: string): Promise<SessionActivityLog[]>;
+  createSessionActivity(activity: InsertSessionActivityLog): Promise<SessionActivityLog>;
+
   // Excel Wizardry Functions
   getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]>;
   getExcelWizardryFunctionsByProject(projectId: string): Promise<ExcelWizardryFunction[]>;
@@ -324,6 +357,7 @@ export interface IStorage {
   // Kanban Cards
   getKanbanCards(sessionId: string, stepId: string): Promise<KanbanCard[]>;
   getKanbanCard(id: string): Promise<KanbanCard | undefined>;
+  getKanbanCardByEmailThreadId(emailThreadId: string): Promise<KanbanCard | undefined>;
   createKanbanCard(card: InsertKanbanCard): Promise<KanbanCard>;
   updateKanbanCard(id: string, card: Partial<InsertKanbanCard>): Promise<KanbanCard | undefined>;
   deleteKanbanCard(id: string): Promise<boolean>;
@@ -2136,6 +2170,58 @@ export class MemStorage implements IStorage {
     return chatMessage;
   }
 
+  // Session Emails (MemStorage stubs)
+  async getSessionEmails(_sessionId: string): Promise<SessionEmail[]> {
+    return [];
+  }
+
+  async createSessionEmail(email: InsertSessionEmail): Promise<SessionEmail> {
+    const id = this.generateUUID();
+    return { ...email, id, createdAt: new Date(), htmlBody: email.htmlBody ?? null, sentByUserId: email.sentByUserId ?? null, sesMessageId: email.sesMessageId ?? null, subject: email.subject ?? null } as SessionEmail;
+  }
+
+  // Session Conversations (MemStorage stubs)
+  async getSessionConversations(_sessionId: string): Promise<SessionConversation[]> {
+    return [];
+  }
+  async getSessionConversation(_id: string): Promise<SessionConversation | undefined> {
+    return undefined;
+  }
+  async getSessionConversationByCardId(_cardId: string): Promise<SessionConversation | undefined> {
+    return undefined;
+  }
+  async createSessionConversation(conversation: InsertSessionConversation): Promise<SessionConversation> {
+    const id = this.generateUUID();
+    return { ...conversation, id, isOriginator: conversation.isOriginator ?? false, createdAt: new Date(), updatedAt: new Date() } as SessionConversation;
+  }
+  async getConversationEmails(_conversationId: string): Promise<SessionEmail[]> {
+    return [];
+  }
+  async getEmailAttachments(_emailId: string): Promise<SessionDocument[]> {
+    return [];
+  }
+  // Conversation Participants (MemStorage stubs)
+  async getConversationParticipants(_conversationId: string): Promise<ConversationParticipant[]> {
+    return [];
+  }
+  async addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant> {
+    const id = this.generateUUID();
+    return { ...participant, id, createdAt: new Date() } as ConversationParticipant;
+  }
+  async removeConversationParticipant(_id: string): Promise<boolean> {
+    return true;
+  }
+
+  // Session Activity Log (MemStorage stubs)
+  async getSessionActivityLog(_sessionId: string): Promise<SessionActivityLog[]> {
+    return [];
+  }
+
+  async createSessionActivity(activity: InsertSessionActivityLog): Promise<SessionActivityLog> {
+    const id = this.generateUUID();
+    return { ...activity, id, createdAt: new Date(), metadata: activity.metadata ?? null, actorUserId: activity.actorUserId ?? null, actorEmail: activity.actorEmail ?? null } as SessionActivityLog;
+  }
+
   // Excel Wizardry Functions
   async getExcelWizardryFunctions(): Promise<ExcelWizardryFunction[]> {
     return Array.from(this.excelWizardryFunctions.values())
@@ -2344,6 +2430,9 @@ export class MemStorage implements IStorage {
     return [];
   }
   async getKanbanCard(_id: string): Promise<KanbanCard | undefined> {
+    return undefined;
+  }
+  async getKanbanCardByEmailThreadId(_emailThreadId: string): Promise<KanbanCard | undefined> {
     return undefined;
   }
   async createKanbanCard(_card: InsertKanbanCard): Promise<KanbanCard> {
@@ -3524,9 +3613,14 @@ class PostgreSQLStorage implements IStorage {
     
     // Enhance results with field names using the cached data
     const enhancedValidations = result.map(validation => {
+      // Priority 1: Use stored field_name from DB (correct for multi-field values)
+      if (validation.fieldName) {
+        return validation; // Already has the correct stored fieldName
+      }
+
       let fieldName = '';
-      
-      // First check if this validation has a value_id (workflow step value)
+
+      // Priority 2: Compute from valueId → step_values lookup
       if (validation.valueId) {
         const valueInfo = stepValuesMap.get(validation.valueId);
         if (valueInfo && validation.recordIndex !== null) {
@@ -3540,7 +3634,7 @@ class PostgreSQLStorage implements IStorage {
           fieldName = `${propInfo.collectionName}.${propInfo.propertyName}[${validation.recordIndex}]`;
         }
       }
-      
+
       return {
         ...validation,
         fieldName
@@ -3909,6 +4003,106 @@ class PostgreSQLStorage implements IStorage {
 
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
     const result = await this.db.insert(chatMessages).values(message).returning();
+    return result[0];
+  }
+
+  // Session Emails (Messenger)
+  async getSessionEmails(sessionId: string): Promise<SessionEmail[]> {
+    const result = await this.db
+      .select()
+      .from(sessionEmails)
+      .where(eq(sessionEmails.sessionId, sessionId))
+      .orderBy(sessionEmails.createdAt);
+    return result;
+  }
+
+  async createSessionEmail(email: InsertSessionEmail): Promise<SessionEmail> {
+    const result = await this.db.insert(sessionEmails).values(email).returning();
+    return result[0];
+  }
+
+  // Session Conversations
+  async getSessionConversations(sessionId: string): Promise<SessionConversation[]> {
+    const result = await this.db
+      .select()
+      .from(sessionConversations)
+      .where(eq(sessionConversations.sessionId, sessionId))
+      .orderBy(desc(sessionConversations.isOriginator), sessionConversations.createdAt);
+    return result;
+  }
+
+  async getSessionConversation(id: string): Promise<SessionConversation | undefined> {
+    const result = await this.db
+      .select()
+      .from(sessionConversations)
+      .where(eq(sessionConversations.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async getSessionConversationByCardId(cardId: string): Promise<SessionConversation | undefined> {
+    const result = await this.db
+      .select()
+      .from(sessionConversations)
+      .where(eq(sessionConversations.cardId, cardId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createSessionConversation(conversation: InsertSessionConversation): Promise<SessionConversation> {
+    const result = await this.db.insert(sessionConversations).values(conversation).returning();
+    return result[0];
+  }
+
+  async getConversationEmails(conversationId: string): Promise<SessionEmail[]> {
+    const result = await this.db
+      .select()
+      .from(sessionEmails)
+      .where(eq(sessionEmails.conversationId, conversationId))
+      .orderBy(sessionEmails.createdAt);
+    return result;
+  }
+
+  async getEmailAttachments(emailId: string): Promise<SessionDocument[]> {
+    const result = await this.db
+      .select()
+      .from(sessionDocuments)
+      .where(eq(sessionDocuments.sourceEmailId, emailId));
+    return result;
+  }
+
+  // Conversation Participants
+  async getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]> {
+    const result = await this.db
+      .select()
+      .from(conversationParticipants)
+      .where(eq(conversationParticipants.conversationId, conversationId))
+      .orderBy(conversationParticipants.createdAt);
+    return result;
+  }
+
+  async addConversationParticipant(participant: InsertConversationParticipant): Promise<ConversationParticipant> {
+    const result = await this.db.insert(conversationParticipants).values(participant).returning();
+    return result[0];
+  }
+
+  async removeConversationParticipant(id: string): Promise<boolean> {
+    const result = await this.db.delete(conversationParticipants).where(eq(conversationParticipants.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Session Activity Log (Timeline)
+  async getSessionActivityLog(sessionId: string): Promise<SessionActivityLog[]> {
+    const result = await this.db
+      .select()
+      .from(sessionActivityLog)
+      .where(eq(sessionActivityLog.sessionId, sessionId))
+      .orderBy(sessionActivityLog.createdAt);
+    return result;
+  }
+
+  async createSessionActivity(activity: InsertSessionActivityLog): Promise<SessionActivityLog> {
+    const result = await this.db.insert(sessionActivityLog).values(activity).returning();
     return result[0];
   }
 
@@ -4432,6 +4626,13 @@ class PostgreSQLStorage implements IStorage {
   async getKanbanCard(id: string): Promise<KanbanCard | undefined> {
     return this.retryOperation(async () => {
       const [result] = await this.db.select().from(kanbanCards).where(eq(kanbanCards.id, id));
+      return result;
+    });
+  }
+
+  async getKanbanCardByEmailThreadId(emailThreadId: string): Promise<KanbanCard | undefined> {
+    return this.retryOperation(async () => {
+      const [result] = await this.db.select().from(kanbanCards).where(eq(kanbanCards.emailThreadId, emailThreadId));
       return result;
     });
   }

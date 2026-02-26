@@ -219,6 +219,8 @@ export const extractionSessions = pgTable("extraction_sessions", {
   inputTokenCount: integer("input_tokens"), // Number of input tokens used
   outputTokenCount: integer("output_tokens"), // Number of output tokens generated
   isViewed: boolean("is_viewed").default(false).notNull(), // Track if session has been opened
+  originatorName: text("originator_name"), // Display name of session originator (email sender or manually set)
+  originatorEmail: text("originator_email"), // Email address of session originator
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -242,6 +244,8 @@ export const sessionDocuments = pgTable("session_documents", {
   fileName: text("file_name").notNull(),
   fileSize: integer("file_size"),
   mimeType: text("mime_type"),
+  s3Key: text("s3_key"), // S3 object key for email-uploaded documents
+  sourceEmailId: uuid("source_email_id"), // Links document to the email it was attached to
   extractedContent: text("extracted_content"), // Text content extracted from the document
   extractedAt: timestamp("extracted_at").defaultNow().notNull(),
 });
@@ -260,6 +264,7 @@ export const fieldValidations = pgTable("field_validations", {
   fieldId: uuid("field_id").notNull(), // references projectSchemaFields.id or collectionProperties.id
   collectionId: uuid("collection_id"), // references objectCollections.id for collection properties only
   collectionName: text("collection_name"), // for collection properties only (deprecated - use collectionId instead)
+  fieldName: text("field_name"), // Stored field name for multi-field values (e.g., "Products.Supply Price[0]")
   recordIndex: integer("record_index").default(0), // for collection properties, which record instance
   // Common validation data
   extractedValue: text("extracted_value"),
@@ -277,10 +282,12 @@ export const fieldValidations = pgTable("field_validations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   // Unique constraint for step-based validations (new architecture)
+  // Includes fieldId to support multi-field values where multiple fields share the same valueId + identifierId
   stepValidationUnique: uniqueIndex('step_validation_unique').on(
-    table.sessionId, 
-    table.stepId, 
-    table.valueId, 
+    table.sessionId,
+    table.stepId,
+    table.valueId,
+    table.fieldId,
     table.identifierId
   ).where(sql`step_id IS NOT NULL AND value_id IS NOT NULL AND identifier_id IS NOT NULL`),
   
@@ -313,6 +320,7 @@ export const kanbanCards = pgTable("kanban_cards", {
   aiGenerated: boolean("ai_generated").default(false).notNull(),
   aiReasoning: text("ai_reasoning"), // AI explanation for why this task was generated
   documentSource: text("document_source"), // Source document reference
+  emailThreadId: text("email_thread_id"), // UUID for email routing: {emailThreadId}.{projectSlug}@extrapl.it
   // Linked session fields
   fromLinkedSession: boolean("from_linked_session").default(false).notNull(), // True if copied from a linked session
   linkedFromSessionId: uuid("linked_from_session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Original session this card was copied from
@@ -337,8 +345,14 @@ export const kanbanChecklistItems = pgTable("kanban_checklist_items", {
 export const kanbanComments = pgTable("kanban_comments", {
   id: uuid("id").defaultRandom().primaryKey(),
   cardId: uuid("card_id").notNull().references(() => kanbanCards.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }), // Nullable — inbound emails from external senders have no user
   content: text("content").notNull(),
+  // Email fields
+  direction: text("direction").default("internal"), // 'internal' | 'inbound' | 'outbound'
+  fromEmail: text("from_email"),
+  toEmails: jsonb("to_emails"), // Array of recipient email addresses
+  htmlBody: text("html_body"),
+  sesMessageId: text("ses_message_id"),
   // Linked session fields
   fromLinkedSession: boolean("from_linked_session").default(false).notNull(), // True if copied from a linked session
   linkedFromSessionId: uuid("linked_from_session_id").references(() => extractionSessions.id, { onDelete: "set null" }), // Original session this comment was copied from
@@ -405,6 +419,70 @@ export const extractionRules = pgTable("extraction_rules", {
   targetField: text("target_field"), // which field/property this rule applies to
   ruleContent: text("rule_content").notNull(), // the actual rule logic/description
   isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Session emails - bidirectional email thread for session messenger
+export const sessionEmails = pgTable("session_emails", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  fromEmail: text("from_email").notNull(),
+  toEmail: text("to_email").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull(),
+  htmlBody: text("html_body"),
+  sentByUserId: uuid("sent_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  sesMessageId: text("ses_message_id"),
+  conversationId: uuid("conversation_id"), // Links email to a specific conversation thread
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Session conversations - multiple email threads per session
+export const sessionConversations = pgTable("session_conversations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // Display name (derived from email address)
+  subject: text("subject"), // Conversation subject line (primary display label)
+  participantEmail: text("participant_email").notNull(), // Primary external email address for this thread
+  isOriginator: boolean("is_originator").default(false).notNull(), // Marks the original email sender's conversation
+  cardId: uuid("card_id"), // Links conversation to a kanban card (task-level email threads)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Conversation participants - multiple people per conversation thread
+export const conversationParticipants = pgTable("conversation_participants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  conversationId: uuid("conversation_id").notNull().references(() => sessionConversations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Session activity log - audit trail for session timeline
+export const sessionActivityLog = pgTable("session_activity_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: uuid("session_id").notNull().references(() => extractionSessions.id, { onDelete: "cascade" }),
+  activityType: text("activity_type", {
+    enum: [
+      "session_created",
+      "document_uploaded",
+      "document_processed",
+      "extraction_completed",
+      "workflow_status_changed",
+      "email_received",
+      "email_sent",
+      "field_validated",
+      "field_edited",
+    ]
+  }).notNull(),
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"),
+  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  actorEmail: text("actor_email"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -629,6 +707,27 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   timestamp: true,
 });
 
+export const insertSessionEmailSchema = createInsertSchema(sessionEmails).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionConversationSchema = createInsertSchema(sessionConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionActivityLogSchema = createInsertSchema(sessionActivityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertExcelWizardryFunctionSchema = createInsertSchema(excelWizardryFunctions).omit({
   id: true,
   createdAt: true,
@@ -723,6 +822,14 @@ export type ProjectPublishing = typeof projectPublishing.$inferSelect;
 export type InsertProjectPublishing = z.infer<typeof insertProjectPublishingSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type SessionEmail = typeof sessionEmails.$inferSelect;
+export type InsertSessionEmail = z.infer<typeof insertSessionEmailSchema>;
+export type SessionConversation = typeof sessionConversations.$inferSelect;
+export type InsertSessionConversation = z.infer<typeof insertSessionConversationSchema>;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type InsertConversationParticipant = z.infer<typeof insertConversationParticipantSchema>;
+export type SessionActivityLog = typeof sessionActivityLog.$inferSelect;
+export type InsertSessionActivityLog = z.infer<typeof insertSessionActivityLogSchema>;
 export type ExcelWizardryFunction = typeof excelWizardryFunctions.$inferSelect;
 export type InsertExcelWizardryFunction = z.infer<typeof insertExcelWizardryFunctionSchema>;
 export type ExtractionIdentifierReference = typeof extractionIdentifierReferences.$inferSelect;

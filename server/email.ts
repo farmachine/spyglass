@@ -5,7 +5,7 @@
  * Falls back to console logging if SES is not configured.
  *
  * Prerequisites:
- * - AWS SES domain verification for extrapl.it
+ * - AWS SES domain verification for extrapl.io
  * - SES send permissions on the ECS task IAM role
  * - If in SES sandbox mode, recipient emails must be verified too
  */
@@ -13,8 +13,7 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 const CONTACT_FORM_RECIPIENT = 'info@extrapl.io';
-const CONTACT_FORM_SENDER = 'contact@extrapl.it';
-const TRANSACTIONAL_SENDER = 'noreply@extrapl.it';
+const CONTACT_FORM_SENDER = 'contact@extrapl.io';
 
 // SES client — uses IAM role credentials automatically on ECS
 let sesClient: SESv2Client | null = null;
@@ -114,147 +113,6 @@ export async function sendContactFormEmail(params: {
             Data: htmlBody,
             Charset: 'UTF-8',
           },
-        },
-      },
-    },
-  });
-
-  await client.send(command);
-}
-
-/**
- * Send a password reset email to the user via AWS SES.
- */
-export async function sendPasswordResetEmail(params: {
-  to: string;
-  resetUrl: string;
-}): Promise<void> {
-  const { to, resetUrl } = params;
-
-  const subject = 'Reset your extrapl password';
-
-  const textBody = [
-    `Hi,`,
-    ``,
-    `We received a request to reset your extrapl password.`,
-    ``,
-    `Click the link below to set a new password:`,
-    resetUrl,
-    ``,
-    `This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.`,
-    ``,
-    `— The extrapl team`,
-  ].join('\n');
-
-  const htmlBody = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background-color:#f0f0f4;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f4;">
-<tr><td align="center" style="padding:48px 20px;">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-<tr><td style="background-color:#151929;padding:40px 40px 36px 40px;text-align:center;">
-<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#ffffff;letter-spacing:-1px;">extrapl</span><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#4F63A4;">&bull;</span>
-</td></tr>
-<tr><td style="background-color:#ffffff;padding:36px 40px 20px 40px;">
-<h1 style="margin:0 0 16px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#151929;line-height:1.4;">Reset Your Password</h1>
-<div style="width:40px;height:3px;background-color:#4F63A4;border-radius:2px;margin-bottom:20px;"></div>
-<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#4a4a5a;">
-  <p>We received a request to reset the password for your extrapl account.</p>
-  <p>Click the button below to set a new password:</p>
-</div>
-<div style="text-align:center;margin:28px 0;">
-  <a href="${escapeHtml(resetUrl)}" style="display:inline-block;background-color:#4F63A4;color:#ffffff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">Reset Password</a>
-</div>
-<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#9ca3af;">
-  <p>This link expires in <strong>1 hour</strong>.</p>
-  <p>If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.</p>
-  <p style="word-break:break-all;margin-top:16px;padding:12px;background-color:#f8f9fb;border-radius:6px;border:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-    If the button doesn't work, copy and paste this link into your browser:<br>${escapeHtml(resetUrl)}
-  </p>
-</div>
-</td></tr>
-<tr><td style="background-color:#f8f9fb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
-<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;color:#9ca3af;">&copy; 2026 extrapl. All rights reserved.</span>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
-
-  const client = getSesClient();
-
-  const command = new SendEmailCommand({
-    FromEmailAddress: TRANSACTIONAL_SENDER,
-    Destination: {
-      ToAddresses: [to],
-    },
-    Content: {
-      Simple: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Text: {
-            Data: textBody,
-            Charset: 'UTF-8',
-          },
-          Html: {
-            Data: htmlBody,
-            Charset: 'UTF-8',
-          },
-        },
-      },
-    },
-  });
-
-  await client.send(command);
-}
-
-/**
- * Send an email from a project's SES inbox address (e.g., sales.acme@extrapl.it).
- * Used for auto-reply confirmation/rejection emails from project inboxes.
- */
-export async function sendProjectEmail(params: {
-  from: string;
-  to: string;
-  subject: string;
-  textContent: string;
-  htmlContent?: string;
-}): Promise<void> {
-  const { from, to, subject, textContent, htmlContent } = params;
-
-  const client = getSesClient();
-
-  const command = new SendEmailCommand({
-    FromEmailAddress: from,
-    Destination: {
-      ToAddresses: [to],
-    },
-    Content: {
-      Simple: {
-        Subject: {
-          Data: subject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Text: {
-            Data: textContent,
-            Charset: 'UTF-8',
-          },
-          ...(htmlContent
-            ? {
-                Html: {
-                  Data: htmlContent,
-                  Charset: 'UTF-8',
-                },
-              }
-            : {}),
         },
       },
     },

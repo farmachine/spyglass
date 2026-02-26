@@ -31,7 +31,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw, Circle, ExternalLink, Mail, Clock } from "lucide-react";
+import { ArrowLeft, Edit3, Upload, Database, Brain, Settings, Home, CheckCircle, AlertTriangle, Info, Copy, X, AlertCircle, FolderOpen, Download, ChevronDown, ChevronRight, RotateCcw, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Check, User, Plus, Trash2, Bug, Wand2, Folder, FileText, FilePlus, Table as TableIcon, Loader2, MoreVertical, Search, RefreshCw, Circle, ExternalLink, Mail, Clock, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { WaveIcon, FlowIcon, TideIcon, ShipIcon } from "@/components/SeaIcons";
 import { SiMicrosoft } from "react-icons/si";
 import { FaFileExcel, FaFileWord, FaFilePdf } from "react-icons/fa";
@@ -63,7 +63,10 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 import AddDocumentsModal from "@/components/AddDocumentsModal";
 import DocumentUploadModal from "@/components/DocumentUploadModal";
 import SessionLinkingModal from "@/components/SessionLinkingModal";
-import SessionChat from "@/components/SessionChat";
+import SessionPanel, { type PanelTab, panelTabs } from "@/components/SessionPanel";
+import RiveLoader from "@/components/RiveLoader";
+import DocumentPreview from "@/components/DocumentPreview";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { ToolResultModal } from "@/components/ToolResultModal";
@@ -324,19 +327,12 @@ const FieldSelectionModalContent = ({
       {/* Loading overlay during extraction */}
       {isExtracting && (
         <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg min-h-[400px]">
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-[#4F63A4]" />
-            <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-              Extracting data...
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs">
+            <p className="text-base font-medium text-gray-700 dark:text-gray-300 mt-4">Extracting data...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-xs mt-1">
               Please wait while we process your selected fields
-            </div>
-            <div className="flex items-center space-x-2 text-xs text-gray-400 dark:text-gray-500">
-              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse"></div>
-              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:150ms]"></div>
-              <div className="w-2 h-2 bg-[#4F63A4] rounded-full animate-pulse [animation-delay:300ms]"></div>
-            </div>
+            </p>
           </div>
         </div>
       )}
@@ -1620,29 +1616,115 @@ const AIExtractionModal = ({
   );
 };
 
+// Flatten step values into individual columns — supports multi-field values where each field = column
+// For values with fields[] → each field becomes a separate column
+// For values without fields → value itself is a column (backward compat)
+interface FlatColumn {
+  id: string;           // Unique column ID: `${valueId}_field_${idx}` for multi-field, `value.id` for legacy
+  valueName: string;    // Display name for column header
+  dataType: string;     // TEXT, NUMBER, DATE, etc.
+  color?: string;       // Column indicator color
+  orderIndex: number;   // Sequential order across all flattened columns
+  toolId?: string;      // Parent value's tool (for extraction)
+  inputValues?: any;    // Parent value's input config (for extraction)
+  description?: string; // Field-level or value-level description
+  isIdentifier: boolean; // True for the first column overall
+  valueId: string;      // Parent value ID (for grouping during extraction)
+  fieldIndex?: number;  // Index within parent value's fields (multi-field only)
+  isMultiField: boolean; // Flag: came from a multi-field value
+  choiceOptions?: any;  // For dropdown tools
+  autoVerificationConfidence?: number;
+  valueOrder?: number;  // Parent value's order index
+}
+
+const flattenStepValuesToColumns = (values: any[]): FlatColumn[] => {
+  if (!values || values.length === 0) return [];
+
+  const columns: FlatColumn[] = [];
+  let globalOrderIndex = 0;
+
+  // Sort values by orderIndex first
+  const sortedValues = [...values].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+  sortedValues.forEach((value: any) => {
+    if (value.fields && value.fields.length > 0) {
+      // Multi-field value: each field becomes a separate column
+      value.fields.forEach((field: any, fieldIdx: number) => {
+        columns.push({
+          id: `${value.id}_field_${fieldIdx}`,
+          valueName: field.name || `Field ${fieldIdx + 1}`,
+          dataType: field.dataType || 'TEXT',
+          color: field.color || value.color,
+          orderIndex: globalOrderIndex++,
+          toolId: value.toolId,
+          inputValues: {
+            ...(value.inputValues || {}),
+            _outputColumn: field.outputColumn || (value.inputValues as any)?._outputColumn || ''
+          },
+          description: field.description || value.description,
+          isIdentifier: columns.length === 0, // First column overall is identifier
+          valueId: value.id,
+          fieldIndex: fieldIdx,
+          isMultiField: true,
+          choiceOptions: value.choiceOptions,
+          autoVerificationConfidence: value.autoVerificationConfidence,
+          valueOrder: value.orderIndex
+        });
+      });
+    } else {
+      // Legacy single-field value: value itself is the column
+      columns.push({
+        id: value.id,
+        valueName: value.valueName,
+        dataType: value.dataType || 'TEXT',
+        color: value.color,
+        orderIndex: globalOrderIndex++,
+        toolId: value.toolId,
+        inputValues: value.inputValues,
+        description: value.description,
+        isIdentifier: columns.length === 0 || value.isIdentifier || false,
+        valueId: value.id,
+        isMultiField: false,
+        choiceOptions: value.choiceOptions,
+        autoVerificationConfidence: value.autoVerificationConfidence,
+        valueOrder: value.orderIndex
+      });
+    }
+  });
+
+  return columns;
+};
+
 // Helper function to convert workflowSteps to collections-like structure for backward compatibility
 const convertStepsToCollections = (workflowSteps: any[]) => {
   if (!workflowSteps) return [];
-  
+
   // Filter for list-type steps (data tables)
   return workflowSteps
     .filter(step => step.stepType === 'list')
-    .map(step => ({
-      id: step.id,
-      collectionName: step.stepName,
-      description: step.description,
-      properties: step.values?.map((value: any) => ({
-        id: value.id,
-        propertyName: value.valueName,
-        propertyType: value.dataType,
-        description: value.description,
-        isIdentifier: value.isIdentifier || false,
-        orderIndex: value.orderIndex,
-        choiceOptions: value.choiceOptions,
-        functionId: value.toolId,
-        autoVerificationConfidence: value.autoVerificationConfidence
-      })) || []
-    }));
+    .map(step => {
+      const flatColumns = flattenStepValuesToColumns(step.values || []);
+      return {
+        id: step.id,
+        collectionName: step.stepName,
+        description: step.description,
+        properties: flatColumns.map(col => ({
+          id: col.id,
+          propertyName: col.valueName,
+          propertyType: col.dataType,
+          description: col.description,
+          isIdentifier: col.isIdentifier,
+          orderIndex: col.orderIndex,
+          choiceOptions: col.choiceOptions,
+          functionId: col.toolId,
+          autoVerificationConfidence: col.autoVerificationConfidence,
+          color: col.color,
+          valueId: col.valueId,
+          fieldIndex: col.fieldIndex,
+          isMultiField: col.isMultiField
+        }))
+      };
+    });
 };
 
 export default function SessionView() {
@@ -1656,7 +1738,14 @@ export default function SessionView() {
   const [dropdownFilter, setDropdownFilter] = useState("");
   const [showReasoningDialog, setShowReasoningDialog] = useState(false);
   const [isEditingSessionName, setIsEditingSessionName] = useState(false);
-  
+  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null);
+  const [activePanelTab, setActivePanelTab] = useState<PanelTab | null>(null);
+  const [openTaskCardId, setOpenTaskCardId] = useState<string | null>(null);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [isSessionInfoCollapsed, setIsSessionInfoCollapsed] = useState(false);
+  const sessionInfoRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [hasInitializedCollapsed, setHasInitializedCollapsed] = useState(false);
@@ -1809,9 +1898,10 @@ export default function SessionView() {
         ((step.stepType === 'data_table' || step.stepType === 'list') && step.collectionName === collectionName) ||
         ((step.stepType === 'data_table' || step.stepType === 'list') && step.stepName === collectionName)
       );
-      const stepValues = workflowStep?.values || [];
-      const stepValue = stepValues.find((sv: any) => sv.valueName === fieldName);
-      const fieldId = stepValue?.id;
+      // Use flattened columns to support multi-field values
+      const flatColumns = flattenStepValuesToColumns(workflowStep?.values || []);
+      const matchedColumn = flatColumns.find(col => col.valueName === fieldName);
+      const fieldId = matchedColumn?.id;
       if (fieldId && sessionId) {
         try {
           await apiRequest('/api/field-validations', {
@@ -1819,6 +1909,7 @@ export default function SessionView() {
             body: JSON.stringify({
               sessionId: parseInt(sessionId),
               fieldId,
+              valueId: matchedColumn?.valueId || fieldId,
               collectionName,
               fieldName,
               recordIndex,
@@ -1910,36 +2001,31 @@ export default function SessionView() {
       );
       console.log('Found workflow step:', workflowStep);
       
-      // Get step values from the workflow step's values array
-      const stepValues = workflowStep?.values || [];
-      
-      // Find the step value for this field
-      const stepValue = stepValues?.find(sv => 
-        sv.valueName === fieldName
-      );
-      console.log('Found step value:', stepValue);
-      console.log('All step values for this table:', stepValues?.map(sv => sv.valueName));
-      
-      // Use the step value ID as the field ID
-      const fieldId = stepValue?.id;
-      
+      // Flatten step values to columns (supports multi-field values where each field = column)
+      const flatColumns = flattenStepValuesToColumns(workflowStep?.values || []);
+
+      // Find the matching column by name
+      const matchedColumn = flatColumns.find(col => col.valueName === fieldName);
+      console.log('Found matched column:', matchedColumn);
+      console.log('All flat columns for this table:', flatColumns.map(col => col.valueName));
+
+      // Use the flat column ID as the field ID (composite for multi-field, value ID for legacy)
+      const fieldId = matchedColumn?.id;
+
       if (fieldId && workflowStep) {
-        console.log('Found field ID from step value:', fieldId);
+        console.log('Found field ID from flat column:', fieldId);
         // Find the identifierId from the first column (identifier column) of this row
-        // The first step value in the data table is the identifier
-        const firstStepValue = stepValues?.find(sv => 
-          sv.valueOrder === 0
-        );
+        const firstColumn = flatColumns.length > 0 ? flatColumns[0] : null;
         let identifierId: string | null = null;
-        
-        if (firstStepValue) {
+
+        if (firstColumn) {
           // Find the validation for the first column (identifier) of this row
-          const identifierValidation = validations.find(v => 
+          const identifierValidation = validations.find(v =>
             v.recordIndex === recordIndex &&
             v.collectionName === collectionName &&
-            v.fieldId === firstStepValue.id
+            (v.fieldId === firstColumn.id || v.valueId === firstColumn.valueId || v.fieldId === firstColumn.valueId)
           );
-          
+
           if (identifierValidation?.identifierId) {
             identifierId = identifierValidation.identifierId;
             console.log(`Found identifierId from first column: ${identifierId}`);
@@ -1965,14 +2051,14 @@ export default function SessionView() {
           console.log(`Generated new identifierId: ${identifierId}`);
         }
         
-        // Get the data type from the step value
-        const dataType = stepValue?.valueType || 'text';
-        
+        // Get the data type from the matched column
+        const dataType = matchedColumn?.dataType || 'text';
+
         const newValidation = {
           validationType: 'collection_property',
           dataType: dataType,
           fieldId: fieldId,
-          valueId: fieldId, // Also send as valueId since backend expects this for new architecture
+          valueId: matchedColumn?.valueId || fieldId, // Use parent value ID for multi-field, field ID for legacy
           collectionName: collectionName,
           recordIndex: recordIndex,
           identifierId: identifierId,
@@ -2330,6 +2416,17 @@ export default function SessionView() {
     }
   }, [session, sessionId]);
 
+  // Escape key closes document preview
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewDocumentId) {
+        setPreviewDocumentId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewDocumentId]);
+
   // Then get the project using projectId from session data
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
     queryKey: ['/api/projects', projectId],
@@ -2403,6 +2500,11 @@ export default function SessionView() {
       return false;
     },
   });
+
+  // Derive the document being previewed
+  const previewDocument = previewDocumentId
+    ? (sessionDocuments as any[]).find((doc: any) => doc.id === previewDocumentId)
+    : null;
 
   const { data: sourceEmail } = useQuery<{ subject: string | null; fromEmail: string | null; emailBody: string | null; receivedAt: string | null }>({
     queryKey: ['/api/sessions', sessionId, 'source-email'],
@@ -2562,6 +2664,57 @@ export default function SessionView() {
     }
   };
 
+  // Smart auto-collapse logic — max 3 visible panes (Nav, SessionData, DocPreview/CAT)
+  const openCATPanel = (tab: PanelTab) => {
+    // If Nav + SessionData + DocPreview are all visible, collapse Nav first
+    if (!isNavCollapsed && previewDocumentId) {
+      setIsNavCollapsed(true);
+    }
+    setActivePanelTab(tab);
+  };
+
+  const openDocPreview = (docId: string) => {
+    // If Nav + SessionData + CAT are all visible, collapse Nav first
+    if (!isNavCollapsed && activePanelTab) {
+      setIsNavCollapsed(true);
+    }
+    setPreviewDocumentId(docId);
+  };
+
+  const expandNav = () => {
+    // Allow nav to expand; user explicitly requested it
+    // All 3 content panes (session data, doc preview, CAT) can stay open
+    setIsNavCollapsed(false);
+  };
+
+  // Drag-to-close for navigation pane (CSS resize: horizontal)
+  useEffect(() => {
+    if (!navRef.current || isNavCollapsed) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width < 100) {
+          setIsNavCollapsed(true);
+        }
+      }
+    });
+    observer.observe(navRef.current);
+    return () => observer.disconnect();
+  }, [isNavCollapsed]);
+
+  // Drag-to-close for session info pane (CSS resize: horizontal)
+  useEffect(() => {
+    if (!sessionInfoRef.current || isSessionInfoCollapsed) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width < 100) {
+          setIsSessionInfoCollapsed(true);
+        }
+      }
+    });
+    observer.observe(sessionInfoRef.current);
+    return () => observer.disconnect();
+  }, [isSessionInfoCollapsed]);
+
   // Refresh session data and check for new emails
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -2654,6 +2807,7 @@ export default function SessionView() {
 
   const handleDeleteDocument = (documentId: string) => {
     if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      if (previewDocumentId === documentId) setPreviewDocumentId(null);
       deleteDocumentMutation.mutate(documentId);
     }
   };
@@ -3895,7 +4049,7 @@ export default function SessionView() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <RiveLoader width={300} height={300} />
           <p className="mt-4 text-gray-600">Loading Info</p>
         </div>
       </div>
@@ -3944,22 +4098,34 @@ export default function SessionView() {
   const getValueIdFromFieldName = (fieldName: string) => {
     // Check if this is a collection field (has format "Collection.Property[index]")
     const collectionMatch = fieldName.match(/^(.+)\.([^.]+)\[(\d+)\]$/);
-    
+
     if (collectionMatch) {
       const collectionName = collectionMatch[1];
       const valueName = collectionMatch[2];
-      
+
       // Find the step value for this field to get the valueId
       const workflowStep = project?.workflowSteps?.find(step => step.stepName === collectionName);
       const stepValue = workflowStep?.values?.find(v => v.valueName === valueName);
-      return stepValue?.id;
+      if (stepValue) return stepValue.id;
+
+      // If no direct value match, check multi-field value fields
+      // Multi-field values have fields with their own names that don't match the parent value name
+      for (const v of workflowStep?.values || []) {
+        if (v.fields) {
+          const matchingField = v.fields.find((f: any) => f.name === valueName);
+          if (matchingField) {
+            return v.id; // Return parent value ID (valid UUID)
+          }
+        }
+      }
+      return undefined;
     }
-    
+
     // Check if this is an InfoPage multi-field (has format "ValueName.FieldName")
     const infoPageMatch = fieldName.match(/^([^.]+)\.([^.]+)$/);
     if (infoPageMatch) {
       const valueName = infoPageMatch[1];
-      
+
       // Find the InfoPage step value with this valueName
       for (const step of project?.workflowSteps || []) {
         if (step.stepType === 'infoPage') {
@@ -3970,7 +4136,7 @@ export default function SessionView() {
         }
       }
     }
-    
+
     // This is a schema field - find by fieldName
     const schemaField = project?.schemaFields?.find(f => f.fieldName === fieldName);
     return schemaField?.id;
@@ -3997,11 +4163,25 @@ export default function SessionView() {
     if (fieldName.includes('[') && fieldName.includes(']')) {
       const valueId = getValueIdFromFieldName(fieldName);
       if (!valueId) return undefined;
-      
+
+      // Extract the column name for multi-field disambiguation
+      // fieldName format: "StepName.ColumnName[recordIndex]"
+      const columnNameMatch = fieldName.match(/^.+\.(.+)\[\d+\]$/);
+      const columnName = columnNameMatch?.[1];
+
       // For data tables, match by both row ID and column ID
       if (identifierId) {
-        return validations.find(v => 
-          v.identifierId === identifierId && 
+        // Priority 1: Match by identifierId + fieldName pattern (most reliable for multi-field)
+        if (columnName) {
+          const fieldNameMatch = validations.find(v =>
+            v.identifierId === identifierId &&
+            v.fieldName?.includes(`.${columnName}[`)
+          );
+          if (fieldNameMatch) return fieldNameMatch;
+        }
+        // Priority 2: Fallback to identifierId + valueId matching (for single-field values)
+        return validations.find(v =>
+          v.identifierId === identifierId &&
           (v.valueId === valueId || v.fieldId === valueId)
         );
       }
@@ -4106,6 +4286,58 @@ export default function SessionView() {
       total: totalFields,
       percentage
     };
+  };
+
+  // Get verification progress for a specific workflow step (for nav pane indicators)
+  const getStepVerificationProgress = (step: { id: string; stepName: string; stepType: string; values?: any[] }) => {
+    if (step.stepType === 'list' || step.stepType === 'data_table' || step.stepType === 'data') {
+      // Match validations by collectionName, stepId, or fieldName prefix
+      const stepValidations = validations.filter((v: any) =>
+        v.collectionName === step.stepName ||
+        v.stepId === step.id ||
+        (v.fieldName && v.fieldName.startsWith(step.stepName + '.'))
+      );
+      const totalFields = stepValidations.length;
+      const verifiedFields = stepValidations.filter((v: any) => v.validationStatus === 'valid' || v.validationStatus === 'manual').length;
+      const percentage = totalFields > 0 ? Math.round((verifiedFields / totalFields) * 100) : 0;
+      return { verified: verifiedFields, total: totalFields, percentage };
+    }
+
+    if (step.stepType === 'page' || step.stepType === 'info' || step.stepType === 'infoPage') {
+      const stepValues = step.values || [];
+      let total = 0;
+      let verified = 0;
+
+      for (const sv of stepValues) {
+        const fields = sv.fields && Array.isArray(sv.fields) ? sv.fields : [];
+        if (fields.length > 0) {
+          for (const f of fields) {
+            total++;
+            const fv = validations.find((v: any) =>
+              v.identifierId === f.identifierId ||
+              v.valueId === f.identifierId ||
+              v.fieldId === f.identifierId
+            );
+            if (fv && (fv.validationStatus === 'valid' || fv.validationStatus === 'manual')) {
+              verified++;
+            }
+          }
+        } else {
+          total++;
+          const vv = validations.find((v: any) =>
+            v.valueId === sv.id || v.fieldId === sv.id || v.identifierId === sv.id
+          );
+          if (vv && (vv.validationStatus === 'valid' || vv.validationStatus === 'manual')) {
+            verified++;
+          }
+        }
+      }
+
+      const percentage = total > 0 ? Math.round((verified / total) * 100) : 0;
+      return { verified, total, percentage };
+    }
+
+    return { verified: 0, total: 0, percentage: 0 };
   };
 
   // Get all unverified fields for consolidated reasoning
@@ -4459,16 +4691,65 @@ Thank you for your assistance.`;
           fieldsByValue.set(valueId, field);
         }
       });
-      
-      // Process each value  
+
+      // Detect if this is a data table step
+      const workflowStep = project?.workflowSteps?.find(s => s.id === stepId);
+      const isDataTable = workflowStep?.stepType === 'list';
+
+      if (isDataTable) {
+        // Data table multi-field: route through /extract-column which handles
+        // identifierID chain, previousData building, and __dataTableFields
+        console.log(`📊 Data table detected (stepType=${workflowStep?.stepType}) - routing through /extract-column`);
+
+        for (const [valueId, value] of fieldsByValue) {
+          console.log(`🎯 Processing data table value ${valueId}: ${value.valueName}`);
+
+          // Get document IDs for this value
+          let valueDocumentIds: string[] = [];
+          if (fieldInputs[valueId]?.documents && Array.isArray(fieldInputs[valueId].documents)) {
+            valueDocumentIds = fieldInputs[valueId].documents;
+            console.log(`✅ Using ${valueDocumentIds.length} documents for value ${valueId}`);
+          } else if (fieldInputs[valueId]?.document) {
+            valueDocumentIds = [fieldInputs[valueId].document];
+            console.log(`✅ Using single document for value ${valueId}`);
+          }
+          if (valueDocumentIds.length === 0 && sessionDocuments?.length > 0) {
+            valueDocumentIds = [sessionDocuments[0].id];
+            console.log(`⚠️ Fallback to first document for value ${valueId}`);
+          }
+
+          await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stepId,
+              valueId,
+              documentIds: valueDocumentIds,
+              documentId: valueDocumentIds[0],
+            }),
+          });
+        }
+
+        // Refresh validations and show success
+        await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
+
+        toast({
+          title: "Extraction Complete",
+          description: `Successfully extracted ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''}`,
+        });
+        return; // Exit early — don't fall through to info page flow
+      }
+
+      // Info page extraction: use /extract endpoint (existing flow)
       for (const [valueId, value] of fieldsByValue) {
-        console.log(`🎯 Processing value ${valueId}`);
-        
+        console.log(`🎯 Processing info page value ${valueId}`);
+
         // Get document IDs for this specific value (per-value document selection)
         // The valueId here is field.id which is stepValue.id (a UUID, the parent value ID)
         // Documents are stored at fieldInputs[stepValue.id].documents
         let valueDocumentIds: string[] = [];
-        
+
         // Support both new 'documents' array and legacy 'document' single value
         if (fieldInputs[valueId]?.documents && Array.isArray(fieldInputs[valueId].documents)) {
           valueDocumentIds = fieldInputs[valueId].documents;
@@ -4477,15 +4758,15 @@ Thank you for your assistance.`;
           valueDocumentIds = [fieldInputs[valueId].document];
           console.log(`✅ Using single document ${valueDocumentIds[0]} selected for value ${valueId}`);
         }
-        
+
         // If no document selected for this value, use the first available document as fallback
         if (valueDocumentIds.length === 0 && sessionDocuments?.length > 0) {
           valueDocumentIds = [sessionDocuments[0].id];
           console.log(`⚠️ No documents selected for value ${valueId}, using first document: ${valueDocumentIds[0]}`);
         }
-        
+
         console.log(`📄 Passing document IDs to backend for value ${valueId}:`, valueDocumentIds);
-        
+
         const requestData = {
           documentIds: valueDocumentIds,  // PASS ARRAY OF DOCUMENT IDs for multi-document extraction
           documentId: valueDocumentIds[0],  // Keep for backward compatibility
@@ -4505,7 +4786,7 @@ Thank you for your assistance.`;
               return value.fields.map((field: any, idx: number) => {
                 const fieldConfig = {
                   fieldName: field.name,
-                  valueName: field.name, 
+                  valueName: field.name,
                   dataType: field.dataType || 'TEXT',
                   description: field.description || '',
                   identifierId: field.identifierId || `${valueId}_field_${idx}`, // CRITICAL: This maps AI results back
@@ -4540,7 +4821,7 @@ Thank you for your assistance.`;
           step_id: stepId, // Use the stepId we got at the beginning
           value_id: valueId
         };
-        
+
         await apiRequest(`/api/sessions/${sessionId}/extract`, {
           method: 'POST',
           headers: {
@@ -4549,11 +4830,11 @@ Thank you for your assistance.`;
           body: JSON.stringify(requestData),
         });
       }
-      
+
       // Refresh validations
       await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
-      
+
       toast({
         title: "Extraction Complete",
         description: `Successfully extracted ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''}`,
@@ -4940,13 +5221,13 @@ Thank you for your assistance.`;
   };
 
   const formatValueForDisplay = (value: any, fieldType: string) => {
-    // Special handling for "Not Found" - display it as-is
+    // Show clean "Empty" for missing/not-found values
     if (value === 'Not Found') {
-      return 'Not Found';
+      return 'Empty';
     }
-    
+
     if (!value || value === 'null' || value === 'undefined' || value === null) {
-      return 'Not Found'; // Display null values as "Not Found" in the UI
+      return 'Empty';
     }
     
     if (fieldType === 'DATE') {
@@ -5202,25 +5483,50 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-      {/* Page Title - Match ProjectLayout exactly */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+      {/* Page Title */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 shadow-sm">
         <div className="w-full px-6 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1 mr-6">
               <TrendingUp className="h-8 w-8 text-primary mt-1" />
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-1">
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-3xl font-bold dark:text-white">
-                    {project.name}
-                  </h2>
-                </div>
-                <div className="flex items-start space-x-2">
-                  {project.description ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{project.description}</p>
+                  {isEditingSessionName ? (
+                    <Input
+                      value={sessionNameValue}
+                      onChange={(e) => setSessionNameValue(e.target.value)}
+                      onKeyDown={handleSessionNameKeyPress}
+                      onBlur={handleSessionNameSave}
+                      className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white text-3xl font-bold"
+                      style={{
+                        width: `${Math.max(sessionNameValue.length * 18, 200)}px`,
+                        fontSize: '1.875rem',
+                        fontWeight: '700',
+                        lineHeight: '2.25rem'
+                      }}
+                      autoFocus
+                    />
                   ) : (
-                    <p className="text-sm text-gray-400 dark:text-gray-500">No description</p>
+                    <h2 className="text-3xl font-bold dark:text-white truncate">
+                      {session?.sessionName || 'Untitled Session'}
+                    </h2>
+                  )}
+                  {!isEditingSessionName && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleSessionNameEdit}
+                      className="opacity-40 hover:opacity-100 p-1 flex-shrink-0"
+                      title="Edit session name"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {session?.createdAt ? `Created ${new Date(session.createdAt).toLocaleString()}` : ''}
+                  {session?.originatorName ? ` by ${session.originatorName}` : ''}
+                </p>
               </div>
             </div>
 
@@ -5235,33 +5541,64 @@ Thank you for your assistance.`;
               if (statusOptions.length === 0) {
                 // No status workflow configured - show traditional stats
                 return project.sessions.length > 0 ? (
-                  <div className="flex gap-3 flex-shrink-0 ml-auto">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <Database className="h-6 w-6 text-slate-700 dark:text-gray-400" />
-                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
+                  <div className="flex flex-col items-end flex-shrink-0 ml-auto gap-1.5">
+                    <div className="flex gap-3">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <Database className="h-6 w-6 text-slate-700 dark:text-gray-400" />
+                        <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{project.sessions.length}</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                        <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                          {verificationStats.in_progress + verificationStats.pending}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
+                        <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                          {verificationStats.verified}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="h-10"
+                        title="Refresh data and check for new emails"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportToExcel}
+                        className="h-10"
+                        title="Export to Excel"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        {verificationStats.in_progress + verificationStats.pending}
+                    {/* Progress bar below stats */}
+                    <div className="flex items-center gap-2 w-full">
+                      {getVerificationProgress().percentage === 100 ? (
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <CheckCircle className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            getVerificationProgress().percentage === 100 ? 'bg-green-600 dark:bg-green-500' :
+                            getVerificationProgress().percentage > 0 ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-400 dark:bg-gray-600'
+                          }`}
+                          style={{ width: `${getVerificationProgress().percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 min-w-[28px] text-right">
+                        {getVerificationProgress().percentage}%
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
-                      <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        {verificationStats.verified}
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefresh}
-                      disabled={isRefreshing}
-                      className="h-10"
-                      title="Refresh data and check for new emails"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    </Button>
                   </div>
                 ) : null;
               }
@@ -5379,7 +5716,11 @@ Thank you for your assistance.`;
               };
 
               return (
-                <div className="flex items-center flex-shrink-0 ml-auto">
+                <div className="flex flex-shrink-0 ml-auto">
+                  <div className="flex items-center">
+                  {/* Chevrons + progress bar grouped in a column */}
+                  <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center">
                   {statusOptions.map((status: string, index: number) => {
                     const isLastStatus = index === statusOptions.length - 1;
                     const isCompleted = index === currentIndex && isLastStatus;
@@ -5440,6 +5781,24 @@ Thank you for your assistance.`;
                       </div>
                     );
                   })}
+                  </div>{/* closes chevron items row */}
+                  {/* Progress bar — naturally matches chevron width within the same flex-col */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          getVerificationProgress().percentage === 100 ? 'bg-green-600 dark:bg-green-500' :
+                          getVerificationProgress().percentage > 0 ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-400 dark:bg-gray-600'
+                        }`}
+                        style={{ width: `${getVerificationProgress().percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 min-w-[28px] text-right">
+                      {getVerificationProgress().percentage}%
+                    </span>
+                  </div>
+                  </div>{/* closes flex-col (chevrons + progress bar) */}
+                  {/* Action buttons — outside the column, to the right */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -5450,6 +5809,16 @@ Thank you for your assistance.`;
                   >
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportToExcel}
+                    className="h-10"
+                    title="Export to Excel"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  </div>{/* closes flex items-center row */}
                 </div>
               );
             })()}
@@ -5457,256 +5826,256 @@ Thank you for your assistance.`;
         </div>
       </div>
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 flex flex-col overflow-y-auto">
-          <div className="p-4">
-            <nav className="space-y-0.5">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = false; // No highlighting since it navigates away
-                
-                return (
-                  <Link key={item.id} href={item.href}>
-                    <button
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? "font-medium text-blue-900 dark:text-blue-200 hover:bg-slate-100 dark:hover:bg-gray-700"
-                          : "text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-700 dark:hover:text-gray-100 font-normal"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-          
-          {/* Session Navigation */}
-          <div className="border-t border-slate-200 dark:border-gray-700 px-3 py-3 flex-1">
-            <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">Sections</p>
-            <nav className="space-y-0.5">
+        {/* Collapsible Left Navigation */}
+        {isNavCollapsed ? (
+          /* Collapsed nav strip — icons only */
+          <div className="w-14 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col items-center py-3 flex-shrink-0 overflow-y-auto">
+            {/* Expand button */}
+            <button
+              onClick={expandNav}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors mb-3"
+              title="Expand navigation"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+            {/* Back arrow */}
+            <Link href={`/projects/${projectId}?tab=all-data`}>
+              <button
+                className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors mb-4"
+                title={`Back to All ${project?.mainObjectName || "Session"}s`}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            </Link>
+            {/* Section icons */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex flex-col items-center gap-1 w-full">
               <button
                 onClick={() => scrollToSection('documents')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${
                   activeTab === 'documents'
-                    ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
-                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
+                    ? 'bg-[#4F63A4]/10 text-[#4F63A4]'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'
                 }`}
+                title="Documents"
               >
-                <FolderOpen className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Documents</span>
+                <FolderOpen className="h-4 w-4" />
               </button>
-              
               {(() => {
-                const allSteps: Array<{ id: string; name: string; stepType: string }> = [];
-                
+                const allSteps: Array<{ id: string; name: string; stepType: string; values?: any[] }> = [];
                 if (project.workflowSteps) {
                   project.workflowSteps.forEach(step => {
                     if (step.stepName !== 'Documents') {
-                      allSteps.push({
-                        id: step.id,
-                        name: step.stepName,
-                        stepType: step.stepType
-                      });
+                      allSteps.push({ id: step.id, name: step.stepName, stepType: step.stepType, values: step.values });
                     }
                   });
                 }
-                
-                return allSteps.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => scrollToSection(item.name)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
-                      activeTab === item.name
-                        ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
-                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700/50 hover:text-slate-800 dark:hover:text-gray-100'
-                    }`}
-                  >
-                    {item.stepType === 'data_table' ? <TableIcon className="h-4 w-4 flex-shrink-0" /> : <FileText className="h-4 w-4 flex-shrink-0" />}
-                    <span className="truncate">{item.name}</span>
-                  </button>
-                ));
+                return allSteps.map((item) => {
+                  const progress = getStepVerificationProgress(item);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => scrollToSection(item.name)}
+                      className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${
+                        activeTab === item.name
+                          ? 'bg-[#4F63A4]/10 text-[#4F63A4]'
+                          : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                      title={item.name}
+                    >
+                      {progress.total > 0 && progress.percentage === 100 ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : progress.total > 0 && progress.verified > 0 ? (
+                        <div className="w-2 h-2 rounded-full bg-[#4F63A4]" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
+                      )}
+                    </button>
+                  );
+                });
               })()}
-            </nav>
+            </div>
+            {/* Settings icon at bottom */}
+            {canAccessConfigTabs && (
+              <div className="mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
+                <Link href={`/projects/${projectId}/configure`}>
+                  <button
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    title="Configure"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </Link>
+              </div>
+            )}
           </div>
-          
-          {/* Settings Button - Always at the bottom */}
-          {canAccessConfigTabs && (
-            <div className="p-4 border-t border-slate-200 dark:border-gray-700">
-              <Link href={`/projects/${projectId}/configure`}>
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-600 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100 transition-all duration-200">
-                  <Settings className="h-4 w-4" />
-                  Configure
+        ) : (
+          /* Expanded sidebar — not resizable via panels, uses CSS resize for simplicity */
+          <div ref={navRef} className="bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col flex-shrink-0" style={{ width: '280px', minWidth: '200px', maxWidth: '400px', resize: 'horizontal', overflow: 'auto' }}>
+            {/* Grey bar header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Navigation</span>
+              <button
+                onClick={() => setIsNavCollapsed(true)}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
+                title="Collapse navigation"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Back link */}
+            <div className="px-3 pt-2 pb-1">
+              <Link href={`/projects/${projectId}?tab=all-data`}>
+                <button className="flex items-center gap-1 text-sm text-slate-600 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100 hover:bg-slate-100 dark:hover:bg-gray-700 px-2 py-1.5 rounded-lg transition-all duration-200 font-normal">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  All {project?.mainObjectName || "Session"}s
                 </button>
               </Link>
             </div>
-          )}
-        </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8 bg-gray-50 dark:bg-gray-900">
-          {/* Session Name + Action Bar */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#4F63A4' }}></div>
-              {isEditingSessionName ? (
-                <Input
-                  value={sessionNameValue}
-                  onChange={(e) => setSessionNameValue(e.target.value)}
-                  onKeyDown={handleSessionNameKeyPress}
-                  onBlur={handleSessionNameSave}
-                  className="inline-flex h-auto bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 m-0 dark:text-white text-lg font-semibold"
-                  style={{ 
-                    width: `${Math.max(sessionNameValue.length * 10, 100)}px`,
-                    fontSize: '1.125rem',
-                    fontWeight: '600',
-                    lineHeight: '1.75rem'
-                  }}
-                  autoFocus
-                />
-              ) : (
-                <h2 className="text-lg font-semibold dark:text-white truncate">{session?.sessionName || 'Untitled Session'}</h2>
-              )}
-              {!isEditingSessionName && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleSessionNameEdit}
-                  className="opacity-40 hover:opacity-100 p-1 flex-shrink-0"
-                  title="Edit session name"
+            {/* Session Navigation */}
+            <div className="px-3 py-2 flex-1 overflow-y-auto">
+              <nav className="space-y-0.5">
+                <button
+                  onClick={() => scrollToSection('documents')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                    activeTab === 'documents'
+                      ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
+                      : 'text-gray-900 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-700/50'
+                  }`}
                 >
-                  <Edit3 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {getVerificationProgress().percentage === 100 ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-gray-400" />
-              )}
-              <div className="flex items-center gap-2">
-                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      getVerificationProgress().percentage === 100 ? 'bg-green-600 dark:bg-green-500' : 
-                      getVerificationProgress().percentage > 0 ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-400 dark:bg-gray-600'
-                    }`}
-                    style={{ width: `${getVerificationProgress().percentage}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[28px]">
-                  {getVerificationProgress().percentage}%
-                </span>
-              </div>
-              <Button
-                onClick={() => setDocumentUploadModalOpen(true)}
-                variant="ghost"
-                size="sm"
-                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                title="Add documents to session"
-              >
-                <FilePlus className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={handleExportToExcel}
-                variant="ghost"
-                size="sm"
-                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                title="Export to Excel"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+                  <FolderOpen className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Documents</span>
+                </button>
 
-            {/* Session Info - Always visible, no title */}
-            <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-4">
-              <div className="py-3">
-                {sourceEmail ? (
-                  <div>
-                    <div className="flex items-start gap-3 cursor-pointer" onClick={() => sourceEmail.emailBody && toggleSection('email-body')}>
-                      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
-                        <Mail className="h-4 w-4 text-[#4F63A4]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">From:</span>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{sourceEmail.fromEmail || 'Unknown sender'}</p>
-                          {sourceEmail.receivedAt && (
-                            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {new Date(sourceEmail.receivedAt).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-baseline gap-x-2 mt-0.5">
-                          <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Subject:</span>
-                          <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">{sourceEmail.subject || 'No subject'}</p>
-                        </div>
-                      </div>
-                      {sourceEmail.emailBody && (
-                        <div className="flex-shrink-0 mt-1">
-                          {collapsedSections.has('email-body') ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-                        </div>
-                      )}
-                    </div>
-                    {sourceEmail.emailBody && !collapsedSections.has('email-body') && (
-                      <div className="mt-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                        {sourceEmail.emailBody.includes('<') && sourceEmail.emailBody.includes('>') ? (
-                          <iframe
-                            srcDoc={`<!DOCTYPE html><html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;color:#374151;margin:0;padding:0;word-wrap:break-word;overflow-wrap:break-word}a{color:#4F63A4}img{max-width:100%;height:auto}table{max-width:100%}*{box-sizing:border-box}</style></head><body>${sourceEmail.emailBody.replace(/"/g, '&quot;')}</body></html>`}
-                            className="w-full border-0 rounded-md"
-                            style={{ minHeight: '60px', maxHeight: '400px' }}
-                            sandbox="allow-same-origin"
-                            title="Email content"
-                            onLoad={(e) => {
-                              const iframe = e.target as HTMLIFrameElement;
-                              if (iframe.contentDocument) {
-                                const height = Math.min(iframe.contentDocument.body.scrollHeight + 16, 400);
-                                iframe.style.height = `${height}px`;
-                              }
-                            }}
-                          />
+                {(() => {
+                  const allSteps: Array<{ id: string; name: string; stepType: string; values?: any[] }> = [];
+
+                  if (project.workflowSteps) {
+                    project.workflowSteps.forEach(step => {
+                      if (step.stepName !== 'Documents') {
+                        allSteps.push({
+                          id: step.id,
+                          name: step.stepName,
+                          stepType: step.stepType,
+                          values: step.values
+                        });
+                      }
+                    });
+                  }
+
+                  return allSteps.map((item) => {
+                    const progress = getStepVerificationProgress(item);
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => scrollToSection(item.name)}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-all duration-150 cursor-pointer ${
+                          activeTab === item.name
+                            ? 'bg-[#4F63A4]/10 text-[#4F63A4] dark:bg-[#4F63A4]/20 dark:text-blue-300 font-medium border-l-2 border-[#4F63A4]'
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-700/50'
+                        }`}
+                      >
+                        {progress.total > 0 && progress.percentage === 100 ? (
+                          <Check className="h-4 w-4 flex-shrink-0 text-green-600" />
+                        ) : progress.total > 0 && progress.verified > 0 ? (
+                          <div className="w-2 h-2 rounded-full bg-[#4F63A4] flex-shrink-0" />
                         ) : (
-                          <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {sourceEmail.emailBody}
-                          </div>
+                          <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
                         )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
-                      <Info className="h-4 w-4 text-[#4F63A4]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {session?.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{session.description}</p>
-                      )}
-                      {session?.createdAt && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-1">
-                          <Clock className="h-3 w-3" />
-                          Created {new Date(session.createdAt).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                        <span className="truncate">{item.name}</span>
+                      </button>
+                    );
+                  });
+                })()}
+              </nav>
             </div>
 
-            <hr className="border-gray-200 dark:border-gray-700 mb-6" />
+            {/* Settings Button - Always at the bottom */}
+            {canAccessConfigTabs && (
+              <div className="p-4 border-t border-gray-300 dark:border-gray-600">
+                <Link href={`/projects/${projectId}/configure`}>
+                  <button className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 text-slate-600 dark:text-gray-300 hover:text-slate-700 dark:hover:text-gray-100 transition-all duration-200">
+                    <Settings className="h-4 w-4" />
+                    Configure
+                  </button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Session Info pane — standalone div, not in ResizablePanelGroup */}
+        {isSessionInfoCollapsed ? (
+          <div className="w-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center pt-3 flex-shrink-0">
+            <button
+              onClick={() => setIsSessionInfoCollapsed(false)}
+              className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
+              title={`Expand ${project?.mainObjectName || 'Session'} Info`}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+            <span className="text-xs text-gray-500 dark:text-gray-400 mt-4" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}>
+              {project?.mainObjectName || 'Session'} Info
+            </span>
+          </div>
+        ) : (
+          <div
+            ref={sessionInfoRef}
+            className="bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0"
+            style={{
+              ...(activePanelTab || previewDocument
+                ? { width: '45%', minWidth: '300px', maxWidth: '60%', resize: 'horizontal' as const, overflow: 'auto' }
+                : { flex: '1 1 auto', overflow: 'hidden' }),
+            }}
+          >
+            {/* Grey bar header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{project?.mainObjectName || 'Session'} Info</span>
+              <button
+                onClick={() => {
+                  if (!activePanelTab) {
+                    setActivePanelTab('messenger');
+                  }
+                  setIsSessionInfoCollapsed(true);
+                }}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
+                title={`Collapse ${project?.mainObjectName || 'Session'} Info`}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-auto flex-1 p-8">
+          {/* Session description (if any) */}
+          {session?.description && (
+            <div ref={el => { sectionRefs.current['session-info'] = el; }} className="mb-6">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#4F63A4]/10 flex items-center justify-center">
+                  <Info className="h-4 w-4 text-[#4F63A4]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{session.description}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
             {/* Documents Section */}
             <div ref={el => { sectionRefs.current['documents'] = el; }}>
-              <div className="flex items-center justify-between mb-3 cursor-pointer" onClick={() => toggleSection('documents')}>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('documents')}>
                   {collapsedSections.has('documents') ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Documents</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Documents</h3>
                 </div>
+                <Button
+                  onClick={(e) => { e.stopPropagation(); setDocumentUploadModalOpen(true); }}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  title="Add documents to session"
+                >
+                  <FilePlus className="h-4 w-4" />
+                </Button>
               </div>
               {!collapsedSections.has('documents') && (
                 <>
@@ -5722,19 +6091,22 @@ Thank you for your assistance.`;
                           <table className="w-full">
                             <thead>
                               <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Document</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Size</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Content</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Processed</th>
-                                <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Details</th>
-                                <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
+                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300">Document</th>
+                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300">Size</th>
+                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300">Content</th>
+                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300">Processed</th>
+                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300">Details</th>
+                                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-700 dark:text-gray-300"></th>
                               </tr>
                             </thead>
                             <tbody>
                               {sessionDocuments.map((doc: any, index: number) => (
-                                <tr 
+                                <tr
                                   key={doc.id || index}
-                                  className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
+                                  className={`border-b border-gray-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${
+                                    previewDocumentId === doc.id ? 'bg-[#4F63A4]/5 dark:bg-[#4F63A4]/10 border-l-2 border-l-[#4F63A4]' : ''
+                                  }`}
+                                  onClick={() => previewDocumentId === doc.id ? setPreviewDocumentId(null) : openDocPreview(doc.id)}
                                 >
                                   <td className="py-2 px-3">
                                     <div className="flex items-center gap-3">
@@ -5752,7 +6124,7 @@ Thank you for your assistance.`;
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.fileName}>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={doc.fileName}>
                                           {doc.fileName}
                                         </p>
                                       </div>
@@ -5781,7 +6153,7 @@ Thank you for your assistance.`;
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => processDocumentMutation.mutate(doc.id)}
+                                        onClick={(e) => { e.stopPropagation(); processDocumentMutation.mutate(doc.id); }}
                                         disabled={processDocumentMutation.isPending}
                                         className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                                         title="Process document (extract content)"
@@ -5795,7 +6167,7 @@ Thank you for your assistance.`;
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                                        onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc.id, doc.fileName); }}
                                         className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                                         title="Download extracted content"
                                       >
@@ -5804,7 +6176,7 @@ Thank you for your assistance.`;
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => handleDeleteDocument(doc.id)}
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id); }}
                                         className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                                         title="Delete document"
                                       >
@@ -5839,11 +6211,11 @@ Thank you for your assistance.`;
 
               return (
                 <div key={currentStep.id} ref={el => { sectionRefs.current[stepName] = el; }} className="mt-6">
-                  <hr className="border-gray-200 dark:border-gray-700 mb-6" />
+                  <hr className="border-gray-300 dark:border-gray-600 mb-6" />
                   <div className="flex items-center justify-between mb-3 cursor-pointer" onClick={() => toggleSection(stepName)}>
                     <div className="flex items-center gap-2">
                       {collapsedSections.has(stepName) ? <ChevronRight className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-                      <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">{stepName}</h3>
+                      <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{stepName}</h3>
                     </div>
                   </div>
 
@@ -5878,6 +6250,9 @@ Thank you for your assistance.`;
                               organizationId={user?.organizationId}
                               currentUserId={user?.id}
                               actions={kanbanConfig.actions || []}
+                              projectInboxEmail={project?.inboxEmailAddress}
+                              openTaskCardId={openTaskCardId}
+                              onOpenTaskCardHandled={() => setOpenTaskCardId(null)}
                               onGenerateTasks={async (selectedDocumentIds: string[]) => {
                                 await apiRequest(`/api/sessions/${session.id}/steps/${currentStep.id}/generate-tasks`, {
                                   method: 'POST',
@@ -6120,10 +6495,10 @@ Thank you for your assistance.`;
                                       </TooltipProvider>
                                     );
                                   } else if (!hasValue) {
-                                    // Show red exclamation mark for missing fields
+                                    // Show subtle empty indicator for missing fields
                                     return (
-                                      <div className="w-3 h-3 flex items-center justify-center text-red-500 font-bold text-xs flex-shrink-0" title="Missing data">
-                                        !
+                                      <div className="w-3 h-3 flex items-center justify-center flex-shrink-0" title="Not yet extracted">
+                                        <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
                                       </div>
                                     );
                                   }
@@ -6433,8 +6808,9 @@ Thank you for your assistance.`;
                                                       {(() => {
                                                         const valueTool = stepValue.toolId ? toolsMap.get(stepValue.toolId) : null;
                                                         const toolDisplayConfig = valueTool?.displayConfig || valueTool?.display_config;
-                                                        const hasModalDisplay = toolDisplayConfig && toolDisplayConfig.modalType && toolDisplayConfig.modalType !== 'none';
-                                                        
+                                                        const hasModalDisplay = (toolDisplayConfig && toolDisplayConfig.modalType && toolDisplayConfig.modalType !== 'none') ||
+                                                          valueTool?.toolType === 'DATABASE_LOOKUP' || valueTool?.tool_type === 'DATABASE_LOOKUP';
+
                                                         if (hasModalDisplay) {
                                                           return (
                                                             <Button
@@ -6536,7 +6912,8 @@ Thank you for your assistance.`;
                                                                       fieldName: fieldName,
                                                                       collectionName: currentStep?.stepName || '',
                                                                       recordIndex: 0,
-                                                                      displayConfig: toolDisplayConfig as ToolDisplayConfig,
+                                                                      displayConfig: (toolDisplayConfig || (valueTool?.toolType === 'DATABASE_LOOKUP' || valueTool?.tool_type === 'DATABASE_LOOKUP'
+                                                                        ? { modalType: 'table' } : null)) as ToolDisplayConfig,
                                                                       categoryColumn: inputValues._categoryColumn || undefined,
                                                                       categoryFilterByValue
                                                                     });
@@ -6636,8 +7013,8 @@ Thank you for your assistance.`;
                       <CardContent className="p-0">
                         <div className="session-table-wrapper" style={{ height: 'calc(100vh - 200px)', overflow: 'auto', position: 'relative', paddingBottom: '20px' }}>
                           <Table className="session-table compact" style={{ minWidth: 'max-content' }}>
-                            <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="shadow-sm">
-                              <TableRow>
+                            <TableHeader style={{ position: 'sticky', top: 0, zIndex: 50 }} className="[&_tr]:border-0">
+                              <TableRow className="border-0">
                               {/* Spacer column for left padding */}
                               <TableHead className="w-1.5 h-8 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                               </TableHead>
@@ -6647,40 +7024,50 @@ Thank you for your assistance.`;
                                 const workflowStep = project?.workflowSteps?.find(
                                   step => step.stepName === collection.collectionName
                                 );
-                                
-                                // Use step values if available, otherwise fall back to collection properties
-                                const columnsToDisplay = workflowStep?.values || collection.properties;
-                                
+
+                                // Use flattened columns if workflow step available (supports multi-field values)
+                                const columnsToDisplay = workflowStep
+                                  ? flattenStepValuesToColumns(workflowStep.values)
+                                  : collection.properties;
+
                                 // See replit.md Section 4: Data Flow Integrity
                                 // CRITICAL: Never re-sort data that's already ordered by backend
                                 // Backend provides columns sorted by orderIndex - preserve this order
-                                
+
+                                const renderedValueIds = new Set<string>();
                                 return columnsToDisplay
-                                  .map((column, index) => {
+                                  .map((column: any, index: number) => {
                                     const columnId = column.id;
-                                    const columnName = workflowStep ? column.valueName : (column as any).propertyName;
-                                    const columnType = workflowStep ? column.dataType : (column as any).propertyType;
+                                    const columnName = workflowStep ? column.valueName : column.propertyName;
+                                    const columnType = workflowStep ? column.dataType : column.propertyType;
                                     const isLastColumn = index === columnsToDisplay.length - 1;
-                                    const headerColumnColor = (column as any).color;
-                                    
+                                    const headerColumnColor = column.color;
+                                    const prevColumnColor = index > 0 ? columnsToDisplay[index - 1]?.color : undefined;
+                                    const showColorBorder = headerColumnColor && headerColumnColor !== prevColumnColor;
+                                    const isFirstOfGroup = !column.isMultiField || !renderedValueIds.has(column.valueId);
+                                    if (column.isMultiField && column.valueId) renderedValueIds.add(column.valueId);
+                                    const isLastOfGroup = !column.isMultiField ||
+                                      index === columnsToDisplay.length - 1 ||
+                                      columnsToDisplay[index + 1]?.valueId !== column.valueId;
+
                                     return (
-                                      <TableHead 
-                                        key={columnId} 
-                                        className={`relative h-10 py-2 px-3 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
-                                        style={{ 
+                                      <TableHead
+                                        key={columnId}
+                                        className={`relative h-8 py-1.5 px-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${!isLastColumn ? 'border-r border-gray-200 dark:border-gray-700' : ''}`}
+                                        style={{
                                           width: isLastColumn ? 'auto' : `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnName.toLowerCase().includes('description') ? 180 :
                                             columnName.toLowerCase().includes('summary') ? 180 :
                                             columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 200 :
                                             columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                            columnType === 'TEXT' ? 160 : 
+                                            columnType === 'TEXT' ? 160 :
                                             columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
                                             columnName.toLowerCase().includes('status') ? 130 :
                                       160
                                     )}px`,
                                     minWidth: isLastColumn ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
                                     ...(isLastColumn ? { flex: 1 } : {}),
-                                    ...(headerColumnColor ? { borderLeft: `2px solid ${headerColumnColor}` } : {})
+                                    ...(showColorBorder ? { borderLeft: `2px solid ${headerColumnColor}` } : {})
                                   }}
                                 >
                                   <div className="flex items-center justify-between group">
@@ -6688,52 +7075,65 @@ Thank you for your assistance.`;
                                       <div className="flex items-center">
                                         {(() => {
                                           // Get all validations for this column
-                                          const columnValidations = validations.filter(v => 
+                                          const columnValidations = validations.filter(v =>
                                             v.fieldName?.includes(`${collection.collectionName}.${columnName}[`) &&
-                                            v.extractedValue !== null && 
-                                            v.extractedValue !== undefined && 
-                                            v.extractedValue !== "" && 
-                                            v.extractedValue !== "null" && 
+                                            v.extractedValue !== null &&
+                                            v.extractedValue !== undefined &&
+                                            v.extractedValue !== "" &&
+                                            v.extractedValue !== "null" &&
                                             v.extractedValue !== "undefined"
                                           );
-                                          
+
                                           // Check if column has any values
                                           const hasValues = columnValidations.length > 0;
-                                          
+
                                           // Check if all fields are valid
-                                          const allValid = hasValues && 
+                                          const allValid = hasValues &&
                                             columnValidations.every(v => v.validationStatus === 'valid');
-                                          
+
                                           // Determine dot color: grey if no values, green if all valid, blue if has values but not all valid
                                           const dotColor = !hasValues ? '#9ca3af' : allValid ? '#10b981' : '#4F63A4';
-                                          
+
                                           return (
                                             <button
                                               onClick={() => handleBulkColumnValidation(collection.collectionName, columnName, columnId)}
-                                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                              title={!hasValues ? 
+                                              className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                              title={!hasValues ?
                                                 `No values in ${columnName} column` :
-                                                allValid ? 
-                                                `All ${columnName} fields are valid. Click to set all to pending` : 
+                                                allValid ?
+                                                `All ${columnName} fields are valid. Click to set all to pending` :
                                                 `Click to validate all ${columnName} fields`}
                                             >
-                                              <div 
-                                                className="w-2 h-2 rounded-full"
-                                                style={{ backgroundColor: dotColor }}
-                                              />
+                                              {allValid ? (
+                                                <Check className="h-3.5 w-3.5 text-green-600" />
+                                              ) : (
+                                                <div
+                                                  className="w-2 h-2 rounded-full"
+                                                  style={{ backgroundColor: dotColor }}
+                                                />
+                                              )}
                                             </button>
                                           );
                                         })()}
-                                        <span className="truncate pl-1 text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">{columnName}</span>
+                                        <span className="truncate pl-1 text-xs font-semibold text-gray-700 dark:text-gray-300">{columnName}</span>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2">
+                                        {isLastOfGroup && (
                                         <button
-                                          onClick={() => handleRunColumnExtraction(collection.collectionName, columnId, columnName)}
+                                          onClick={() => {
+                                            // Use the same FieldSelectionModal as info page extraction
+                                            const workflowStep = project?.workflowSteps?.find(step => step.stepName === collection.collectionName);
+                                            const valueToExtract = workflowStep?.values?.find(v => v.id === (column.valueId || columnId));
+                                            if (valueToExtract && valueToExtract.toolId) {
+                                              handleOpenFieldSelection(valueToExtract.toolId, [valueToExtract]);
+                                            }
+                                          }}
                                           className="h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center justify-center flex-shrink-0"
                                           title={`Run extraction for ${columnName}`}
                                         >
                                           <Wand2 className="h-4 w-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
                                         </button>
+                                        )}
                                         <button
                                           onClick={() => handleSort(columnName, collection.id)}
                                           className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -6801,15 +7201,17 @@ Thank you for your assistance.`;
                                 step => step.stepName === collection.collectionName
                               );
                               
-                              // Use step values if available, otherwise fall back to collection properties
-                              const columnsToDisplay = workflowStep?.values || collection.properties;
-                              
+                              // Use flattened columns if workflow step available (supports multi-field values)
+                              const columnsToDisplay: any[] = workflowStep
+                                ? flattenStepValuesToColumns(workflowStep.values)
+                                : collection.properties;
+
                               // Handle empty collections by showing a placeholder row
                               if (uniqueIndices.length === 0) {
                                 return (
                                   <TableRow className="border-b border-gray-200 dark:border-gray-700">
-                                    <TableCell 
-                                      colSpan={columnsToDisplay.length + 2} 
+                                    <TableCell
+                                      colSpan={columnsToDisplay.length + 2}
                                       className="text-center text-gray-500 py-6 italic text-sm"
                                     >
                                       No items yet. Click the + button to add the first item.
@@ -6817,42 +7219,39 @@ Thank you for your assistance.`;
                                   </TableRow>
                                 );
                               }
-                              
+
                               // Create array of items only for indices that actually exist
                               const itemsWithIndices = uniqueIndices.map(index => ({
                                 item: collectionData?.[index] || {},
                                 originalIndex: index
                               }));
-                              
+
                               // Apply sorting if configured, but reverse to show newest (highest index) first
-                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id 
+                              const sortedItems = sortConfig && sortConfig.collectionId === collection.id
                                 ? sortCollectionData(itemsWithIndices, collection, sortConfig)
                                 : itemsWithIndices.reverse(); // Show newest items first
-                              
+
                               // Apply search filtering - search across all visible table data
                               const filteredItems = searchTerm ? sortedItems.filter(({ item, originalIndex }) => {
                                 const searchLower = searchTerm.toLowerCase();
-                                
-                                // Search in the actual displayed values from each column
-                                const columnsToDisplay = workflowStep?.values || collection.properties;
-                                
-                                return columnsToDisplay.some(column => {
-                                  const columnName = workflowStep ? column.valueName : (column as any).propertyName;
+
+                                return columnsToDisplay.some((column: any) => {
+                                  const columnName = workflowStep ? column.valueName : column.propertyName;
                                   const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
                                   
                                   // Get the identifierId for this row
                                   const rowIdentifierId = (() => {
                                     // For workflow steps, get the first column (ID column) value
-                                    if (workflowStep && workflowStep.values.length > 0) {
-                                      const firstColumn = workflowStep.values[0];
+                                    if (workflowStep && columnsToDisplay.length > 0) {
+                                      const firstColumn = columnsToDisplay[0];
                                       const idValue = item[firstColumn.valueName];
-                                      
+
                                       // Find validation with matching ID value
                                       if (idValue) {
-                                        const idValidation = validations.find(v => 
+                                        const idValidation = validations.find(v =>
                                           v.collectionName === collection.collectionName &&
                                           v.extractedValue === idValue &&
-                                          v.valueId === firstColumn.id &&
+                                          (v.valueId === firstColumn.valueId || v.valueId === firstColumn.id || v.fieldId === firstColumn.id) &&
                                           v.identifierId
                                         );
                                         if (idValidation) {
@@ -6860,18 +7259,18 @@ Thank you for your assistance.`;
                                         }
                                       }
                                     }
-                                    
+
                                     // Fallback: Try to find any validation for this row that has an identifierId
-                                    const rowValidation = validations.find(v => 
+                                    const rowValidation = validations.find(v =>
                                       v.recordIndex === originalIndex &&
                                       v.collectionName === collection.collectionName &&
                                       v.identifierId
                                     );
                                     return rowValidation?.identifierId || null;
                                   })();
-                                  
+
                                   const validation = getValidationByFieldName(fieldName, rowIdentifierId);
-                                  
+
                                   // Get the display value (same logic as what's shown in the table)
                                   const possibleKeys = [
                                     columnName,
@@ -6927,27 +7326,30 @@ Thank you for your assistance.`;
                                   {/* Spacer cell for left padding */}
                                   <TableCell className="w-2 py-5 border-r-0" style={{ width: '6px', minWidth: '6px', maxWidth: '6px' }}>
                                   </TableCell>
-                                  {columnsToDisplay
-                                    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-                                    .map((column, columnIndex) => {
+                                  {(() => {
+                                    // Track which multi-field groups have already rendered their magnifying glass in this row
+                                    const bodyRenderedValueIds = new Set<string>();
+                                    return columnsToDisplay
+                                    .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+                                    .map((column: any, columnIndex: number) => {
                                     const columnId = column.id;
-                                    const columnName = workflowStep ? column.valueName : (column as any).propertyName;
-                                    const columnType = workflowStep ? column.dataType : (column as any).propertyType;
+                                    const columnName = workflowStep ? column.valueName : column.propertyName;
+                                    const columnType = workflowStep ? column.dataType : column.propertyType;
                                     const fieldName = `${collection.collectionName}.${columnName}[${originalIndex}]`;
-                                    
+
                                     // Get the identifierId for this row
                                     const rowIdentifierId = (() => {
                                       // For workflow steps, get the first column (ID column) value
-                                      if (workflowStep && workflowStep.values.length > 0) {
-                                        const firstColumn = workflowStep.values[0];
+                                      if (workflowStep && columnsToDisplay.length > 0) {
+                                        const firstColumn = columnsToDisplay[0];
                                         const idValue = item[firstColumn.valueName];
-                                        
+
                                         // Find validation with matching ID value
                                         if (idValue) {
-                                          const idValidation = validations.find(v => 
+                                          const idValidation = validations.find(v =>
                                             v.collectionName === collection.collectionName &&
                                             v.extractedValue === idValue &&
-                                            v.valueId === firstColumn.id &&
+                                            (v.valueId === firstColumn.valueId || v.valueId === firstColumn.id || v.fieldId === firstColumn.id) &&
                                             v.identifierId
                                           );
                                           if (idValidation) {
@@ -6955,16 +7357,16 @@ Thank you for your assistance.`;
                                           }
                                         }
                                       }
-                                      
+
                                       // Fallback: Try to find any validation for this row that has an identifierId
-                                      const rowValidation = validations.find(v => 
+                                      const rowValidation = validations.find(v =>
                                         v.recordIndex === originalIndex &&
                                         v.collectionName === collection.collectionName &&
                                         v.identifierId
                                       );
                                       return rowValidation?.identifierId || null;
                                     })();
-                                    
+
                                     const validation = getValidationByFieldName(fieldName, rowIdentifierId);
                                     
 
@@ -6985,35 +7387,35 @@ Thank you for your assistance.`;
                                     }
                                     
                                     let displayValue = validation?.extractedValue ?? originalValue ?? null;
-                                    // Don't convert "Not Found" to null
                                     if (displayValue === "null" || displayValue === "undefined") {
                                       displayValue = null;
                                     } else if (displayValue === "Not Found") {
-                                      // Keep "Not Found" as is
-                                      displayValue = "Not Found";
+                                      displayValue = null;
                                     }
                                     
                                     const isLastColumnCell = columnIndex === columnsToDisplay.length - 1;
                                     const columnColor = (column as any).color;
-                                    
+                                    const prevCellColor = columnIndex > 0 ? (columnsToDisplay[columnIndex - 1] as any)?.color : undefined;
+                                    const showCellColorBorder = columnColor && columnColor !== prevCellColor;
+
                                     return (
-                                      <TableCell 
-                                        key={columnId} 
+                                      <TableCell
+                                        key={columnId}
                                         className="relative py-5 px-3"
-                                        style={{ 
+                                        style={{
                                           width: isLastColumnCell ? 'auto' : `${columnWidths[`${collection.id}-${columnId}`] || (
                                             columnName.toLowerCase().includes('description') ? 180 :
                                             columnName.toLowerCase().includes('summary') ? 180 :
                                             columnName.toLowerCase().includes('remediation') || columnName.toLowerCase().includes('action') ? 200 :
                                             columnType === 'TEXT' && (columnName.toLowerCase().includes('title') || columnName.toLowerCase().includes('name')) ? 200 :
-                                            columnType === 'TEXT' ? 160 : 
+                                            columnType === 'TEXT' ? 160 :
                                             columnType === 'NUMBER' || columnType === 'DATE' ? 120 :
                                             columnName.toLowerCase().includes('status') ? 130 :
                                             160
                                           )}px`,
                                           minWidth: isLastColumnCell ? '200px' : (columnName.toLowerCase().includes('description') ? '120px' : '100px'),
                                           ...(isLastColumnCell ? { flex: 1 } : {}),
-                                          ...(columnColor ? { borderLeft: `2px solid ${columnColor}` } : {})
+                                          ...(showCellColorBorder ? { borderLeft: `2px solid ${columnColor}` } : {})
                                         }}
                                       >
                                         <div className="relative w-full h-full">
@@ -7022,7 +7424,7 @@ Thank you for your assistance.`;
                                             columnType === 'TEXTAREA' ? 'min-h-[40px] py-2' : 'py-1.5'
                                           } break-words whitespace-normal overflow-wrap-anywhere leading-relaxed group relative text-sm dark:text-gray-200`}>
                                             <span className={`
-                                              ${formatValueForDisplay(displayValue, columnType) === 'Not Found' ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
+                                              ${formatValueForDisplay(displayValue, columnType) === 'Empty' ? 'text-gray-400 dark:text-gray-500 italic text-xs' : ''}
                                               ${columnIndex === 0 ? 'font-bold text-gray-900 dark:text-white' : ''}
                                             `.trim()}>
                                               {formatValueForDisplay(displayValue, columnType)}
@@ -7161,9 +7563,14 @@ Thank you for your assistance.`;
                                               } else {
                                                 const columnTool = column.toolId ? toolsMap.get(column.toolId) : null;
                                                 const colDisplayConfig = columnTool?.displayConfig || columnTool?.display_config;
-                                                const hasColModalDisplay = colDisplayConfig && colDisplayConfig.modalType && colDisplayConfig.modalType !== 'none';
-                                                
-                                                if (hasColModalDisplay) {
+                                                const hasColModalDisplay = (colDisplayConfig && colDisplayConfig.modalType && colDisplayConfig.modalType !== 'none') ||
+                                                  columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP';
+
+                                                // For multi-field DB lookups, only show magnifying glass on first column of the group
+                                                const isFirstOfGroupInRow = !column.isMultiField || !bodyRenderedValueIds.has(column.valueId);
+                                                if (column.isMultiField && column.valueId) bodyRenderedValueIds.add(column.valueId);
+
+                                                if (hasColModalDisplay && isFirstOfGroupInRow) {
                                                   return (
                                                     <Button
                                                       size="sm"
@@ -7207,13 +7614,31 @@ Thank you for your assistance.`;
                                                             if (workflowStep?.values) {
                                                               workflowStep.values.forEach((v: any) => {
                                                                 if (v.orderIndex < column.orderIndex) {
-                                                                  const val = validations.find(vd => 
-                                                                    vd.collectionName === collection.collectionName &&
-                                                                    vd.valueId === v.id &&
-                                                                    vd.identifierId === rowIdentifierId
-                                                                  );
-                                                                  if (val?.extractedValue) {
-                                                                    currentInputValues[v.valueName] = val.extractedValue;
+                                                                  // For multi-field values, populate each field individually
+                                                                  if (v.fields && v.fields.length > 0) {
+                                                                    const valueValidations = validations.filter(vd =>
+                                                                      vd.collectionName === collection.collectionName &&
+                                                                      vd.valueId === v.id &&
+                                                                      vd.identifierId === rowIdentifierId
+                                                                    );
+                                                                    valueValidations.forEach((val: any) => {
+                                                                      if (val?.extractedValue && val.fieldName) {
+                                                                        // Extract individual field name from "StepName.FieldName[idx]"
+                                                                        const fieldMatch = val.fieldName.match(/^.+\.(.+)\[\d+\]$/);
+                                                                        if (fieldMatch) {
+                                                                          currentInputValues[fieldMatch[1]] = val.extractedValue;
+                                                                        }
+                                                                      }
+                                                                    });
+                                                                  } else {
+                                                                    const val = validations.find(vd =>
+                                                                      vd.collectionName === collection.collectionName &&
+                                                                      vd.valueId === v.id &&
+                                                                      vd.identifierId === rowIdentifierId
+                                                                    );
+                                                                    if (val?.extractedValue) {
+                                                                      currentInputValues[v.valueName] = val.extractedValue;
+                                                                    }
                                                                   }
                                                                 }
                                                               });
@@ -7255,7 +7680,8 @@ Thank you for your assistance.`;
                                                               fieldName: columnName,
                                                               collectionName: collection.collectionName,
                                                               recordIndex: originalIndex,
-                                                              displayConfig: colDisplayConfig as ToolDisplayConfig,
+                                                              displayConfig: (colDisplayConfig || (columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP'
+                                                              ? { modalType: 'table' } : null)) as ToolDisplayConfig,
                                                               categoryColumn: colInputValues._categoryColumn || undefined,
                                                               categoryFilterByValue
                                                             });
@@ -7442,10 +7868,10 @@ Thank you for your assistance.`;
                                                     );
                                                   }
                                                 } else if (!hasValue) {
-                                                  // Show red exclamation mark for missing fields
+                                                  // Show subtle empty indicator for missing fields
                                                   return (
                                                     <div className="absolute top-1 left-1 w-3 h-3 flex items-center justify-center">
-                                                      <span className="text-red-500 text-xs font-bold leading-none">!</span>
+                                                      <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" />
                                                     </div>
                                                   );
                                                 }
@@ -7456,7 +7882,8 @@ Thank you for your assistance.`;
                                         </div>
                                       </TableCell>
                                     );
-                                  })}
+                                  });
+                                  })()}
                                   <TableCell className="py-2.5 px-2" style={{ width: '56px', minWidth: '56px', maxWidth: '56px' }}>
                                     <div className="flex items-center justify-center gap-3 px-2">
                                       {(() => {
@@ -7515,7 +7942,78 @@ Thank you for your assistance.`;
               );
             })}
         </div>
-      </div>
+          </div>
+        )}
+
+        {/* Right-side panels: doc-preview and/or CAT */}
+        {previewDocument && activePanelTab ? (
+          /* Both doc-preview and CAT open — ResizablePanelGroup between them */
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+            <ResizablePanel id="doc-preview" order={1} defaultSize={50} minSize={25}>
+              <DocumentPreview
+                document={previewDocument}
+                sessionId={sessionId!}
+                onClose={() => setPreviewDocumentId(null)}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="cat-panel" order={2} defaultSize={50} minSize={25}>
+              <SessionPanel
+                sessionId={sessionId!}
+                session={session}
+                validations={validations}
+                project={project}
+                activeTab={activePanelTab}
+                onTabChange={(tab) => setActivePanelTab(tab)}
+                onClose={() => setActivePanelTab(null)}
+                onOpenTask={(cardId) => setOpenTaskCardId(cardId)}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : previewDocument ? (
+          /* Only doc-preview open */
+          <div className="flex-1 min-h-0 min-w-0">
+            <DocumentPreview
+              document={previewDocument}
+              sessionId={sessionId!}
+              onClose={() => setPreviewDocumentId(null)}
+            />
+          </div>
+        ) : activePanelTab ? (
+          /* Only CAT panel open */
+          <div className="flex-1 min-h-0 min-w-0">
+            <SessionPanel
+              sessionId={sessionId!}
+              session={session}
+              validations={validations}
+              project={project}
+              activeTab={activePanelTab}
+              onTabChange={(tab) => setActivePanelTab(tab)}
+              onClose={() => setActivePanelTab(null)}
+              onOpenTask={(cardId) => setOpenTaskCardId(cardId)}
+            />
+          </div>
+        ) : null}
+
+        {/* Collapsed CAT sidebar strip — shows when no panel is open */}
+        {!activePanelTab && (
+          <div className="w-12 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-600 flex flex-col items-center pt-4 gap-3 flex-shrink-0">
+            {panelTabs.map(({ id, label, icon: Icon }) => (
+              <Button
+                key={id}
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0 text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10"
+                onClick={() => openCATPanel(id)}
+                title={label}
+              >
+                <Icon className="h-4 w-4" />
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>{/* closes outer flex (sidebar + main) */}
+
       {/* AI Reasoning Modal */}
       {selectedReasoning && (
         <Dialog open={!!selectedReasoning} onOpenChange={() => setSelectedReasoning(null)}>
@@ -7952,15 +8450,7 @@ Thank you for your assistance.`;
         />
       )}
 
-      {/* Session Chat */}
-      {session && validations && (
-        <SessionChat
-          sessionId={sessionId!}
-          session={session}
-          validations={validations}
-        />
-      )}
-      
+
     </div>
   );
 }
