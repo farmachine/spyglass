@@ -237,12 +237,12 @@ export default function ComingSoon() {
       <section id="how" className={`py-24 px-6 ${t.bgAlt} transition-colors duration-500`}>
         <div className="max-w-6xl mx-auto">
           <Reveal>
-            <div className="mb-16">
+            <div className="text-center mb-16">
               <span className={`text-xs font-semibold tracking-widest uppercase ${t.muted}`}>How It Works</span>
               <h2 className="text-3xl sm:text-4xl font-bold mt-3">
                 A translation layer between incoming data and your systems.
               </h2>
-              <p className={`mt-4 text-lg max-w-2xl ${t.secondary}`}>
+              <p className={`mt-4 text-lg max-w-2xl mx-auto ${t.secondary}`}>
                 Data comes in messy. extrapl delivers it structured — ready for your systems, your teams, your decisions.
               </p>
             </div>

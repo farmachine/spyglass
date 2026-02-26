@@ -1,7 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
-import type { FieldValidation, ExtractionSession, ProjectSchemaField, ObjectCollection, CollectionProperty } from "@shared/schema";
+import type { FieldValidation, ExtractionSession, ProjectSchemaField, ObjectCollection, CollectionProperty, WorkflowStep, StepValue } from "@shared/schema";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+interface ConversationParticipant {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface ConversationWithParticipants {
+  id: string;
+  name: string;
+  subject?: string | null;
+  participantEmail: string;
+  isOriginator: boolean;
+  participants: ConversationParticipant[];
+}
 
 interface ChatContext {
   session: ExtractionSession;
@@ -9,6 +24,10 @@ interface ChatContext {
   projectFields: ProjectSchemaField[];
   collections: ObjectCollection[];
   collectionProperties: CollectionProperty[];
+  workflowSteps: WorkflowStep[];
+  stepValues: StepValue[];
+  conversations: ConversationWithParticipants[];
+  projectInboxEmail: string | null;
 }
 
 export async function generateChatResponse(message: string, context: ChatContext): Promise<string> {
@@ -16,7 +35,7 @@ export async function generateChatResponse(message: string, context: ChatContext
     // Separate schema fields from collection fields
     const schemaValidations = context.validations.filter(v => v.validationType === 'schema_field');
     const collectionValidations = context.validations.filter(v => v.validationType === 'collection_property');
-    
+
     // Calculate verification statistics
     const totalFields = context.validations.length;
     const verifiedFields = context.validations.filter(v => v.validationStatus === 'valid' || v.validationStatus === 'verified').length;
@@ -41,8 +60,28 @@ export async function generateChatResponse(message: string, context: ChatContext
       collectionGroups[collectionName].push(validation);
     });
 
+    // Build step values section
+    const stepValuesSection = context.workflowSteps.map(step => {
+      const values = context.stepValues.filter((sv: any) => sv.stepId === step.id);
+      if (values.length === 0) return '';
+      return `\n${step.stepName} (${step.stepType}):
+${values.map((sv: any) => `  - ${sv.fieldName}: ${sv.extractedValue || 'No value'}`).join('\n')}`;
+    }).filter(Boolean).join('\n');
+
+    // Build conversations section
+    const conversationsSection = context.conversations.map(conv => {
+      const participantsList = conv.participants.map(p =>
+        `    - ${p.name} <${p.email}>`
+      ).join('\n');
+      return `- [ID: ${conv.id}] "${conv.name}" ${conv.isOriginator ? '(ORIGINATOR)' : ''}
+    Subject: ${conv.subject || '(no subject)'}
+    Primary: ${conv.participantEmail}
+    Participants:
+${participantsList}`;
+    }).join('\n');
+
     // Prepare context for AI
-    const systemPrompt = `You are an AI assistant helping with document data extraction session analysis. You have access to the following session data:
+    const systemPrompt = `You are an AI assistant helping with document data extraction session analysis. You have access to session data and conversation context. You can render rich data tables, draft correspondence, and help automate tasks.
 
 SESSION INFORMATION:
 - Session Name: ${context.session.sessionName}
@@ -60,25 +99,23 @@ VALIDATION STATISTICS:
   * Pending: ${statusCounts.pending}
   * Manual: ${statusCounts.manual}
 
-EXTRACTED DATA:
+EXTRACTED DATA (Page Fields):
 ${schemaValidations.map(v => {
-  // Find the field name from the project fields based on fieldId
   const field = context.projectFields.find(f => f.id === v.fieldId);
   const fieldName = field?.fieldName || `Field ${v.fieldId}`;
   return `- ${fieldName}: ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`;
 }).join('\n')}
 
-COLLECTION DATA (Cross-validation capable):
+STEP VALUES:
+${stepValuesSection || '(No step values)'}
+
+COLLECTION DATA (Data Tables):
 ${Object.entries(collectionGroups).map(([collectionName, validations]) => {
   const recordCount = Math.max(...validations.map(v => v.recordIndex || 0)) + 1;
   return `\n${collectionName} Collection (${recordCount} records):
-${validations.slice(0, 10).map(v => {
-    // Use the fieldName from validation if available (already formatted properly)
-    // Otherwise try to find the property name from collection properties
+${validations.slice(0, 100).map(v => {
     let propName = 'Unknown Property';
-    
     if (v.fieldName) {
-      // Extract just the property name from the formatted fieldName (e.g., "Collection.PropertyName[0]" -> "PropertyName")
       const parts = v.fieldName.split('.');
       if (parts.length > 1) {
         propName = parts[parts.length - 1].split('[')[0];
@@ -86,13 +123,11 @@ ${validations.slice(0, 10).map(v => {
         propName = v.fieldName;
       }
     } else {
-      // Fallback to finding property by ID
       const prop = context.collectionProperties.find(p => p.id === v.fieldId);
       propName = prop?.propertyName || 'Unknown Property';
     }
-    
-    return `  - Record ${v.recordIndex}: ${propName} = ${v.extractedValue || 'No value'} (Status: ${v.validationStatus}, Confidence: ${v.confidenceScore}%)`;
-  }).join('\n')}${validations.length > 10 ? `\n  ... and ${validations.length - 10} more fields in this collection` : ''}`;
+    return `  - Record ${v.recordIndex}: ${propName} = ${v.extractedValue || 'No value'} (Status: ${v.validationStatus})`;
+  }).join('\n')}${validations.length > 100 ? `\n  ... and ${validations.length - 100} more fields` : ''}`;
 }).join('\n')}
 
 PROJECT SCHEMA:
@@ -101,7 +136,30 @@ ${context.projectFields.map(f => `- ${f.fieldName} (${f.fieldType}): ${f.descrip
 COLLECTIONS:
 ${context.collections.map(c => `- ${c.collectionName}: ${c.description || 'No description'}`).join('\n')}
 
-You can perform cross-validation analysis on collection data by comparing values across records within collections and between different collections. You have access to all extracted data across all tabs/collections.
+CONVERSATIONS:
+${conversationsSection || '(No conversations)'}
+
+---
+
+FORMATTING INSTRUCTIONS:
+- **Always use markdown tables** when presenting tabular data. Use proper | column | headers | format with alignment.
+- Use **bold** for emphasis and ## headings for sections.
+- Use bullet points with - for lists.
+- Use > blockquotes for drafted correspondence.
+- Structure responses clearly with sections and spacing.
+- Keep tables clean and readable with aligned columns.
+
+CORRESPONDENCE DRAFTING:
+When the user asks you to draft a message or correspondence for someone:
+1. Identify the target conversation from the CONVERSATIONS list above (match by name, email, or conversation ID).
+2. Format the draft message inside a blockquote (using > prefix).
+3. After the draft, on a new line, add this EXACT marker (it will be invisible to the user but used by the system):
+   <!-- DRAFT_EMAIL conversationId="THE_CONVERSATION_ID" subject="THE_SUBJECT" -->
+   Replace THE_CONVERSATION_ID with the actual conversation ID and THE_SUBJECT with an appropriate subject line.
+4. The system will automatically show a "Send" button to the user so they can send the draft to that conversation.
+5. If the user mentions a name with @, look up the corresponding conversation participant and use their conversation.
+
+IMPORTANT: Only include the DRAFT_EMAIL marker when the user explicitly asks to draft or send a message. Do not include it for general data queries.
 
 Please provide helpful insights about this session data. Answer questions about:
 - Verification status and progress
@@ -109,18 +167,10 @@ Please provide helpful insights about this session data. Answer questions about:
 - Specific field values and their confidence scores
 - Patterns in the extracted data
 - Cross-validation checks across collection records
-- Inconsistencies or conflicts between related data points
-- Suggestions for improving data quality
-- Comparative analysis across collection records
+- Drafting correspondence for conversation participants
+- Summarizing data in rich table format
 
-FORMATTING GUIDELINES:
-- Use proper paragraph breaks (double newlines) between major topics
-- Use single newlines for line breaks within sections
-- Structure responses with clear sections when appropriate
-- Use bullet points with - when listing items
-- Keep responses well-organized and easy to read
-
-Keep responses concise and focused on the user's question. Use the session data to provide accurate, specific information about ALL available data.`;
+Keep responses concise and focused on the user's question.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",

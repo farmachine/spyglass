@@ -118,24 +118,23 @@ def merge_header_rows(header_rows):
 def extract_with_gemini_vision(file_content: bytes, mime_type: str, file_name: str = "document") -> str:
     """Use Gemini AI to extract text from a document or image via vision."""
     try:
-        import google.generativeai as genai
+        from google import genai
         api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise Exception("No Gemini API key available")
-        
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        
+
+        client = genai.Client(api_key=api_key)
+
         content_b64 = base64.b64encode(file_content).decode('utf-8')
-        
-        response = model.generate_content([
-            {
-                "mime_type": mime_type,
-                "data": content_b64
-            },
-            "Extract ALL text content from this document/image. Return only the raw text content, preserving the structure and formatting as closely as possible. Do not add any commentary or explanation."
-        ])
-        
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                genai.types.Part.from_bytes(data=file_content, mime_type=mime_type),
+                "Extract ALL text content from this document/image. Return only the raw text content, preserving the structure and formatting as closely as possible. Do not add any commentary or explanation."
+            ]
+        )
+
         if response and response.text:
             return response.text.strip()
         return ""

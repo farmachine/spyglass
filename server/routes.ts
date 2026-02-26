@@ -22,8 +22,8 @@ import { spawn } from "child_process";
 import { z } from "zod";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, asc } from "drizzle-orm";
-import { workflowSteps, stepValues, sessionDocuments, type StepValue, type ProjectSchemaField, type ObjectCollection, type CollectionProperty, type FieldValidation, type ExtractionSession } from "@shared/schema";
+import { eq, asc, sql } from "drizzle-orm";
+import { workflowSteps, stepValues, sessionDocuments, kanbanCards, kanbanChecklistItems, type StepValue, type ProjectSchemaField, type ObjectCollection, type CollectionProperty, type FieldValidation, type ExtractionSession } from "@shared/schema";
 import { 
   insertProjectSchema,
   insertProjectSchemaFieldSchema,
@@ -310,6 +310,12 @@ async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
           fromStatus: currentStatus,
           toStatus: revertTo,
         });
+        await storage.createSessionActivity({
+          sessionId,
+          activityType: 'workflow_status_changed',
+          description: `Status reverted from "${currentStatus}" to "${revertTo}"`,
+          metadata: { fromStatus: currentStatus, toStatus: revertTo, reverted: true },
+        });
       } catch (e) {
         console.error("Error recording workflow status history on revert:", e);
       }
@@ -320,7 +326,187 @@ async function checkAndRevertWorkflowStatus(sessionId: string): Promise<void> {
   }
 }
 
+/**
+ * Format an email address with a display name for RFC 5322.
+ * Example: formatEmailFrom("Acme Sales", "uuid.sales@extrapl.it")
+ *       => '"Acme Sales" <uuid.sales@extrapl.it>'
+ */
+function formatEmailFrom(displayName: string, emailAddress: string): string {
+  const escaped = displayName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `"${escaped}" <${emailAddress}>`;
+}
+
+/** Strip quoted reply chain from email text — keep only the new reply content */
+function stripQuotedReply(text: string): string {
+  const lines = text.split(/\r?\n/);
+  const cutPatterns = [
+    /^On .+ wrote:\s*$/i,                          // Gmail: "On Tue, 24 Feb 2026 at 12:46, Name wrote:"
+    /^-{3,}\s*Original Message\s*-{3,}$/i,         // Outlook: "--- Original Message ---"
+    /^_{3,}$/,                                       // Outlook: "___" separator
+    /^From:\s+.+$/i,                                // Outlook: "From: Name <email>"
+    /^Sent from my /i,                              // Mobile signatures
+  ];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (cutPatterns.some(p => p.test(trimmed))) {
+      return lines.slice(0, i).join('\n').trim();
+    }
+  }
+  return text.trim();
+}
+
+/** Remove inline CID image references like [cid:uuid-here] from email text */
+function stripCidReferences(text: string): string {
+  return text
+    .replace(/\[cid:[^\]]+\]/gi, '')
+    .replace(/cid:[a-f0-9-]+@[a-z0-9.-]*/gi, '')
+    .replace(/\n{3,}/g, '\n\n');  // collapse blank lines left by removal
+}
+
+/** Strip email signature block from plain text email content */
+function stripEmailSignature(text: string): string {
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const remaining = lines.length - i;
+
+    // RFC 3676 signature delimiter: "-- " or "--"
+    if (line === '--' || line === '-- ') {
+      return lines.slice(0, i).join('\n').trimEnd();
+    }
+
+    // Only match sign-offs if remaining content is signature-length (≤15 lines)
+    if (remaining <= 15) {
+      if (/^(Best regards|Kind regards|Regards|Thanks|Cheers|Sincerely|Warm regards|Best wishes|Thank you|Best|Many thanks|Respectfully),?\s*$/i.test(line)) {
+        return lines.slice(0, i).join('\n').trimEnd();
+      }
+      if (/^Sent from (my |Mail |Outlook|Yahoo)/i.test(line) || /^Get Outlook for/i.test(line)) {
+        return lines.slice(0, i).join('\n').trimEnd();
+      }
+    }
+  }
+  return text.trimEnd();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Run idempotent schema migrations
+  try {
+    await db.execute(sql`ALTER TABLE session_documents ADD COLUMN IF NOT EXISTS s3_key TEXT`);
+    await db.execute(sql`ALTER TABLE session_documents ADD COLUMN IF NOT EXISTS source_email_id UUID REFERENCES session_emails(id) ON DELETE SET NULL`);
+    console.log('✅ Schema migration: s3_key and source_email_id columns ensured on session_documents');
+  } catch (err) {
+    console.error('⚠️ Schema migration warning:', err);
+  }
+
+  // Conversation support migrations
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS session_conversations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID NOT NULL REFERENCES extraction_sessions(id) ON DELETE CASCADE,
+        project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        participant_email TEXT NOT NULL,
+        is_originator BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    await db.execute(sql`ALTER TABLE session_emails ADD COLUMN IF NOT EXISTS conversation_id UUID REFERENCES session_conversations(id) ON DELETE SET NULL`);
+    await db.execute(sql`ALTER TABLE extraction_sessions ADD COLUMN IF NOT EXISTS originator_name TEXT`);
+    await db.execute(sql`ALTER TABLE extraction_sessions ADD COLUMN IF NOT EXISTS originator_email TEXT`);
+    // Add subject field to conversations
+    await db.execute(sql`ALTER TABLE session_conversations ADD COLUMN IF NOT EXISTS subject TEXT`);
+    // Create conversation_participants table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS conversation_participants (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        conversation_id UUID NOT NULL REFERENCES session_conversations(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    console.log('✅ Schema migration: session_conversations, conversation_participants tables ensured');
+  } catch (err) {
+    console.error('⚠️ Schema migration warning (conversations):', err);
+  }
+
+  // Backfill: seed conversation_participants from existing conversations
+  try {
+    await db.execute(sql`
+      INSERT INTO conversation_participants (conversation_id, name, email)
+      SELECT sc.id, sc.name, sc.participant_email
+      FROM session_conversations sc
+      WHERE sc.id NOT IN (SELECT cp.conversation_id FROM conversation_participants cp)
+    `);
+    console.log('✅ Backfill: conversation_participants seeded from existing conversations');
+  } catch (err) {
+    console.error('⚠️ Backfill warning (conversation_participants):', err);
+  }
+
+  // Backfill: set subject from first email for conversations where subject IS NULL
+  try {
+    await db.execute(sql`
+      UPDATE session_conversations sc
+      SET subject = (
+        SELECT se.subject FROM session_emails se
+        WHERE se.conversation_id = sc.id AND se.subject IS NOT NULL
+        ORDER BY se.created_at ASC LIMIT 1
+      )
+      WHERE sc.subject IS NULL
+    `);
+    console.log('✅ Backfill: conversation subjects set from first email');
+  } catch (err) {
+    console.error('⚠️ Backfill warning (conversation subjects):', err);
+  }
+
+  // Backfill: create default conversations for existing sessions with emails but no conversations
+  try {
+    const sessionsWithEmails = await db.execute(sql`
+      SELECT DISTINCT se.session_id, se.project_id
+      FROM session_emails se
+      LEFT JOIN session_conversations sc ON sc.session_id = se.session_id
+      WHERE sc.id IS NULL
+      GROUP BY se.session_id, se.project_id
+    `);
+
+    if (sessionsWithEmails.rows && sessionsWithEmails.rows.length > 0) {
+      for (const row of sessionsWithEmails.rows) {
+        const sid = row.session_id as string;
+        const pid = row.project_id as string;
+
+        // Find first inbound email to determine originator
+        const firstInbound = await db.execute(sql`
+          SELECT from_email FROM session_emails
+          WHERE session_id = ${sid} AND direction = 'inbound'
+          ORDER BY created_at ASC LIMIT 1
+        `);
+
+        const originatorEmail = firstInbound.rows?.[0]?.from_email as string | undefined;
+        if (originatorEmail) {
+          // Create originator conversation
+          const convResult = await db.execute(sql`
+            INSERT INTO session_conversations (session_id, project_id, name, participant_email, is_originator)
+            VALUES (${sid}, ${pid}, ${originatorEmail.split('@')[0]}, ${originatorEmail}, true)
+            RETURNING id
+          `);
+          const convId = convResult.rows?.[0]?.id as string;
+          if (convId) {
+            // Assign all existing emails to this conversation
+            await db.execute(sql`UPDATE session_emails SET conversation_id = ${convId} WHERE session_id = ${sid}`);
+            // Set originator on session
+            await db.execute(sql`UPDATE extraction_sessions SET originator_email = ${originatorEmail} WHERE id = ${sid} AND originator_email IS NULL`);
+          }
+        }
+      }
+      console.log(`✅ Backfill: Created conversations for ${sessionsWithEmails.rows.length} session(s)`);
+    }
+  } catch (err) {
+    console.error('⚠️ Backfill warning (conversations):', err);
+  }
+
   // Apply subdomain middleware to all requests
   const baseDomain = process.env.BASE_DOMAIN;
   app.use(subdomainMiddleware(baseDomain));
@@ -520,6 +706,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Forgot password endpoint (self-service, no auth required)
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const result = forgotPasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid email", errors: result.error.errors });
+      }
+
+      const user = await storage.getUserByEmail(result.data.email);
+
+      // Always return success to prevent email enumeration
+      if (!user || !user.isActive) {
+        return res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+      }
+
+      // Invalidate any existing reset tokens for this user
+      await storage.invalidatePasswordResetTokensForUser(user.id);
+
+      // Generate a reset token (48 random bytes → 96 hex chars)
+      const rawToken = crypto.randomBytes(48).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.createPasswordResetToken(user.id, tokenHash, expiresAt);
+
+      // Build the reset URL
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+
+      // Log the reset URL (always, for admin access)
+      console.log(`[PASSWORD RESET] Token generated for ${user.email}: ${resetUrl}`);
+
+      // Send the password reset email via AWS SES
+      try {
+        const { sendPasswordResetEmail } = await import('./email');
+        await sendPasswordResetEmail({ to: user.email, resetUrl });
+        console.log(`[PASSWORD RESET] Email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error("[PASSWORD RESET] Failed to send email:", emailError);
+      }
+
+      res.json({ message: "If an account exists with that email, a password reset link has been sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process forgot password request" });
+    }
+  });
+
+  // Reset password with token (self-service, no auth required)
+  app.post("/api/auth/reset-password-with-token", async (req, res) => {
+    try {
+      const result = resetPasswordWithTokenSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid reset data", errors: result.error.errors });
+      }
+
+      // Hash the provided token to look it up
+      const tokenHash = crypto.createHash('sha256').update(result.data.token).digest('hex');
+      const resetToken = await storage.getPasswordResetToken(tokenHash);
+
+      if (!resetToken) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Check if token has already been used
+      if (resetToken.usedAt) {
+        return res.status(400).json({ message: "This reset token has already been used" });
+      }
+
+      // Check if token has expired
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.status(400).json({ message: "This reset token has expired" });
+      }
+
+      // Hash the new password and update the user
+      const newPasswordHash = await hashPassword(result.data.newPassword);
+      await storage.updateUserPassword(resetToken.userId, newPasswordHash, false);
+
+      // Mark the token as used
+      await storage.markPasswordResetTokenUsed(tokenHash);
+
+      // Invalidate all other tokens for this user
+      await storage.invalidatePasswordResetTokensForUser(resetToken.userId);
+
+      console.log(`[PASSWORD RESET] Password successfully reset for user ${resetToken.userId}`);
+
+      res.json({ message: "Password has been reset successfully. You can now sign in with your new password." });
+    } catch (error) {
+      console.error("Reset password with token error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Contact form endpoint (public, no auth required)
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, message } = req.body;
+      if (!name || !email || !message) {
+        return res.status(400).json({ message: "Name, email, and message are required" });
+      }
+
+      // Always log the contact submission
+      console.log(`[CONTACT FORM] Name: ${name}, Email: ${email}, Message: ${message}`);
+
+      // Send notification email to info@extrapl.io via AWS SES
+      try {
+        const { sendContactFormEmail } = await import('./email');
+        await sendContactFormEmail({ name, email, message });
+        console.log(`[CONTACT FORM] Email notification sent to info@extrapl.io via SES`);
+      } catch (emailError) {
+        // Don't fail the request if email sending fails — the submission is still logged
+        console.error("[CONTACT FORM] Failed to send email notification:", emailError);
+      }
+
+      res.json({ message: "Message received. We'll get back to you soon." });
+    } catch (error) {
+      console.error("Contact form error:", error);
+      res.status(500).json({ message: "Failed to send message" });
     }
   });
 
@@ -3999,7 +4306,8 @@ except Exception as e:
       // Use Python document extractor to get content
       const { spawn } = await import('child_process');
       const pythonProcess = spawn('python3', ['services/document_extractor.py'], {
-        cwd: process.cwd()
+        cwd: process.cwd(),
+        env: { ...process.env }
       });
       
       let stdout = '';
@@ -4026,10 +4334,10 @@ except Exception as e:
       pythonProcess.stdin.write(JSON.stringify(inputData));
       pythonProcess.stdin.end();
       
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging (60s to allow Gemini OCR for scanned PDFs)
       const timeout = setTimeout(() => {
         pythonProcess.kill();
-      }, 30000); // 30 second timeout
+      }, 60000); // 60 second timeout
       
       await new Promise<void>((resolve, reject) => {
         pythonProcess.on('close', (code) => {
@@ -4231,7 +4539,8 @@ except Exception as e:
       // Extract text from the document using Python extractor
       const { spawn } = await import('child_process');
       const pythonProcess = spawn('python3', ['services/document_extractor.py'], {
-        cwd: process.cwd()
+        cwd: process.cwd(),
+        env: { ...process.env }
       });
       
       let stdout = '';
@@ -4256,44 +4565,61 @@ except Exception as e:
       
       pythonProcess.stdin.write(JSON.stringify(inputData));
       pythonProcess.stdin.end();
-      
+
+      // 90s timeout for scanned PDFs that need Gemini OCR
       const timeout = setTimeout(() => {
+        console.log('Session doc extraction timeout after 90s, stderr:', stderr.slice(0, 500));
         pythonProcess.kill();
-      }, 30000);
-      
+      }, 90000);
+
       await new Promise<void>((resolve, reject) => {
         pythonProcess.on('close', (code) => {
           clearTimeout(timeout);
           if (code === 0) {
             resolve();
           } else {
-            reject(new Error(`Extraction failed: ${stderr}`));
+            // Don't reject on extraction failure — still save the document without extracted text
+            console.log(`Extraction exited with code ${code}, continuing without extracted text. stderr: ${stderr.slice(0, 500)}`);
+            resolve();
           }
         });
         pythonProcess.on('error', (err) => {
           clearTimeout(timeout);
-          reject(err);
+          console.error('Extraction process error:', err);
+          resolve(); // Still save the document
         });
       });
-      
+
       let extractedText = '';
       try {
-        const result = JSON.parse(stdout.trim());
-        if (result.success && result.extracted_texts && result.extracted_texts.length > 0) {
-          extractedText = result.extracted_texts[0].text_content || '';
+        if (stdout.trim()) {
+          const result = JSON.parse(stdout.trim());
+          if (result.success && result.extracted_texts && result.extracted_texts.length > 0) {
+            extractedText = result.extracted_texts[0].text_content || '';
+          }
         }
       } catch (e) {
         console.error('Failed to parse extraction result:', e);
       }
-      
-      // Save the document to the database
+
+      // Save the document to the database (even if extraction failed)
       const document = await storage.createSessionDocument({
         sessionId,
         fileName: file.originalname,
         extractedContent: extractedText,
         documentTypeId: documentTypeId || null
       });
-      
+
+      // Log document upload in activity timeline
+      try {
+        await storage.createSessionActivity({
+          sessionId,
+          activityType: 'document_uploaded',
+          description: `Document "${file.originalname}" uploaded`,
+          metadata: { fileName: file.originalname, fileSize: file.size, mimeType: file.mimetype },
+        });
+      } catch (e) { console.error("Error logging document upload activity:", e); }
+
       res.json(document);
     } catch (error) {
       console.error("Upload session document error:", error);
@@ -4318,6 +4644,88 @@ except Exception as e:
     }
   });
 
+  // Shared helper: retrieve raw file buffer from local disk or S3
+  async function getDocumentFileBuffer(doc: { id: string; sessionId: string; fileName: string; s3Key: string | null; mimeType: string | null }): Promise<Buffer | null> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+
+    // Try local disk first (for UI-uploaded documents)
+    const uploadDir = path.join(process.cwd(), 'uploads', doc.sessionId);
+    const files = await fs.readdir(uploadDir).catch(() => [] as string[]);
+    const matchingFile = files.find(f => f === doc.fileName || f.includes(doc.fileName.replace(/[^\w\s.-]/g, '_')) || f.endsWith('_' + doc.fileName));
+
+    if (matchingFile) {
+      const filePath = path.join(uploadDir, matchingFile);
+      return fs.readFile(filePath);
+    }
+
+    // Fallback: fetch from S3 (for email-uploaded documents)
+    try {
+      const { S3Client: S3C, GetObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+      const s3 = new S3C({ region: process.env.AWS_REGION || 'eu-west-1' });
+      const bucket = process.env.S3_BUCKET_NAME;
+
+      let s3Key = doc.s3Key;
+
+      // If no s3Key stored (legacy documents), search S3 by session prefix
+      if (!s3Key) {
+        const session = await storage.getExtractionSession(doc.sessionId);
+        if (session) {
+          const prefix = `documents/${session.projectId}/${doc.sessionId}/`;
+          const listResult = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix }));
+          const matchingObj = listResult.Contents?.find(obj =>
+            obj.Key && obj.Key.includes(doc.fileName.replace(/[^\w\s.-]/g, '_')) || obj.Key?.endsWith(doc.fileName)
+          );
+          if (matchingObj?.Key) {
+            s3Key = matchingObj.Key;
+            await storage.updateSessionDocument(doc.id, { s3Key });
+            console.log(`📄 Found legacy document in S3 via list: ${s3Key}`);
+          }
+        }
+      }
+
+      if (s3Key) {
+        const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }));
+        const chunks: Uint8Array[] = [];
+        for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+          chunks.push(chunk);
+        }
+        const fileData = Buffer.concat(chunks);
+        console.log(`📄 Fetched ${doc.fileName} from S3 (${fileData.length} bytes)`);
+        return fileData;
+      }
+    } catch (s3Err) {
+      console.error(`📄 Failed to fetch document from S3:`, s3Err);
+    }
+
+    return null;
+  }
+
+  // Serve raw document file for preview (PDF in iframe, images, etc.)
+  app.get("/api/sessions/documents/:documentId/file", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const documentId = req.params.documentId;
+      const [doc] = await db.select().from(sessionDocuments).where(eq(sessionDocuments.id, documentId)).limit(1);
+      if (!doc) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const fileData = await getDocumentFileBuffer(doc);
+      if (!fileData) {
+        return res.status(404).json({ message: "Raw file not available", hasExtractedContent: !!doc.extractedContent });
+      }
+
+      const mimeType = doc.mimeType || 'application/octet-stream';
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${doc.fileName}"`);
+      res.setHeader('Content-Length', fileData.length.toString());
+      res.send(fileData);
+    } catch (error) {
+      console.error("Serve document file error:", error);
+      res.status(500).json({ message: "Failed to serve document file" });
+    }
+  });
+
   app.post("/api/sessions/documents/:documentId/process", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const documentId = req.params.documentId;
@@ -4326,31 +4734,26 @@ except Exception as e:
         return res.status(404).json({ message: "Document not found" });
       }
 
-      const fs = await import('fs/promises');
-      const path = await import('path');
-      const uploadDir = path.join(process.cwd(), 'uploads', doc.sessionId);
-      const files = await fs.readdir(uploadDir).catch(() => [] as string[]);
-      const matchingFile = files.find(f => f.includes(doc.fileName.replace(/[^\w\s.-]/g, '_')) || f.endsWith('_' + doc.fileName));
-      
-      if (!matchingFile) {
-        return res.status(404).json({ message: "File not found on disk" });
+      const fileData = await getDocumentFileBuffer(doc);
+      if (!fileData) {
+        return res.status(404).json({ message: "File not found on disk or in S3" });
       }
 
-      const filePath = path.join(uploadDir, matchingFile);
-      const fileData = await fs.readFile(filePath);
-      const base64Content = fileData.toString('base64');
       const mimeType = doc.mimeType || 'application/octet-stream';
+      const base64Content = fileData.toString('base64');
 
       const extractionData = {
         step: "extract_text_only",
         documents: [{ file_name: doc.fileName, file_content: base64Content, mime_type: mimeType }]
       };
 
+      const fs = await import('fs/promises');
+      const fsSync = await import('fs');
+      const path = await import('path');
       const osMod = await import('os');
       const tmpFile = path.join(osMod.tmpdir(), `extract_${crypto.randomUUID()}.json`);
       await fs.writeFile(tmpFile, JSON.stringify(extractionData));
 
-      const fsSync = await import('fs');
       const extractedContent = await new Promise<string>((resolve) => {
         const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
         const timeout = setTimeout(() => { python.kill(); console.log(`Process timeout for ${doc.fileName}`); resolve(''); }, 120000);
@@ -4530,10 +4933,10 @@ except Exception as e:
       }
       
       const session = await storage.createExtractionSession(result.data);
-      
+
       // Generate initial field validations for the new session
       await generateInitialFieldValidations(session.id, projectId);
-      
+
       if ((session as any).workflowStatus) {
         try {
           await storage.createWorkflowStatusHistory({
@@ -4544,7 +4947,17 @@ except Exception as e:
           });
         } catch (e) { console.error("Error recording initial workflow status:", e); }
       }
-      
+
+      // Log session creation in activity timeline
+      try {
+        await storage.createSessionActivity({
+          sessionId: session.id,
+          activityType: 'session_created',
+          description: `Session "${session.sessionName}" created manually`,
+          metadata: { source: 'manual' },
+        });
+      } catch (e) { console.error("Error logging session creation activity:", e); }
+
       res.status(201).json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to create extraction session" });
@@ -4600,7 +5013,17 @@ except Exception as e:
           });
         } catch (e) { console.error("Error recording initial workflow status:", e); }
       }
-      
+
+      // Log session creation in activity timeline
+      try {
+        await storage.createSessionActivity({
+          sessionId: session.id,
+          activityType: 'session_created',
+          description: `Session "${session.sessionName}" created manually`,
+          metadata: { source: 'manual' },
+        });
+      } catch (e) { console.error("Error logging session creation activity:", e); }
+
       res.status(201).json(session);
     } catch (error) {
       console.error("Failed to create empty session:", error);
@@ -4669,8 +5092,20 @@ except Exception as e:
         } catch (e) {
           console.error("Error recording workflow status history:", e);
         }
+
+        // Log in activity timeline
+        try {
+          await storage.createSessionActivity({
+            sessionId: id,
+            activityType: 'workflow_status_changed',
+            description: `Status changed from "${fromStatus || 'none'}" to "${workflowStatus}"`,
+            metadata: { fromStatus, toStatus: workflowStatus },
+          });
+        } catch (e) {
+          console.error("Error logging workflow status activity:", e);
+        }
       }
-      
+
       res.json(session);
     } catch (error) {
       console.error("Error updating session workflow status:", error);
@@ -5009,7 +5444,8 @@ except Exception as e:
           toolInputs.__infoPageFields = target_fields.map((f: any) => ({
             name: f.fieldName || f.valueName,
             dataType: f.dataType || 'TEXT',
-            description: f.description || ''
+            description: f.description || '',
+            identifierId: f.identifierId
           }));
           console.log('📋 Multi-field definitions:', toolInputs.__infoPageFields);
         }
@@ -5245,49 +5681,78 @@ except Exception as e:
           // For Info Page multi-field extraction, each result corresponds to a field
           if (target_fields && target_fields.length > 0) {
             console.log(`📝 Saving ${toolResults.length} field results for Info Page`);
-            console.log(`📊 Matching results to ${target_fields.length} target fields`);
-            
-            // Map results by identifierId for accurate field matching
+            console.log(`📊 Target fields:`, target_fields.map((f: any) => ({ fieldName: f.fieldName, identifierId: f.identifierId, fieldId: f.fieldId })));
+
+            // Step 1: Delete existing unverified validations for this step/value so re-extraction overwrites
+            try {
+              const existingValidations = await storage.getFieldValidations(sessionId);
+              const staleValidations = existingValidations.filter(v =>
+                v.stepId === step_id &&
+                v.valueId === value_id &&
+                v.validationStatus !== 'valid' &&
+                v.validationStatus !== 'manual'
+              );
+              if (staleValidations.length > 0) {
+                console.log(`🧹 Deleting ${staleValidations.length} stale unverified validations for step ${step_id}, value ${value_id}`);
+                for (const stale of staleValidations) {
+                  await storage.deleteFieldValidation(stale.id);
+                }
+              }
+            } catch (cleanupErr) {
+              console.warn('⚠️ Error cleaning up stale validations:', cleanupErr);
+            }
+
+            // Step 2: Match results to fields - try identifierId first, then fall back to index
             for (let i = 0; i < toolResults.length; i++) {
               const result = toolResults[i];
               console.log(`📊 Processing result ${i}:`, {
                 extractedValue: result.extractedValue,
                 identifierId: (result as any).identifierId
               });
-              
-              // Find the matching field by identifierId
-              const field = target_fields.find((f: any) => 
-                f.identifierId === result.identifierId || 
-                f.identifierId === (result as any).identifierId
+
+              // Try matching by identifierId first, then fall back to index
+              let field = target_fields.find((f: any) =>
+                f.identifierId === result.identifierId
               );
-              
+
+              if (!field && i < target_fields.length) {
+                // Fallback: match by index position (AI returns results in field order)
+                field = target_fields[i];
+                console.log(`📊 Matched result ${i} by index to field: ${field.fieldName}`);
+              }
+
               if (!field) {
-                console.warn(`⚠️ Could not find field for identifierId: ${(result as any).identifierId}`);
-                console.log(`📊 Available target field identifierIds:`, target_fields.map((f: any) => f.identifierId));
+                console.warn(`⚠️ Could not find field for result ${i}`);
                 continue;
               }
-              
+
+              // Use identifierId as the fieldId — this is what the client looks up
+              const fieldIdentifierId = field.identifierId || field.fieldId || `${value_id}_field_${i}`;
+
               console.log(`✅ Matched result to field:`, {
                 fieldName: field.fieldName,
-                fieldId: field.id || field.fieldId,
+                fieldIdentifierId,
                 identifierId: field.identifierId
               });
-              
-              // Create validation record for this field
+
+              // Create validation record
+              // NOTE: fieldId is UUID type in DB, so use value_id (valid UUID)
+              // Store composite field identifier in identifierId (TEXT column)
+              // Client looks up by v.identifierId === fieldIdentifierId
               const validationRecord = {
                 sessionId,
                 projectId,
-                fieldId: value_id || field.id || field.fieldId, // Use value_id for multi-field values
+                fieldId: value_id, // Must be valid UUID — use parent value ID
                 fieldName: field.fieldName || field.valueName,
                 extractedValue: result.extractedValue || '',
                 validationStatus: result.validationStatus || 'pending',
                 validationType: 'ai',
                 dataType: field.dataType || 'TEXT',
                 description: field.description || '',
-                identifierId: field.identifierId,
+                identifierId: fieldIdentifierId, // TEXT column — composite field ID for lookup
                 stepId: step_id,
                 valueId: value_id,
-                recordIndex: 0, // Info Page fields don't have record indices
+                recordIndex: 0,
                 collectionName: null,
                 documentSource: result.documentSource || '',
                 aiReasoning: result.aiReasoning || '',
@@ -5295,21 +5760,21 @@ except Exception as e:
                 createdAt: new Date(),
                 updatedAt: new Date()
               };
-              
-              console.log(`📝 Saving validation for field: ${field.fieldName || field.valueName} (ID: ${field.identifierId})`);
-              
-              // Use upsert pattern: try create, if duplicate exists then update
+
+              console.log(`📝 Saving validation: fieldId=${value_id}, identifierId=${fieldIdentifierId}, value="${result.extractedValue}"`);
+
               try {
                 await storage.createFieldValidation(validationRecord);
+                console.log(`✅ Created validation for field: ${field.fieldName}`);
               } catch (err: any) {
+                console.log(`⚠️ Create failed with code: ${err.code}, message: ${err.message}`);
                 if (err.code === '23505') {
-                  // Duplicate key - find existing record and update it
-                  console.log(`⚠️ Validation already exists for field ${field.identifierId}, updating instead`);
-                  const existingValidations = await storage.getFieldValidations(sessionId);
-                  const existing = existingValidations.find(v => 
-                    v.stepId === step_id && 
-                    v.valueId === value_id && 
-                    v.identifierId === field.identifierId
+                  // Duplicate key - update existing
+                  console.log(`⚠️ Duplicate, updating existing validation for ${fieldIdentifierId}`);
+                  const allValidations = await storage.getFieldValidations(sessionId);
+                  const existing = allValidations.find(v =>
+                    v.stepId === step_id &&
+                    v.identifierId === fieldIdentifierId
                   );
                   if (existing) {
                     await storage.updateFieldValidation(existing.id, {
@@ -5320,9 +5785,11 @@ except Exception as e:
                       documentSource: validationRecord.documentSource,
                       updatedAt: new Date()
                     });
+                    console.log(`✅ Updated existing validation for field: ${field.fieldName}`);
                   }
                 } else {
-                  throw err; // Re-throw other errors
+                  console.error(`❌ Failed to create validation: ${err.message}`);
+                  // Don't re-throw — continue with remaining fields
                 }
               }
             }
@@ -6126,6 +6593,24 @@ except Exception as e:
                   }
                 }
                 
+                // Save raw file to disk for preview (docx-preview, PDF iframe, etc.)
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  try {
+                    const fs = await import('fs/promises');
+                    const path = await import('path');
+                    const uploadDir = path.join(process.cwd(), 'uploads', sessionId);
+                    await fs.mkdir(uploadDir, { recursive: true });
+                    const base64Data = originalFile.file_content.split(',')[1];
+                    if (base64Data) {
+                      const fileBuffer = Buffer.from(base64Data, 'base64');
+                      await fs.writeFile(path.join(uploadDir, extractedText.file_name), fileBuffer);
+                      console.log(`📄 Saved raw file to disk: uploads/${sessionId}/${extractedText.file_name}`);
+                    }
+                  } catch (saveErr) {
+                    console.error(`Failed to save raw file to disk:`, saveErr);
+                  }
+                }
+
                 await storage.createSessionDocument({
                   sessionId: sessionId,
                   fileName: extractedText.file_name,
@@ -6133,7 +6618,7 @@ except Exception as e:
                   mimeType: originalFile?.mime_type || null,
                   extractedContent: extractedText.text_content
                 });
-                
+
                 console.log(`Saved document: ${extractedText.file_name} with ${contentLength} chars to session documents`);
               } catch (docError) {
                 console.error(`Failed to save document ${extractedText.file_name}:`, docError);
@@ -7678,6 +8163,24 @@ except Exception as e:
                   }
                 }
                 
+                // Save raw file to disk for preview (docx-preview, PDF iframe, etc.)
+                if (originalFile?.file_content && originalFile.file_content.startsWith('data:')) {
+                  try {
+                    const fs = await import('fs/promises');
+                    const path = await import('path');
+                    const uploadDir = path.join(process.cwd(), 'uploads', sessionId);
+                    await fs.mkdir(uploadDir, { recursive: true });
+                    const base64Data = originalFile.file_content.split(',')[1];
+                    if (base64Data) {
+                      const fileBuffer = Buffer.from(base64Data, 'base64');
+                      await fs.writeFile(path.join(uploadDir, extractedText.file_name), fileBuffer);
+                      console.log(`📄 Saved raw file to disk: uploads/${sessionId}/${extractedText.file_name}`);
+                    }
+                  } catch (saveErr) {
+                    console.error(`Failed to save raw file to disk:`, saveErr);
+                  }
+                }
+
                 // Create session document record
                 const documentData = {
                   sessionId: sessionId,
@@ -7688,10 +8191,7 @@ except Exception as e:
                   pageCount: extractedText.page_count || null,
                   extractionMethod: extractedText.extraction_method || 'gemini'
                 };
-                
-                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content length being saved: ${documentData.extractedContent.length}`);
-                console.log(`DOCUMENT UPLOAD SAVE DEBUG: Content preview: ${documentData.extractedContent.substring(0, 100)}...`);
-                
+
                 await storage.createSessionDocument(documentData);
                 
                 documentsAdded++;
@@ -9551,8 +10051,17 @@ def extract_function(Column_Name, Excel_File):
             // Only include columns that come BEFORE the current column in the step
             const validationColumnOrder = allStepValues.findIndex(v => v.id === stepValue.id);
             if (validationColumnOrder < currentColumnOrder && validationColumnOrder >= 0) {
-              rowsByIdentifier.get(validation.identifierId)[stepValue.valueName] = validation.extractedValue || null;
-              console.log(`  ✅ Added ${stepValue.valueName} = "${validation.extractedValue}" for identifier ${validation.identifierId?.substring(0, 8)}...`);
+              // For multi-field values, use individual field name from stored fieldName
+              // e.g., "Products.Supply Price[0]" → key "Supply Price" instead of parent "Products"
+              let columnKey = stepValue.valueName;
+              if (stepValue.fields && stepValue.fields.length > 0 && validation.fieldName) {
+                const fieldNameMatch = validation.fieldName.match(/^.+\.(.+)\[\d+\]$/);
+                if (fieldNameMatch) {
+                  columnKey = fieldNameMatch[1];
+                }
+              }
+              rowsByIdentifier.get(validation.identifierId)[columnKey] = validation.extractedValue || null;
+              console.log(`  ✅ Added ${columnKey} = "${validation.extractedValue}" for identifier ${validation.identifierId?.substring(0, 8)}...`);
             }
           }
         }
@@ -9561,21 +10070,33 @@ def extract_function(Column_Name, Excel_File):
         const rawPreviousData = Array.from(rowsByIdentifier.values());
         
         // Filter to only include rows that have at least the first column value
+        // For multi-field values, check the first field name instead of parent value name
+        const firstColumnKey = firstColumn?.fields && firstColumn.fields.length > 0
+          ? (firstColumn.fields[0] as any).name || firstColumn.valueName
+          : firstColumn?.valueName;
         const filteredPreviousData = rawPreviousData.filter(row => {
-          const hasFirstColumn = firstColumn && row[firstColumn.valueName] !== null && row[firstColumn.valueName] !== undefined && row[firstColumn.valueName] !== '';
+          const hasFirstColumn = firstColumnKey && row[firstColumnKey] !== null && row[firstColumnKey] !== undefined && row[firstColumnKey] !== '';
           if (!hasFirstColumn) {
-            console.log(`  ⚠️ Excluding row ${row.identifierId?.substring(0, 8)}... - missing first column value`);
+            console.log(`  ⚠️ Excluding row ${row.identifierId?.substring(0, 8)}... - missing first column value (${firstColumnKey})`);
           }
           return hasFirstColumn;
         });
-        
+
         // Reorder columns in each row to match step order (identifierId first, then columns in step order)
         previousData = filteredPreviousData.map(row => {
           const orderedRow: any = { identifierId: row.identifierId };
-          
-          // Add columns in step order
+
+          // Add columns in step order, expanding multi-field values to individual field keys
           previousColumns.forEach(column => {
-            orderedRow[column.valueName] = row[column.valueName] || null;
+            if (column.fields && column.fields.length > 0) {
+              // Multi-field: add each field individually
+              column.fields.forEach((field: any) => {
+                const fieldName = field.name || column.valueName;
+                orderedRow[fieldName] = row[fieldName] || null;
+              });
+            } else {
+              orderedRow[column.valueName] = row[column.valueName] || null;
+            }
           });
           
           return orderedRow;
@@ -11092,16 +11613,27 @@ def extract_function(Column_Name, Excel_File):
         }
       }
       
-      // Special handling for multi-field Info Page values
+      // Special handling for multi-field values (both Info Page and Data Table)
       if (value.fields && value.fields.length > 0) {
         console.log(`\n📋 MULTI-FIELD EXTRACTION DETECTED:`);
         console.log(`   Value Name: ${value.valueName}`);
+        console.log(`   Step Type: ${step.stepType}`);
         console.log(`   Number of Fields: ${value.fields.length}`);
         console.log(`   Fields to Extract:`, value.fields.map((f: any) => `${f.name} (${f.dataType})`));
-        
-        // Add field definitions to tool inputs for AI extraction
-        toolInputs.__infoPageFields = value.fields;
-        console.log(`   Added __infoPageFields to toolInputs for AI processing`);
+
+        if (step.stepType === 'list') {
+          // Data Table multi-field: each field = a column, extract per row
+          toolInputs.__dataTableFields = value.fields.map((f: any, idx: number) => ({
+            ...f,
+            fieldId: `${value.id}_field_${idx}`,
+            identifierId: `${value.id}_field_${idx}`
+          }));
+          console.log(`   Added __dataTableFields to toolInputs for Data Table multi-column extraction`);
+        } else {
+          // Info Page multi-field: each field = a single entity value
+          toolInputs.__infoPageFields = value.fields;
+          console.log(`   Added __infoPageFields to toolInputs for Info Page processing`);
+        }
       }
       
       // 🎯 CRITICAL FIX: Include automatic data flow previousData in tool inputs
@@ -11201,10 +11733,13 @@ def extract_function(Column_Name, Excel_File):
       }
       
       // Save the results as field validations
+      const isDataTableMultiField = !!(cleanedToolInputs.__dataTableFields);
       if (results && results.length > 0) {
         // Simple processing - ensure all results have required fields
         let processedResults = results.map(result => ({
           identifierId: result.identifierId || null,
+          fieldId: (result as any).fieldId || null, // For data table multi-field: composite field ID
+          fieldName: (result as any).fieldName || null, // For data table multi-field: column name
           extractedValue: result.extractedValue !== undefined ? result.extractedValue : null,
           validationStatus: result.validationStatus || "pending", // Always default to pending for new extractions
           aiReasoning: result.aiReasoning || "",
@@ -11239,20 +11774,37 @@ def extract_function(Column_Name, Excel_File):
         // CRITICAL: If this is a re-extraction of the first column, clean up old records
         // Check if we're extracting the first column (no previousData) but have existing records
         if ((!previousData || previousData.length === 0) && existingValidations.length > 0) {
-          // Check if there are existing records for THIS specific column
-          const existingColumnValidations = existingValidations.filter(v => v.valueId === valueId);
-          
-          if (existingColumnValidations.length > processedResults.length) {
-            console.log(`🧹 CLEANUP: Found ${existingColumnValidations.length} existing records but only ${processedResults.length} new results`);
-            console.log(`   This indicates orphaned records from previous extractions`);
-            
-            // Delete all existing validations for this column to start fresh
-            // This prevents duplicate rows from accumulating
+          // Check if there are existing records for THIS value (match parent valueId OR derived field UUIDs)
+          const existingColumnValidations = existingValidations.filter(v => {
+            if (v.valueId === valueId) return true;
+            // For multi-field: also match records stored with derived per-field UUIDs
+            if (isDataTableMultiField && v.stepId === stepId) {
+              const fieldCount = value.fields?.length || 0;
+              for (let fi = 0; fi < fieldCount; fi++) {
+                const derivedHash = crypto.createHash('md5').update(`${valueId}_field_${fi}`).digest('hex');
+                const derivedUUID = `${derivedHash.slice(0,8)}-${derivedHash.slice(8,12)}-4${derivedHash.slice(13,16)}-${((parseInt(derivedHash[16], 16) & 0x3) | 0x8).toString(16)}${derivedHash.slice(17,20)}-${derivedHash.slice(20,32)}`;
+                if (v.valueId === derivedUUID) return true;
+              }
+            }
+            return false;
+          });
+
+          // For multi-field, the result count is rows × fields, so compare against actual row count
+          const expectedRowCount = isDataTableMultiField
+            ? Math.ceil(processedResults.length / (value.fields?.length || 1))
+            : processedResults.length;
+
+          // Always clean up for multi-field re-extractions, or when old count exceeds new
+          if (existingColumnValidations.length > 0 && (isDataTableMultiField || existingColumnValidations.length > processedResults.length)) {
+            console.log(`🧹 CLEANUP: Found ${existingColumnValidations.length} existing records for this value`);
+            console.log(`   New extraction: ${processedResults.length} results (${expectedRowCount} rows)`);
+
+            // Delete all existing validations for this value to start fresh
             for (const validation of existingColumnValidations) {
               await storage.deleteFieldValidation(validation.id);
-              console.log(`   🗑️ Deleted orphaned validation: ${validation.id}`);
             }
-            
+            console.log(`   🗑️ Deleted ${existingColumnValidations.length} old records`);
+
             // Clear the array so we don't try to match against deleted records
             existingValidations.length = 0;
             existingValidations.push(...await storage.getFieldValidations(sessionId));
@@ -11362,16 +11914,22 @@ def extract_function(Column_Name, Excel_File):
               console.log(`🔍 New extraction: ${processedResults.length} results to process`);
               console.log(`📊 ACTION: Will initialize ALL validation records for complete dataset`);
               
-              // Extract ALL identifierIds from the results
+              // Extract identifierIds from the results — one per ROW (not per field)
               const allIdentifierIds: string[] = [];
-              for (let i = 0; i < processedResults.length; i++) {
-                const result = processedResults[i];
+              const initNumFieldsPerRow = isDataTableMultiField ? (value.fields?.length || 1) : 1;
+              const numRows = Math.ceil(processedResults.length / initNumFieldsPerRow);
+
+              for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+                const firstFieldIdx = rowIdx * initNumFieldsPerRow;
+                const result = processedResults[firstFieldIdx];
                 // Use AI's identifierId if provided, otherwise generate one
-                const identifierId = result.identifierId || crypto.randomUUID();
+                const identifierId = result?.identifierId || crypto.randomUUID();
                 allIdentifierIds.push(identifierId);
-                
-                // Update the result with the identifierId so it's used in the save loop below
-                processedResults[i].identifierId = identifierId;
+
+                // Update ALL results in this row with the shared identifierId
+                for (let fieldIdx = 0; fieldIdx < initNumFieldsPerRow && (firstFieldIdx + fieldIdx) < processedResults.length; fieldIdx++) {
+                  processedResults[firstFieldIdx + fieldIdx].identifierId = identifierId;
+                }
               }
               
               console.log(`📋 Collected ${allIdentifierIds.length} identifierIds from extraction results`);
@@ -11399,13 +11957,26 @@ def extract_function(Column_Name, Excel_File):
         // Important: processedResults contains only the records that AI actually processed
         console.log(`📊 Processing ${processedResults.length} actual AI results (not creating validations for unprocessed records)`);
         
+        // For multi-field data table values, results are flat: [row0_field0, row0_field1, ..., row1_field0, ...]
+        // All fields in the same row must share the same identifierId and recordIndex
+        const numFieldsPerRow = isDataTableMultiField ? (value.fields?.length || 1) : 1;
+        const rowIdentifierMap = new Map<number, string>(); // rowIndex -> identifierId
+
+        if (isDataTableMultiField) {
+          console.log(`📊 Multi-field row grouping: ${numFieldsPerRow} fields per row, ${processedResults.length} total results = ${Math.ceil(processedResults.length / numFieldsPerRow)} rows`);
+        }
+
         for (let i = 0; i < processedResults.length; i++) {
           const result = processedResults[i];
-          
+
+          // For multi-field, compute row index and field position within the row
+          const rowIndex = isDataTableMultiField ? Math.floor(i / numFieldsPerRow) : i;
+          const fieldInRow = isDataTableMultiField ? (i % numFieldsPerRow) : 0;
+
           // Get the identifier ID - trust what the AI returns if it's valid
           let identifierId: string | null = null;
-          let recordIndex = i; // Default to the result index
-          
+          let recordIndex = rowIndex; // Use ROW index (not flat result index)
+
           // If we have previousData, validate and use the AI's identifierId
           if (validIdentifierIds.size > 0) {
             // Check if the AI returned a valid identifierId
@@ -11413,7 +11984,7 @@ def extract_function(Column_Name, Excel_File):
               // AI returned a valid identifierId - use it
               identifierId = result.identifierId;
               // Get the original index for this identifierId
-              recordIndex = previousDataIndex.get(identifierId) ?? i;
+              recordIndex = previousDataIndex.get(identifierId) ?? rowIndex;
               console.log(`✅ AI returned valid identifierId: ${identifierId} (original index: ${recordIndex})`);
             } else if (result.identifierId) {
               // AI returned an identifierId but it's not in our valid set
@@ -11426,54 +11997,105 @@ def extract_function(Column_Name, Excel_File):
             }
           } else {
             // This is the first column being extracted
-            if (result.identifierId) {
+            if (isDataTableMultiField && fieldInRow > 0 && rowIdentifierMap.has(rowIndex)) {
+              // Multi-field: reuse the identifierId from the first field of this row
+              identifierId = rowIdentifierMap.get(rowIndex)!;
+              console.log(`🔗 Multi-field row ${rowIndex}, field ${fieldInRow}: reusing identifierId ${identifierId}`);
+            } else if (result.identifierId) {
               // Trust the AI's identifierId for first column
               identifierId = result.identifierId;
-              console.log(`🔗 Using AI's identifierId for first column at position ${i}: ${identifierId}`);
+              console.log(`🔗 Using AI's identifierId for first column at row ${rowIndex}: ${identifierId}`);
             } else {
               // Generate new UUID if AI didn't provide one
               identifierId = crypto.randomUUID();
-              console.log(`🔗 Generated new UUID identifierId for first column at position ${i}: ${identifierId}`);
+              console.log(`🔗 Generated new UUID identifierId for first column at row ${rowIndex}: ${identifierId}`);
+            }
+            // Store the identifierId for this row so subsequent fields in the row can reuse it
+            if (isDataTableMultiField && fieldInRow === 0) {
+              rowIdentifierMap.set(rowIndex, identifierId!);
             }
           }
           
-          // Format field name to match UI expectations: "StepName.ValueName[index]"
-          const fieldName = `${step.stepName}.${value.valueName}[${recordIndex}]`;
-          
+          // Format field name to match UI expectations: "StepName.ColumnName[index]"
+          // For data table multi-field, use the per-field column name from the result
+          const resultColumnName = isDataTableMultiField && result.fieldName ? result.fieldName : value.valueName;
+          // For multi-field: derive a deterministic per-field UUID for fieldId so each field gets a unique
+          // (sessionId, stepId, valueId, fieldId, identifierId) tuple for the unique constraint
+          // valueId stays as parent UUID (FK constraint to step_values), fieldId gets per-field UUID
+          const resultFieldId = valueId; // Always parent valueId (FK-safe)
+          const resultDerivedFieldId = isDataTableMultiField
+            ? (() => {
+                const hash = crypto.createHash('md5').update(`${valueId}_field_${fieldInRow}`).digest('hex');
+                return `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-${((parseInt(hash[16], 16) & 0x3) | 0x8).toString(16)}${hash.slice(17,20)}-${hash.slice(20,32)}`;
+              })()
+            : valueId;
+          const fieldName = `${step.stepName}.${resultColumnName}[${recordIndex}]`;
+
           // Check if validation already exists for this identifier/record index
-          // CRITICAL: Match by identifierId (row ID), not fieldName
+          // For multi-field values, use fieldName pattern to distinguish between fields
           let existingValidation = null;
-          
-          // First, check if this is a re-extraction of the same column
-          // For first column extractions, we need to check for existing records by valueId and recordIndex
+
           if (!previousData || previousData.length === 0) {
             // This is a first column or re-extraction of first column
-            // Check for existing validation by valueId and recordIndex to prevent duplicates
-            existingValidation = existingValidations.find(v => 
-              v.valueId === valueId && 
-              v.recordIndex === recordIndex
-            );
-            
+            if (isDataTableMultiField) {
+              // Multi-field: match by derived fieldId + recordIndex (primary), or fieldName pattern (fallback)
+              // The fieldId match is crucial for finding old records that have stale fieldNames
+              existingValidation = existingValidations.find(v =>
+                v.fieldId === resultDerivedFieldId &&
+                v.recordIndex === recordIndex
+              ) || existingValidations.find(v =>
+                (v.fieldId === resultDerivedFieldId || v.valueId === valueId) &&
+                v.recordIndex === recordIndex &&
+                v.fieldName?.includes(`.${resultColumnName}[`)
+              );
+            } else {
+              // Single field: match by fieldId/valueId and recordIndex
+              existingValidation = existingValidations.find(v =>
+                (v.fieldId === valueId || v.valueId === valueId) &&
+                v.recordIndex === recordIndex
+              );
+            }
+
             // If we found an existing validation, use its identifierId
             if (existingValidation && existingValidation.identifierId) {
               identifierId = existingValidation.identifierId;
               console.log(`🔄 Re-extraction: Using existing identifierId ${identifierId} for record at index ${recordIndex}`);
             }
           } else if (identifierId) {
-            // For subsequent columns: match by identifierId AND correct valueId
-            existingValidation = existingValidations.find(v => 
-              v.identifierId === identifierId && 
-              v.valueId === valueId
-            );
-            
-            // Don't look for wrong valueId validations - they likely belong to other columns
-            // Only create new validations if none exist for this specific row+column combo
+            // For subsequent columns: match by identifierId AND correct field
+            if (isDataTableMultiField) {
+              // Multi-field: match by identifierId + derived fieldId (primary), or fieldName pattern (fallback)
+              existingValidation = existingValidations.find(v =>
+                v.identifierId === identifierId &&
+                v.fieldId === resultDerivedFieldId
+              ) || existingValidations.find(v =>
+                v.identifierId === identifierId &&
+                v.valueId === valueId &&
+                v.fieldName?.includes(`.${resultColumnName}[`)
+              );
+            } else {
+              existingValidation = existingValidations.find(v =>
+                v.identifierId === identifierId &&
+                (v.fieldId === valueId || v.valueId === valueId)
+              );
+            }
           } else {
             // Fallback for edge cases
-            existingValidation = existingValidations.find(v => 
-              v.valueId === valueId && 
-              v.recordIndex === recordIndex
-            );
+            if (isDataTableMultiField) {
+              existingValidation = existingValidations.find(v =>
+                v.fieldId === resultDerivedFieldId &&
+                v.recordIndex === recordIndex
+              ) || existingValidations.find(v =>
+                v.valueId === valueId &&
+                v.recordIndex === recordIndex &&
+                v.fieldName?.includes(`.${resultColumnName}[`)
+              );
+            } else {
+              existingValidation = existingValidations.find(v =>
+                (v.fieldId === valueId || v.valueId === valueId) &&
+                v.recordIndex === recordIndex
+              );
+            }
           }
           
           if (existingValidation) {
@@ -11507,14 +12129,14 @@ def extract_function(Column_Name, Excel_File):
                   extractedValue: result.extractedValue,
                   validationStatus: 'pending', // Set to pending for new extractions
                   aiReasoning: result.aiReasoning,
-                  confidenceScore: typeof result.confidenceScore === 'number' && result.confidenceScore <= 1 
+                  confidenceScore: typeof result.confidenceScore === 'number' && result.confidenceScore <= 1
                     ? Math.round(result.confidenceScore * 100) // Convert decimal (0-1) to percentage (0-100)
                     : result.confidenceScore || 0,
                   documentSource: result.documentSource,
                   identifierId: identifierId,
-                  valueId: valueId, // CRITICAL: Update valueId to ensure it's correct for this column
-                  fieldId: valueId, // Also update fieldId to match
-                  extractedAt: new Date()
+                  valueId: resultFieldId, // Parent valueId (FK to step_values)
+                  fieldId: resultDerivedFieldId, // Derived per-field UUID for multi-field uniqueness
+                  fieldName: fieldName, // Store correct per-field name for multi-field disambiguation
                 });
                 console.log(`📝 Updated validation for ${fieldName} with value: "${result.extractedValue}" (was ${existingValidation.validationStatus})`);
               }
@@ -11542,12 +12164,12 @@ def extract_function(Column_Name, Excel_File):
             // In the unified architecture, collectionId should be the stepId for Data Tables
             // This maintains the parent-child relationship: Step (collection) -> Values (columns)
             
-            // Simple create - use result directly
+            // valueId = parent UUID (FK to step_values), fieldId = derived per-field UUID (unique constraint)
             await storage.createFieldValidation({
               id: crypto.randomUUID(),
               sessionId: sessionId,
-              fieldId: valueId,
-              valueId: valueId,
+              fieldId: resultDerivedFieldId,
+              valueId: resultFieldId,
               stepId: stepId,
               collectionId: stepId,
               fieldName: fieldName,
@@ -11568,7 +12190,7 @@ def extract_function(Column_Name, Excel_File):
               extractedAt: new Date()
             });
             console.log(`✨ Created validation for ${fieldName} with value: "${result.extractedValue}"`);
-            console.log(`   🔑 Using valueId: ${valueId} (${value.valueName})`);
+            console.log(`   🔑 Using fieldId: ${resultFieldId} (${resultColumnName})`);
           }
         }
         
@@ -12913,13 +13535,37 @@ def extract_function(Column_Name, Excel_File):
         collectionProperties.push(...props);
       }
 
+      // Get project for inbox email
+      const project = await storage.getProject(projectId);
+      const projectInboxEmail = project?.inboxEmailAddress || null;
+
+      // Get conversations with participants for AI context
+      const conversations = await storage.getSessionConversations(sessionId);
+      const conversationsWithParticipants = await Promise.all(
+        conversations.map(async (conv) => {
+          const participants = await storage.getConversationParticipants(conv.id);
+          return {
+            id: conv.id,
+            name: conv.name,
+            subject: conv.subject,
+            participantEmail: conv.participantEmail,
+            isOriginator: conv.isOriginator || false,
+            participants: participants.map(p => ({ id: p.id, name: p.name, email: p.email })),
+          };
+        })
+      );
+
       // Generate AI response using all extracted data
       const aiResponse = await generateChatResponse(messageContent, {
         session,
         validations,
         projectFields,
         collections,
-        collectionProperties
+        collectionProperties,
+        workflowSteps,
+        stepValues,
+        conversations: conversationsWithParticipants,
+        projectInboxEmail,
       });
 
       // Save assistant message
@@ -12934,6 +13580,553 @@ def extract_function(Column_Name, Excel_File):
     } catch (error) {
       console.error('Error processing chat message:', error);
       res.status(500).json({ message: 'Failed to process chat message' });
+    }
+  });
+
+  // Send a drafted email from the assistant to a conversation
+  app.post('/api/sessions/:sessionId/chat/send', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { conversationId, subject, body } = req.body;
+      const userId = req.user!.id;
+
+      if (!conversationId || !body) {
+        return res.status(400).json({ message: 'conversationId and body are required' });
+      }
+
+      // Get conversation and participants
+      const conversation = await storage.getSessionConversation(conversationId);
+      if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+
+      const project = await storage.getProject(session.projectId);
+      if (!project || !project.inboxEmailAddress) {
+        return res.status(400).json({ message: 'Project does not have an inbox configured' });
+      }
+
+      const { sendProjectEmail } = await import('./email');
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+      const inboxLocalPart = project.inboxEmailAddress.split('@')[0];
+      const rawSessionEmail = `${conversationId}.${inboxLocalPart}@extrapl.it`;
+      const sessionFromEmail = formatEmailFrom(req.user!.name, rawSessionEmail);
+      const emailSubject = subject || conversation.subject || '(no subject)';
+
+      // Build recipient list from conversation participants
+      const participants = await storage.getConversationParticipants(conversationId);
+      const allEmails = participants.length > 0
+        ? participants.map(p => p.email)
+        : [conversation.participantEmail];
+      const toEmails = allEmails.filter(e => e.toLowerCase() !== rawSessionEmail.toLowerCase());
+
+      if (toEmails.length === 0) {
+        return res.status(400).json({ message: 'No valid recipients found' });
+      }
+
+      const toDisplay = toEmails.join(', ');
+      console.log(`📧 Assistant sending drafted email from ${rawSessionEmail} to [${toDisplay}]`);
+
+      // Convert markdown body to HTML for rich email formatting (tables, bold, etc.)
+      const { marked } = await import('marked');
+      let htmlBody = await marked(body, { gfm: true, breaks: true });
+      // Add inline styles to tables for email client compatibility
+      htmlBody = htmlBody
+        .replace(/<table>/g, '<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;">')
+        .replace(/<th>/g, '<th style="border:1px solid #e5e7eb;padding:8px 12px;text-align:left;background-color:#f8f9fb;font-weight:600;color:#151929;">')
+        .replace(/<th /g, '<th style="border:1px solid #e5e7eb;padding:8px 12px;text-align:left;background-color:#f8f9fb;font-weight:600;color:#151929;" ')
+        .replace(/<td>/g, '<td style="border:1px solid #e5e7eb;padding:8px 12px;color:#4a4a5a;">')
+        .replace(/<td /g, '<td style="border:1px solid #e5e7eb;padding:8px 12px;color:#4a4a5a;" ');
+
+      await sendProjectEmail({
+        from: sessionFromEmail,
+        to: toEmails,
+        subject: emailSubject,
+        textContent: body,
+        htmlContent: renderEmailTemplate(emailTemplate, {
+          subject: emailSubject,
+          body: htmlBody,
+          projectName: project.name,
+          senderEmail: rawSessionEmail,
+          senderName: req.user!.name,
+        }),
+      });
+
+      // Record in sessionEmails with conversation link (store HTML for rich rendering in Messenger)
+      const emailRecord = await storage.createSessionEmail({
+        sessionId,
+        projectId: project.id,
+        direction: 'outbound',
+        fromEmail: rawSessionEmail,
+        toEmail: toDisplay,
+        subject: emailSubject,
+        body,
+        htmlBody,
+        sentByUserId: userId,
+        conversationId,
+      });
+
+      // Log activity
+      await storage.createSessionActivity({
+        sessionId,
+        activityType: 'email_sent',
+        description: `Assistant draft sent to ${toDisplay}: "${emailSubject}"`,
+        metadata: { toEmail: toDisplay, subject: emailSubject, body, conversationId, conversationName: conversation.name, source: 'assistant' },
+        actorUserId: userId,
+      });
+
+      res.json({ ...emailRecord, htmlBody });
+    } catch (error: any) {
+      const detail = error?.message || error?.Code || String(error);
+      console.error('Error sending assistant draft email:', detail, error);
+      res.status(500).json({ message: `Failed to send email: ${detail}` });
+    }
+  });
+
+  // Session Emails (Messenger) endpoints
+  app.get('/api/sessions/:sessionId/emails', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const emails = await storage.getSessionEmails(sessionId);
+      res.json(emails);
+    } catch (error) {
+      console.error('Error fetching session emails:', error);
+      res.status(500).json({ message: 'Failed to fetch session emails' });
+    }
+  });
+
+  app.post('/api/sessions/:sessionId/emails', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { to, subject, body } = req.body;
+      const userId = req.user!.id;
+
+      if (!to || !body) {
+        return res.status(400).json({ message: 'Recipient (to) and body are required' });
+      }
+
+      // Get session to find project
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+
+      // Get project to find inbox email
+      const project = await storage.getProject(session.projectId);
+      if (!project || !project.inboxEmailAddress) {
+        return res.status(400).json({ message: 'Project does not have an inbox configured' });
+      }
+
+      // Send via SES using session-specific from address for reply threading
+      const { sendProjectEmail } = await import('./email');
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+      // Build session-specific from address: {sessionId}.{localPart}@extrapl.it
+      const inboxLocalPart = project.inboxEmailAddress.split('@')[0];
+      const rawSessionEmail = `${sessionId}.${inboxLocalPart}@extrapl.it`;
+      const sessionFromEmail = formatEmailFrom(req.user!.name, rawSessionEmail);
+
+      const emailSubject = subject || '(no subject)';
+
+      await sendProjectEmail({
+        from: sessionFromEmail,
+        to,
+        subject: emailSubject,
+        textContent: body,
+        htmlContent: renderEmailTemplate(emailTemplate, {
+          subject: emailSubject,
+          body: body.replace(/\n/g, '<br>'),
+          projectName: project.name,
+          senderEmail: rawSessionEmail,
+          senderName: req.user!.name,
+        }),
+      });
+
+      // Record in sessionEmails
+      const emailRecord = await storage.createSessionEmail({
+        sessionId,
+        projectId: project.id,
+        direction: 'outbound',
+        fromEmail: rawSessionEmail,
+        toEmail: to,
+        subject: emailSubject,
+        body,
+        sentByUserId: userId,
+      });
+
+      // Log activity
+      await storage.createSessionActivity({
+        sessionId,
+        activityType: 'email_sent',
+        description: `Email sent to ${to}: "${emailSubject}"`,
+        metadata: { toEmail: to, subject: emailSubject, body },
+        actorUserId: userId,
+      });
+
+      res.json(emailRecord);
+    } catch (error) {
+      console.error('Error sending session email:', error);
+      res.status(500).json({ message: 'Failed to send email' });
+    }
+  });
+
+  // Session Conversations endpoints
+  app.get('/api/sessions/:sessionId/conversations', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const conversations = await storage.getSessionConversations(sessionId);
+      // Enrich with last email preview, count, and participants
+      const enriched = await Promise.all(conversations.map(async (conv) => {
+        const [emails, participants] = await Promise.all([
+          storage.getConversationEmails(conv.id),
+          storage.getConversationParticipants(conv.id),
+        ]);
+        const lastEmail = emails[emails.length - 1];
+        // Enrich with card title if this is a task-linked conversation
+        let cardTitle: string | null = null;
+        if (conv.cardId) {
+          const card = await storage.getKanbanCard(conv.cardId);
+          cardTitle = card?.title || null;
+        }
+        return {
+          ...conv,
+          emailCount: emails.length,
+          lastEmailPreview: lastEmail?.body?.substring(0, 100) || null,
+          lastEmailDate: lastEmail?.createdAt || conv.createdAt,
+          participants,
+          cardTitle,
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      res.status(500).json({ message: 'Failed to fetch conversations' });
+    }
+  });
+
+  app.post('/api/sessions/:sessionId/conversations', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { subject, name, participantEmail, initialMessage } = req.body;
+      if (!participantEmail) {
+        return res.status(400).json({ message: 'Participant email is required' });
+      }
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+
+      const derivedName = name || participantEmail.split('@')[0];
+      const derivedSubject = subject || `Conversation with ${derivedName}`;
+
+      const conversation = await storage.createSessionConversation({
+        sessionId,
+        projectId: session.projectId,
+        name: derivedName,
+        subject: derivedSubject,
+        participantEmail,
+        isOriginator: false,
+      });
+
+      // Seed initial participant
+      await storage.addConversationParticipant({
+        conversationId: conversation.id,
+        name: derivedName,
+        email: participantEmail,
+      });
+
+      // If an initial message was provided and inbox is configured, send it
+      if (initialMessage && typeof initialMessage === 'string' && initialMessage.trim()) {
+        const project = await storage.getProject(session.projectId);
+        if (project && project.inboxEmailAddress) {
+          try {
+            const { sendProjectEmail } = await import('./email');
+            const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+            const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+            const inboxLocalPart = project.inboxEmailAddress.split('@')[0];
+            // Use conversation-level address so replies route directly to this conversation
+            const rawSessionEmail = `${conversation.id}.${inboxLocalPart}@extrapl.it`;
+            const sessionFromEmail = formatEmailFrom(req.user!.name, rawSessionEmail);
+            const emailSubject = derivedSubject;
+            const userId = req.user!.id;
+
+            await sendProjectEmail({
+              from: sessionFromEmail,
+              to: participantEmail,
+              subject: emailSubject,
+              textContent: initialMessage.trim(),
+              htmlContent: renderEmailTemplate(emailTemplate, {
+                subject: emailSubject,
+                body: initialMessage.trim().replace(/\n/g, '<br>'),
+                projectName: project.name,
+                senderEmail: rawSessionEmail,
+                senderName: req.user!.name,
+              }),
+            });
+
+            // Record the email
+            await storage.createSessionEmail({
+              sessionId,
+              projectId: project.id,
+              direction: 'outbound',
+              fromEmail: rawSessionEmail,
+              toEmail: participantEmail,
+              subject: emailSubject,
+              body: initialMessage.trim(),
+              sentByUserId: userId,
+              conversationId: conversation.id,
+            });
+
+            // Log activity
+            await storage.createActivityLog({
+              sessionId,
+              projectId: project.id,
+              actorType: 'user',
+              actorId: userId,
+              action: 'email_sent',
+              description: `Sent initial message to ${participantEmail}`,
+            });
+          } catch (emailError) {
+            console.error('Error sending initial message (conversation still created):', emailError);
+            // Don't fail the conversation creation if the email fails
+          }
+        }
+      }
+
+      res.json(conversation);
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      res.status(500).json({ message: 'Failed to create conversation' });
+    }
+  });
+
+  app.get('/api/sessions/:sessionId/conversations/:conversationId/emails', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { conversationId } = req.params;
+      const emails = await storage.getConversationEmails(conversationId);
+
+      // Enrich emails with their attachments
+      const enrichedEmails = await Promise.all(
+        emails.map(async (email) => {
+          const attachments = await storage.getEmailAttachments(email.id);
+          return {
+            ...email,
+            attachments: attachments.map(att => ({
+              id: att.id,
+              fileName: att.fileName,
+              fileSize: att.fileSize,
+              mimeType: att.mimeType,
+            })),
+          };
+        })
+      );
+
+      res.json(enrichedEmails);
+    } catch (error) {
+      console.error('Error fetching conversation emails:', error);
+      res.status(500).json({ message: 'Failed to fetch conversation emails' });
+    }
+  });
+
+  app.post('/api/sessions/:sessionId/conversations/:conversationId/emails', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId, conversationId } = req.params;
+      const { subject, body } = req.body;
+      const userId = req.user!.id;
+
+      if (!body) {
+        return res.status(400).json({ message: 'Body is required' });
+      }
+
+      // Get conversation and all participants to find recipients
+      const conversation = await storage.getSessionConversation(conversationId);
+      if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+
+      // Get session and project first so we can compute the sending address
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+      const project = await storage.getProject(session.projectId);
+      if (!project || !project.inboxEmailAddress) {
+        return res.status(400).json({ message: 'Project does not have an inbox configured' });
+      }
+
+      const { sendProjectEmail } = await import('./email');
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+      const inboxLocalPart = project.inboxEmailAddress.split('@')[0];
+      // Use conversation-level address so replies route directly to this conversation
+      const rawSessionEmail = `${conversationId}.${inboxLocalPart}@extrapl.it`;
+      const sessionFromEmail = formatEmailFrom(req.user!.name, rawSessionEmail);
+      const emailSubject = subject || '(no subject)';
+
+      // Build recipient list — pass as array directly to avoid join/split roundtrip
+      const participants = await storage.getConversationParticipants(conversationId);
+      const allEmails = participants.length > 0
+        ? participants.map(p => p.email)
+        : [conversation.participantEmail];
+      // Filter out the session's own sending address to avoid self-send loops
+      const toEmails = allEmails.filter(e => e.toLowerCase() !== rawSessionEmail.toLowerCase());
+
+      if (toEmails.length === 0) {
+        return res.status(400).json({ message: 'No valid recipients found' });
+      }
+
+      const toDisplay = toEmails.join(', ');
+      console.log(`📧 Sending email from ${rawSessionEmail} to [${toDisplay}]`);
+
+      // Convert markdown body to HTML for rich email formatting
+      const { marked } = await import('marked');
+      let htmlBody = await marked(body, { gfm: true, breaks: true });
+      htmlBody = htmlBody
+        .replace(/<table>/g, '<table style="border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;">')
+        .replace(/<th>/g, '<th style="border:1px solid #e5e7eb;padding:8px 12px;text-align:left;background-color:#f8f9fb;font-weight:600;color:#151929;">')
+        .replace(/<th /g, '<th style="border:1px solid #e5e7eb;padding:8px 12px;text-align:left;background-color:#f8f9fb;font-weight:600;color:#151929;" ')
+        .replace(/<td>/g, '<td style="border:1px solid #e5e7eb;padding:8px 12px;color:#4a4a5a;">')
+        .replace(/<td /g, '<td style="border:1px solid #e5e7eb;padding:8px 12px;color:#4a4a5a;" ');
+
+      await sendProjectEmail({
+        from: sessionFromEmail,
+        to: toEmails,
+        subject: emailSubject,
+        textContent: body,
+        htmlContent: renderEmailTemplate(emailTemplate, {
+          subject: emailSubject,
+          body: htmlBody,
+          projectName: project.name,
+          senderEmail: rawSessionEmail,
+          senderName: req.user!.name,
+        }),
+      });
+
+      // Record in sessionEmails with conversation link
+      const emailRecord = await storage.createSessionEmail({
+        sessionId,
+        projectId: project.id,
+        direction: 'outbound',
+        fromEmail: rawSessionEmail,
+        toEmail: toDisplay,
+        subject: emailSubject,
+        body,
+        sentByUserId: userId,
+        conversationId,
+      });
+
+      // Log activity
+      await storage.createSessionActivity({
+        sessionId,
+        activityType: 'email_sent',
+        description: `Email sent to ${toDisplay}: "${emailSubject}"`,
+        metadata: { toEmail: toDisplay, subject: emailSubject, body, conversationId, conversationName: conversation.name },
+        actorUserId: userId,
+      });
+
+      res.json(emailRecord);
+    } catch (error: any) {
+      const detail = error?.message || error?.Code || String(error);
+      console.error('Error sending conversation email:', detail, error);
+      res.status(500).json({ message: `Failed to send email: ${detail}` });
+    }
+  });
+
+  // Set originator for manually-created sessions
+  app.patch('/api/sessions/:sessionId/originator', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { originatorName, originatorEmail } = req.body;
+
+      const session = await storage.getExtractionSession(sessionId);
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+
+      // Update session with originator info
+      await db.execute(sql`
+        UPDATE extraction_sessions
+        SET originator_name = ${originatorName || null}, originator_email = ${originatorEmail || null}, updated_at = NOW()
+        WHERE id = ${sessionId}
+      `);
+
+      // If email provided, create or update originator conversation
+      if (originatorEmail) {
+        const conversations = await storage.getSessionConversations(sessionId);
+        const existing = conversations.find(c => c.isOriginator);
+        if (existing) {
+          // Update existing originator conversation
+          await db.execute(sql`
+            UPDATE session_conversations
+            SET name = ${originatorName || originatorEmail.split('@')[0]}, participant_email = ${originatorEmail}, updated_at = NOW()
+            WHERE id = ${existing.id}
+          `);
+        } else {
+          // Create new originator conversation
+          await storage.createSessionConversation({
+            sessionId,
+            projectId: session.projectId,
+            name: originatorName || originatorEmail.split('@')[0],
+            participantEmail: originatorEmail,
+            isOriginator: true,
+          });
+        }
+      }
+
+      const updated = await storage.getExtractionSession(sessionId);
+      res.json(updated);
+    } catch (error) {
+      console.error('Error setting originator:', error);
+      res.status(500).json({ message: 'Failed to set originator' });
+    }
+  });
+
+  // Conversation Participants endpoints
+  app.get('/api/sessions/:sessionId/conversations/:conversationId/participants', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { conversationId } = req.params;
+      const participants = await storage.getConversationParticipants(conversationId);
+      res.json(participants);
+    } catch (error) {
+      console.error('Error fetching participants:', error);
+      res.status(500).json({ message: 'Failed to fetch participants' });
+    }
+  });
+
+  app.post('/api/sessions/:sessionId/conversations/:conversationId/participants', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { conversationId } = req.params;
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: 'Email is required' });
+
+      const name = req.body.name || email.split('@')[0];
+      const participant = await storage.addConversationParticipant({
+        conversationId,
+        name,
+        email,
+      });
+      res.json(participant);
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      res.status(500).json({ message: 'Failed to add participant' });
+    }
+  });
+
+  app.delete('/api/sessions/:sessionId/conversations/:conversationId/participants/:participantId', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { participantId } = req.params;
+      const removed = await storage.removeConversationParticipant(participantId);
+      if (!removed) return res.status(404).json({ message: 'Participant not found' });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      res.status(500).json({ message: 'Failed to remove participant' });
+    }
+  });
+
+  // Session Activity Log (Timeline) endpoint
+  app.get('/api/sessions/:sessionId/activity', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { sessionId } = req.params;
+      const activities = await storage.getSessionActivityLog(sessionId);
+      res.json(activities);
+    } catch (error) {
+      console.error('Error fetching session activity:', error);
+      res.status(500).json({ message: 'Failed to fetch session activity' });
     }
   });
 
@@ -13192,6 +14385,19 @@ def extract_function(Column_Name, Excel_File):
   app.patch('/api/kanban-cards/:cardId', async (req, res) => {
     try {
       const { cardId } = req.params;
+
+      // Auto-generate emailThreadId when email assignees are first added
+      if (req.body.assigneeIds && Array.isArray(req.body.assigneeIds)) {
+        const hasEmailAssignees = req.body.assigneeIds.some((a: string) => typeof a === 'string' && a.includes('@'));
+        if (hasEmailAssignees) {
+          const existingCard = await storage.getKanbanCard(cardId);
+          if (existingCard && !existingCard.emailThreadId) {
+            req.body.emailThreadId = crypto.randomUUID();
+            console.log(`[kanban] Auto-generated emailThreadId ${req.body.emailThreadId} for card ${cardId}`);
+          }
+        }
+      }
+
       const card = await storage.updateKanbanCard(cardId, req.body);
       if (!card) {
         return res.status(404).json({ error: 'Card not found' });
@@ -13297,10 +14503,138 @@ def extract_function(Column_Name, Excel_File):
 
   app.post('/api/kanban-cards/:cardId/comments', async (req, res) => {
     try {
-      const comment = await storage.createKanbanComment({
-        cardId: req.params.cardId,
-        ...req.body
+      const { cardId } = req.params;
+      const { content, userId, sendAsEmail } = req.body;
+
+      if (!sendAsEmail) {
+        // Traditional internal comment — existing behavior
+        const comment = await storage.createKanbanComment({
+          cardId,
+          userId,
+          content,
+          direction: 'internal',
+        });
+        return res.status(201).json(comment);
+      }
+
+      // Email mode: send to all assignees
+      const card = await storage.getKanbanCard(cardId);
+      if (!card || !card.emailThreadId) {
+        return res.status(400).json({ error: 'Card does not have an email thread configured' });
+      }
+
+      const rawAssignees = (card.assigneeIds as any[]) || [];
+      const assigneeEmails = rawAssignees.map((a: any) => typeof a === 'string' ? a : a.email).filter(Boolean);
+      if (assigneeEmails.length === 0) {
+        return res.status(400).json({ error: 'No email assignees on this card' });
+      }
+
+      // Get session → project for inbox address
+      const cardSession = await storage.getExtractionSession(card.sessionId);
+      if (!cardSession) return res.status(404).json({ error: 'Session not found' });
+      const cardProject = await storage.getProject(cardSession.projectId);
+      if (!cardProject || !(cardProject as any).inboxEmailAddress) {
+        return res.status(400).json({ error: 'Project does not have an inbox configured' });
+      }
+
+      const { sendProjectEmail } = await import('./email');
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (cardProject as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+      const inboxLocalPart = (cardProject as any).inboxEmailAddress.split('@')[0];
+      const rawFromEmail = `${card.emailThreadId}.${inboxLocalPart}@extrapl.it`;
+
+      // Get sender name from user if available
+      let senderName = cardProject.name;
+      if (userId) {
+        const senderUser = await storage.getUser(userId);
+        if (senderUser?.name) senderName = senderUser.name;
+      }
+      const fromEmail = formatEmailFrom(senderName, rawFromEmail);
+
+      // First outbound email uses bare title; subsequent replies use "Re: title"
+      const existingComments = await storage.getKanbanComments(cardId);
+      const hasOutbound = existingComments.some((c: any) => c.direction === 'outbound');
+      const emailSubject = hasOutbound ? `Re: ${card.title}` : card.title;
+
+      console.log(`[kanban-email] Sending email from ${rawFromEmail} to ${assigneeEmails.join(', ')} — card ${cardId}`);
+
+      await sendProjectEmail({
+        from: fromEmail,
+        to: assigneeEmails,
+        subject: emailSubject,
+        textContent: content,
+        htmlContent: renderEmailTemplate(emailTemplate, {
+          subject: emailSubject,
+          body: content.replace(/\n/g, '<br>'),
+          projectName: cardProject.name,
+          senderEmail: rawFromEmail,
+          senderName: req.user!.name,
+        }),
       });
+
+      // Record as outbound email comment
+      const comment = await storage.createKanbanComment({
+        cardId,
+        userId: userId || null,
+        content,
+        direction: 'outbound',
+        fromEmail: rawFromEmail,
+        toEmails: assigneeEmails,
+      });
+
+      // ── Messenger integration: sync outbound to session conversation ──
+      console.log(`[kanban-email] Starting messenger sync for card ${cardId} in session ${card.sessionId}`);
+      try {
+        let cardConversation = await storage.getSessionConversationByCardId(cardId);
+        console.log(`[kanban-email] Existing conversation for card: ${cardConversation?.id || 'none'}`);
+        if (!cardConversation) {
+          // Create a new session conversation linked to this card
+          const firstAssignee = rawAssignees[0];
+          const firstEmail = typeof firstAssignee === 'string' ? firstAssignee : firstAssignee?.email;
+          const firstName = typeof firstAssignee === 'object' && firstAssignee?.displayName
+            ? firstAssignee.displayName
+            : (firstEmail || '').split('@')[0];
+          cardConversation = await storage.createSessionConversation({
+            sessionId: card.sessionId,
+            projectId: cardSession.projectId,
+            name: firstName || 'Task Thread',
+            subject: card.title,
+            participantEmail: firstEmail || '',
+            isOriginator: false,
+            cardId,
+          });
+          // Add all assignees as participants
+          for (const assignee of rawAssignees) {
+            const aEmail = typeof assignee === 'string' ? assignee : assignee?.email;
+            const aName = typeof assignee === 'object' && assignee?.displayName
+              ? assignee.displayName
+              : (aEmail || '').split('@')[0];
+            if (aEmail) {
+              await storage.addConversationParticipant({
+                conversationId: cardConversation.id,
+                name: aName,
+                email: aEmail,
+              });
+            }
+          }
+          console.log(`[kanban-email] Created session conversation ${cardConversation.id} for card ${cardId}`);
+        }
+        // Create a session email record so it shows in the Messenger thread
+        await storage.createSessionEmail({
+          sessionId: card.sessionId,
+          direction: 'outbound',
+          fromEmail: rawFromEmail,
+          toEmail: assigneeEmails[0],
+          subject: emailSubject,
+          body: content,
+          sentByUserId: userId || null,
+          conversationId: cardConversation.id,
+        });
+      } catch (messengerErr) {
+        console.error('[kanban-email] Non-fatal: failed to sync with messenger:', messengerErr);
+      }
+
       res.status(201).json(comment);
     } catch (error) {
       console.error('Error creating comment:', error);
@@ -13404,6 +14738,8 @@ def extract_function(Column_Name, Excel_File):
         dataSourceId,
         dataSourceInstructions
       } = req.body;
+
+      console.log(`[generate-tasks] Request received for session=${sessionId} step=${stepId}, selectedDocs=${selectedDocumentIds?.length || 0}, refSteps=${referenceStepIds?.length || 0}, dataSourceId=${dataSourceId || 'none'}`);
 
       // Get session documents (only if includeUserDocuments is true)
       let documentContent = '';
@@ -13662,16 +14998,25 @@ CRITICAL RULES:
 
 Return ONLY the JSON array, no other text.`;
 
+      console.log(`[generate-tasks] Prompt size: ${prompt.length} chars, documents: ${documentContent.length}, reference: ${referenceDataContent.length}, dataSource: ${dataSourceContent.length}, knowledge: ${knowledgeContent.length}`);
+
       // Call Gemini AI - using placeholder approach keeps responses compact
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-      const model = genAI.getGenerativeModel({ 
+      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+      if (!apiKey) {
+        console.error('[generate-tasks] No Gemini API key configured (checked GEMINI_API_KEY and GOOGLE_API_KEY)');
+        return res.status(500).json({ error: 'AI API key not configured. Please contact support.' });
+      }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
         model: "gemini-2.0-flash"
       });
-      
+
+      console.log('[generate-tasks] Calling Gemini AI...');
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
+      console.log(`[generate-tasks] Gemini response received: ${text.length} chars`);
 
       // Parse the JSON response
       let tasks: any[] = [];
@@ -13710,49 +15055,60 @@ Return ONLY the JSON array, no other text.`;
         }
       }
 
-      // Create the kanban cards with checklists
-      const createdCards = [];
+      // Batch insert kanban cards (single DB call instead of one per card)
+      console.log(`[generate-tasks] Creating ${tasks.length} kanban cards via batch insert...`);
+      const cardValues = tasks.map((task: any, i: number) => ({
+        sessionId,
+        stepId,
+        title: (task.title || 'Untitled Task').slice(0, 200),
+        description: task.description || null,
+        status: task.status || (statusColumns?.[0] || 'To Do'),
+        orderIndex: i,
+        aiGenerated: true,
+        aiReasoning: task.reasoning || null,
+      }));
+
+      const createdCards = await db.insert(kanbanCards).values(cardValues).returning();
+      console.log(`[generate-tasks] Batch inserted ${createdCards.length} cards`);
+
+      // Collect all checklist items and batch insert them
+      const allChecklistItems: { cardId: string; title: string; isCompleted: boolean; orderIndex: number; aiGenerated: boolean }[] = [];
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i];
-        const card = await storage.createKanbanCard({
-          sessionId,
-          stepId,
-          title: task.title || 'Untitled Task',
-          description: task.description || null,
-          status: task.status || (statusColumns?.[0] || 'To Do'),
-          orderIndex: i,
-          aiGenerated: true,
-          aiReasoning: task.reasoning || null
-        });
-        
-        // Create checklist items for this card
+        const card = createdCards[i];
         if (task.checklist && Array.isArray(task.checklist)) {
           for (let j = 0; j < task.checklist.length; j++) {
             const checklistText = task.checklist[j];
             if (checklistText && typeof checklistText === 'string') {
-              await storage.createKanbanChecklistItem({
+              allChecklistItems.push({
                 cardId: card.id,
                 title: checklistText,
                 isCompleted: false,
                 orderIndex: j,
-                aiGenerated: true
+                aiGenerated: true,
               });
             }
           }
         }
-        
-        createdCards.push(card);
       }
 
-      res.json({ 
-        success: true, 
+      if (allChecklistItems.length > 0) {
+        await db.insert(kanbanChecklistItems).values(allChecklistItems);
+        console.log(`[generate-tasks] Batch inserted ${allChecklistItems.length} checklist items`);
+      }
+
+      console.log(`[generate-tasks] Successfully created ${createdCards.length} cards with ${allChecklistItems.length} checklist items`);
+      res.json({
+        success: true,
         cardsCreated: createdCards.length,
-        cards: createdCards 
+        cards: createdCards
       });
 
-    } catch (error) {
-      console.error('Error generating tasks:', error);
-      res.status(500).json({ error: 'Failed to generate tasks' });
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      console.error(`[generate-tasks] Error: ${errorMessage}`);
+      console.error('[generate-tasks] Stack:', error?.stack);
+      res.status(500).json({ error: `Failed to generate tasks: ${errorMessage}` });
     }
   });
 
@@ -14218,6 +15574,766 @@ Respond in JSON format:
       }
 
       // Find the recipient address that matches a project inbox
+      // Supports conversation-level addresses ({conversationId}.projectname@extrapl.it),
+      // legacy session-level addresses ({sessionId}.projectname@extrapl.it),
+      // and project-level addresses (projectname@extrapl.it) for new sessions
+      const toAddresses: string[] = Array.isArray(to) ? to : [to];
+      let project = null;
+      let recipientEmail = '';
+      let existingSessionId: string | null = null;
+      let existingConversationId: string | null = null;
+
+      const UUID_REGEX = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(.+)$/;
+
+      for (const addr of toAddresses) {
+        const normalizedAddr = addr.toLowerCase().replace(/^.*</, '').replace(/>.*$/, '').trim();
+        if (normalizedAddr.endsWith('@extrapl.it')) {
+          const localPart = normalizedAddr.split('@')[0];
+          const uuidMatch = localPart.match(UUID_REGEX);
+
+          if (uuidMatch) {
+            const extractedId = uuidMatch[1];
+            const projectSlug = uuidMatch[2];
+            const projectEmail = `${projectSlug}@extrapl.it`;
+            project = await storage.getProjectByEmailAddress(projectEmail);
+            if (project) {
+              // Try as conversationId first (new format: {conversationId}.{slug}@extrapl.it)
+              const conversation = await storage.getSessionConversation(extractedId);
+              if (conversation && conversation.projectId === project.id) {
+                existingSessionId = conversation.sessionId;
+                existingConversationId = conversation.id;
+                console.log(`📧 SES: Direct conversation routing — conversation ${conversation.id} in session ${conversation.sessionId}`);
+              } else {
+                // Try as kanban card emailThreadId (task-level email: {emailThreadId}.{slug}@extrapl.it)
+                const emailCard = await storage.getKanbanCardByEmailThreadId(extractedId);
+                if (emailCard) {
+                  existingSessionId = emailCard.sessionId; // needed for project validation
+                  (req as any).__inboundCardId = emailCard.id; // stash card ID for processing below
+                  console.log(`📧 SES: Card email thread routing — card ${emailCard.id} (emailThreadId: ${extractedId})`);
+                } else {
+                  // Fall back to sessionId (legacy format: {sessionId}.{slug}@extrapl.it)
+                  existingSessionId = extractedId;
+                  console.log(`📧 SES: Legacy session-level address — session ${extractedId}`);
+                }
+              }
+              recipientEmail = normalizedAddr;
+              break;
+            }
+          } else {
+            // Project-level address: projectname@extrapl.it (creates new session)
+            project = await storage.getProjectByEmailAddress(normalizedAddr);
+            if (project) {
+              recipientEmail = normalizedAddr;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!project) {
+        console.log(`📧 SES: No project found for recipients: ${toAddresses.join(', ')}`);
+        return res.status(200).json({ status: 'ignored', reason: 'no_matching_project' });
+      }
+
+      console.log(`📧 SES: Found project "${project.name}" (${project.id}) for ${recipientEmail}${existingConversationId ? ` (direct to conversation ${existingConversationId})` : existingSessionId ? ` (reply to session ${existingSessionId})` : ''}`);
+
+      // Deduplicate
+      const alreadyProcessed = await storage.isEmailProcessed(project.id, messageId);
+      if (alreadyProcessed) {
+        console.log(`📧 SES: Email ${messageId} already processed, skipping`);
+        return res.json({ success: true, message: 'Email already processed', duplicate: true });
+      }
+
+      // Parse the full email from S3
+      const { parseRawEmailFromS3 } = await import('./integrations/sesInbound');
+      const parsedEmail = await parseRawEmailFromS3(s3Key, s3Bucket);
+
+      const fromEmail = parsedEmail.from;
+      const fromName = parsedEmail.fromName || '';
+      const displayName = fromName || fromEmail.split('@')[0];
+      const emailSubject = (parsedEmail.subject || subject || 'Email Session').replace(/\0/g, '');
+      // Sanitize text content — remove null bytes that PostgreSQL rejects
+      // Sanitize null bytes + strip quoted reply chain (e.g. "On ... wrote:" blocks)
+      const rawText = (parsedEmail.textContent || '').replace(/\0/g, '');
+      const textContent = stripEmailSignature(stripQuotedReply(stripCidReferences(rawText)));
+      // Filter out signature/inline CID images from attachments
+      const attachments = parsedEmail.attachments.filter(att => {
+        if (att.contentId) {
+          console.log(`📧 SES: Skipping inline CID attachment: ${att.filename} (cid:${att.contentId})`);
+          return false;
+        }
+        if (isEmailSignatureAttachment(att.filename, att.contentType, att.size)) {
+          console.log(`📧 SES: Skipping signature attachment: ${att.filename} (${att.size} bytes)`);
+          return false;
+        }
+        return true;
+      });
+
+      // ─── Card email thread: route inbound email to kanban card discussion ───
+      const inboundCardId = (req as any).__inboundCardId as string | undefined;
+      if (inboundCardId) {
+        const inboundCard = await storage.getKanbanCard(inboundCardId);
+        if (inboundCard) {
+          console.log(`📧 SES: Routing email to card discussion — card ${inboundCardId}, from ${fromEmail}`);
+
+          // Create inbound comment on the card
+          const cardComment = await storage.createKanbanComment({
+            cardId: inboundCardId,
+            userId: null,
+            content: textContent,
+            direction: 'inbound',
+            fromEmail,
+            toEmails: [recipientEmail],
+            htmlBody: parsedEmail.htmlContent || null,
+            sesMessageId: messageId,
+          });
+
+          // Enrich assignee display name from email header
+          if (fromName && inboundCard.assigneeIds) {
+            const assignees = inboundCard.assigneeIds as any[];
+            let updated = false;
+            const enrichedAssignees = assignees.map((a: any) => {
+              const aEmail = typeof a === 'string' ? a : a.email;
+              if (aEmail.toLowerCase() === fromEmail.toLowerCase()) {
+                if (typeof a === 'string' || !a.displayName) {
+                  updated = true;
+                  return { email: aEmail, displayName: fromName };
+                }
+              }
+              return a;
+            });
+            if (updated) {
+              await storage.updateKanbanCard(inboundCardId, { assigneeIds: enrichedAssignees });
+              console.log(`📧 SES: Enriched assignee name for ${fromEmail} → "${fromName}" on card ${inboundCardId}`);
+            }
+          }
+
+          // Handle attachments — upload to S3 as kanbanAttachments linked to the comment
+          if (attachments.length > 0) {
+            const { S3Client: S3C, PutObjectCommand } = await import('@aws-sdk/client-s3');
+            const s3 = new S3C({ region: process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'eu-west-1' });
+            const bucketName = process.env.S3_BUCKET_NAME;
+
+            for (const att of attachments) {
+              try {
+                const docKey = `card-attachments/${project!.id}/${inboundCardId}/${Date.now()}-${att.filename}`;
+                await s3.send(new PutObjectCommand({
+                  Bucket: bucketName, Key: docKey,
+                  Body: att.content, ContentType: att.contentType,
+                }));
+                const fileUrl = `https://${bucketName}.s3.amazonaws.com/${docKey}`;
+                await storage.createKanbanAttachment({
+                  cardId: inboundCardId,
+                  commentId: cardComment.id,
+                  fileName: att.filename,
+                  fileUrl,
+                  fileSize: att.size,
+                  mimeType: att.contentType,
+                });
+                console.log(`📧 SES: Uploaded card attachment: ${att.filename} (${att.size} bytes)`);
+              } catch (attErr) {
+                console.error(`📧 SES: Failed to upload card attachment ${att.filename}:`, attErr);
+              }
+            }
+          }
+
+          // ── Messenger integration: sync inbound to session conversation ──
+          try {
+            const cardConv = await storage.getSessionConversationByCardId(inboundCardId);
+            if (cardConv) {
+              await storage.createSessionEmail({
+                sessionId: inboundCard.sessionId,
+                direction: 'inbound',
+                fromEmail,
+                toEmail: recipientEmail,
+                subject: emailSubject,
+                body: textContent,
+                conversationId: cardConv.id,
+              });
+              console.log(`📧 SES: Synced inbound card email to messenger conversation ${cardConv.id}`);
+            }
+          } catch (messengerErr) {
+            console.error('📧 SES: Non-fatal: failed to sync inbound with messenger:', messengerErr);
+          }
+
+          // Mark as processed
+          await storage.markEmailProcessed(project!.id, messageId, recipientEmail, inboundCard.sessionId, emailSubject, fromEmail, textContent, new Date());
+
+          console.log(`📧 SES: ✅ Card email processed — comment ${cardComment.id} on card ${inboundCardId}`);
+          return res.json({ success: true, cardId: inboundCardId, commentId: cardComment.id, threaded: true });
+        }
+      }
+
+      // ─── Reply threading: if addressed to a session-specific address, thread into existing session ───
+      if (existingSessionId) {
+        const existingSession = await storage.getExtractionSession(existingSessionId);
+        if (existingSession && existingSession.projectId === project.id) {
+          console.log(`📧 SES: Threading reply into existing session ${existingSessionId}`);
+
+          // Find the right conversation for this reply
+          const replyConversations = await storage.getSessionConversations(existingSessionId);
+          let replyConversation: typeof replyConversations[0] | undefined = undefined;
+
+          // ── Direct routing: conversation ID was in the email address (new format) ──
+          if (existingConversationId) {
+            replyConversation = replyConversations.find(c => c.id === existingConversationId);
+            if (replyConversation) {
+              console.log(`📧 SES: Direct conversation routing for ${fromEmail} → conversation ${existingConversationId}`);
+            }
+          }
+
+          // ── Legacy fallback: session-level address — use participant/subject matching ──
+          if (!replyConversation) {
+            // Normalize subject for comparison (strip Re:/Fwd: prefixes, trim)
+            const normalizeSubject = (s: string | null) =>
+              (s || '').replace(/^(Re|Fwd|Fw)\s*:\s*/gi, '').trim().toLowerCase();
+            const incomingSubjectNorm = normalizeSubject(emailSubject);
+
+            // Step 1: Check participant membership — prefer originator conversations
+            let originatorParticipantMatch: typeof replyConversation = undefined;
+            let subjectParticipantMatch: typeof replyConversation = undefined;
+            let anyParticipantMatch: typeof replyConversation = undefined;
+
+            for (const conv of replyConversations) {
+              const convParticipants = await storage.getConversationParticipants(conv.id);
+              const isParticipant = convParticipants.some(
+                (p: any) => p.email.toLowerCase() === fromEmail.toLowerCase()
+              );
+              if (!isParticipant) continue;
+
+              // Best: originator conversation where sender is a participant
+              if (conv.isOriginator && !originatorParticipantMatch) {
+                originatorParticipantMatch = conv;
+                console.log(`📧 SES: Originator+participant match for ${fromEmail} in conversation ${conv.id}`);
+                break; // Best possible match
+              }
+
+              // Good: subject match + participant
+              const convSubjectNorm = normalizeSubject(conv.subject);
+              if (convSubjectNorm && incomingSubjectNorm && convSubjectNorm === incomingSubjectNorm && !subjectParticipantMatch) {
+                subjectParticipantMatch = conv;
+              }
+
+              // Fallback: any participant match
+              if (!anyParticipantMatch) {
+                anyParticipantMatch = conv;
+              }
+            }
+
+            replyConversation = originatorParticipantMatch || subjectParticipantMatch || anyParticipantMatch;
+
+            // Step 2: Direct participantEmail match (catches originators replying via legacy addresses)
+            if (!replyConversation) {
+              replyConversation = replyConversations.find(c =>
+                c.participantEmail.toLowerCase() === fromEmail.toLowerCase()
+              );
+            }
+
+            if (replyConversation) {
+              console.log(`📧 SES: Legacy routing for ${fromEmail} → conversation ${replyConversation.id} (${replyConversation.name})`);
+            }
+          }
+
+          // Step 3: Only create new conversation if not found anywhere
+          if (!replyConversation) {
+            replyConversation = await storage.createSessionConversation({
+              sessionId: existingSessionId,
+              projectId: project.id,
+              name: displayName,
+              subject: emailSubject || null,
+              participantEmail: fromEmail,
+              isOriginator: false,
+            });
+            // Seed initial participant
+            await storage.addConversationParticipant({
+              conversationId: replyConversation.id,
+              name: displayName,
+              email: fromEmail,
+            });
+            console.log(`📧 SES: Created new conversation for ${fromEmail} (${displayName}) in session ${existingSessionId}`);
+          } else if (fromName) {
+            // Existing conversation — enrich participant name if we now have a real From name
+            // This updates "joshfarm" → "Josh Farmer" when they reply with a display name
+            const participants = await storage.getConversationParticipants(replyConversation.id);
+            const existingParticipant = participants.find(
+              (p: any) => p.email.toLowerCase() === fromEmail.toLowerCase()
+            );
+            if (existingParticipant && existingParticipant.name !== fromName) {
+              await db.execute(sql`
+                UPDATE conversation_participants
+                SET name = ${fromName}
+                WHERE id = ${existingParticipant.id}
+              `);
+              console.log(`📧 SES: Enriched participant name "${existingParticipant.name}" → "${fromName}"`);
+            }
+            // Also update the conversation name if it was derived from email local-part
+            if (replyConversation.name === fromEmail.split('@')[0]) {
+              await db.execute(sql`
+                UPDATE session_conversations
+                SET name = ${fromName}
+                WHERE id = ${replyConversation.id}
+              `);
+              console.log(`📧 SES: Enriched conversation name → "${fromName}"`);
+            }
+          }
+
+          // Record inbound email in the session's messenger thread
+          const replyEmailRecord = await storage.createSessionEmail({
+            sessionId: existingSessionId,
+            projectId: project.id,
+            direction: 'inbound',
+            fromEmail,
+            toEmail: recipientEmail,
+            subject: emailSubject,
+            body: textContent,
+            htmlBody: parsedEmail.htmlContent || null,
+            sesMessageId: messageId,
+            conversationId: replyConversation.id,
+          });
+
+          // Log activity
+          await storage.createSessionActivity({
+            sessionId: existingSessionId,
+            activityType: 'email_received',
+            description: `Reply received from ${fromEmail}: "${emailSubject}"`,
+            metadata: { fromEmail, subject: emailSubject, body: textContent, attachmentCount: attachments.length, isReply: true, conversationId: replyConversation.id },
+            actorEmail: fromEmail,
+          });
+
+          // Enrich originator name if this reply is from the originator and they have a display name
+          if (fromName && existingSession.originatorEmail?.toLowerCase() === fromEmail.toLowerCase()) {
+            const currentOriginatorName = existingSession.originatorName || '';
+            // Only update if current name looks like it was derived from email (no spaces, matches local-part)
+            if (!currentOriginatorName || currentOriginatorName === fromEmail.split('@')[0]) {
+              await db.execute(sql`
+                UPDATE extraction_sessions
+                SET originator_name = ${fromName}
+                WHERE id = ${existingSessionId}
+              `);
+              // Also update the originator's conversation name
+              const originatorConv = replyConversations.find(c => c.isOriginator);
+              if (originatorConv && originatorConv.name === fromEmail.split('@')[0]) {
+                await db.execute(sql`
+                  UPDATE session_conversations
+                  SET name = ${fromName}
+                  WHERE id = ${originatorConv.id}
+                `);
+              }
+              // Update the originator's participant record too
+              if (originatorConv) {
+                const origParticipants = await storage.getConversationParticipants(originatorConv.id);
+                const origParticipant = origParticipants.find(
+                  (p: any) => p.email.toLowerCase() === fromEmail.toLowerCase()
+                );
+                if (origParticipant && origParticipant.name !== fromName) {
+                  await db.execute(sql`
+                    UPDATE conversation_participants
+                    SET name = ${fromName}
+                    WHERE id = ${origParticipant.id}
+                  `);
+                }
+              }
+              console.log(`📧 SES: Enriched originator name → "${fromName}" for session ${existingSessionId}`);
+            }
+          }
+
+          // If the reply has attachments, upload them to the existing session
+          const replyPendingExtractions: Array<{ docId: string; filename: string; content: Buffer; contentType: string; sessionId: string }> = [];
+
+          if (attachments.length > 0) {
+            const { S3Client: S3C, PutObjectCommand } = await import('@aws-sdk/client-s3');
+            const s3 = new S3C({ region: process.env.AWS_REGION || 'eu-west-1' });
+            const bucketName = process.env.S3_BUCKET_NAME;
+
+            for (const att of attachments) {
+              try {
+                const docKey = `documents/${project.id}/${existingSessionId}/${Date.now()}-${att.filename}`;
+                await s3.send(new PutObjectCommand({
+                  Bucket: bucketName,
+                  Key: docKey,
+                  Body: att.content,
+                  ContentType: att.contentType,
+                }));
+                const doc = await storage.createSessionDocument({
+                  sessionId: existingSessionId,
+                  fileName: att.filename,
+                  fileSize: att.size,
+                  mimeType: att.contentType,
+                  s3Key: docKey,
+                  sourceEmailId: replyEmailRecord.id,
+                });
+                replyPendingExtractions.push({
+                  docId: doc.id,
+                  filename: att.filename,
+                  content: att.content,
+                  contentType: att.contentType,
+                  sessionId: existingSessionId,
+                });
+                await storage.createSessionActivity({
+                  sessionId: existingSessionId,
+                  activityType: 'document_uploaded',
+                  description: `Document "${att.filename}" uploaded from reply email (${att.size} bytes)`,
+                  metadata: { fileName: att.filename, fileSize: att.size, mimeType: att.contentType },
+                  actorEmail: fromEmail,
+                });
+                console.log(`📧 SES: Uploaded reply attachment ${att.filename} to session ${existingSessionId}`);
+              } catch (err) {
+                console.error(`📧 SES: Failed to upload reply attachment ${att.filename}:`, err);
+              }
+            }
+          }
+
+          // Mark as processed
+          await storage.markEmailProcessed(project.id, messageId, project.inboxId || recipientEmail, existingSessionId, emailSubject, fromEmail, textContent, new Date());
+
+          // Respond to webhook immediately
+          res.json({
+            success: true,
+            sessionId: existingSessionId,
+            threaded: true,
+            documentsCreated: attachments.length,
+          });
+
+          // Async extraction for reply attachments
+          if (replyPendingExtractions.length > 0) {
+            setImmediate(async () => {
+              for (const pending of replyPendingExtractions) {
+                try {
+                  const base64Content = pending.content.toString('base64');
+                  const extractionData = {
+                    step: "extract_text_only",
+                    documents: [{ file_name: pending.filename, file_content: base64Content, mime_type: pending.contentType }]
+                  };
+
+                  const extractedContent = await new Promise<string>((resolve) => {
+                    const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
+                    const timeout = setTimeout(() => { python.kill(); console.log(`📧 SES: Extraction timeout for reply attachment ${pending.filename}`); resolve(''); }, 90000);
+
+                    python.stdin.write(JSON.stringify(extractionData));
+                    python.stdin.end();
+
+                    let output = '';
+                    python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+                    python.on('close', (code: number | null) => {
+                      clearTimeout(timeout);
+                      if (code === 0) {
+                        try {
+                          const result = JSON.parse(output);
+                          resolve(result.extracted_texts?.[0]?.text_content || '');
+                        } catch { resolve(''); }
+                      } else { resolve(''); }
+                    });
+                    python.on('error', () => { clearTimeout(timeout); resolve(''); });
+                  });
+
+                  if (extractedContent.length > 0) {
+                    await storage.updateSessionDocument(pending.docId, { extractedContent });
+                    console.log(`📧 SES: Extracted ${extractedContent.length} chars from reply attachment ${pending.filename}`);
+
+                    await storage.createSessionActivity({
+                      sessionId: pending.sessionId,
+                      activityType: 'document_processed',
+                      description: `Document "${pending.filename}" processed (${extractedContent.length} chars extracted)`,
+                      metadata: { fileName: pending.filename, contentLength: extractedContent.length },
+                    });
+                  }
+                } catch (err) {
+                  console.error(`📧 SES: Extraction failed for reply attachment ${pending.filename}:`, err);
+                }
+              }
+            });
+          }
+
+          return;
+        } else {
+          console.log(`📧 SES: Session ${existingSessionId} not found or doesn't belong to project, creating new session`);
+          existingSessionId = null; // Fall through to create new session
+        }
+      }
+
+      // Get required document types and email template for this project
+      const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+      // Import sendProjectEmail for auto-replies from the project's SES inbox
+      const { sendProjectEmail } = await import('./email');
+
+      // Helper to send auto-reply via SES (fromAddr allows session-specific address)
+      const sendReply = async (replySubject: string, replyText: string, fromAddr?: string) => {
+        const rawFrom = fromAddr || recipientEmail;
+        const replyFrom = formatEmailFrom(project!.name, rawFrom);
+        try {
+          await sendProjectEmail({
+            from: replyFrom,
+            to: fromEmail,
+            subject: replySubject,
+            textContent: replyText,
+            htmlContent: renderEmailTemplate(emailTemplate, {
+              subject: replySubject,
+              body: replyText.replace(/\n/g, '<br>'),
+              projectName: project!.name,
+              senderEmail: rawFrom,
+            }),
+          });
+          console.log(`📧 SES: Sent reply to ${fromEmail} from ${rawFrom}`);
+        } catch (err) {
+          console.error('📧 SES: Failed to send reply:', err);
+        }
+      };
+
+      // Validate required documents
+      if (requiredDocTypes.length > 0 && attachments.length === 0) {
+        console.log(`📧 SES: No attachments but ${requiredDocTypes.length} document types required`);
+
+        let rejectionBody = `Thank you for your email to ${project.name}.\n\nUnfortunately, we could not find any document attachments in your email. To process your request, we need the following documents:\n\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`;
+
+        try {
+          const { GoogleGenerativeAI } = await import("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+          const aiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+          const aiResult = await aiModel.generateContent(`Generate a professional, helpful email response for an automated document intake system.\n\nContext:\n- The sender submitted an email without any document attachments to "${project.name}"\n- This project requires specific documents to be attached\n- Original email subject: "${emailSubject}"\n\nMissing Documents (ALL required):\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nWrite a polite, professional email explaining:\n1. We received their email\n2. Unfortunately, no document attachments were found\n3. List each required document type and what it should contain\n4. Encourage them to reply with the correct documents attached\n\nKeep the tone helpful and professional. Format as plain text email body only (no subject line).`);
+          rejectionBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 SES: AI rejection generation failed:', err);
+        }
+
+        await sendReply(`Re: ${emailSubject} - Documents Required`, rejectionBody);
+        await storage.markEmailProcessed(project.id, messageId, project.inboxId || recipientEmail, null as any, emailSubject, fromEmail, textContent, new Date());
+        return res.json({ success: true, message: 'Rejection sent — no attachments' });
+      }
+
+      // Upload attachments to S3 and create session
+      console.log(`📧 SES: Creating session for project ${project.id} with ${attachments.length} attachment(s)`);
+
+      // Create the extraction session with originator info
+      const session = await storage.createExtractionSession({
+        projectId: project.id,
+        sessionName: emailSubject,
+        documentCount: attachments.length,
+        status: 'in_progress',
+        workflowStatus: (project as any).defaultWorkflowStatus || 'New',
+      });
+
+      // Set originator fields on session (use display name from email headers if available)
+      await db.execute(sql`
+        UPDATE extraction_sessions
+        SET originator_email = ${fromEmail}, originator_name = ${displayName}
+        WHERE id = ${session.id}
+      `);
+
+      console.log(`📧 SES: Created session ${session.id}`);
+
+      // Create originator conversation for the email sender
+      const originatorConv = await storage.createSessionConversation({
+        sessionId: session.id,
+        projectId: project.id,
+        name: displayName,
+        subject: emailSubject || null,
+        participantEmail: fromEmail,
+        isOriginator: true,
+      });
+
+      // Seed initial participant
+      await storage.addConversationParticipant({
+        conversationId: originatorConv.id,
+        name: displayName,
+        email: fromEmail,
+      });
+
+      // Record inbound email in session messenger thread with conversation link
+      const inboundEmailRecord = await storage.createSessionEmail({
+        sessionId: session.id,
+        projectId: project.id,
+        direction: 'inbound',
+        fromEmail,
+        toEmail: recipientEmail,
+        subject: emailSubject,
+        body: textContent,
+        htmlBody: parsedEmail.htmlContent || null,
+        sesMessageId: messageId,
+        conversationId: originatorConv.id,
+      });
+
+      // Log session creation and email receipt in activity timeline
+      await storage.createSessionActivity({
+        sessionId: session.id,
+        activityType: 'session_created',
+        description: `Session created from email by ${fromEmail}`,
+        metadata: { source: 'email', fromEmail, subject: emailSubject },
+        actorEmail: fromEmail,
+      });
+      await storage.createSessionActivity({
+        sessionId: session.id,
+        activityType: 'email_received',
+        description: `Email received from ${fromEmail}: "${emailSubject}"`,
+        metadata: { fromEmail, subject: emailSubject, body: textContent, attachmentCount: attachments.length, conversationId: originatorConv.id },
+        actorEmail: fromEmail,
+      });
+
+      // Upload each attachment to S3 and create a session document record
+      const { S3Client: S3C, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = new S3C({ region: process.env.AWS_REGION || 'eu-west-1' });
+      const bucketName = process.env.S3_BUCKET_NAME;
+
+      // Collect pending extractions for async processing after response
+      const pendingExtractions: Array<{ docId: string; filename: string; content: Buffer; contentType: string; sessionId: string }> = [];
+
+      for (const att of attachments) {
+        try {
+          const docKey = `documents/${project.id}/${session.id}/${Date.now()}-${att.filename}`;
+          await s3.send(new PutObjectCommand({
+            Bucket: bucketName,
+            Key: docKey,
+            Body: att.content,
+            ContentType: att.contentType,
+          }));
+
+          const doc = await storage.createSessionDocument({
+            sessionId: session.id,
+            fileName: att.filename,
+            fileSize: att.size,
+            mimeType: att.contentType,
+            s3Key: docKey,
+            sourceEmailId: inboundEmailRecord.id,
+          });
+
+          pendingExtractions.push({
+            docId: doc.id,
+            filename: att.filename,
+            content: att.content,
+            contentType: att.contentType,
+            sessionId: session.id,
+          });
+
+          console.log(`📧 SES: Uploaded ${att.filename} (${att.size} bytes) to ${docKey}`);
+
+          // Log document upload in activity timeline
+          await storage.createSessionActivity({
+            sessionId: session.id,
+            activityType: 'document_uploaded',
+            description: `Document "${att.filename}" uploaded from email (${att.size} bytes)`,
+            metadata: { fileName: att.filename, fileSize: att.size, mimeType: att.contentType },
+            actorEmail: fromEmail,
+          });
+        } catch (err) {
+          console.error(`📧 SES: Failed to upload attachment ${att.filename}:`, err);
+        }
+      }
+
+      // Mark email as processed
+      await storage.markEmailProcessed(project.id, messageId, project.inboxId || recipientEmail, session.id, emailSubject, fromEmail, textContent, new Date());
+
+      // Send confirmation auto-reply using session-specific from address
+      const inboxLocalPart = (project.inboxEmailAddress || recipientEmail.split('@')[0]).split('@')[0];
+      const sessionFromEmail = `${session.id}.${inboxLocalPart}@extrapl.it`;
+      const confirmBody = `Thank you for your submission to ${project.name}.\n\nWe have received your email with ${attachments.length} document(s). Your submission is now being processed.\n\nReference: ${session.sessionName}\n\nYou will receive updates as your documents are reviewed.`;
+      const confirmSubject = `Re: ${emailSubject} - Received`;
+      await sendReply(confirmSubject, confirmBody, sessionFromEmail);
+
+      // Record outbound auto-reply in messenger thread (linked to originator conversation)
+      await storage.createSessionEmail({
+        sessionId: session.id,
+        projectId: project.id,
+        direction: 'outbound',
+        fromEmail: sessionFromEmail,
+        toEmail: fromEmail,
+        subject: confirmSubject,
+        body: confirmBody,
+        conversationId: originatorConv.id,
+      });
+      await storage.createSessionActivity({
+        sessionId: session.id,
+        activityType: 'email_sent',
+        description: `Auto-reply confirmation sent to ${fromEmail}`,
+        metadata: { toEmail: fromEmail, subject: confirmSubject, body: confirmBody, automated: true, conversationId: originatorConv.id },
+      });
+
+      // Respond to webhook immediately (before extraction)
+      res.json({
+        success: true,
+        sessionId: session.id,
+        documentsCreated: attachments.length,
+      });
+
+      // Async extraction: run after response is sent to avoid webhook timeout
+      if (pendingExtractions.length > 0) {
+        setImmediate(async () => {
+          for (const pending of pendingExtractions) {
+            try {
+              const base64Content = pending.content.toString('base64');
+              const extractionData = {
+                step: "extract_text_only",
+                documents: [{ file_name: pending.filename, file_content: base64Content, mime_type: pending.contentType }]
+              };
+
+              const extractedContent = await new Promise<string>((resolve) => {
+                const python = spawn('python3', ['services/document_extractor.py'], { env: { ...process.env } });
+                const timeout = setTimeout(() => { python.kill(); console.log(`📧 SES: Extraction timeout for ${pending.filename}`); resolve(''); }, 90000);
+
+                python.stdin.write(JSON.stringify(extractionData));
+                python.stdin.end();
+
+                let output = '';
+                let stderr = '';
+                python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+                python.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+                python.on('close', (code: number | null) => {
+                  clearTimeout(timeout);
+                  if (stderr) console.log(`📧 SES: Extraction stderr for ${pending.filename}: ${stderr.substring(0, 500)}`);
+                  if (code === 0) {
+                    try {
+                      const result = JSON.parse(output);
+                      resolve(result.extracted_texts?.[0]?.text_content || '');
+                    } catch { resolve(''); }
+                  } else { resolve(''); }
+                });
+                python.on('error', () => { clearTimeout(timeout); resolve(''); });
+              });
+
+              if (extractedContent.length > 0) {
+                await storage.updateSessionDocument(pending.docId, { extractedContent });
+                console.log(`📧 SES: Extracted ${extractedContent.length} chars from ${pending.filename}`);
+
+                await storage.createSessionActivity({
+                  sessionId: pending.sessionId,
+                  activityType: 'document_processed',
+                  description: `Document "${pending.filename}" processed (${extractedContent.length} chars extracted)`,
+                  metadata: { fileName: pending.filename, contentLength: extractedContent.length },
+                });
+              } else {
+                console.log(`📧 SES: No content extracted from ${pending.filename}`);
+              }
+            } catch (err) {
+              console.error(`📧 SES: Extraction failed for ${pending.filename}:`, err);
+            }
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error('📧 SES webhook error:', error);
+      res.status(500).json({ error: error.message || 'Failed to process inbound email' });
+    }
+  });
+
+  // SES inbound webhook endpoint — receives metadata from Lambda, reads full email from S3
+  app.post('/api/webhooks/ses-inbound', async (req, res) => {
+    try {
+      console.log('📧 SES: Received inbound webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
+
+      const { messageId, from, to, subject, s3Key, s3Bucket, spamVerdict, virusVerdict } = req.body;
+
+      if (!messageId || !s3Key) {
+        return res.status(400).json({ error: 'Missing messageId or s3Key' });
+      }
+
+      // Reject spam/virus
+      if (spamVerdict === 'FAIL' || virusVerdict === 'FAIL') {
+        console.log(`📧 SES: Rejecting email ${messageId} — spam: ${spamVerdict}, virus: ${virusVerdict}`);
+        return res.json({ success: true, message: 'Email rejected (spam/virus)' });
+      }
+
+      // Find the recipient address that matches a project inbox
       const toAddresses: string[] = Array.isArray(to) ? to : [to];
       let project = null;
       let recipientEmail = '';
@@ -14340,6 +16456,170 @@ Respond in JSON format:
             fileName: att.filename,
             fileSize: att.size,
             mimeType: att.contentType,
+          });
+
+          console.log(`📧 SES: Uploaded ${att.filename} (${att.size} bytes) to ${docKey}`);
+        } catch (err) {
+          console.error(`📧 SES: Failed to upload attachment ${att.filename}:`, err);
+        }
+      }
+
+      // Mark email as processed
+      await storage.markEmailProcessed(project.id, messageId);
+
+      // Send confirmation auto-reply
+      const confirmBody = `Thank you for your submission to ${project.name}.\n\nWe have received your email with ${attachments.length} document(s). Your submission is now being processed.\n\nReference: ${session.name}\n\nYou will receive updates as your documents are reviewed.`;
+      await sendReply(`Re: ${emailSubject} - Received`, confirmBody);
+
+      res.json({
+        success: true,
+        sessionId: session.id,
+        documentsCreated: attachments.length,
+      });
+    } catch (error: any) {
+      console.error('📧 SES webhook error:', error);
+      res.status(500).json({ error: error.message || 'Failed to process inbound email' });
+    }
+  });
+
+  // SES inbound webhook endpoint — receives metadata from Lambda, reads full email from S3
+  app.post('/api/webhooks/ses-inbound', async (req, res) => {
+    try {
+      console.log('📧 SES: Received inbound webhook:', JSON.stringify(req.body, null, 2).slice(0, 500));
+
+      const { messageId, from, to, subject, s3Key, s3Bucket, spamVerdict, virusVerdict } = req.body;
+
+      if (!messageId || !s3Key) {
+        return res.status(400).json({ error: 'Missing messageId or s3Key' });
+      }
+
+      // Reject spam/virus
+      if (spamVerdict === 'FAIL' || virusVerdict === 'FAIL') {
+        console.log(`📧 SES: Rejecting email ${messageId} — spam: ${spamVerdict}, virus: ${virusVerdict}`);
+        return res.json({ success: true, message: 'Email rejected (spam/virus)' });
+      }
+
+      // Find the recipient address that matches a project inbox
+      const toAddresses: string[] = Array.isArray(to) ? to : [to];
+      let project = null;
+      let recipientEmail = '';
+
+      for (const addr of toAddresses) {
+        const normalizedAddr = addr.toLowerCase().replace(/^.*</, '').replace(/>.*$/, '').trim();
+        if (normalizedAddr.endsWith('@extrapl.it')) {
+          project = await storage.getProjectByEmailAddress(normalizedAddr);
+          if (project) {
+            recipientEmail = normalizedAddr;
+            break;
+          }
+        }
+      }
+
+      if (!project) {
+        console.log(`📧 SES: No project found for recipients: ${toAddresses.join(', ')}`);
+        return res.status(200).json({ status: 'ignored', reason: 'no_matching_project' });
+      }
+
+      console.log(`📧 SES: Found project "${project.name}" (${project.id}) for ${recipientEmail}`);
+
+      // Deduplicate
+      const alreadyProcessed = await storage.isEmailProcessed(project.id, messageId);
+      if (alreadyProcessed) {
+        console.log(`📧 SES: Email ${messageId} already processed, skipping`);
+        return res.json({ success: true, message: 'Email already processed', duplicate: true });
+      }
+
+      // Parse the full email from S3
+      const { parseRawEmailFromS3 } = await import('./integrations/sesInbound');
+      const parsedEmail = await parseRawEmailFromS3(s3Key, s3Bucket);
+
+      const fromEmail = parsedEmail.from;
+      const emailSubject = parsedEmail.subject || subject || 'Email Session';
+      const textContent = parsedEmail.textContent || '';
+      const attachments = parsedEmail.attachments;
+
+      // Get required document types and email template for this project
+      const requiredDocTypes = (project as any).requiredDocumentTypes as Array<{id: string; name: string; description: string}> || [];
+      const { renderEmailTemplate, DEFAULT_EMAIL_TEMPLATE } = await import('./integrations/agentmail');
+      const emailTemplate = (project as any).emailNotificationTemplate || DEFAULT_EMAIL_TEMPLATE;
+
+      // Import sendProjectEmail for auto-replies from the project's SES inbox
+      const { sendProjectEmail } = await import('./email');
+
+      // Helper to send auto-reply via SES
+      const sendReply = async (replySubject: string, replyText: string) => {
+        try {
+          await sendProjectEmail({
+            from: recipientEmail,
+            to: fromEmail,
+            subject: replySubject,
+            textContent: replyText,
+            htmlContent: renderEmailTemplate(emailTemplate, {
+              subject: replySubject,
+              body: replyText.replace(/\n/g, '<br>'),
+              projectName: project!.name,
+              senderEmail: fromEmail,
+            }),
+          });
+          console.log(`📧 SES: Sent reply to ${fromEmail}`);
+        } catch (err) {
+          console.error('📧 SES: Failed to send reply:', err);
+        }
+      };
+
+      // Validate required documents
+      if (requiredDocTypes.length > 0 && attachments.length === 0) {
+        console.log(`📧 SES: No attachments but ${requiredDocTypes.length} document types required`);
+
+        let rejectionBody = `Thank you for your email to ${project.name}.\n\nUnfortunately, we could not find any document attachments in your email. To process your request, we need the following documents:\n\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nPlease reply to this email with the required documents attached.\n\nThank you.`;
+
+        try {
+          const aiResult = await model.generateContent(`Generate a professional, helpful email response for an automated document intake system.\n\nContext:\n- The sender submitted an email without any document attachments to "${project.name}"\n- This project requires specific documents to be attached\n- Original email subject: "${emailSubject}"\n\nMissing Documents (ALL required):\n${requiredDocTypes.map(dt => `- ${dt.name}: ${dt.description}`).join('\n')}\n\nWrite a polite, professional email explaining:\n1. We received their email\n2. Unfortunately, no document attachments were found\n3. List each required document type and what it should contain\n4. Encourage them to reply with the correct documents attached\n\nKeep the tone helpful and professional. Format as plain text email body only (no subject line).`);
+          rejectionBody = aiResult.response.text();
+        } catch (err) {
+          console.error('📧 SES: AI rejection generation failed:', err);
+        }
+
+        await sendReply(`Re: ${emailSubject} - Documents Required`, rejectionBody);
+        await storage.markEmailProcessed(project.id, messageId);
+        return res.json({ success: true, message: 'Rejection sent — no attachments' });
+      }
+
+      // Upload attachments to S3 and create session
+      console.log(`📧 SES: Creating session for project ${project.id} with ${attachments.length} attachment(s)`);
+
+      // Create the session
+      const session = await storage.createSession({
+        projectId: project.id,
+        name: emailSubject,
+        senderEmail: fromEmail,
+        status: (project as any).defaultWorkflowStatus || 'New',
+      });
+
+      console.log(`📧 SES: Created session ${session.id}`);
+
+      // Upload each attachment as a document
+      const { S3Client: S3C, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = new S3C({ region: process.env.AWS_REGION || 'eu-west-1' });
+      const bucketName = process.env.S3_BUCKET_NAME;
+
+      for (const att of attachments) {
+        try {
+          const docKey = `documents/${project.id}/${session.id}/${Date.now()}-${att.filename}`;
+          await s3.send(new PutObjectCommand({
+            Bucket: bucketName,
+            Key: docKey,
+            Body: att.content,
+            ContentType: att.contentType,
+          }));
+
+          await storage.createDocument({
+            sessionId: session.id,
+            name: att.filename,
+            fileUrl: docKey,
+            fileType: att.contentType,
+            fileSize: att.size,
+            status: 'pending',
           });
 
           console.log(`📧 SES: Uploaded ${att.filename} (${att.size} bytes) to ${docKey}`);
