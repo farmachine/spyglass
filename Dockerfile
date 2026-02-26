@@ -1,7 +1,7 @@
 # ==============================================================================
 # Stage 1: Build Node.js application
 # ==============================================================================
-FROM node:20-slim AS node-builder
+FROM node:25-slim AS node-builder
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN pip install --no-cache-dir --target=/app/python-deps \
 # ==============================================================================
 # Stage 3: Production runtime
 # ==============================================================================
-FROM node:20-slim AS production
+FROM node:25-slim AS production
 
 # Install runtime dependencies (Python, poppler for PDF processing, curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
