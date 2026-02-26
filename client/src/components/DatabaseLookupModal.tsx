@@ -17,7 +17,7 @@ interface FilterConfig {
 interface DatabaseLookupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (value: string) => Promise<void> | void;
+  onSelect: (value: string, selectedRecord?: any) => Promise<void> | void;
   datasourceData: any[];
   columnMappings: Record<string, string>;
   initialFilters: FilterConfig[];
@@ -205,7 +205,7 @@ export function DatabaseLookupModal(props: DatabaseLookupModalProps) {
     if (selectedValue) {
       setIsSaving(true);
       try {
-        await onSelect(selectedValue);
+        await onSelect(selectedValue, selectedRecord);
         onClose();
       } catch (error) {
         // Error is handled by the onSelect callback's own catch block
