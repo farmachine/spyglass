@@ -1827,6 +1827,7 @@ export default function SessionView() {
     displayConfig: ToolDisplayConfig;
     categoryColumn?: string;
     categoryFilterByValue?: string;
+    siblingColumns?: FlatColumn[];
   } | null>(null);
 
   // Helper function to find schema field data
@@ -7667,6 +7668,11 @@ Thank you for your assistance.`;
                                                               }
                                                             }
                                                             
+                                                            // Get sibling columns for multi-field value lookups
+                                                            const siblingCols = column.isMultiField && column.valueId
+                                                              ? (columnsToDisplay as FlatColumn[]).filter((c: any) => c.valueId === column.valueId)
+                                                              : undefined;
+
                                                             setToolDisplayModal({
                                                               isOpen: true,
                                                               validation: validation || null,
@@ -7683,7 +7689,8 @@ Thank you for your assistance.`;
                                                               displayConfig: (colDisplayConfig || (columnTool?.toolType === 'DATABASE_LOOKUP' || columnTool?.tool_type === 'DATABASE_LOOKUP'
                                                               ? { modalType: 'table' } : null)) as ToolDisplayConfig,
                                                               categoryColumn: colInputValues._categoryColumn || undefined,
-                                                              categoryFilterByValue
+                                                              categoryFilterByValue,
+                                                              siblingColumns: siblingCols
                                                             });
                                                           } catch (error: any) {
                                                             console.error('Error loading datasource:', error);
@@ -8367,24 +8374,83 @@ Thank you for your assistance.`;
         <ToolResultModal
           isOpen={toolDisplayModal.isOpen}
           onClose={() => setToolDisplayModal(null)}
-          onSelect={async (selectedValue: string) => {
+          onSelect={async (selectedValue: string, selectedRecord?: any) => {
             if (!toolDisplayModal) return;
 
-            const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column } = toolDisplayModal;
+            const { validation, fieldName, collectionName, recordIndex, rowIdentifierId, column, siblingColumns } = toolDisplayModal;
 
             console.log('Database lookup value selected:', {
               selectedValue,
+              selectedRecord,
               fieldName,
               collectionName,
               recordIndex,
               rowIdentifierId,
               validationId: validation?.id,
               columnId: column?.id,
-              columnStepId: column?.stepId
+              columnValueId: column?.valueId,
+              isMultiField: column?.isMultiField,
+              siblingCount: siblingColumns?.length
             });
 
             try {
-              if (validation?.id) {
+              // For multi-field values with a selected record, save each sibling field's value
+              if (selectedRecord && siblingColumns && siblingColumns.length > 1) {
+                console.log('Multi-field save: updating all sibling columns');
+                for (const siblingCol of siblingColumns) {
+                  const siblingOutputCol = siblingCol.inputValues?._outputColumn || '';
+                  const siblingValue = siblingOutputCol ? (selectedRecord[siblingOutputCol]?.toString() || '') : '';
+
+                  console.log(`  Sibling ${siblingCol.valueName}: outputColumn=${siblingOutputCol}, value=${siblingValue}`);
+
+                  // Find existing validation for this sibling
+                  const siblingValidation = validations.find(v =>
+                    v.valueId === siblingCol.valueId &&
+                    v.identifierId === rowIdentifierId &&
+                    v.fieldName?.includes(siblingCol.valueName)
+                  ) || validations.find(v =>
+                    v.valueId === siblingCol.valueId &&
+                    v.identifierId === rowIdentifierId &&
+                    v.fieldId === siblingCol.valueId
+                  );
+
+                  if (siblingValidation?.id) {
+                    await apiRequest(`/api/validations/${siblingValidation.id}`, {
+                      method: 'PUT',
+                      body: JSON.stringify({
+                        extractedValue: siblingValue,
+                        validationStatus: 'valid',
+                        manuallyUpdated: true,
+                        aiReasoning: 'Manually selected from database lookup',
+                        confidenceScore: 100
+                      })
+                    });
+                  } else {
+                    const postBody: Record<string, any> = {
+                      validationType: 'step_value',
+                      dataType: siblingCol.dataType || 'text',
+                      fieldId: siblingCol.valueId,
+                      fieldName: `${collectionName}.${siblingCol.valueName}[${recordIndex}]`,
+                      collectionName,
+                      recordIndex,
+                      identifierId: rowIdentifierId,
+                      valueId: siblingCol.valueId,
+                      extractedValue: siblingValue,
+                      validationStatus: 'valid',
+                      manuallyUpdated: true,
+                      aiReasoning: 'Manually selected from database lookup',
+                      confidenceScore: 100
+                    };
+                    if (column.stepId) {
+                      postBody.stepId = column.stepId;
+                    }
+                    await apiRequest(`/api/sessions/${sessionId}/validations`, {
+                      method: 'POST',
+                      body: JSON.stringify(postBody)
+                    });
+                  }
+                }
+              } else if (validation?.id) {
                 await apiRequest(`/api/validations/${validation.id}`, {
                   method: 'PUT',
                   body: JSON.stringify({
@@ -8426,7 +8492,9 @@ Thank you for your assistance.`;
 
               toast({
                 title: "Value Updated",
-                description: `Selected: ${selectedValue}`,
+                description: siblingColumns && siblingColumns.length > 1
+                  ? `Updated ${siblingColumns.length} fields from selected record`
+                  : `Selected: ${selectedValue}`,
               });
             } catch (error: any) {
               console.error('Error saving database lookup value:', error);
