@@ -18,7 +18,7 @@ RUN npm run build
 # ==============================================================================
 # Stage 2: Install Python dependencies
 # ==============================================================================
-FROM python:3.11-slim AS python-builder
+FROM python:3.14-slim AS python-builder
 
 WORKDIR /app
 
