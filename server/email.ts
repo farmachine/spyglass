@@ -121,6 +121,53 @@ export async function sendContactFormEmail(params: {
   await client.send(command);
 }
 
+/**
+ * Send a project email (conversation replies, drafts, auto-replies) via AWS SES.
+ *
+ * Used throughout the app for session/conversation email threads,
+ * kanban card notifications, and inbound email auto-replies.
+ */
+export async function sendProjectEmail(params: {
+  from: string;
+  to: string | string[];
+  subject: string;
+  textContent: string;
+  htmlContent: string;
+}): Promise<void> {
+  const { from, to, subject, textContent, htmlContent } = params;
+
+  const toAddresses = Array.isArray(to) ? to : [to];
+
+  const client = getSesClient();
+
+  const command = new SendEmailCommand({
+    FromEmailAddress: from,
+    Destination: {
+      ToAddresses: toAddresses,
+    },
+    Content: {
+      Simple: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8',
+        },
+        Body: {
+          Text: {
+            Data: textContent,
+            Charset: 'UTF-8',
+          },
+          Html: {
+            Data: htmlContent,
+            Charset: 'UTF-8',
+          },
+        },
+      },
+    },
+  });
+
+  await client.send(command);
+}
+
 /** Escape HTML special characters to prevent XSS in email templates */
 function escapeHtml(str: string): string {
   return str
