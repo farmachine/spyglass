@@ -19,6 +19,7 @@ import {
   GripVertical,
   User,
   Users,
+  ClipboardList,
   Sparkles,
   X,
   Loader2,
@@ -670,21 +671,19 @@ export function KanbanBoard({
       <Dialog open={isCardDialogOpen} onOpenChange={(open) => { setIsCardDialogOpen(open); if (!open) setIsEditingDescription(false); }}>
         <DialogContent className="max-w-6xl w-[98vw] h-[92vh] overflow-hidden flex flex-col p-0">
           {/* Card Header */}
-          <div className="bg-gradient-to-r from-[#4F63A4] to-[#6B7DB8] px-10 py-8 text-white">
-            <div className="flex items-center gap-5">
-              {selectedCard?.aiGenerated && (
-                <div className="bg-white/20 rounded-xl p-3 flex-shrink-0">
-                  <Sparkles className="h-7 w-7" />
-                </div>
-              )}
+          <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-10 py-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-[#4F63A4]/10 dark:bg-[#4F63A4]/20 rounded-xl p-3 flex-shrink-0">
+                <ClipboardList className="h-6 w-6 text-[#4F63A4] dark:text-[#8B9CD6]" />
+              </div>
               <div className="flex-1">
                 <input
                   type="text"
                   value={selectedCard?.title || ''}
                   onChange={(e) => selectedCard && setSelectedCard({ ...selectedCard, title: e.target.value })}
-                  className="w-full font-bold border-0 p-0 h-auto outline-none bg-transparent text-white placeholder:text-white/60 tracking-tight"
+                  className="w-full font-bold border-0 p-0 h-auto outline-none bg-transparent text-[#3A4A7C] dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 tracking-tight"
                   placeholder="Task title"
-                  style={{ fontSize: '1.75rem', lineHeight: '1.3' }}
+                  style={{ fontSize: '1.5rem', lineHeight: '1.3' }}
                   tabIndex={-1}
                   onFocus={(e) => {
                     const input = e.target;
@@ -693,11 +692,6 @@ export function KanbanBoard({
                     }, 0);
                   }}
                 />
-                {selectedCard?.aiGenerated && (
-                  <p className="text-sm text-white/70 mt-2 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5" /> AI Generated Task
-                  </p>
-                )}
               </div>
             </div>
           </div>
