@@ -33,7 +33,12 @@ RUN pip install --no-cache-dir --target=/app/python-deps \
     python-dotenv \
     openpyxl \
     psycopg2-binary \
-    requests
+    requests \
+    PyPDF2 \
+    pandas \
+    python-docx \
+    xlrd \
+    pdfminer.six
 
 # ==============================================================================
 # Stage 3: Production runtime
