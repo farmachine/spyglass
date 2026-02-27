@@ -4680,6 +4680,10 @@ Thank you for your assistance.`;
         // identifierID chain, previousData building, and __dataTableFields
         console.log(`📊 Data table detected (stepType=${workflowStep?.stepType}) - routing through /extract-column`);
 
+        let totalSaved = 0;
+        let totalSkipped = 0;
+        let totalResults = 0;
+
         for (const [valueId, value] of fieldsByValue) {
           console.log(`🎯 Processing data table value ${valueId}: ${value.valueName}`);
 
@@ -4697,7 +4701,7 @@ Thank you for your assistance.`;
             console.log(`⚠️ Fallback to first document for value ${valueId}`);
           }
 
-          await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
+          const colResult = await apiRequest(`/api/sessions/${sessionId}/extract-column`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -4707,16 +4711,33 @@ Thank you for your assistance.`;
               documentId: valueDocumentIds[0],
             }),
           });
+          totalSaved += colResult?.savedCount || 0;
+          totalSkipped += colResult?.skippedCount || 0;
+          totalResults += colResult?.resultsCount || 0;
         }
 
         // Refresh validations and show success
         await queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'validations'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/validations/project', project?.id] });
 
-        toast({
-          title: "Extraction Complete",
-          description: `Successfully extracted ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''}`,
-        });
+        if (totalSaved > 0) {
+          toast({
+            title: "Extraction Complete",
+            description: `Successfully extracted ${totalSaved} value${totalSaved !== 1 ? 's' : ''} across ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''}`,
+          });
+        } else if (totalResults > 0) {
+          toast({
+            title: "No Matching Data Found",
+            description: `Processed ${fieldsToExtract.length} field${fieldsToExtract.length !== 1 ? 's' : ''} but no matching values were found in the source data`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Extraction Complete",
+            description: `No data could be extracted for the selected field${fieldsToExtract.length !== 1 ? 's' : ''}`,
+            variant: "destructive",
+          });
+        }
         return; // Exit early — don't fall through to info page flow
       }
 

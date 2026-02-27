@@ -11966,6 +11966,9 @@ def extract_function(Column_Name, Excel_File):
           console.log(`📊 Multi-field row grouping: ${numFieldsPerRow} fields per row, ${processedResults.length} total results = ${Math.ceil(processedResults.length / numFieldsPerRow)} rows`);
         }
 
+        let savedCount = 0;
+        let skippedCount = 0;
+
         for (let i = 0; i < processedResults.length; i++) {
           const result = processedResults[i];
 
@@ -12139,6 +12142,7 @@ def extract_function(Column_Name, Excel_File):
                   fieldName: fieldName, // Store correct per-field name for multi-field disambiguation
                 });
                 console.log(`📝 Updated validation for ${fieldName} with value: "${result.extractedValue}" (was ${existingValidation.validationStatus})`);
+                savedCount++;
               }
             } else {
               console.log(`⚠️ Skipping update for ${fieldName} - unexpected validation status: ${existingValidation.validationStatus}`);
@@ -12157,6 +12161,7 @@ def extract_function(Column_Name, Excel_File):
             
             if (shouldSkipRecord) {
               console.log(`⏭️ Skipping validation creation for ${fieldName} - no meaningful value ("${extractedVal}")`);
+              skippedCount++;
               continue; // Skip to next result
             }
             
@@ -12191,16 +12196,19 @@ def extract_function(Column_Name, Excel_File):
             });
             console.log(`✨ Created validation for ${fieldName} with value: "${result.extractedValue}"`);
             console.log(`   🔑 Using fieldId: ${resultFieldId} (${resultColumnName})`);
+            savedCount++;
           }
         }
-        
-        console.log(`💾 Saved ${processedResults.length} validation records`);
+
+        console.log(`💾 Processed ${processedResults.length} results: ${savedCount} saved, ${skippedCount} skipped (no meaningful value)`);
       }
       
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: `Extracted ${results?.length || 0} values for ${value.valueName}`,
-        resultsCount: results?.length || 0
+        resultsCount: results?.length || 0,
+        savedCount: savedCount || 0,
+        skippedCount: skippedCount || 0
       });
       
     } catch (error) {
