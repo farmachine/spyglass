@@ -5696,7 +5696,7 @@ Thank you for your assistance.`;
 
               return (
                 <div className="flex flex-shrink-0 ml-auto">
-                  <div className="flex items-center">
+                  <div className="flex items-start">
                   {/* Chevrons + progress bar grouped in a column */}
                   <div className="flex flex-col gap-1.5">
                   <div className="flex items-center">
@@ -6398,12 +6398,13 @@ Thank you for your assistance.`;
                                               
                                               
                                               return (
-                                                <div key={field.name} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                                                <div key={field.name}>
+                              <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                {field.name}
+                              </Label>
+                              <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                               <div className="flex-1">
-                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                                  {field.name}
-                                </Label>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2">
                                 {(() => {
                                   const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                   const wasManuallyUpdated = fieldValidation && fieldValidation.manuallyUpdated;
@@ -6547,6 +6548,7 @@ Thank you for your assistance.`;
                                 })()}
                                 </div>
                               </div>
+                              </div>
                             </div>
                                                   );
                                                 })}
@@ -6596,12 +6598,12 @@ Thank you for your assistance.`;
                                               </button>
                                             </div>
                                             )}
+                                            <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                              {fieldName}
+                                            </Label>
                                             <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                                             <div className="flex-1">
-                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-                                                {fieldName}
-                                              </Label>
-                                              <div className="flex items-center gap-2 mt-1">
+                                              <div className="flex items-center gap-2">
                                               {(() => {
                                                 const hasValue = displayValue !== null && displayValue !== undefined && displayValue !== "";
                                                 const wasManuallyUpdated = validation && validation.manuallyUpdated;
@@ -6688,9 +6690,6 @@ Thank you for your assistance.`;
                                                 }
                                                 return <div className="w-3 h-3 flex-shrink-0"></div>;
                                               })()}
-                                              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                {fieldName}
-                                              </Label>
                                             </div>
                                             <div>
                                               {(() => {
@@ -7799,7 +7798,7 @@ Thank you for your assistance.`;
           order={3}
           collapsible
           defaultSize={40}
-          minSize={5}
+          minSize={10}
           collapsedSize={3}
           onExpand={() => {
             // If expanded by dragging but nothing is open, default to messenger
@@ -7819,7 +7818,7 @@ Thank you for your assistance.`;
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel id="cat-panel" order={2} defaultSize={50} minSize={15}>
+            <ResizablePanel id="cat-panel" order={2} defaultSize={50} minSize={15} collapsible collapsedSize={0} onCollapse={() => setActivePanelTab(null)}>
               <SessionPanel
                 sessionId={sessionId!}
                 session={session}
