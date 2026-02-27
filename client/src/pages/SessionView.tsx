@@ -6402,7 +6402,7 @@ Thank you for your assistance.`;
                               <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
                                 {field.name}
                               </Label>
-                              <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                              <div className="flex items-center gap-2 px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                 {(() => {
@@ -6601,7 +6601,7 @@ Thank you for your assistance.`;
                                             <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
                                               {fieldName}
                                             </Label>
-                                            <div className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
                                             <div className="flex-1">
                                               <div className="flex items-center gap-2">
                                               {(() => {
@@ -7800,6 +7800,10 @@ Thank you for your assistance.`;
           defaultSize={40}
           minSize={10}
           collapsedSize={3}
+          onCollapse={() => {
+            setActivePanelTab(null);
+            setPreviewDocumentId(null);
+          }}
           onExpand={() => {
             // If expanded by dragging but nothing is open, default to messenger
             if (!activePanelTab && !previewDocumentId) {
