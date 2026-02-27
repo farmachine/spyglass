@@ -11623,12 +11623,36 @@ def extract_function(Column_Name, Excel_File):
 
         if (step.stepType === 'list') {
           // Data Table multi-field: each field = a column, extract per row
-          toolInputs.__dataTableFields = value.fields.map((f: any, idx: number) => ({
-            ...f,
-            fieldId: `${value.id}_field_${idx}`,
-            identifierId: `${value.id}_field_${idx}`
-          }));
+          // Use _outputColumns from inputValues to set per-field outputColumn mapping
+          const outputColumns: Array<{name: string; dbColumn: string}> = (value.inputValues as any)?._outputColumns || [];
+          const singleOutputColumn = (value.inputValues as any)?._outputColumn || '';
+
+          toolInputs.__dataTableFields = value.fields.map((f: any, idx: number) => {
+            // Priority: field's own outputColumn > matching _outputColumns entry > single _outputColumn
+            let outputColumn = f.outputColumn || '';
+            if (!outputColumn && outputColumns.length > 0) {
+              // Try to match by field name first
+              const match = outputColumns.find((oc: any) => oc.name === f.name);
+              if (match) {
+                outputColumn = match.dbColumn;
+              } else if (idx < outputColumns.length) {
+                // Fall back to positional match
+                outputColumn = outputColumns[idx].dbColumn;
+              }
+            }
+            if (!outputColumn) {
+              outputColumn = singleOutputColumn;
+            }
+
+            return {
+              ...f,
+              outputColumn,
+              fieldId: `${value.id}_field_${idx}`,
+              identifierId: `${value.id}_field_${idx}`
+            };
+          });
           console.log(`   Added __dataTableFields to toolInputs for Data Table multi-column extraction`);
+          console.log(`   Output column mappings:`, toolInputs.__dataTableFields.map((f: any) => `${f.name} → ${f.outputColumn || '(none)'}`));
         } else {
           // Info Page multi-field: each field = a single entity value
           toolInputs.__infoPageFields = value.fields;
@@ -11734,6 +11758,8 @@ def extract_function(Column_Name, Excel_File):
       
       // Save the results as field validations
       const isDataTableMultiField = !!(cleanedToolInputs.__dataTableFields);
+      let savedCount = 0;
+      let skippedCount = 0;
       if (results && results.length > 0) {
         // Simple processing - ensure all results have required fields
         let processedResults = results.map(result => ({
@@ -11965,9 +11991,6 @@ def extract_function(Column_Name, Excel_File):
         if (isDataTableMultiField) {
           console.log(`📊 Multi-field row grouping: ${numFieldsPerRow} fields per row, ${processedResults.length} total results = ${Math.ceil(processedResults.length / numFieldsPerRow)} rows`);
         }
-
-        let savedCount = 0;
-        let skippedCount = 0;
 
         for (let i = 0; i < processedResults.length; i++) {
           const result = processedResults[i];

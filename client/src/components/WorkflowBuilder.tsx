@@ -2357,31 +2357,137 @@ function ValueCard({
                         return null;
                       })()}
                       
-                      {/* Output Column Selector */}
+                      {/* Output Columns */}
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <Label className="text-xs text-gray-600 dark:text-gray-400 mb-1.5 block">
-                          Output Column
-                        </Label>
-                        <select
-                          value={(value.inputValues as Record<string, any>)?._outputColumn || ''}
-                          onChange={(e) => {
-                            onUpdate({ inputValues: { ...(value.inputValues as Record<string, any> || {}), _outputColumn: e.target.value } });
-                          }}
-                          className="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                        >
-                          <option value="">Select output column...</option>
-                          {columns.map((col) => {
-                            const displayName = columnMappings[col] || col;
+                        <div className="flex items-center justify-between mb-1.5">
+                          <Label className="text-xs text-gray-600 dark:text-gray-400">
+                            Output Columns
+                          </Label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const inputVals = (value.inputValues as Record<string, any>) || {};
+                              const current = inputVals._outputColumns || [];
+                              // If migrating from single _outputColumn, use it as first entry
+                              if (current.length === 0 && inputVals._outputColumn) {
+                                const displayName = columnMappings[inputVals._outputColumn] || inputVals._outputColumn;
+                                onUpdate({ inputValues: { ...inputVals, _outputColumns: [{ name: displayName, dbColumn: inputVals._outputColumn }, { name: '', dbColumn: '' }] } });
+                              } else {
+                                onUpdate({ inputValues: { ...inputVals, _outputColumns: [...current, { name: '', dbColumn: '' }] } });
+                              }
+                            }}
+                            className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add Column
+                          </button>
+                        </div>
+                        {(() => {
+                          const inputVals = (value.inputValues as Record<string, any>) || {};
+                          const outputColumns: Array<{name: string; dbColumn: string}> = inputVals._outputColumns || [];
+
+                          // Show single dropdown if no multi-column mappings yet (backward compatible)
+                          if (outputColumns.length === 0) {
                             return (
-                              <option key={col} value={col}>
-                                {displayName} {col !== displayName ? `(${col})` : ''}
-                              </option>
+                              <div>
+                                <select
+                                  value={inputVals._outputColumn || ''}
+                                  onChange={(e) => {
+                                    onUpdate({ inputValues: { ...inputVals, _outputColumn: e.target.value } });
+                                  }}
+                                  className="w-full text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                  <option value="">Select output column...</option>
+                                  {columns.map((col) => {
+                                    const displayName = columnMappings[col] || col;
+                                    return (
+                                      <option key={col} value={col}>
+                                        {displayName} {col !== displayName ? `(${col})` : ''}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  The column value to extract when a match is found. Click "Add Column" for multiple outputs.
+                                </p>
+                              </div>
                             );
-                          })}
-                        </select>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          The column value to extract when a match is found.
-                        </p>
+                          }
+
+                          // Multi-column mapping mode
+                          return (
+                            <div className="space-y-2">
+                              {outputColumns.map((oc, ocIdx) => (
+                                <div key={ocIdx} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={oc.name}
+                                    onChange={(e) => {
+                                      const updated = [...outputColumns];
+                                      updated[ocIdx] = { ...updated[ocIdx], name: e.target.value };
+                                      // Sync fields array with output column names
+                                      const syncedFields = updated.filter(c => c.name).map((c) => ({
+                                        name: c.name,
+                                        dataType: 'TEXT',
+                                        description: '',
+                                        outputColumn: c.dbColumn
+                                      }));
+                                      onUpdate({ inputValues: { ...inputVals, _outputColumns: updated, _outputColumn: updated[0]?.dbColumn || '' }, fields: syncedFields.length > 0 ? syncedFields : undefined });
+                                    }}
+                                    placeholder="Column name..."
+                                    className="flex-1 text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                  />
+                                  <select
+                                    value={oc.dbColumn}
+                                    onChange={(e) => {
+                                      const updated = [...outputColumns];
+                                      updated[ocIdx] = { ...updated[ocIdx], dbColumn: e.target.value };
+                                      // Sync fields array with output column names
+                                      const syncedFields = updated.filter(c => c.name).map((c) => ({
+                                        name: c.name,
+                                        dataType: 'TEXT',
+                                        description: '',
+                                        outputColumn: c.dbColumn
+                                      }));
+                                      onUpdate({ inputValues: { ...inputVals, _outputColumns: updated, _outputColumn: updated[0]?.dbColumn || '' }, fields: syncedFields.length > 0 ? syncedFields : undefined });
+                                    }}
+                                    className="flex-1 text-xs p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                  >
+                                    <option value="">Map to DB field...</option>
+                                    {columns.map((col) => {
+                                      const displayName = columnMappings[col] || col;
+                                      return (
+                                        <option key={col} value={col}>
+                                          {displayName} {col !== displayName ? `(${col})` : ''}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = outputColumns.filter((_, i) => i !== ocIdx);
+                                      const syncedFields = updated.filter(c => c.name).map((c) => ({
+                                        name: c.name,
+                                        dataType: 'TEXT',
+                                        description: '',
+                                        outputColumn: c.dbColumn
+                                      }));
+                                      onUpdate({ inputValues: { ...inputVals, _outputColumns: updated, _outputColumn: updated[0]?.dbColumn || '' }, fields: syncedFields.length > 0 ? syncedFields : undefined });
+                                    }}
+                                    className="text-red-400 hover:text-red-600 p-1"
+                                    title="Remove column"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Map each data table column to a database field.
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
