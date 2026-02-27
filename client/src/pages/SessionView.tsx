@@ -68,6 +68,7 @@ import SessionPanel, { type PanelTab, panelTabs } from "@/components/SessionPane
 import RiveLoader from "@/components/RiveLoader";
 import DocumentPreview from "@/components/DocumentPreview";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import ExtractWizardModal from "@/components/ExtractWizardModal";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { ToolResultModal } from "@/components/ToolResultModal";
@@ -1744,8 +1745,9 @@ export default function SessionView() {
   const [openTaskCardId, setOpenTaskCardId] = useState<string | null>(null);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isSessionInfoCollapsed, setIsSessionInfoCollapsed] = useState(false);
-  const sessionInfoRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLDivElement>(null);
+  const navPanelRef = useRef<ImperativePanelHandle>(null);
+  const sessionInfoPanelRef = useRef<ImperativePanelHandle>(null);
+  const rightPanelRef = useRef<ImperativePanelHandle>(null);
 
   const [sessionNameValue, setSessionNameValue] = useState('');
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
@@ -2668,56 +2670,29 @@ export default function SessionView() {
     }
   };
 
-  // Smart auto-collapse logic — max 3 visible panes (Nav, SessionData, DocPreview/CAT)
+  // Panel open/close helpers
   const openCATPanel = (tab: PanelTab) => {
-    // If Nav + SessionData + DocPreview are all visible, collapse Nav first
-    if (!isNavCollapsed && previewDocumentId) {
-      setIsNavCollapsed(true);
-    }
     setActivePanelTab(tab);
+    // Right panel auto-expands via the useEffect below
   };
 
   const openDocPreview = (docId: string) => {
-    // If Nav + SessionData + CAT are all visible, collapse Nav first
-    if (!isNavCollapsed && activePanelTab) {
-      setIsNavCollapsed(true);
-    }
     setPreviewDocumentId(docId);
+    // Right panel auto-expands via the useEffect below
   };
 
   const expandNav = () => {
-    // Allow nav to expand; user explicitly requested it
-    // All 3 content panes (session data, doc preview, CAT) can stay open
-    setIsNavCollapsed(false);
+    navPanelRef.current?.expand();
   };
 
-  // Drag-to-close for navigation pane (CSS resize: horizontal)
+  // Auto-collapse/expand right panel based on content state
   useEffect(() => {
-    if (!navRef.current || isNavCollapsed) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width < 100) {
-          setIsNavCollapsed(true);
-        }
-      }
-    });
-    observer.observe(navRef.current);
-    return () => observer.disconnect();
-  }, [isNavCollapsed]);
-
-  // Drag-to-close for session info pane (CSS resize: horizontal)
-  useEffect(() => {
-    if (!sessionInfoRef.current || isSessionInfoCollapsed) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width < 100) {
-          setIsSessionInfoCollapsed(true);
-        }
-      }
-    });
-    observer.observe(sessionInfoRef.current);
-    return () => observer.disconnect();
-  }, [isSessionInfoCollapsed]);
+    if (!activePanelTab && !previewDocumentId) {
+      rightPanelRef.current?.collapse();
+    } else if (rightPanelRef.current?.isCollapsed()) {
+      rightPanelRef.current?.expand();
+    }
+  }, [activePanelTab, previewDocumentId]);
 
   // Refresh session data and check for new emails
   const handleRefresh = async () => {
@@ -5829,11 +5804,22 @@ Thank you for your assistance.`;
           </div>
         </div>
       </div>
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Collapsible Left Navigation */}
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+        {/* Nav Panel — collapsible */}
+        <ResizablePanel
+          ref={navPanelRef}
+          id="nav-panel"
+          order={1}
+          collapsible
+          defaultSize={15}
+          minSize={10}
+          collapsedSize={4}
+          onCollapse={() => setIsNavCollapsed(true)}
+          onExpand={() => setIsNavCollapsed(false)}
+        >
         {isNavCollapsed ? (
           /* Collapsed nav strip — icons only */
-          <div className="w-14 bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col items-center py-3 flex-shrink-0 overflow-y-auto">
+          <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col items-center py-3 overflow-y-auto">
             {/* Expand button */}
             <button
               onClick={expandNav}
@@ -5913,13 +5899,13 @@ Thank you for your assistance.`;
             )}
           </div>
         ) : (
-          /* Expanded sidebar — not resizable via panels, uses CSS resize for simplicity */
-          <div ref={navRef} className="bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col flex-shrink-0" style={{ width: '280px', minWidth: '200px', maxWidth: '400px', resize: 'horizontal', overflow: 'auto' }}>
+          /* Expanded sidebar */
+          <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col overflow-hidden">
             {/* Grey bar header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Navigation</span>
               <button
-                onClick={() => setIsNavCollapsed(true)}
+                onClick={() => navPanelRef.current?.collapse()}
                 className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
                 title="Collapse navigation"
               >
@@ -6008,12 +5994,26 @@ Thank you for your assistance.`;
             )}
           </div>
         )}
+        </ResizablePanel>
 
-        {/* Session Info pane — standalone div, not in ResizablePanelGroup */}
+        <ResizableHandle />
+
+        {/* Session Info Panel — collapsible */}
+        <ResizablePanel
+          ref={sessionInfoPanelRef}
+          id="session-info-panel"
+          order={2}
+          collapsible
+          defaultSize={45}
+          minSize={15}
+          collapsedSize={2}
+          onCollapse={() => setIsSessionInfoCollapsed(true)}
+          onExpand={() => setIsSessionInfoCollapsed(false)}
+        >
         {isSessionInfoCollapsed ? (
-          <div className="w-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center pt-3 flex-shrink-0">
+          <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center pt-3">
             <button
-              onClick={() => setIsSessionInfoCollapsed(false)}
+              onClick={() => sessionInfoPanelRef.current?.expand()}
               className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
               title={`Expand ${project?.mainObjectName || 'Session'} Info`}
             >
@@ -6024,25 +6024,12 @@ Thank you for your assistance.`;
             </span>
           </div>
         ) : (
-          <div
-            ref={sessionInfoRef}
-            className="bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0"
-            style={{
-              ...(activePanelTab || previewDocument
-                ? { width: '45%', minWidth: '300px', maxWidth: '60%', resize: 'horizontal' as const, overflow: 'auto' }
-                : { flex: '1 1 auto', overflow: 'hidden' }),
-            }}
-          >
+          <div className="h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
             {/* Grey bar header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{project?.mainObjectName || 'Session'} Info</span>
               <button
-                onClick={() => {
-                  if (!activePanelTab) {
-                    setActivePanelTab('messenger');
-                  }
-                  setIsSessionInfoCollapsed(true);
-                }}
+                onClick={() => sessionInfoPanelRef.current?.collapse()}
                 className="h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
                 title={`Collapse ${project?.mainObjectName || 'Session'} Info`}
               >
@@ -7801,11 +7788,30 @@ Thank you for your assistance.`;
           </div>
         )}
 
-        {/* Right-side panels: doc-preview and/or CAT */}
+        </ResizablePanel>
+
+        <ResizableHandle />
+
+        {/* Right Panel — DocPreview / CAT / both / collapsed strip */}
+        <ResizablePanel
+          ref={rightPanelRef}
+          id="right-panel"
+          order={3}
+          collapsible
+          defaultSize={40}
+          minSize={5}
+          collapsedSize={3}
+          onExpand={() => {
+            // If expanded by dragging but nothing is open, default to messenger
+            if (!activePanelTab && !previewDocumentId) {
+              setActivePanelTab('messenger');
+            }
+          }}
+        >
         {previewDocument && activePanelTab ? (
-          /* Both doc-preview and CAT open — ResizablePanelGroup between them */
-          <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
-            <ResizablePanel id="doc-preview" order={1} defaultSize={50} minSize={25}>
+          /* Both doc-preview and CAT open — nested ResizablePanelGroup */
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel id="doc-preview" order={1} defaultSize={50} minSize={15}>
               <DocumentPreview
                 document={previewDocument}
                 sessionId={sessionId!}
@@ -7813,7 +7819,7 @@ Thank you for your assistance.`;
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel id="cat-panel" order={2} defaultSize={50} minSize={25}>
+            <ResizablePanel id="cat-panel" order={2} defaultSize={50} minSize={15}>
               <SessionPanel
                 sessionId={sessionId!}
                 session={session}
@@ -7822,13 +7828,14 @@ Thank you for your assistance.`;
                 activeTab={activePanelTab}
                 onTabChange={(tab) => setActivePanelTab(tab)}
                 onClose={() => setActivePanelTab(null)}
+                onCollapse={() => setActivePanelTab(null)}
                 onOpenTask={(cardId) => setOpenTaskCardId(cardId)}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : previewDocument ? (
           /* Only doc-preview open */
-          <div className="flex-1 min-h-0 min-w-0">
+          <div className="h-full min-w-0">
             <DocumentPreview
               document={previewDocument}
               sessionId={sessionId!}
@@ -7837,7 +7844,7 @@ Thank you for your assistance.`;
           </div>
         ) : activePanelTab ? (
           /* Only CAT panel open */
-          <div className="flex-1 min-h-0 min-w-0">
+          <div className="h-full min-w-0">
             <SessionPanel
               sessionId={sessionId!}
               session={session}
@@ -7846,14 +7853,21 @@ Thank you for your assistance.`;
               activeTab={activePanelTab}
               onTabChange={(tab) => setActivePanelTab(tab)}
               onClose={() => setActivePanelTab(null)}
+              onCollapse={() => setActivePanelTab(null)}
               onOpenTask={(cardId) => setOpenTaskCardId(cardId)}
             />
           </div>
-        ) : null}
-
-        {/* Collapsed CAT sidebar strip — shows when no panel is open */}
-        {!activePanelTab && (
-          <div className="w-12 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-600 flex flex-col items-center pt-4 gap-3 flex-shrink-0">
+        ) : (
+          /* Collapsed CAT sidebar strip */
+          <div className="h-full bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-600 flex flex-col items-center pt-4 gap-3">
+            {/* Expand button */}
+            <button
+              onClick={() => openCATPanel('messenger')}
+              className="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-[#4F63A4] hover:bg-[#4F63A4]/10 transition-colors"
+              title="Expand panel"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
             {panelTabs.map(({ id, label, icon: Icon }) => (
               <Button
                 key={id}
@@ -7868,7 +7882,8 @@ Thank you for your assistance.`;
             ))}
           </div>
         )}
-      </div>{/* closes outer flex (sidebar + main) */}
+        </ResizablePanel>
+      </ResizablePanelGroup>{/* closes outer ResizablePanelGroup */}
 
       {/* AI Reasoning Modal */}
       {selectedReasoning && (

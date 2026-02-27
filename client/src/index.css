@@ -11,6 +11,33 @@
   display: none;
 }
 
+/* Dark mode scrollbar optimization */
+.dark {
+  scrollbar-color: hsl(217, 15%, 45%) hsl(220, 15%, 25%);
+}
+
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(220, 15%, 25%);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(217, 15%, 45%);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 15%, 55%);
+}
+
+.dark ::-webkit-scrollbar-corner {
+  background: hsl(220, 15%, 25%);
+}
+
 :root {
   /* Clean Professional Theme - Flow Capture */
   --background: hsl(210, 40%, 98%); /* #F8FAFC */
@@ -305,6 +332,19 @@ table td:last-child {
 
 .folder-tabs .tabs-list::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1 !important;
+}
+
+/* Dark mode folder tabs scrollbar */
+.dark .folder-tabs .tabs-list {
+  scrollbar-color: hsl(217, 15%, 45%) transparent !important;
+}
+
+.dark .folder-tabs .tabs-list::-webkit-scrollbar-thumb {
+  background: hsl(217, 15%, 45%) !important;
+}
+
+.dark .folder-tabs .tabs-list::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 15%, 55%) !important;
 }
 
 .folder-tabs .tabs-trigger {
