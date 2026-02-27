@@ -1563,8 +1563,8 @@ function ValueCard({
         stepName: stepName
       });
       
-      // For info page values with fields, also add individual fields
-      if (expandInfoPageFields && stepType === 'page' && v.fields && Array.isArray(v.fields)) {
+      // For values with fields, also add individual fields (info pages and data tables)
+      if (expandInfoPageFields && v.fields && Array.isArray(v.fields)) {
         v.fields.forEach((field: { name: string; type: string }) => {
           if (field.name) {
             availableValues.push({
@@ -2498,7 +2498,6 @@ function ValueCard({
             {/* Tool Parameters - hidden for map lookup tools since search columns handle the inputs */}
             {selectedTool && inputParameters.length > 0 && !((selectedTool as any)?.displayConfig?.modalType === 'map' || (selectedTool as any)?.display_config?.modalType === 'map') && (
               <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg space-y-3">
-                <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Tool Parameters</Label>
                 {inputParameters.map((param: any) => {
                   // Determine the actual parameter type
                   const paramType = param.type?.toLowerCase() || 'text';
