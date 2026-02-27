@@ -6399,7 +6399,7 @@ Thank you for your assistance.`;
                                               
                                               return (
                                                 <div key={field.name}>
-                              <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                              <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 block">
                                 {field.name}
                               </Label>
                               <div className="flex items-center gap-2 px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
@@ -6598,7 +6598,7 @@ Thank you for your assistance.`;
                                               </button>
                                             </div>
                                             )}
-                                            <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                            <Label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 block">
                                               {fieldName}
                                             </Label>
                                             <div className="flex items-center gap-2 px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
